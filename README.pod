@@ -1,0 +1,39 @@
+=head1 Spreadsheet::XLSX::Reader
+
+Read spreadsheet files with xlsx extentions
+
+=head1 Description
+
+The goal is to write a spreadsheet parser based on L<XML::LibXML> and L<Moose> that 
+matches the API of L<Spreadsheet::ParseExcel> as closely as possible.
+
+B<Although it is my primary focus it is not working yet!>
+
+=head1 Build from Source - (for example git)
+	
+Download a compressed file with the code
+	
+Extract the code from the compressed file.  If you are using tar this should work:
+
+        tar -zxvf Spreadsheet-XLSX-Reader-0.xx.tar.gz
+
+Change into the extracted directory
+
+(For Windows find what version of make was used to compile your perl)
+
+	perl  -V:make
+
+Then
+(for Windows substitute the correct make function (s/make/dmake/g)?)
+
+	>perl Makefile.PL
+
+	>make
+
+	>make test
+
+	>make install # As sudo/root
+
+	>make clean
+	
+=cut
