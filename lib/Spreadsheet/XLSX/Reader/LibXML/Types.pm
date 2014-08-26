@@ -1,9 +1,9 @@
-package Spreadsheet::XLSX::Reader::Types;
-use version; our $VERSION = version->declare("v0.1_1");
+package Spreadsheet::XLSX::Reader::LibXML::Types;
+use version; our $VERSION = qv("v0.4.2");
 use strict;
 use warnings;
 use Type::Utils -all;
-use Type::Library
+use Type::Library 0.046
 	-base,
 	-declare => qw(
 		FileName					XMLFile						XLSXFile
@@ -12,8 +12,8 @@ use Type::Library
 		StrictTwoDecimalPercent		ScientificNotation			NumWithFraction
 		ShortUSDate					MediumDate					DayMonth
 		MonthYear					TwelveHourMinute			EpochYear
-		NumberFormat				NumberFormats				Alignment
-		CustomFormat
+		Alignment					PassThroughType				CellType
+		CellID
 		
 		ZeroFromNum					OneFromNum					TwoFromNum
 		ThreeFromNum				FourFromNum					NineFromNum
@@ -21,8 +21,18 @@ use Type::Library
 		FourteenFromWinExcelNum		FourteenFromAppleExcelNum	FifteenFromWinExcelNum
 		FifteenFromAppleExcelNum	SixteenFromWinExcelNum		SixteenFromAppleExcelNum
 		SeventeenFromWinExcelNum	SeventeenFromAppleExcelNum	EighteenFromNum
-	);
+	);#ValueCoercion				ValueCoercions	CustomFormat
 use Types::Standard -types;
+my $try_xs =
+		exists($ENV{PERL_TYPE_TINY_XS}) ? !!$ENV{PERL_TYPE_TINY_XS} :
+		exists($ENV{PERL_ONLY})         ?  !$ENV{PERL_ONLY} :
+		1;
+if( $try_xs and exists $INC{'Type/Tiny/XS.pm'} ){
+	eval "use Type::Tiny::XS 0.010";
+	if( $@ ){
+		die "You have loaded Type::Tiny::XS but versions prior to 0.010 will cause this module to fail";
+	}
+}
 use DateTimeX::Format::Excel;
 use lib	'../../../../lib',;
 ###LogSD	use Log::Shiras::Telephone;
@@ -152,32 +162,16 @@ declare Alignment,
 		horizontal	=> Maybe[ Str ],
 		vertical	=> Maybe[ Str ],
 	];
-	
-declare NumberFormat,
-	as Dict[
-		translation			=> InstanceOf['Type::Coercion'],
-		borderId			=> Int,
-		fillId				=> Int,
-		font				=> InstanceOf['XML::LibXML::Element'],
-		xfId				=> Maybe[ Int ],
-		applyNumberFormat	=> Maybe[ Bool ],
-		pivotButton			=> Maybe[ Bool ],
-		applyAlignment		=> Maybe[ Bool ],
-		alignment			=> Optional[ Dict[
-									horizontal	=> Maybe[ Str ],
-									vertical	=> Maybe[ Str ],
-								] ],
-		applyFont			=> Maybe[ Bool ],
-	];
 
-declare NumberFormats,
-	as ArrayRef[NumberFormat];
-	
-declare CustomFormat,
-	as Dict[
-		number	=> Optional[ Any ],#InstanceOf['Type::Coercion'] ],
-		's'		=> Optional[ Any ],#InstanceOf['Type::Coercion'] ],
-	];
+declare PassThroughType,
+	as Any;
+
+declare CellType,
+	as Enum[ 's', 'number' ];
+
+declare CellID,
+	as StrMatch[ qr/^[A-Z]{1,3}\d+$/ ];
+
 
 #########1 Excel Defined Converions     4#########5#########6#########7#########8#########9
 
@@ -538,8 +532,8 @@ This is the package for managing types in the L<Spreadsheet::XLSX::Reader> packa
 Some of the types are used in the normal way.  However, the greatest volume of this 
 module is used to provide coercions for the data formats.  I used these to replace 
 excel's data conversion routines.  If you want to write a conversion of your own you 
-only need to write a L<Type::Coercion> method and use it as described in 
-L<Spreadsheet::XLSX::Reader::Worksheet>.
+only need to write a L<Type::Coercion> check or a L<Type::Tiny> check with a coercion 
+and use it as described in L<Spreadsheet::XLSX::Reader::Worksheet>.
 
 =head2 Types
 

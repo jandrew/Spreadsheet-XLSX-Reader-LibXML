@@ -1,21 +1,15 @@
-package Spreadsheet::XLSX::Reader;
-use version; our $VERSION = version->declare("v0.1_1");
+package Spreadsheet::XLSX::Reader::LibXML;
+use version; our $VERSION = version->declare("v0.4.2");
+
 use 5.010;
 use	Moose;
 use	MooseX::StrictConstructor;
 use	MooseX::HasDefaults::RO;
 use	Archive::Zip;
 use	OLE::Storage_Lite;
-#~ use	Data::Dumper;
 use	File::Temp;
 #~ $File::Temp::DEBUG = 1;
 use	DateTime::Format::Flexible;
-#~ use	Carp qw( cluck );
-#~ use	XML::LibXML;
-#~ my	$parser = XML::LibXML->new;
-#~ BEGIN{
-	#~ $ENV{PERL_DESTRUCT_LEVEL} = 2;
-#~ }
 use Types::Standard qw(
         HashRef
 		Str
@@ -24,17 +18,19 @@ use Types::Standard qw(
 		Object
 		Int
 		CodeRef
+		InstanceOf
     );
 use lib	'../../../lib',;
-with 	'Spreadsheet::XLSX::Reader::LogSpace',
-		'Spreadsheet::XLSX::Reader::Error';
-use Spreadsheet::XLSX::Reader::TempFilter;# Fix with release of Log::Shiras
-###LogSD	use Log::Shiras::Telephone;# Fix with CPAN release of Log::Shiras
+use 	Spreadsheet::XLSX::Reader::Error;
+with 	'Spreadsheet::XLSX::Reader::LogSpace';
+###LogSD	use Log::Shiras::Telephone;
+###LogSD	use Log::Shiras::UnhideDebug;
 use Spreadsheet::XLSX::Reader::Types v0.1 qw(
 		XLSXFile
         ParserType
 		EpochYear
 	);
+###LogSD	use Log::Shiras::UnhideDebug;
 use	Spreadsheet::XLSX::Reader::XMLReader::SharedStrings;
 use	Spreadsheet::XLSX::Reader::XMLReader::CalcChain;
 use	Spreadsheet::XLSX::Reader::XMLDOM::Styles;
@@ -45,6 +41,28 @@ use	Spreadsheet::XLSX::Reader::XMLReader::Worksheet;
 
 
 #########1 Public Attributes  3#########4#########5#########6#########7#########8#########9
+
+has error_inst =>(
+		isa			=> InstanceOf[ 'Spreadsheet::XLSX::Reader::Error' ],
+		clearer		=> '_clear_error_inst',
+		reader		=> '_get_error_instance',
+		required	=> 1,
+		default		=> sub{ Spreadsheet::XLSX::Reader::Error->new() },
+		handles 	=>{
+			error			=> 'error',
+			set_error		=> 'set_error',
+			clear_error		=> 'clear_error',
+			_set_warnings	=> 'set_warnings',# This row is the magic
+			if_warn			=> 'if_warn'
+		},
+	);
+with	'Spreadsheet::XLSX::Reader::CellToColumnRow'; #Here to load set_error first
+
+has should_warn =>(
+		isa		=> Bool,
+		trigger	=> \&_set_warnings,
+		writer	=> 'set_warnings',
+	);
 
 has file_name =>(
 		isa			=> XLSXFile,
@@ -95,13 +113,13 @@ has sheet_parser_modules =>(### Add Data::Walk::Extracted manipulators
 			{
 				reader =>{
 					sharedStrings =>{
-						module		=> 'Spreadsheet::XLSX::Reader::XMLReader:SharedStrings',
+						module		=> 'Spreadsheet::XLSX::Reader::XMLReader::SharedStrings',
 					},
 					calcChain		=>{
 						module		=> 'Spreadsheet::XLSX::Reader::XMLReader::CalcChain',
 					},
 					styles =>{
-						module		=> 'Spreadsheet::XLSX::Reader::DOM::Styles',
+						module		=> 'Spreadsheet::XLSX::Reader::XMLDOM::Styles',
 						attributes	=> [ 'excel_epoch', 'self' ],#### Does self cover excel_epoch?
 					},
 					worksheet =>{
@@ -110,17 +128,17 @@ has sheet_parser_modules =>(### Add Data::Walk::Extracted manipulators
 				},
 				dom	=>{
 					sharedStrings =>{
-						module		=> 'Spreadsheet::XLSX::Reader::DOM::SharedStrings',
+						module		=> 'Spreadsheet::XLSX::Reader::XMLDOM::SharedStrings',
 					},
 					calcChain =>{
-						module		=> 'Spreadsheet::XLSX::Reader::DOM::CalcChain',
+						module		=> 'Spreadsheet::XLSX::Reader::XMLDOM::CalcChain',
 					},
 					styles =>{
-						module		=> 'Spreadsheet::XLSX::Reader::DOM::Styles',
+						module		=> 'Spreadsheet::XLSX::Reader::XMLDOM::Styles',
 						attributes	=> [ 'excel_epoch', 'self' ],#### Does self cover excel_epoch?
 					},
 					worksheet =>{
-						module		=> 'Spreadsheet::XLSX::Reader::DOM::Worksheet',
+						module		=> 'Spreadsheet::XLSX::Reader::XMLDOM::Worksheet',
 					},
 				},
 			},
@@ -161,7 +179,8 @@ sub worksheets{
 	###LogSD			'Attempting to build all worksheets: ', $self->get_worksheet_names ] );
 	my	@worksheet_array;
 	while( my $worksheet_object = $self->worksheet ){
-	#~ for my $worksheet_name ( @{$self->get_worksheet_names} ){
+	#~ for my $worksheet_name ( @worksheet_array ){
+		#~ my	$worksheet_object = $self->worksheet( $worksheet_name );
 		push @worksheet_array, $worksheet_object;#$self->worksheet( $worksheet_name );
 	}
 	###LogSD	$phone->talk( level => 'trace', message =>[
@@ -194,24 +213,29 @@ sub worksheet{
 	# build the worksheet
 	my	$worksheet_info = $self->_get_worksheet_info( $worksheet_name );
 	$next_position //= $worksheet_info->{position};
-	$worksheet_info->{_shared_strings_instance} = $self->_shared_strings_instance if
+	$worksheet_info->{shared_strings_instance} = $self->_shared_strings_instance if
 		$self->_shared_strings_instance;
-	$worksheet_info->{_calc_chain_instance} = $self->_calc_chain_instance if
+	$worksheet_info->{calc_chain_instance} = $self->_calc_chain_instance if
 		$self->_calc_chain_instance;
-	$worksheet_info->{_styles_instance} = $self->_styles_instance if
+	$worksheet_info->{styles_instance} = $self->_styles_instance if
 		$self->_styles_instance;
+	delete $worksheet_info->{rel_id};
+	delete $worksheet_info->{position};
 	###LogSD	$phone->talk( level => 'info', message =>[
 	###LogSD		"The next worksheet is: $worksheet_name",
-	###LogSD		"Using Class: " . $self->_get_module_list( $self->get_parser_type )->{worksheet},
+	###LogSD		"Using Class: " .  $self->_get_module_list( $self->get_parser_type )->{worksheet}->{module},
 	###LogSD		"With worksheet ref:", 
 	###LogSD		{
-	###LogSD			name_space 	=> $self->get_log_space . "::Worksheet",
-	###LogSD			name		=> $worksheet_name,
+	###LogSD			log_space 	=> $self->get_log_space . "::Worksheet",
+	###LogSD			sheet_name	=> $worksheet_name,
+	###LogSD			error_inst	=> $self->_get_error_instance,
 	###LogSD			%{$worksheet_info},
 	###LogSD		}										] );
-	my	$worksheet = ($self->_get_module_list( $self->get_parser_type )->{worksheet})->new(
-						name_space 	=> $self->get_log_space . "::Worksheet",
-						name		=> $worksheet_name,
+	my	$worksheet = $self->_get_module_list( $self->get_parser_type )->{worksheet}->{module}->new(
+						log_space 		=> $self->get_log_space . "::Worksheet",
+						count_from_zero	=> $self->counting_from_zero,
+						sheet_name		=> $worksheet_name,
+						error_inst		=> $self->_get_error_instance,
 						%{$worksheet_info},  );
 	if( $worksheet ){
 		###LogSD	$phone->talk( level => 'info', message =>[
@@ -415,7 +439,7 @@ sub worksheet{
 
 #########1 Private Attributes 3#########4#########5#########6#########7#########8#########9
 
-has epoch_year =>(
+has _epoch_year =>(
 		isa		=> EpochYear,
 		writer	=> '_set_epoch_year',
 		reader	=> 'get_epoch_year',
@@ -522,7 +546,7 @@ sub _build_file{
 	$self->_clear_modified_by;
 	$self->_clear_date_created;
 	$self->_clear_date_modified;
-	$self->_clear_error;
+	$self->clear_error;
 	$self->start_at_the_beginning;
 	my	$message;
     if ( !-e $file_name ){
@@ -563,19 +587,19 @@ sub _build_file{
 	
 	# Load general workbook information to this instance
 	my	$workbook_file = $self->_get_temp_dir . '/xl/workbook.xml';
-	###LogSD	$phone->talk( level => 'debug', message =>[ "Loading $workbook_file"	] );
+	###LogSD	$phone->talk( level => 'debug', message =>[ "Loading workbook file: $workbook_file"	] );
 	my ( $rel_lookup, $id_lookup ) = $self->_load_workbook_file( $workbook_file );
 	return undef if !$rel_lookup;
 	
 	# Load the workbook rels file
 	$workbook_file = $self->_get_temp_dir . '/xl/_rels/workbook.xml.rels';
-	###LogSD	$phone->talk( level => 'debug', message =>[ "Loading $workbook_file"	] );
+	###LogSD	$phone->talk( level => 'debug', message =>[ "Loading _rels file: $workbook_file"	] );
 	my ( $pivot_lookup ) = $self->_load_rels_workbook_file( $rel_lookup, $workbook_file );
 	return undef if !$pivot_lookup;
 	
 	# Load the docProps file
 	$workbook_file = $self->_get_temp_dir . '/docProps/core.xml';
-	###LogSD	$phone->talk( level => 'debug', message =>[ "Loading $workbook_file"	] );
+	###LogSD	$phone->talk( level => 'debug', message =>[ "Loading _doc_props file: $workbook_file"	] );
 	$self->_load_doc_props_file( $workbook_file );
 	#~ my $wait = <>;
 	# Build the instances for all the shared files (data for sheets shared across worksheets)
@@ -781,7 +805,8 @@ sub _set_shared_worksheet_files{
 				my	$new_instance = $object_ref->{$name}->{module}->new(
 										file_name 		=> $next,
 										log_space 		=> $sub_name,
-										_workbook_link	=> $self,
+										error_inst		=> $self->_get_error_instance,
+										#~ _workbook_link	=> $self,
 									);
 				my	$attribute_setter = "_set_$name";
 				$self->$attribute_setter( $new_instance );
@@ -828,7 +853,7 @@ __END__
 
 =head1 NAME
 
-Spreadsheet::XLSX::Reader - Read spreadsheet files with xlsx extentions
+Spreadsheet::XLSX::Reader - Read Excel xlsx extention files with LibXML
 
 
 #~ ###############################################################################
@@ -1644,6 +1669,10 @@ Excel::Writer::XLSX, an XLSX file writer based on the Spreadsheet::WriteExcel in
 There are a lot of features still to be added. This module is very much a work in progress.
 
 =over
+
+=item 1 Choose separate error instances per intance or use a shared error instance.
+
+=item 2 Add as much of the Spreadsheet::ParseExcel test suit to this test suit as reasonable
 
 =item * Reading from filehandles.
 
