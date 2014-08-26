@@ -1,10 +1,10 @@
-package Spreadsheet::XLSX::Reader::Error;
-use version; our $VERSION = version->declare("v0.1_1");
+package Spreadsheet::XLSX::Reader::LibXML::Error;
+use version; our $VERSION = qv('v0.4.2');
 
 use Moose;
 use Carp qw( cluck );
 no warnings 'once';
-@Spreadsheet::XLSX::Reader::Error::CARP_NOT = qw(
+@Spreadsheet::XLSX::Reader::LibXML::Error::CARP_NOT = qw(
 	Capture::Tiny
 );
 use MooseX::StrictConstructor;
@@ -13,11 +13,10 @@ use Types::Standard qw(
 		Str
 		Bool
     );
-use lib	'../../../../lib',;
-with 'Spreadsheet::XLSX::Reader::LogSpace';
+use lib	'../../../../../lib',;
+with 'Spreadsheet::XLSX::Reader::LibXML::LogSpace';
 ###LogSD	use Log::Shiras::TapWarn qw( re_route_warn restore_warn );
 ###LogSD	use Log::Shiras::Telephone;
-###LogSD	use Log::Shiras::UnhideDebug;
 
 has error_string =>(
 		isa		=> Str,
@@ -64,7 +63,7 @@ __END__
 
 =head1 NAME
 
-Spreadsheet::XLSX::Reader::Error - Moose class for remembering the last error
+Spreadsheet::XLSX::Reader::LibXML::Error - Moose class for remembering the last error
     
 =head1 DESCRIPTION
 
@@ -215,7 +214,7 @@ B<Returns:> Nothing (string is cleared)
 
 =over
 
-L<github Spreadsheet-XLSX-Reader/issues|https://github.com/jandrew/Spreadsheet-XLSX-Reader/issues>
+L<github Spreadsheet-XLSX-Reader-LibXML/issues|https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML/issues>
 
 =back
 
@@ -259,6 +258,12 @@ L<Carp> - cluck
 
 L<Types::Standard>
 
+L<MooseX::StrictConstructor>
+
+L<MooseX::HasDefaults::RO>
+
+L<Spreadsheet::XLSX::Reader::LibXML::LogSpace>
+
 =back
 
 =head1 SEE ALSO
@@ -266,8 +271,6 @@ L<Types::Standard>
 =over
 
 L<Spreadsheet::XLSX>
-
-L<Spreadsheet::XLSX::Reader::TempFilter>
 
 L<Log::Shiras|https://github.com/jandrew/Log-Shiras>
 

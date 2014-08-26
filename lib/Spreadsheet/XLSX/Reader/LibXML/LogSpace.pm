@@ -1,13 +1,12 @@
-package Spreadsheet::XLSX::Reader::LogSpace;
-use version; our $VERSION = qv("v0.1_1");
+package Spreadsheet::XLSX::Reader::LibXML::LogSpace;
+use version; our $VERSION = qv('v0.4.2');
 
 use Moose::Role;
 use Types::Standard qw(
 		Str
     );
-use lib	'../../../../lib',;
+use lib	'../../../../../lib',;
 ###LogSD	use Log::Shiras::Telephone;
-###LogSD	use Log::Shiras::UnhideDebug;
 
 #########1 Public Attributes  3#########4#########5#########6#########7#########8#########9
 
@@ -32,7 +31,7 @@ sub _set_types_log_space{
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			"Setting the types name_space to: $log_space", ] );
 	no	warnings 'once';
-	$Spreadsheet::XLSX::Reader::Types::log_space = $log_space;
+	$Spreadsheet::XLSX::Reader::LibXML::Types::log_space = $log_space;
 	use	warnings 'once';
 	return 1;
 }
@@ -50,7 +49,7 @@ __END__
 
 =head1 NAME
 
-Spreadsheet::XLSX::Reader::LogSpace - Role to manage logging name space
+Spreadsheet::XLSX::Reader::LibXML::LogSpace - Role to manage logging name space
 
 =head1 DESCRIPTION
 
@@ -61,7 +60,7 @@ pluggable role for sub unit testing.
 	
 	#!perl
 	package MyPackage;
-	with 'Spreadsheet::XLSX::Reader::LogSpace';
+	with 'Spreadsheet::XLSX::Reader::LibXML::LogSpace';
 
 =head2 Attributes
 
@@ -101,7 +100,8 @@ B<Returns:> the 'name_space' value
 
 =over
 
-L<github Spreadsheet-XLSX-Reader/issues|https://github.com/jandrew/Spreadsheet-XLSX-Reader/issues>
+L<github Spreadsheet-XLSX-Reader-LibXML/issues
+|https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML/issues>
 
 =back
 

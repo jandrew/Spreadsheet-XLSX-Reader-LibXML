@@ -1,5 +1,5 @@
-package Spreadsheet::XLSX::Reader::CellToColumnRow;
-use version; our $VERSION = qv("v0.1_1");
+package Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow;
+use version; our $VERSION = qv('v0.4.2');
 
 use	Moose::Role;
 requires qw(
@@ -7,9 +7,8 @@ requires qw(
 	set_error
 );
 use Types::Standard qw( Bool );
-use lib	'../../../../lib';
+use lib	'../../../../../lib';
 ###LogSD	use Log::Shiras::Telephone;
-###LogSD	use Log::Shiras::UnhideDebug;
 
 #########1 Dispatch Tables    3#########4#########5#########6#########7#########8#########9
 
@@ -208,7 +207,7 @@ __END__
 
 =head1 NAME
 
-Spreadsheet::XLSX::Reader::CellToRowColumn - Translate Excel cell IDs to row column
+Spreadsheet::XLSX::Reader::LibXML::CellToRowColumn - Translate Excel cell IDs to row column
     
 =head1 DESCRIPTION
 
@@ -226,8 +225,7 @@ ways to change this behaviour.
 	#!perl
 	package MyPackage;
 	use Moose;
-	use lib '../lib';
-	with 'Spreadsheet::XLSX::Reader::CellToColumnRow';
+	with 'Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow';
 
 	sub set_error{}
 	sub get_log_space{}
@@ -345,7 +343,7 @@ B<Returns:> a $count_from_one or a $count_from_zero int
 
 =over
 
-L<github Spreadsheet-XLSX-Reader/issues|https://github.com/jandrew/Spreadsheet-XLSX-Reader/issues>
+L<github Spreadsheet-XLSX-Reader-LibXML/issues|https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML/issues>
 
 =back
 
@@ -385,10 +383,12 @@ L<version>
 
 L<Moose::Role>
 
+L<Types::Standard>
+
 requires
 
 	name_space
-	_set_error
+	set_error
 
 =back
 
@@ -397,8 +397,6 @@ requires
 =over
 
 L<Spreadsheet::XLSX>
-
-L<Spreadsheet::XLSX::Reader::TempFilter>
 
 L<Log::Shiras|https://github.com/jandrew/Log-Shiras>
 

@@ -1,5 +1,5 @@
-package Spreadsheet::XLSX::Reader::XMLReader;
-use version; our $VERSION = qv("v0.1_1");
+package Spreadsheet::XLSX::Reader::LibXML::XMLReader;
+use version; our $VERSION = qv('v0.4.2');
 
 use 5.010;
 use Moose;
@@ -12,11 +12,11 @@ use Types::Standard qw(
 		FileHandle
     );
 use XML::LibXML::Reader;
-use lib	'../../../../lib',;
-with 'Spreadsheet::XLSX::Reader::LogSpace';
+use lib	'../../../../../lib',;
+with 'Spreadsheet::XLSX::Reader::LibXML::LogSpace';
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
-use Spreadsheet::XLSX::Reader::Types v0.1 qw(
+use Spreadsheet::XLSX::Reader::LibXML::Types v0.1 qw(
 		XMLFile
 	);
 
@@ -30,7 +30,7 @@ has file_name =>(
 	);
 
 has	error_inst =>(
-		isa			=> InstanceOf[ 'Spreadsheet::XLSX::Reader::Error' ],
+		isa			=> InstanceOf[ 'Spreadsheet::XLSX::Reader::LibXML::Error' ],
 		clearer		=> '_clear_error_inst',
 		reader		=> '_get_error_inst',
 		required	=> 1,
@@ -187,14 +187,14 @@ __END__
 
 =head1 NAME
 
-Spreadsheet::XLSX::Reader::XMLReader - Spreadsheet::XLSX LibXML Reader base class
+Spreadsheet::XLSX::Reader::LibXML::XMLReader - XLSX - LibXML Reader base class
 
 =head1 SYNOPSIS
 
 	package MyPackage;
 	use MooseX::StrictConstructor;
 	use MooseX::HasDefaults::RO;
-	extends	'Spreadsheet::XLSX::Reader::XMLReader';
+	extends	'Spreadsheet::XLSX::Reader::LibXML::XMLReader';
     
 =head1 DESCRIPTION
 
@@ -204,8 +204,8 @@ pull parsers are built on this.  If you want to use this to write your own reade
 the file name and use the methods to explore the file.  B<Since this is a pull parser you 
 have to rewind to the beginning to go back.>
 
-This sheet has the role L<Spreadsheet::XLSX::Reader::LogSpace> and all it's functionality 
-added.
+This sheet has the role L<Spreadsheet::XLSX::Reader::::LibXML::LogSpace> and all it's 
+functionality added.
 
 =head2 Attributes
 
@@ -235,7 +235,7 @@ L<Spreadsheet::XLSX::Reader::Error>
 
 B<Default> none
 
-B<Range> InstanceOf[ 'Spreadsheet::XLSX::Reader::Error' ]
+B<Range> InstanceOf[ 'Spreadsheet::XLSX::Reader::LibXML::Error' ]
 		
 =back
 
@@ -278,7 +278,7 @@ needs to reset at the beginning of the file.  The relevant section in this class
 	if( !$reload ){
 		###LogSD All ready
 	}elsif( $reload == 1 ){
-		$reader		= XML::LibXML::Reader->new( location => $self->get_file_name );
+		$reader		= XML::LibXML::Reader::LibXML->new( location => $self->get_file_name );
 	}else{
 		return undef;
 	}
@@ -295,7 +295,7 @@ these attributes see the listed L</METHODS> of the instance.
 =over
 
 B<Definition:> This attribute stores the string used to access the file (the file name).  
-It will be L<tested|Spreadsheet::XLSX::Reader::Types> as an XMLFile type.
+It will be L<tested|Spreadsheet::XLSX::Reader::LibXML::Types> as an XMLFile type.
 
 B<Default> none
 
@@ -331,28 +331,12 @@ of the file then this returns undef.
 =over
 
 B<Definition:> This method is handled from the workbook link generally built by 
-L<Spreadsheet::XLSX::Reader>.  See L<Spreadsheet::XLSX::Reader::Error> for details of 
-the error_string attribute associated with this method.
+L<Spreadsheet::XLSX::Reader::LibXML>.  See L<Spreadsheet::XLSX::Reader::LibXML::Error> 
+for details of the error_string attribute associated with this method.
 
 B<Accepts:> a message string
 
 B<Returns:> nothing
-
-=back
-
-=head3 get_epoch_year
-
-=over
-
-B<Definition:> This method is handled from the workbook link generally built by 
-L<Spreadsheet::XLSX::Reader>.  See L<DateTimeX::Format::Excel> for why excel sheets 
-can have different epoch years for dates.  This method assumes that the workbook 
-already knows this information.
-
-B<Accepts:> nothing
-
-B<Returns:> a four digit integer representing the epoch year of the excel datas.  
-Usually 1900 or 1904.
 
 =back
 
@@ -397,24 +381,12 @@ position.
 
 =back
 
-=head3 get_core_element
-
-=over
-
-B<Definition:> If you want to know what the currently identified _core_element 
-attribute is.
-
-B<Accepts:> nothing
-
-B<Returns:> the string stored in the _core_element attribute.
-
-=back
-
 =head1 SUPPORT
 
 =over
 
-L<github Spreadsheet::XLSX::Reader/issues|https://github.com/jandrew/Spreadsheet-XLSX-Reader/issues>
+L<github Spreadsheet-XLSX-Reader-LibXML/issues
+|https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML/issues>
 
 =back
 
@@ -466,9 +438,9 @@ L<XML::LibXML>
 
 L<XML::LibXML::Reader>
 
-L<Spreadsheet::XLSX::Reader::LogSpace>
+L<Spreadsheet::XLSX::Reader::LibXML::LogSpace>
 
-L<Spreadsheet::XLSX::Reader::Types>
+L<Spreadsheet::XLSX::Reader::LibXML::Types>
 
 =back
 
@@ -478,7 +450,7 @@ L<Spreadsheet::XLSX::Reader::Types>
 
 L<Spreadsheet::XLSX>
 
-L<Spreadsheet::XLSX::Reader::TempFilter>
+L<Spreadsheet::ParseExcel>
 
 L<Log::Shiras|https://github.com/jandrew/Log-Shiras>
 

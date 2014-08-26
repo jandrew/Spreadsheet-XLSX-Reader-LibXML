@@ -1,5 +1,5 @@
-package Spreadsheet::XLSX::Reader::Cell;
-use version; our $VERSION = version->declare("v0.1_1");
+package Spreadsheet::XLSX::Reader::LibXML::Cell;
+use version; our $VERSION = qv('v0.4.2');
 
 use 5.010;
 use Moose;
@@ -15,10 +15,10 @@ use Types::Standard qw(
 		HasMethods
     );
 
-use lib	'../../../../lib';
+use lib	'../../../../../lib';
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
-with	'Spreadsheet::XLSX::Reader::LogSpace';
+with	'Spreadsheet::XLSX::Reader::LibXML::LogSpace';
 
 #########1 Public Attributes  3#########4#########5#########6#########7#########8#########9
 
@@ -139,13 +139,13 @@ has NumberFormat =>(
 	);
 
 has error_inst =>(
-		isa			=> InstanceOf[ 'Spreadsheet::XLSX::Reader::Error' ],
+		isa			=> InstanceOf[ 'Spreadsheet::XLSX::Reader::LibXML::Error' ],
 		handles 	=>[ qw( error set_error clear_error set_warnings if_warn ) ],
 		clearer		=> '_clear_error_inst',
 		reader		=> '_get_error_instance',
 		required	=> 1,
 	);
-with	'Spreadsheet::XLSX::Reader::CellToColumnRow'; #Here to load set_error first
+with	'Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow'; #Here to load set_error first
 
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
 
@@ -244,18 +244,18 @@ __END__
 
 =head1 NAME
 
-Spreadsheet::XLSX::Reader::Cell - A class for Cell data and formatting
+Spreadsheet::XLSX::Reader::LibXML::Cell - A class for Cell data and formatting
 
 =head1 SYNOPSIS
 
-See the SYNOPSIS in L<Spreadsheet::XLSX::Reader>
+See the SYNOPSIS in L<Spreadsheet::XLSX::Reader::LibXML>
     
 =head1 DESCRIPTION
 
 This is the class that contains cell data.  There are no XML actions taken in the 
 background of this class.  All data has been pre-coalated/built from the L<Workbook
-|Spreadsheet::XLSX::Workbook> class.  See the Workbook class for creation of this 
-class.  Accessing the data is done through the L<Methods|/Methods>.
+|Spreadsheet::XLSX::Reader::LibXML::Workbook> class.  See the Workbook class for 
+creation of this class.  Accessing the data is done through the L<Methods|/Methods>.
 
 =head2 Attributes
 
@@ -574,9 +574,9 @@ B<Returns:> $display_name
 =over
 
 B<Definition:> This method gets the latest stored string from the error in 
-L<Spreadsheet::XLSX::Reader::Error> I could change in the future but currently 
+L<Spreadsheet::XLSX::Reader::LibXML::Error> I could change in the future but currently 
 the error instance is shared across all instances of the 
-L<Spreadsheet::XLSX::Reader> classes that have been created.
+L<Spreadsheet::XLSX::Reader::LibXML> classes that have been created.
 
 B<Accepts:> Nothing
 
@@ -589,7 +589,7 @@ B<Returns:> $error_string
 =over
 
 B<Definition:> This method sets a new error $string to the 
-L<Spreadsheet::XLSX::Reader::Error> instance.
+L<Spreadsheet::XLSX::Reader::LibXML::Error> instance.
 
 B<Accepts:> An error string $string
 
@@ -602,7 +602,7 @@ B<Returns:> Nothing
 =over
 
 B<Definition:> This method clears the error $string in the 
-L<Spreadsheet::XLSX::Reader::Error> instance.
+L<Spreadsheet::XLSX::Reader::LibXML::Error> instance.
 
 B<Accepts:> Nothing
 
@@ -615,7 +615,7 @@ B<Returns:> Nothing
 =over
 
 B<Definition:> When the error string is set / changed for the  
-L<Spreadsheet::XLSX::Reader::Error> instance the instance can cluck/warn 
+L<Spreadsheet::XLSX::Reader::LibXML::Error> instance the instance can cluck/warn 
 the message at that time based on this setting.
 
 B<Accepts:> A $boolean value
@@ -690,7 +690,8 @@ B<Returns:> Nothing
 
 =over
 
-L<github Spreadsheet::XLSX::Reader/issues|https://github.com/jandrew/Spreadsheet-XLSX-Reader/issues>
+L<github Spreadsheet-XLSX-Reader-LibXML/issues
+|https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML/issues>
 
 =back
 
@@ -738,9 +739,7 @@ L<MooseX::HasDefaults::RO>
 
 L<Types::Standard>
 
-L<Spreadsheet::XLSX::Reader::LogSpace>
-
-L<Spreadsheet::XLSX::Reader::CellToColumnRow>
+L<Spreadsheet::XLSX::Reader::LibXML::LogSpace>
 
 =back
 

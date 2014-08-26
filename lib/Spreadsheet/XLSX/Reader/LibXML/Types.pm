@@ -524,16 +524,16 @@ __END__
 
 =head1 NAME
 
-Spreadsheet::XLSX::Reader::Types - A type library
+Spreadsheet::XLSX::Reader::LibXML::Types - A type library
     
 =head1 DESCRIPTION
 
-This is the package for managing types in the L<Spreadsheet::XLSX::Reader> package.  
+This is the package for managing types in the L<Spreadsheet::XLSX::Reader::LibXML> package.  
 Some of the types are used in the normal way.  However, the greatest volume of this 
 module is used to provide coercions for the data formats.  I used these to replace 
 excel's data conversion routines.  If you want to write a conversion of your own you 
 only need to write a L<Type::Coercion> check or a L<Type::Tiny> check with a coercion 
-and use it as described in L<Spreadsheet::XLSX::Reader::Worksheet>.
+and use it as described in L<Spreadsheet::XLSX::Reader::LibXML::Worksheet>.
 
 =head2 Types
 
@@ -555,7 +555,7 @@ B<Accepts:> A string
 
 These are functions that convert passed data from a defined type to some defined 
 output.  They are primarily used in this package as format converters for L<cell
-Spreadsheet::XLSX::Reader::Cell> data.  Most of the coercions in this package are 
+Spreadsheet::XLSX::Reader::LibXML::Cell> data.  Most of the coercions in this package are 
 targeted at converting numbers to some formatted output.  A few of them are 
 targeted at mapping the character positions from unicode encodings to a 
 smaller encoding set for consumption elsewhere.  For a general review of how to 
@@ -577,7 +577,7 @@ B<CReturn format:> The passed information is returned unchanged.
 
 =over
 
-L<github Spreadsheet-XLSX-Reader/issues|https://github.com/jandrew/Spreadsheet-XLSX-Reader/issues>
+L<github Spreadsheet-XLSX-Reader-LibXML/issues|https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML/issues>
 
 =back
 
