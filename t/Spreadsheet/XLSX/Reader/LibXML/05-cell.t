@@ -1,4 +1,4 @@
-#########1 Test File for Spreadsheet::XLSX::Reader::XMLDOM::Cell      7#########8#########9
+#########1 Test File for Spreadsheet::XLSX::Reader::LibXML::Cell      7#########8#########9
 #!env perl
 BEGIN{ $ENV{PERL_TYPE_TINY_XS} = 0; }
 $| = 1;
@@ -8,8 +8,8 @@ use	Test::Moose;
 use	Data::Dumper;
 use	MooseX::ShortCut::BuildInstance v1.8 qw( build_instance );
 use	lib
-		'../../../../../Log-Shiras/lib',
-		'../../../../lib',;
+		'../../../../../../Log-Shiras/lib',
+		'../../../../../lib',;
 #~ use Log::Shiras::Switchboard qw( :debug );#
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(#
 ###LogSD						name_space_bounds =>{
@@ -23,9 +23,9 @@ use	lib
 ###LogSD					);
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
-use	Spreadsheet::XLSX::Reader::Cell;
-use	Spreadsheet::XLSX::Reader::Error;
-use	Spreadsheet::XLSX::Reader::Types qw( PassThroughType ZeroFromNum FourteenFromWinExcelNum );
+use	Spreadsheet::XLSX::Reader::LibXML::Cell;
+use	Spreadsheet::XLSX::Reader::LibXML::Error;
+use	Spreadsheet::XLSX::Reader::LibXML::Types qw( PassThroughType ZeroFromNum FourteenFromWinExcelNum );
 my	$test_file = ( @ARGV ) ? $ARGV[0] : '../../../../test_files/';
 	$test_file .= 'styles.xml';
 ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space => 'main', );
@@ -95,16 +95,16 @@ my  		@class_methods = qw(
 ###LogSD		$phone->talk( level => 'info', message => [ "easy questions ..." ] );
 map{ 
 has_attribute_ok
-			'Spreadsheet::XLSX::Reader::Cell', $_,
+			'Spreadsheet::XLSX::Reader::LibXML::Cell', $_,
 										"Check that Spreadsheet::XLSX::Reader::Cell has the -$_- attribute"
 } 			@class_attributes;
 map{
-can_ok		'Spreadsheet::XLSX::Reader::Cell', $_,
+can_ok		'Spreadsheet::XLSX::Reader::LibXML::Cell', $_,
 } 			@class_methods;
 
 ###LogSD		$phone->talk( level => 'info', message => [ "harder questions ..." ] );
 lives_ok{
-			$test_instance	=	Spreadsheet::XLSX::Reader::Cell->new(
+			$test_instance	=	Spreadsheet::XLSX::Reader::LibXML::Cell->new(
 									'NumberFormat' => PassThroughType->plus_coercions( ZeroFromNum ),
 									'font' => {
 										'color' => {
@@ -159,8 +159,8 @@ lives_ok{
 									'fontId' => 0,
 									'error_inst' => bless( {
 														'should_warn' => 0,
-															'log_space' => 'Spreadsheet::XLSX::Reader::LogSpace'
-													}, 'Spreadsheet::XLSX::Reader::Error' ),
+															'log_space' => 'Spreadsheet::XLSX::Reader::LibXML::LogSpace'
+													}, 'Spreadsheet::XLSX::Reader::LibXML::Error' ),
 									'value_encoding' => 'UTF-8',
 									'raw_value' => 'Hello World',
 									'log_space' => 'Test::Cell',

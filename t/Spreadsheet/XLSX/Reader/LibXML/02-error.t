@@ -7,8 +7,8 @@ use	Test::Most tests => 12;
 use	Test::Moose;
 use Capture::Tiny qw( capture_stderr capture_stdout );
 use	lib 
-		'../../../../../Log-Shiras/lib',
-		'../../../../lib',;
+		'../../../../../../Log-Shiras/lib',
+		'../../../../../lib',;
 #~ use Log::Shiras::Switchboard v0.21 qw( :debug );#
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(#
 ###LogSD						name_space_bounds =>{
@@ -28,7 +28,7 @@ use	lib
 ###LogSD		$operator->add_skip_up_caller( qw( Carp __ANON__ ) );
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
-use Spreadsheet::XLSX::Reader::Error v0.1;
+use Spreadsheet::XLSX::Reader::LibXML::Error v0.4;
 my  ( 
 			$test_instance, $capture, $capture_II,
 	);
@@ -50,16 +50,16 @@ my			$answer_ref = [
 ###LogSD		$phone->talk( level => 'info', message => [ "easy questions ..." ] );
 map{ 
 has_attribute_ok
-			'Spreadsheet::XLSX::Reader::Error', $_,
-										"Check that Spreadsheet::XLSX::Error has the -$_- attribute"
+			'Spreadsheet::XLSX::Reader::LibXML::Error', $_,
+										"Check that Spreadsheet::XLSX::Reader::LibXML::Error has the -$_- attribute"
 } 			@class_attributes;
 map{
-can_ok		'Spreadsheet::XLSX::Reader::Error', $_,
+can_ok		'Spreadsheet::XLSX::Reader::LibXML::Error', $_,
 } 			@class_methods;
 
 ###LogSD	$phone->talk( level => 'info', message => [ "harder questions ..." ] );
 lives_ok{
-			$test_instance =	Spreadsheet::XLSX::Reader::Error->new(
+			$test_instance =	Spreadsheet::XLSX::Reader::LibXML::Error->new(
 									#~ should_warn	=> 0,# to turn off cluck
 								);
 }										"Prep a new Error instance";

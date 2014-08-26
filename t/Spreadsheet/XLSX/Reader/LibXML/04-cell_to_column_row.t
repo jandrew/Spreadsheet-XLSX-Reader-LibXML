@@ -8,8 +8,8 @@ use	Test::Moose;
 use	MooseX::ShortCut::BuildInstance qw( build_instance should_re_use_classes );
 should_re_use_classes( 1 );
 use	lib
-		'../../../../../Log-Shiras/lib',
-		'../../../../lib',;
+		'../../../../../../Log-Shiras/lib',
+		'../../../../../lib',;
 #~ use Log::Shiras::Switchboard qw( :debug );#
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(#
 ###LogSD						name_space_bounds =>{
@@ -23,9 +23,9 @@ use	lib
 ###LogSD					);
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
-use	Spreadsheet::XLSX::Reader::CellToColumnRow;
-use	Spreadsheet::XLSX::Reader::Error;
-use	Spreadsheet::XLSX::Reader::LogSpace;
+use	Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow;
+use	Spreadsheet::XLSX::Reader::LibXML::Error;
+use	Spreadsheet::XLSX::Reader::LibXML::LogSpace;
 my  ( 
 			$test_instance,
 	);
@@ -91,17 +91,17 @@ my			$error_ref =[
 ###LogSD		$phone->talk( level => 'info', message => [ "initial questions ..." ] );
 lives_ok{
 			$test_instance = build_instance(
-				package => 'Spreadsheet::XLSX::Reader::CellToColumnRow::TestClass',
+				package => 'Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow::TestClass',
 				add_roles_in_sequence =>[ 
-					'Spreadsheet::XLSX::Reader::LogSpace',
-					'Spreadsheet::XLSX::Reader::CellToColumnRow',
+					'Spreadsheet::XLSX::Reader::LibXML::LogSpace',
+					'Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow',
 				],
 				add_attributes =>{ 
 					error_inst =>{
 						handles =>[ qw( error set_error clear_error set_warnings if_warn ) ],
 					},
 				},
-				error_inst => Spreadsheet::XLSX::Reader::Error->new(
+				error_inst => Spreadsheet::XLSX::Reader::LibXML::Error->new(
 					#~ should_warn => 1,
 					should_warn => 0,# to turn off cluck when the error is set
 				),
@@ -112,7 +112,7 @@ lives_ok{
 }										"Prep a new CellToColumnRow instance";
 map{ 
 has_attribute_ok
-			$test_instance, $_,			"Check that Spreadsheet::XLSX::Reader::CellToColumnRow has the -$_- attribute"
+			$test_instance, $_,			"Check that Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow has the -$_- attribute"
 } 			@class_attributes;
 map{
 can_ok		$test_instance, $_,
@@ -137,8 +137,8 @@ is			$test_instance->build_cell_label( @{$answer_ref->[ $_]} ), $question_ref->[
 }(0 .. 31);
 lives_ok{
 			$test_instance = build_instance(
-				package => 'Spreadsheet::XLSX::Reader::CellToColumnRow::TestClass',# Just call the class since it is already built
-				error_inst => Spreadsheet::XLSX::Reader::Error->new(
+				package => 'Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow::TestClass',# Just call the class since it is already built
+				error_inst => Spreadsheet::XLSX::Reader::LibXML::Error->new(
 					#~ should_warn => 1,
 					should_warn => 0,# to turn off cluck when the error is set
 				),

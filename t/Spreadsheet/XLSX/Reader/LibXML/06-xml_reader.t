@@ -7,8 +7,8 @@ use	Test::Most tests => 45;
 use	Test::Moose;
 use	MooseX::ShortCut::BuildInstance qw( build_instance );
 use	lib
-		'../../../../../Log-Shiras/lib',
-		'../../../../lib',;
+		'../../../../../../Log-Shiras/lib',
+		'../../../../../lib',;
 #~ use Log::Shiras::Switchboard qw( :debug );#
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(#
 ###LogSD						name_space_bounds =>{
@@ -27,9 +27,9 @@ use	lib
 ###LogSD					);
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
-use	Spreadsheet::XLSX::Reader::XMLReader;
-use	Spreadsheet::XLSX::Reader::Error;
-my	$test_file = ( @ARGV ) ? $ARGV[0] : '../../../test_files/xl/';
+use	Spreadsheet::XLSX::Reader::LibXML::XMLReader;
+use	Spreadsheet::XLSX::Reader::LibXML::Error;
+my	$test_file = ( @ARGV ) ? $ARGV[0] : '../../../../test_files/xl/';
 	$test_file .= 'sharedStrings.xml';
 my  ( 
 			$test_instance, $capture, @answer, $error_instance,
@@ -113,16 +113,16 @@ my			$answer_ref = [
 ###LogSD		$phone->talk( level => 'info', message => [ "easy questions ..." ] );
 map{ 
 has_attribute_ok
-			'Spreadsheet::XLSX::Reader::XMLReader', $_,
-										"Check that Spreadsheet::XLSX::Reader::XMLReader has the -$_- attribute"
+			'Spreadsheet::XLSX::Reader::LibXML::XMLReader', $_,
+										"Check that Spreadsheet::XLSX::Reader::LibXML::XMLReader has the -$_- attribute"
 } 			@class_attributes;
 
 ###LogSD		$phone->talk( level => 'info', message => [ "harder questions ..." ] );
 lives_ok{
-			$test_instance =	Spreadsheet::XLSX::Reader::XMLReader->new(
+			$test_instance =	Spreadsheet::XLSX::Reader::LibXML::XMLReader->new(
 									file_name		=> $test_file,
 									log_space	=> 'Test',
-									error_inst => Spreadsheet::XLSX::Reader::Error->new(
+									error_inst => Spreadsheet::XLSX::Reader::LibXML::Error->new(
 										#~ should_warn => 1,
 										should_warn => 0,# to turn off cluck when the error is set
 									),

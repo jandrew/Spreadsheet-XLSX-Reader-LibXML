@@ -8,8 +8,8 @@ use	Test::Moose;
 use Data::Dumper;
 use Capture::Tiny qw( capture_stderr );
 use	lib 
-		'../../../../../Log-Shiras/lib',
-		'../../../../lib',;
+		'../../../../../../Log-Shiras/lib',
+		'../../../../../lib',;
 #~ use Log::Shiras::Switchboard v0.21 qw( :debug );#
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(#
 ###LogSD						name_space_bounds =>{
@@ -25,7 +25,7 @@ use	lib
 ###LogSD					);
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
-use Spreadsheet::XLSX::Reader::Types v0.1 qw(
+use Spreadsheet::XLSX::Reader::LibXML::Types v0.1 qw(
 		PassThroughType
 		FileName
 		XLSXFile
@@ -55,7 +55,7 @@ use Spreadsheet::XLSX::Reader::Types v0.1 qw(
 no	warnings 'once';
 $Spreadsheet::XLSX::Reader::Types::log_space = 'Test';
 use	warnings 'once';
-my	$test_dir	= ( @ARGV ) ? $ARGV[0] : '../../../test_files/';
+my	$test_dir	= ( @ARGV ) ? $ARGV[0] : '../../../../test_files/';
 my	$xlsx_file	= 'TestBook.xlsx';
 my	$xml_file	= '[Content_Types].xml';
 my  ( 
