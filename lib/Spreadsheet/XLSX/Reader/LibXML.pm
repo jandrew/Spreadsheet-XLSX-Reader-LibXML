@@ -853,7 +853,7 @@ __END__
 
 =head1 NAME
 
-Spreadsheet::XLSX::Reader - Read Excel xlsx extention files with LibXML
+Spreadsheet::XLSX::Reader::LibXML - Read xlsx spreadsheet files with LibXML
 
 
 #~ ###############################################################################

@@ -1,13 +1,18 @@
-=head1 Spreadsheet::XLSX::Reader
+=head1 Spreadsheet::XLSX::Reader::LibXML
 
-Read spreadsheet files with xlsx extentions
+Read xlsx spreadsheet files with LibXML
 
 =head1 Description
 
 The goal is to write a spreadsheet parser based on L<XML::LibXML> and L<Moose> that 
 matches the API of L<Spreadsheet::ParseExcel> as closely as possible.
 
+=head1 Caveat Utilitor
+
 B<Although it is my primary focus it is not working yet!>
+
+This package is alpha quality until this notice is removed.  By that I mean the API 
+is still subject to change.
 
 =head1 Build from Source - (for example git)
 	
@@ -15,7 +20,7 @@ Download a compressed file with the code
 	
 Extract the code from the compressed file.  If you are using tar this should work:
 
-        tar -zxvf Spreadsheet-XLSX-Reader-0.xx.tar.gz
+	tar -zxvf Spreadsheet-XLSX-Reader-0.xx.tar.gz
 
 Change into the extracted directory
 
