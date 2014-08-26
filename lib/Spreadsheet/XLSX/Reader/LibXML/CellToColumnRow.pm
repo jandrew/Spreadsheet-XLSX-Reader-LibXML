@@ -1,0 +1,409 @@
+package Spreadsheet::XLSX::Reader::CellToColumnRow;
+use version; our $VERSION = qv("v0.1_1");
+
+use	Moose::Role;
+requires qw(
+	get_log_space
+	set_error
+);
+use Types::Standard qw( Bool );
+use lib	'../../../../lib';
+###LogSD	use Log::Shiras::Telephone;
+###LogSD	use Log::Shiras::UnhideDebug;
+
+#########1 Dispatch Tables    3#########4#########5#########6#########7#########8#########9
+
+my	$lookup_ref ={
+		A => 1, B => 2, C => 3, D => 4, E => 5, F => 6, G => 7, H => 8, I => 9, J => 10,
+		K => 11, L => 12, M => 13, N => 14, O => 15, P => 16, Q => 17, R => 18, S => 19,
+		T => 20, U => 21, V => 22, W => 23, X => 24, Y => 25, Z => 26,
+	};
+my	$lookup_list =[ qw( A B C D E F G H I J K L M N O P Q R S T U V W X Y Z ) ];
+
+#########1 Public Attributes  3#########4#########5#########6#########7#########8#########9
+
+has count_from_zero =>(
+		isa		=> Bool,
+		#~ writer	=> 'set_count_from_zero',
+		reader	=> 'counting_from_zero',
+		default	=> 1,
+	);
+
+#########1 Public Methods     3#########4#########5#########6#########7#########8#########9
+
+sub parse_column_row{
+	my ( $self, $cell, $excel ) = @_;
+	my ( $column, $error_list_ref );
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD					($self->get_log_space .  '::parse_column_row' ), );
+	###LogSD		$phone->talk( level => 'debug', message =>[
+	###LogSD			"Parsing row number and column number from: $cell" ] );
+	my	$regex = qr/^([A-Z])?([A-Z])?([A-Z])?([0-9]*)$/;
+	my ( $one_column, $two_column, $three_column, $row ) = $cell =~ $regex;
+	no	warnings 'uninitialized';
+	my	$column_text = $one_column . $two_column . $three_column;
+	###LogSD	$phone->talk( level => 'debug', message =>[
+	###LogSD		"Regex result is: ( $one_column, $two_column, $three_column, $row )" ] );
+	
+	if( !defined $one_column ){
+		push @$error_list_ref, "Could not parse the column component from -$cell-";
+	}elsif( !defined $two_column ){
+		$column = $lookup_ref->{$one_column};
+	}elsif( !defined $three_column ){
+		$column = $lookup_ref->{$two_column} + 26 * $lookup_ref->{$one_column};
+	}else{
+		$column = $lookup_ref->{$three_column} + 26 * $lookup_ref->{$two_column} + 26 * 26 * $lookup_ref->{$one_column};
+	}
+	###LogSD	$phone->talk( level => 'debug', message =>[
+	###LogSD		"Result of initial parse is column text: $column_text",
+	###LogSD		"Column number: $column", "Row number: $row" ] );
+	if( $column_text and $column > 16384 ){
+		push @$error_list_ref, "The column text -$column_text- points to a position at " .
+									"-$column- past the excel limit of: 16,384";
+		$column = undef;
+	}
+	if( !defined $row or $row eq '' ){
+		push @$error_list_ref, "Could not parse the row component from -$cell-";
+		$row = undef;
+	}elsif( $row < 1 ){
+		push @$error_list_ref, "The requested row cannot be less than one - you requested: $row";
+		$row = undef;
+	}elsif( $row > 1048576 ){
+		push @$error_list_ref, "The requested row cannot be greater than 1,048,576 " .
+									"- you requested: $row";
+		$row = undef;
+	}
+	if( $error_list_ref ){
+		if( scalar( @$error_list_ref ) > 1 ){
+			$self->set_error( "The regex $regex could not match -$cell-" );
+		}else{
+			$self->set_error( $error_list_ref->[0] );
+		}
+	}
+	
+	$column = $self->get_used_position( $column ) if defined $column and !$excel;
+	$row	= $self->get_used_position( $row ) if defined $row and !$excel;
+	###LogSD	no warnings 'uninitialized';
+	###LogSD	$phone->talk( level => 'debug', message =>[
+	###LogSD		"Column: $column", "Row: $row" ] );
+	###LogSD	use warnings 'uninitialized';
+	return( $column, $row );
+}
+
+sub build_cell_label{
+	my ( $self, $column, $row, $used ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD					($self->get_log_space .  '::build_cell_label' ), );
+	###LogSD	no	warnings 'uninitialized';
+	###LogSD		$phone->talk( level => 'debug', message =>[
+	###LogSD			"Converting column -$column- and row -$row- to a cell ID" ] );
+	###LogSD	use	warnings 'uninitialized';
+	my $error_list;
+	if( !defined $column ){
+		###LogSD	$phone->talk( level => 'debug', message =>[
+		###LogSD		"The column is not defined" ] );
+		$column = '';
+		push @$error_list, 'missing column';
+	}else{
+		$column = $self->get_excel_position( $column ) if !$used;
+		###LogSD	$phone->talk( level => 'debug', message =>[
+		###LogSD		"Excel column: $column" ] );
+		$column -= 1;
+		###LogSD	$phone->talk( level => 'debug', message =>[
+		###LogSD		"From zero: $column" ] );
+		if( $column > 16383 ){
+			push @$error_list, 'column too large';
+			$column = '';
+		}elsif( $column < 0 ){
+			push @$error_list, 'column too small';
+			$column = '';
+		}else{
+			my $first_letter = int( $column / (26 * 26) );
+			$column = $column - $first_letter * (26 * 26);
+			$first_letter = ( $first_letter ) ? $lookup_list->[$first_letter - 1] : '';
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD		"First letter is: $first_letter", "New column is: $column" ] );
+			my $second_letter = int( $column / 26 );
+			$column = $column - $second_letter * 26;
+			$second_letter =
+				( $second_letter ) ? $lookup_list->[$second_letter - 1] : 
+				( $first_letter ne '' ) ? 'A' : '' ;
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD		"Second letter is: $second_letter", "New column is: $column" ] );
+			my $third_letter = $lookup_list->[$column];
+			$column = $first_letter . $second_letter . $third_letter;
+		}
+	}
+	###LogSD	$phone->talk( level => 'debug', message =>[
+	###LogSD		"Column letters are: $column" ] );
+	
+	if( !defined $row ){
+		$row = '';
+		push @$error_list, 'missing row';
+	}else{
+		$row = $self->get_excel_position( $row ) if !$used;
+		if( $row > 1048576 ){
+			push @$error_list, 'row too large';
+			$row = '';
+		}elsif( $row < 1 ){
+			push @$error_list, 'row too small';
+			$row = '';
+		}
+	}
+	$self->set_error(
+		"Failures in build_cell_label include: " . join( ' - ', @$error_list )
+	) if $error_list;
+	###LogSD	$phone->talk( level => 'debug', message =>[
+	###LogSD		"Row is: $row" ] );
+	
+	my $cell_label = "$column$row";
+	###LogSD	$phone->talk( level => 'debug', message =>[
+	###LogSD		"Cell label is: $cell_label" ] );
+	return $cell_label;
+}
+
+sub get_excel_position{
+	my ( $self, $used_int ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD					($self->get_log_space .  '::get_excel_position' ), );
+	return undef if !defined $used_int;
+	###LogSD		$phone->talk( level => 'debug', message =>[
+	###LogSD			"Converting used number  -$used_int- to Excel" ] );
+	my	$excel_position = $used_int;
+	$excel_position += 1 if $self->counting_from_zero;
+	###LogSD		$phone->talk( level => 'debug', message =>[
+	###LogSD			"New position is: $excel_position" ] );
+	return $excel_position;
+}
+
+sub get_used_position{
+	my ( $self, $excel_int ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD					($self->get_log_space .  '::get_used_position' ), );
+	return undef if !defined $excel_int;
+	###LogSD		$phone->talk( level => 'debug', message =>[
+	###LogSD			"Converting Excel  -$excel_int- to the used number" ] );
+	my	$used_position = $excel_int;
+	$used_position -= 1 if $self->counting_from_zero;
+	###LogSD		$phone->talk( level => 'debug', message =>[
+	###LogSD			"The used position is: $used_position" ] );
+	return $used_position;
+}
+
+#########1 Private Attributes 3#########4#########5#########6#########7#########8#########9
+
+
+
+#########1 Private Methods    3#########4#########5#########6#########7#########8#########9
+
+
+
+#########1 Phinish            3#########4#########5#########6#########7#########8#########9
+
+no Moose::Role;
+1;
+
+#########1 Documentation      3#########4#########5#########6#########7#########8#########9
+__END__
+
+=head1 NAME
+
+Spreadsheet::XLSX::Reader::CellToRowColumn - Translate Excel cell IDs to row column
+    
+=head1 DESCRIPTION
+
+This is a fairly simple implementation of a regex and math to find the column and row
+position in excel from an 'A1' style Excel cell ID.  It is important to note that column 
+letters do not equal digits in a modern 26 position numeral system since the excel 
+implementation is effectivly zeroless.
+
+The default of this module, however, is to count from zero.  Meaning that cell A1 is 
+equal to (0, 0).  See the L<Attributes|/Attributes> and L<Methods|/Methods> section for 
+ways to change this behaviour.
+
+=head1 SYNOPSIS
+	
+	#!perl
+	package MyPackage;
+	use Moose;
+	use lib '../lib';
+	with 'Spreadsheet::XLSX::Reader::CellToColumnRow';
+
+	sub set_error{}
+	sub get_log_space{}
+		
+	sub my_method{
+		my ( $self, $cell ) = @_;
+		my ($column, $row ) = $self->parse_column_row( $cell );
+		print $self->error if( !defined $column or !defined $row );
+		return ($column, $row );
+	}
+
+	package main;
+
+	my $parser = MyPackage->new( count_from_zero => 0 );
+	print '(' . join( ', ', $parser->my_method( 'B2' ) ) . ")'\n";
+	
+	###########################
+	# SYNOPSIS Screen Output
+	# 01: (2, 2)
+	###########################
+	
+=head2 Attributes
+
+Attiributes are ways to change the instances behaviour and can be set as arguments 
+to -E<gt>new
+
+=head3 count_from_zero
+
+=over
+
+B<Definition:> A boolean attribute that determines if the numerical output of 
+L<parse_column_row|/parse_column_row( $excel_row_id )> provides a response counting from 
+Zero or One. True = count from Zero.
+
+B<Accepts:> $bool = (1|0)
+
+=back
+	
+=head2 Methods
+
+Methods are object methods (not functional methods)
+
+=head3 parse_column_row( $excel_row_id, $count_from_one )
+
+=over
+
+B<Definition:> This is the way to turn an alpha numeric Excel cell ID into row and column 
+integers.  If count_from_zero = 1 but you want (column, row) pairs returned counting from 
+1 then set $count_from_one = 1.  Or leave it blank to have the pair returned in the format 
+defined by L<count_from_zero|/count_from_zero>
+
+B<Accepts:> $excel_row_id, $count_from_one
+
+B<Returns:> ( $column_number, $row_number ) - integers
+
+=back
+
+=head3 build_cell_label( $column, $row, $count_from_one )
+
+=over
+
+B<Definition:> This is the way to turn a (column, row) pair into an excel ID.  If 
+$count_from_one is set then the ($column, $row pair will be treated at counting from one 
+independant of how L<count_from_zero|/count_from_zero> is set.
+integers
+
+B<Accepts:> $column, $row, $count_from_one (in that order and position)
+
+B<Returns:> ( $excel_cell_id ) - integers
+
+=back
+
+=head3 counting_from_zero( $bool )
+
+=over
+
+B<Definition:> This turns on (or off) counting from zero where the alternative is to 
+count from 1.
+
+B<Accepts:> $bool = (1|0)
+
+B<Returns:> nothing
+
+=back
+
+=head3 get_excel_position( $int )
+
+=over
+
+B<Definition:> If you wish to use this sheet agnostically of the L<count_from_zero|/count_from_zero> 
+setting then you can use this method to translate integers to a count-from-one number.  No action is 
+taken if the attribute is set to 0.
+
+B<Accepts:> a $count_from_one or a $count_from_zero int
+
+B<Returns:> a $count_from_one int
+
+=back
+
+=head3 get_used_position( $int )
+
+=over
+
+B<Definition:> If you wish to use this sheet agnostically of the L<count_from_zero|/count_from_zero> 
+setting then you can use this method to translate integers from a count-from-one number to whatever 
+scheme is in force from the attribute.  No action is taken if the attribute is set to 0.
+
+B<Accepts:> a $count_from_one int
+
+B<Returns:> a $count_from_one or a $count_from_zero int
+
+=back
+
+=head1 SUPPORT
+
+=over
+
+L<github Spreadsheet-XLSX-Reader/issues|https://github.com/jandrew/Spreadsheet-XLSX-Reader/issues>
+
+=back
+
+=head1 TODO
+
+=over
+
+B<1.> Nothing L<yet|/SUPPORT>
+
+=back
+
+=head1 AUTHOR
+
+=over
+
+=item Jed Lund
+
+=item jandrew@cpan.org
+
+=back
+
+=head1 COPYRIGHT
+
+This program is free software; you can redistribute
+it and/or modify it under the same terms as Perl itself.
+
+The full text of the license can be found in the
+LICENSE file included with this module.
+
+This software is copyrighted (c) 2014 by Jed Lund
+
+=head1 DEPENDENCIES
+
+=over
+
+L<version>
+
+L<Moose::Role>
+
+requires
+
+	name_space
+	_set_error
+
+=back
+
+=head1 SEE ALSO
+
+=over
+
+L<Spreadsheet::XLSX>
+
+L<Spreadsheet::XLSX::Reader::TempFilter>
+
+L<Log::Shiras|https://github.com/jandrew/Log-Shiras>
+
+=back
+
+=cut
+
+#########1#########2 main pod documentation end  5#########6#########7#########8#########9
