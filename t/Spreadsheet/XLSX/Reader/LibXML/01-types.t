@@ -1,5 +1,6 @@
-#########1 Test File for Spreadsheet::XLSX::Reader::Types   6#########7#########8#########9
+#########1 Test File for Spreadsheet::XLSX::Reader::LibXML::Types     7#########8#########9
 #!env perl
+
 BEGIN{ $ENV{PERL_TYPE_TINY_XS} = 0; }
 $| = 1;
 
@@ -33,7 +34,7 @@ use Spreadsheet::XLSX::Reader::LibXML::Types v0.1 qw(
 		ParserType
 		EpochYear
 		
-		ZeroFromNum
+		Excel_number_0
 		OneFromNum
 		TwoFromNum
 		ThreeFromNum
@@ -97,7 +98,7 @@ my			$bad_value_ref =[
 				'badfile.not',
 				'badfile.not',
 				'badfile.not',
-				{ string => ZeroFromNum },
+				{ string => Excel_number_0 },
 			];
 my			$answer_ref = [
 				qr/Could not find \/ read the file: badfile\.not/,
@@ -168,8 +169,8 @@ like		$@, $answer_ref->[$position],
 			$position++;
 			my	$bad_position = $position;
 			map{
-is			ZeroFromNum->( $question_ref->[$position] ), $answer_ref->[$position],
-							"Check the result of the transform ZeroFromNum on (question place $position): " . ($question_ref->[$position++] // 'Undef');
+is			Excel_number_0->( $question_ref->[$position] ), $answer_ref->[$position],
+							"Check the result of the transform Excel_ number_0 on (question place $position): " . ($question_ref->[$position++] // 'Undef');
 			}( 0..3 );
 			map{
 is			OneFromNum->( $question_ref->[$position] ), $answer_ref->[$position],
@@ -291,7 +292,7 @@ like		$@, $answer_ref->[$position++],
 							"... and check for the correct error message";
 			map{
 ok			PassThroughType->( $question_ref->[$position] ),
-							"Verifygin PassThroughType can work on (question place $position): " . ($question_ref->[$position++] // 'Undef');
+							"Verifying PassThroughType can work on (question place $position): " . ($question_ref->[$position++] // 'Undef');
 			}( 0..1 );
 explain 								"...Test Done";
 done_testing();

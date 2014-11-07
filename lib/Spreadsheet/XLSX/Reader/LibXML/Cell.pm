@@ -1,57 +1,87 @@
 package Spreadsheet::XLSX::Reader::LibXML::Cell;
-use version; our $VERSION = qv('v0.4.2');
+use version; our $VERSION = qv('v0.5_1');
 
 use 5.010;
 use Moose;
 use MooseX::StrictConstructor;
 use MooseX::HasDefaults::RO;
 use Types::Standard qw(
-		Int
-		Str
-		Bool
-		InstanceOf
-		ArrayRef
-		HashRef
-		HasMethods
+		Str					InstanceOf				HashRef
+		Enum				HasMethods				ArrayRef
+		Int					Maybe
     );
 
 use lib	'../../../../../lib';
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
 with	'Spreadsheet::XLSX::Reader::LibXML::LogSpace';
+use	Spreadsheet::XLSX::Reader::LibXML::Types v0.5 qw(
+		CellID
+	);
 
 #########1 Public Attributes  3#########4#########5#########6#########7#########8#########9
 
-has value_encoding =>(
+has	error_inst =>(
+		isa			=> InstanceOf[ 'Spreadsheet::XLSX::Reader::LibXML::Error' ],
+		clearer		=> '_clear_error_inst',
+		reader		=> '_get_error_inst',
+		required	=> 1,
+		handles =>[ qw(
+			error set_error clear_error set_warnings if_warn
+		) ],
+	);
+
+has cell_unformatted =>(
+		isa		=> Maybe[Str],
+		reader	=> 'unformatted',
+		predicate	=> 'has_unformatted',
+	);
+
+has rich_text =>(
+		isa		=> ArrayRef,
+		reader	=> 'get_rich_text',
+		predicate	=> 'has_rich_text',
+	);
+
+has cell_font =>(
+		isa		=> HashRef,
+		reader	=> 'get_font',
+		predicate	=> 'has_font',
+	);
+
+has cell_border =>(
+		isa		=> HashRef,
+		reader	=> 'get_border',
+		predicate	=> 'has_border',
+	);
+	
+has cell_style =>(
+		isa		=> HashRef,
+		reader	=> 'get_style',
+		predicate	=> 'has_style',
+	);
+has cell_fill =>(
+		isa		=> HashRef,
+		reader	=> 'get_fill',
+		predicate	=> 'has_fill',
+	);
+
+has cell_type =>(
+		isa		=> Enum[qw( Text Numeric Date Custom )],
+		reader	=> 'type',
+		predicate	=> 'has_type',
+	);
+
+has cell_encoding =>(
 		isa		=> Str,
 		reader	=> 'encoding',
+		predicate	=> 'has_encoding',
 	);
 
-has value_type =>(
+has cell_merge =>(
 		isa			=> Str,
-		reader		=> 'type',
-		required	=> 1,
-	);
-
-has	cell_column =>(
-		isa			=> Int,
-		reader		=> 'column',
-		writer		=> '_set_column',
-		required	=> 1,
-	);
-
-has	cell_row =>(
-		isa			=> Int,
-		reader		=> 'row',
-		writer		=> '_set_row',
-		required	=> 1,
-	);
-
-has raw_value =>(
-		isa			=> Str,
-		reader		=> 'unformatted',
-		predicate	=> 'is_not_empty',
-		required	=> 1,
+		reader		=> 'merge_range',
+		predicate 	=> 'is_merged',
 	);
 
 has cell_formula =>(
@@ -59,93 +89,41 @@ has cell_formula =>(
 		reader		=> 'formula',
 		predicate	=> 'has_formula',
 	);
-
-has merge_range	=>(
-		isa			=> Str,
-		reader		=> '_get_merge_range',
-		predicate	=> 'is_merged',
-	);
-
-has rich_text =>(
-		isa			=> ArrayRef,
-		reader		=> 'get_rich_text',
-		predicate	=> 'has_rich_text',
+	
+has cell_row =>(
+		isa			=> Int,
+		reader		=> 'row',
+		predicate	=> 'has_row',
 	);
 	
-has font =>(
-		isa		=> HashRef,
-		reader	=> 'get_font',
+has cell_col =>(
+		isa			=> Int,
+		reader		=> 'col',
+		predicate	=> 'has_col',
 	);
 
-has fill =>(
-		isa		=> HashRef,
-		reader	=> 'get_fill',
+has r =>(
+		isa		=> CellID,
+		reader	=> 'cell_id',
+		predicate	=> 'has_cell_id',
 	);
 
-has borderId =>(
-		isa		=> Int,
-		reader	=> 'get_borderId',
+has cell_hyperlink =>(
+		isa		=> ArrayRef,
+		reader	=> 'get_hyperlink',
+		predicate	=> 'has_hyperlink',
 	);
 
-has fillId =>(
-		isa		=> Int,
-		reader	=> 'get_fillId',
-	);
-
-has fontId =>(
-		isa		=> Int,
-		reader	=> 'get_fontId',
-	);
-
-has applyFont =>(
-		isa		=> Bool,
-		reader	=> 'get_applyFont',
-	);
-
-has applyNumberFormat =>(
-		isa		=> Bool,
-		reader	=> 'get_applyNumberFormat',
-	);
-
-has border =>(
-		isa		=> HashRef,
-		reader	=> 'get_border',
-	);
-
-has alignment =>(
-		isa		=> HashRef,
-		reader	=> 'get_alignment',
-	);
-	
-has numFmtId =>(
-		isa		=> Int,
-		reader	=> 'get_numFmtId',
-	);
-	
-has xfId =>(
-		isa		=> Int,
-		reader	=> 'get_xfId',
-	);
-
-has NumberFormat =>(
-		isa			=> HasMethods[ 'coerce', 'display_name' ],
-		reader		=> 'get_format',
-		writer		=> 'set_format',
-		predicate	=> 'has_format',
-		clearer		=> 'clear_format',
+has cell_coercion =>(
+		isa			=> HasMethods[ 'assert_coerce', 'display_name' ],
+		reader		=> 'get_coercion',
+		writer		=> 'set_coercion',
+		predicate	=> 'has_coercion',
+		clearer		=> 'clear_coercion',
 		handles		=>{
-			format_name => 'display_name',
+			coercion_name => 'display_name',
 		},
 	);
-
-has error_inst =>(
-		isa			=> InstanceOf[ 'Spreadsheet::XLSX::Reader::LibXML::Error' ],
-		handles 	=>[ qw( error set_error clear_error set_warnings if_warn ) ],
-		clearer		=> '_clear_error_inst',
-		reader		=> '_get_error_instance',
-		required	=> 1,
-	);
-with	'Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow'; #Here to load set_error first
 
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
 
@@ -159,70 +137,56 @@ sub value{
 	###LogSD		$phone->talk( level => 'trace', message => [ "Cell:", $self ] );
 	my	$formatted;
 	my	$unformatted	= $self->unformatted;
-	if( !$self->has_format ){
+	if( !$self->has_coercion ){
 		return $unformatted;
 	}elsif( !defined $unformatted ){
 		$self->set_error( "The cell does not have a value" );
 	}elsif( $unformatted eq '' ){
 		$self->set_error( "The cell has the empty string for a value" );
-		$formatted = '';
 	}else{
-		eval '$formatted = $self->get_format->coerce( $unformatted )';
+		eval '$formatted = $self->get_coercion->assert_coerce( $unformatted )';
 		if( $@ ){
 			$self->set_error( $@ );
 		}
 	}
-	$formatted =~ s/\\//g;
+	$formatted =~ s/\\//g if $formatted;
 	###LogSD	$phone->talk( level => 'debug', message => [
-	###LogSD		"Format is:", $self->get_format,
+	###LogSD		"Format is:", $self->format_name,
 	###LogSD		"Returning the formated value: " . $formatted ] );
 	return $formatted;
 }
 
-sub get_merge_range{
-	my( $self, $modifier ) 	= @_;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	###LogSD					name_space 	=> $self->get_log_space .  '::get_merge_range', );
-	if( !$self->is_merged ){
-		$self->set_error( 
-			"Attempted to collect merge range but the cell is not merged with any others" 
-		);
-		return undef;
-	}
-	my	$merge_range = $self->_get_merge_range;
-	###LogSD	$phone->talk( level => 'debug', message => [
-	###LogSD		"Returning merge_range:  $merge_range",
-	###LogSD		(( $modifier ) ? "Modified by: $modifier" : ''),
-	###LogSD	] );
-	if( $modifier ){
-		if( $modifier eq 'array' ){
-			my ( $start, $end ) = split /:/, $merge_range;
-			my ( $start_col, $start_row, $end_col, $end_row ) =
-				( $self->parse_column_row( $start ), $self->parse_column_row( $end ) );
-			$merge_range = [ [ $start_col, $start_row ], [ $end_col, $end_row ] ];
-		}else{
-			$self->set_error( 
-				"Un-recognized modifier -$modifier- passed to 'get_merge_range' - it only accepts 'array'" 
-			);
-		}
-	}
-	###LogSD	$phone->talk( level => 'info', message => [
-	###LogSD		"Final merge range:", $merge_range ] );
-	return $merge_range;
-}
-
-sub cell_id{
-	my( $self, ) 	= @_;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	###LogSD					name_space 	=> $self->get_log_space .  '::cell_id', );
-	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"Getting cell ID for row -" . $self->row . '- column -' . 
-	###LogSD			$self->column . '-', ] );
-	my $cell_id = $self->build_cell_label( $self->column, $self->row );
-	###LogSD		$phone->talk( level => 'info', message => [
-	###LogSD			"Cell ID is: $cell_id" ] );
-	return $cell_id;
-}
+#~ sub get_merge_range{
+	#~ my( $self, $modifier ) 	= @_;
+	#~ ###LogSD	my	$phone = Log::Shiras::Telephone->new(
+	#~ ###LogSD					name_space 	=> $self->get_log_space .  '::get_merge_range', );
+	#~ if( !$self->is_merged ){
+		#~ $self->set_error( 
+			#~ "Attempted to collect merge range but the cell is not merged with any others" 
+		#~ );
+		#~ return undef;
+	#~ }
+	#~ my	$merge_range = $self->merge_range;
+	#~ ###LogSD	$phone->talk( level => 'debug', message => [
+	#~ ###LogSD		"Returning merge_range:  $merge_range",
+	#~ ###LogSD		(( $modifier ) ? "Modified by: $modifier" : ''),
+	#~ ###LogSD	] );
+	#~ if( $modifier ){
+		#~ if( $modifier eq 'array' ){
+			#~ my ( $start, $end ) = split /:/, $merge_range;
+			#~ my ( $start_col, $start_row, $end_col, $end_row ) =
+				#~ ( $self->parse_column_row( $start ), $self->parse_column_row( $end ) );
+			#~ $merge_range = [ [ $start_col, $start_row ], [ $end_col, $end_row ] ];
+		#~ }else{
+			#~ $self->set_error( 
+				#~ "Un-recognized modifier -$modifier- passed to 'get_merge_range' - it only accepts 'array'" 
+			#~ );
+		#~ }
+	#~ }
+	#~ ###LogSD	$phone->talk( level => 'info', message => [
+	#~ ###LogSD		"Final merge range:", $merge_range ] );
+	#~ return $merge_range;
+#~ }
 
 #########1 Private Attributes 3#########4#########5#########6#########7#########8#########9
 

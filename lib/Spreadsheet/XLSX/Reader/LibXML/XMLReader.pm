@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader;
-use version; our $VERSION = qv('v0.4.2');
+use version; our $VERSION = qv('v0.5_1');
 
 use 5.010;
 use Moose;
@@ -52,7 +52,7 @@ sub start_the_file_over{
 	$self->_clear_xml_parser;
 	$self->_clear_location;
 	my $fh = $self->_get_file_handle;
-	seek( $fh, 0, 0 );#SEEK_SET
+	seek( $fh, 0, 0 );
 	$self->_set_xml_parser( XML::LibXML::Reader->new( IO => $fh ) );
 }
 
@@ -69,12 +69,26 @@ has _xml_reader =>(
 		byte_consumed		=> 'byteConsumed',
 		start_reading		=> 'read',
 		next_element		=> 'nextElement',
+		next_sibling		=> 'nextSibling',
 		get_attribute		=> 'getAttribute',
 		read_state			=> 'readState',
-		name				=> 'name',
+		node_name			=> 'name',
+		node_value			=> 'value',
+		has_value			=> 'hasValue',
+		inner_xml			=> 'readInnerXml',
+		node_depth			=> 'depth',
+		is_empty			=> 'isEmptyElement',
+		inner_xml			=> 'readInnerXml',
+		has_attributes		=> 'hasAttributes',
+		get_attribute_count	=> 'attributeCount',
+		read_attribute		=> 'readAttributeValue',
+		constant_value		=> 'ConstValue',
+		move_to_first_att	=> 'moveToFirstAttribute',
+		move_to_next_att	=> 'moveToNextAttribute',
 		_encoding			=> 'encoding',
 		_go_to_the_end		=> 'finish',
 		_close_the_sheet	=> 'close',
+		next_sibling_element	=> 'nextSiblingElement',
 	}
 );
 
@@ -83,9 +97,7 @@ has _file_handle =>(
 		reader		=> '_get_file_handle',
 		writer		=> '_set_file_handle',
 		predicate	=> '_has_file_handle',
-		handles	=>{
-			_close_file_handle	=> 'close',
-		},
+		clearer		=> '_clear_file_handle',
 	);
 
 has _file_encoding =>(
@@ -151,12 +163,13 @@ sub _set_file_name{
 		return 1 if $mapped;
 	}
 	
-	#Set the file unique bits
 	# Get file encoding
 	my	$encoding	= $self->_encoding;
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		"Encoding of file is: $encoding" ], );
 	$self->_set_encoding( $encoding );
+	
+	# Set the file unique bits
 	if( $self->can( '_load_unique_bits' ) ){
 		###LogSD	$phone->talk( level => 'debug', message => [ "Loading unique bits" ], );
 		$self->_load_unique_bits;
@@ -170,10 +183,9 @@ sub DEMOLISH{
 	###LogSD	my	$phone = Log::Shiras::Telephone->new(
 	###LogSD					name_space 	=> $self->get_log_space .  '::XMLReader::DEMOLISH', );
 	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"clearing the reader for file_name:" . $self->get_file_name,
-	###LogSD			"clearing the error instance",									] );
+	###LogSD			"clearing the reader for file_name:" . $self->get_file_name, ] );
 	$self->_clear_xml_parser,
-	$self->_clear_error_inst,
+	$self->_clear_file_handle,
 }
 
 #########1 Phinish            3#########4#########5#########6#########7#########8#########9

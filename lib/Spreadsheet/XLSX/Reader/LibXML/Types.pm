@@ -1,5 +1,6 @@
 package Spreadsheet::XLSX::Reader::LibXML::Types;
-use version; our $VERSION = qv('v0.4.2');
+use version; our $VERSION = qv('v0.5_1');
+
 use strict;
 use warnings;
 use Type::Utils -all;
@@ -13,16 +14,17 @@ use Type::Library 0.046
 		ShortUSDate					MediumDate					DayMonth
 		MonthYear					TwelveHourMinute			EpochYear
 		Alignment					PassThroughType				CellType
-		CellID
+		CellID						ReadSpan					PositiveNum
+		NegativeNum					ZeroOrUndef					NotNegativeNum
 		
-		ZeroFromNum					OneFromNum					TwoFromNum
+		Excel_number_0				OneFromNum					TwoFromNum
 		ThreeFromNum				FourFromNum					NineFromNum
 		TenFromNum					ElevenFromNum				TwelveFromNum
 		FourteenFromWinExcelNum		FourteenFromAppleExcelNum	FifteenFromWinExcelNum
 		FifteenFromAppleExcelNum	SixteenFromWinExcelNum		SixteenFromAppleExcelNum
 		SeventeenFromWinExcelNum	SeventeenFromAppleExcelNum	EighteenFromNum
-	);#ValueCoercion				ValueCoercions	CustomFormat
-use Types::Standard -types;
+	);
+BEGIN{ extends "Types::Standard" };
 my $try_xs =
 		exists($ENV{PERL_TYPE_TINY_XS}) ? !!$ENV{PERL_TYPE_TINY_XS} :
 		exists($ENV{PERL_ONLY})         ?  !$ENV{PERL_ONLY} :
@@ -172,10 +174,29 @@ declare CellType,
 declare CellID,
 	as StrMatch[ qr/^[A-Z]{1,3}\d+$/ ];
 
+declare ReadSpan,
+	as Enum[ qw( sheet_span row_span non_null ) ];
+	
+declare PositiveNum,
+	as Num,
+	where{ $_ > 0 };
+
+declare NegativeNum,
+	as Num,
+	where{ $_ < 0 };
+	
+declare ZeroOrUndef,
+	as Maybe[Num],
+	where{ !$_ };
+	
+declare NotNegativeNum,
+	as Num,
+	where{ $_ > -1 };
+
 
 #########1 Excel Defined Converions     4#########5#########6#########7#########8#########9
 
-declare_coercion ZeroFromNum,
+declare_coercion Excel_number_0,
 	to_type Any, from Maybe[Any],
 	via{ $_ };
 

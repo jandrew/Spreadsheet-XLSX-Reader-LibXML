@@ -1,5 +1,5 @@
-package Spreadsheet::XLSX::Reader::XMLDOM::Styles;
-use version; our $VERSION = qv("v0.1_1");
+package Spreadsheet::XLSX::Reader::LibXML::XMLDOM::Styles;
+use version; our $VERSION = qv('v0.5_1');
 
 use 5.010;
 use Moose;
@@ -19,15 +19,13 @@ use Types::Standard qw(
 		InstanceOf
     );
 use XML::LibXML;
-my	$chunk_parser = XML::LibXML->new;
-use XML::LibXML::Reader;
 use Type::Coercion;
 use DateTimeX::Format::Excel v0.12;
-use lib	'../../../../../lib',;
-with 'Spreadsheet::XLSX::Reader::LogSpace';
-###LogSD	use Log::Shiras::Telephone;# Fix with CPAN release of Log::Shiras
+use lib	'../../../../../../lib',;
+with 'Spreadsheet::XLSX::Reader::LibXML::LogSpace';
+###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
-use Spreadsheet::XLSX::Reader::Types v0.1 qw(
+use Spreadsheet::XLSX::Reader::LibXML::Types v0.1 qw(
 		XMLFile
 		PassThroughType
 		ZeroFromNum
@@ -49,13 +47,11 @@ use Spreadsheet::XLSX::Reader::Types v0.1 qw(
 		SeventeenFromAppleExcelNum
 		EighteenFromNum
 	);
-		#~ ValueCoercion
-		#~ ValueCoercions
+with 'Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData';
 
 #########1 Dispatch Tables & Package Variables    5#########6#########7#########8#########9
 
-#~ my	$win_excel_converter	= DateTimeX::Format::Excel->new;
-#~ my	$apple_excel_converter	= DateTimeX::Format::Excel->new( system_type => 'apple_excel' );
+
 
 #########1 Public Attributes  3#########4#########5#########6#########7#########8#########9
 
@@ -116,7 +112,7 @@ has	epoch_year =>(
 	);
 
 has	error_inst =>(
-		isa		=> InstanceOf[ 'Spreadsheet::XLSX::Reader::Error' ],
+		isa		=> InstanceOf[ 'Spreadsheet::XLSX::Reader::LibXML::Error' ],
 		handles =>[ qw(
 			error set_error clear_error set_warnings if_warn
 		) ],
@@ -205,63 +201,6 @@ sub get_default_format_position{
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		"Final conversion:", $conversion ] );
 	return $conversion;
-}
-
-sub process_element_to_perl_data{
-	my( $self, $element ) = @_;
-	my	$ref;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	###LogSD			name_space 	=> $self->get_log_space . '::process_element_to_perl_data', );
-	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"working on perl ref conversion of:", $element->toString ] );
-	my	$name = $element->nodeName;
-	###LogSD	$phone->talk( level => 'debug', message =>[ "With name: $name" ] );
-	for my $attribute ( $element->attributes ){
-		next if !$attribute;
-		###LogSD	$phone->talk( level => 'trace', message => [
-		###LogSD		"Processing attribute:", $attribute  ] );
-		my	$att_name = $attribute->name;
-		my	$att_value = $attribute->value;
-		###LogSD	$phone->talk( level => 'trace', message => [
-		###LogSD		"Element named -$name- has attribute named -$att_name- and value -$att_value-"  ] );
-		if( $att_name eq 'val' ){
-			$ref = $att_value;
-			last;
-		}else{
-			$ref->{$att_name} = $att_value;
-		}
-	}
-	###LogSD	$phone->talk( level => 'debug', message =>[ "current ref:", $ref ] );
-	$ref = [] if( ref( $ref ) eq 'HASH' and exists $ref->{count} );
-	for my $node ( $element->childNodes ){
-		###LogSD	$phone->talk( level => 'trace', message => [
-		###LogSD		"processing child node:", $node->toString ] );
-		my ( $child_name, $child_ref ) = $self->process_element_to_perl_data( $node );
-		###LogSD	$phone->talk( level => 'trace', message => [
-		###LogSD		"Processing child ref named: $child_name",
-		###LogSD		"with ref:", $child_ref,
-		###LogSD		"Into ref:", ref( $ref ), $ref			] );
-		if( ref $ref eq 'ARRAY' ){
-			push @$ref, $child_ref;
-		}else{
-				$child_name =~ /([a-z])/;
-			my	$first = uc( $1 );
-			my	$attribute_name = $child_name;
-				$attribute_name =~ s/([a-z])/$first/;
-			$attribute_name = 'apply' . $attribute_name;
-			if( exists $ref->{$attribute_name} and $ref->{$attribute_name} ){
-				###LogSD	$phone->talk( level => 'debug', message =>[ "Found attribute: $attribute_name" ] );
-				delete $ref->{$attribute_name};
-			}else{
-				###LogSD	$phone->talk( level => 'trace', message =>[
-				###LogSD		"Attribute: $attribute_name", "is not found in:", $ref ] );
-			}
-			$ref->{$child_name} = $child_ref;
-		}
-	}
-	###LogSD	$phone->talk( level => 'debug', message => [
-	###LogSD		"Final perl data for node named -$name-:", $ref ] );
-	return( $name, $ref );
 }
 	
 
@@ -469,20 +408,22 @@ __END__
 
 =head1 NAME
 
-Spreadsheet::XLSX::Reader::DOM::Styles - LibXML DOM parser of Styles
+Spreadsheet::XLSX::Reader::LibXML::XMLDOM::Styles - LibXML DOM parser of Styles
     
 =head1 DESCRIPTION
 
 This is the module that is used to apply any style definitions listed in the sheet.  See 
-L<Spreadsheet::XLSX::Reader::Worksheet> for a way to apply other styles to the output.  
-The current styles coverage is minimal and will expand over time.  In general if I didn't 
-write the excel version of a style implementation this module will use the pass-through style.
+L<Spreadsheet::XLSX::Reader::LibXML::Worksheet> for a way to apply other styles to the 
+output.  The current styles coverage is minimal and will expand over time.  In general if 
+I didn't write the excel version of a style implementation this module will use the 
+pass-through style.
 
 =head1 SUPPORT
 
 =over
 
-L<github Spreadsheet::XLSX::Reader/issues|https://github.com/jandrew/Spreadsheet-XLSX-Reader/issues>
+L<github Spreadsheet-XLSX-Reader-LibXML/issues
+|https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML/issues>
 
 =back
 

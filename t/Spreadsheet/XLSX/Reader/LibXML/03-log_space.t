@@ -1,4 +1,4 @@
-#########1 Test File for Spreadsheet::XLSX::Reader::Error   6#########7#########8#########9
+#########1 Test File for Spreadsheet::XLSX::Reader::LibXML::Error     7#########8#########9
 #!env perl
 BEGIN{ $ENV{PERL_TYPE_TINY_XS} = 0; }
 $| = 1;

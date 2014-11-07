@@ -1,9 +1,9 @@
-#########1 Test File for Spreadsheet::XLSX::Reader::CellToColumnRow   7#########8#########9
+#########1 Test File for Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow     8#########9
 #!env perl
-BEGIN{ $ENV{PERL_TYPE_TINY_XS} = 0; }
+BEGIN{ $ENV{PERL_TYPE_TINY_XS} = 0; };
 $| = 1;
 
-use	Test::Most tests => 158;
+use	Test::Most tests => 79;
 use	Test::Moose;
 use	MooseX::ShortCut::BuildInstance qw( build_instance should_re_use_classes );
 should_re_use_classes( 1 );
@@ -30,10 +30,8 @@ my  (
 			$test_instance,
 	);
 my  		@class_attributes = qw(
-				count_from_zero
 			);
 my  		@class_methods = qw(
-				counting_from_zero
 				parse_column_row
 				build_cell_label
 			);
@@ -99,12 +97,13 @@ lives_ok{
 				add_attributes =>{ 
 					error_inst =>{
 						handles =>[ qw( error set_error clear_error set_warnings if_warn ) ],
+						default	=>	sub{ Spreadsheet::XLSX::Reader::LibXML::Error->new(
+										#~ should_warn => 1,
+										should_warn => 0,# to turn off cluck when the error is set
+									) },
 					},
+					
 				},
-				error_inst => Spreadsheet::XLSX::Reader::LibXML::Error->new(
-					#~ should_warn => 1,
-					should_warn => 0,# to turn off cluck when the error is set
-				),
 				name_space		=> 'Test',
 				should_warn		=> 0,
 				count_from_zero	=> 0,
@@ -135,33 +134,33 @@ is			$test_instance->build_cell_label( @{$answer_ref->[ $_]} ), $question_ref->[
 										', ' . $answer_ref->[ $_]->[1] . ') - to Excel cell ID -' . $question_ref->[$_] . '-'
 										;
 }(0 .. 31);
-lives_ok{
-			$test_instance = build_instance(
-				package => 'Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow::TestClass',# Just call the class since it is already built
-				error_inst => Spreadsheet::XLSX::Reader::LibXML::Error->new(
-					#~ should_warn => 1,
-					should_warn => 0,# to turn off cluck when the error is set
-				),
-				name_space		=> 'Test',
-				should_warn		=> 0,
-				count_from_zero	=> 1,
-			);
-}										"Build a new test instance to count rows and columns from zero";
-map{
-is_deeply	[ $test_instance->parse_column_row( $question_ref->[$_] ) ], $answer_ref->[38 + $_],
-										"Convert the Excel cell ID -" . $question_ref->[$_] . "- to column, row: (" .
-										$answer_ref->[38 + $_]->[0] . ', ' . $answer_ref->[38 + $_]->[1] . ')';
-if( $error_ref->[38 + $_] ){
-like		$test_instance->error, $error_ref->[38 + $_],
-										"... and check for the correct error message";
-}
-}(0 .. 37);
-map{
-is			$test_instance->build_cell_label( @{$answer_ref->[38 + $_]} ), $question_ref->[$_],#Reverse the polarity flow through the gate
-										"Convert the column, row: (" . $answer_ref->[38 + $_]->[0] . 
-										', ' . $answer_ref->[38 + $_]->[1] . ') - to Excel cell ID -' . $question_ref->[$_] . '-'
-										;
-}(0 .. 31);
+#~ lives_ok{
+			#~ $test_instance = build_instance(
+				#~ package => 'Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow::TestClass',# Just call the class since it is already built
+				#~ error_inst => Spreadsheet::XLSX::Reader::LibXML::Error->new(
+					# should_warn => 1,
+					#~ should_warn => 0,# to turn off cluck when the error is set
+				#~ ),
+				#~ name_space		=> 'Test',
+				#~ should_warn		=> 0,
+				#~ count_from_zero	=> 1,
+			#~ );
+#~ }										"Build a new test instance to count rows and columns from zero";
+#~ map{
+#~ is_deeply	[ $test_instance->parse_column_row( $question_ref->[$_] ) ], $answer_ref->[38 + $_],
+										#~ "Convert the Excel cell ID -" . $question_ref->[$_] . "- to column, row: (" .
+										#~ $answer_ref->[38 + $_]->[0] . ', ' . $answer_ref->[38 + $_]->[1] . ')';
+#~ if( $error_ref->[38 + $_] ){
+#~ like		$test_instance->error, $error_ref->[38 + $_],
+										#~ "... and check for the correct error message";
+#~ }
+#~ }(0 .. 37);
+#~ map{
+#~ is			$test_instance->build_cell_label( @{$answer_ref->[38 + $_]} ), $question_ref->[$_],#Reverse the polarity flow through the gate
+										#~ "Convert the column, row: (" . $answer_ref->[38 + $_]->[0] . 
+										#~ ', ' . $answer_ref->[38 + $_]->[1] . ') - to Excel cell ID -' . $question_ref->[$_] . '-'
+										#~ ;
+#~ }(0 .. 31);
 			use warnings 'uninitialized';
 explain 								"...Test Done";
 done_testing();

@@ -1,5 +1,5 @@
-#########1 Test File for Spreadsheet::XLSX::Reader::XMLReader::CalcChain        8#########9
-#!perl
+#########1 Test File for Spreadsheet::XLSX::Reader::LibXML::XMLReader::CalcChain8#########9
+#!env perl
 BEGIN{ $ENV{PERL_TYPE_TINY_XS} = 0; }
 $| = 1;
 
@@ -7,8 +7,8 @@ use	Test::Most tests => 17;
 use	Test::Moose;
 use	MooseX::ShortCut::BuildInstance qw( build_instance );
 use	lib
-		'../../../../../../Log-Shiras/lib',
-		'../../../../../lib',;
+		'../../../../../../../Log-Shiras/lib',
+		'../../../../../../lib',;
 #~ use Log::Shiras::Switchboard qw( :debug );#
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(#
 ###LogSD						name_space_bounds =>{
@@ -22,9 +22,9 @@ use	lib
 ###LogSD					);
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
-use	Spreadsheet::XLSX::Reader::XMLReader::CalcChain;
-use	Spreadsheet::XLSX::Reader::Error;
-my	$test_file = ( @ARGV ) ? $ARGV[0] : '../../../../test_files/xl/';
+use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::CalcChain;
+use	Spreadsheet::XLSX::Reader::LibXML::Error;
+my	$test_file = ( @ARGV ) ? $ARGV[0] : '../../../../../test_files/xl/';
 	$test_file .= 'calcChain.xml';
 my  ( 
 			$test_instance, $capture, $x, @answer, $error_instance,
@@ -32,41 +32,50 @@ my  (
 my 			$row = 0;
 my 			@class_attributes = qw(
 				file_name
-				epoch_year
 				error_inst
 			);
 my  		@instance_methods = qw(
-				get_position
+				get_calc_chain_position
 				get_file_name
 				where_am_i
 				has_position
 				get_log_space
 				set_log_space
-				get_core_element
+				parse_element
 			);
 my			$answer_ref = [
-				[
-					'<c xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" r="E13" i="1"/>',
-				],
+				{
+		          r => 'E14',
+		          i => '1'
+		        },
+				{
+		          r => 'D12',
+		        },
+				{
+		          r => 'D14',
+		          s => '1'
+		        },
+				{
+		          r => 'B9',
+		        },
 			];
 ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space => 'main', );
 ###LogSD		$phone->talk( level => 'info', message => [ "easy questions ..." ] );
 map{ 
 has_attribute_ok
-			'Spreadsheet::XLSX::Reader::XMLReader::CalcChain', $_,
-										"Check that Spreadsheet::XLSX::Reader::XMLReader::CalcChain has the -$_- attribute"
+			'Spreadsheet::XLSX::Reader::LibXML::XMLReader::CalcChain', $_,
+										"Check that Spreadsheet::XLSX::Reader::LibXML::XMLReader::CalcChain has the -$_- attribute"
 } 			@class_attributes;
 
 ###LogSD		$phone->talk( level => 'info', message => [ "harder questions ..." ] );
 lives_ok{
-			$test_instance =	Spreadsheet::XLSX::Reader::XMLReader::CalcChain->new(
+			$test_instance =	Spreadsheet::XLSX::Reader::LibXML::XMLReader::CalcChain->new(
 									file_name	=> $test_file,
 									log_space	=> 'Test',
-									error_inst	=> Spreadsheet::XLSX::Reader::Error->new(
+									error_inst	=> Spreadsheet::XLSX::Reader::LibXML::Error->new(
 										#~ should_warn => 1,
 										should_warn => 0,# to turn off cluck when the error is set
 									),
-									epoch_year	=> 1904,
 								);
 }										"Prep a new CalcChain instance";
 map{
@@ -74,25 +83,15 @@ can_ok		$test_instance, $_,
 } 			@instance_methods;
 
 ###LogSD		$phone->talk( level => 'info', message => [ "hardest questions ..." ] );
-ok			$capture = $test_instance->get_position( 0 ),
+is_deeply	$test_instance->get_calc_chain_position( 0 ), $answer_ref->[0],
 										"Get the zeroth calcChain 'c' element";
-			$x = 0;
-			@answer = split "\n", $capture;
-map{
-is			$_, $answer_ref->[0]->[$x],
-										'Test matching line -' . (1 + $x++) . "- of 'c' position: 0";
-}			@answer;
-lives_ok{	$capture = $test_instance->get_position( 20 );
+lives_ok{	$capture = $test_instance->get_calc_chain_position( 20 );
 }										"Attempt an element past the end of the list";
 is			$capture, undef,			'Show that undef is returned';
-ok			$capture = $test_instance->get_position( 0 ),
-										"Get the zeroth calcChain 'c' element";
-			$x = 0;
-			@answer = split "\n", $capture;
-map{
-is			$_, $answer_ref->[0]->[$x],
-										'Test matching line -' . (1 + $x++) . "- of 'c' position: 0";
-}			@answer;
+			for my $x ( 0..$#$answer_ref ){
+is_deeply	$test_instance->get_calc_chain_position( $x ), $answer_ref->[$x],
+										"Get the calcChain 'c' element at position: $x";
+			}
 explain 								"...Test Done";
 done_testing();
 
@@ -111,12 +110,13 @@ done_testing();
 ###LogSD			push @initial_list, (( ref $value ) ? Dumper( $value ) : $value );
 ###LogSD		}
 ###LogSD		for my $line ( @initial_list ){
+###LogSD			$line =~ s/\n$//;
 ###LogSD			$line =~ s/\n/\n\t\t/g;
 ###LogSD			push @print_list, $line;
 ###LogSD		}
-###LogSD		printf( "name_space - %-50s | level - %-6s |\nfile_name  - %-50s | line  - %04d   |\n\t:(\t%s ):\n", 
-###LogSD					$_[0]->{name_space}, $_[0]->{level},
-###LogSD					$_[0]->{filename}, $_[0]->{line},
+###LogSD		printf( "| level - %-6s | name_space - %-s\n| line  - %04d   | file_name  - %-s\n\t:(\t%s ):\n", 
+###LogSD					$_[0]->{level}, $_[0]->{name_space},
+###LogSD					$_[0]->{line}, $_[0]->{filename},
 ###LogSD					join( "\n\t\t", @print_list ) 	);
 ###LogSD		use warnings 'uninitialized';
 ###LogSD	}

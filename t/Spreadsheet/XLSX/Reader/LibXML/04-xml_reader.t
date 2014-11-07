@@ -1,9 +1,9 @@
-#########1 Test File for Spreadsheet::XLSX::Reader::XMLReader         7#########8#########9
+#########1 Test File for Spreadsheet::XLSX::Reader::LibXML::XMLReader 7#########8#########9
 #!env perl
 BEGIN{ $ENV{PERL_TYPE_TINY_XS} = 0; }
 $| = 1;
 
-use	Test::Most tests => 45;
+use	Test::Most tests => 47;
 use	Test::Moose;
 use	MooseX::ShortCut::BuildInstance qw( build_instance );
 use	lib
@@ -45,9 +45,11 @@ my  		@class_methods = qw(
 				start_reading
 				encoding
 				next_element
+				next_sibling
+				next_sibling_element
 				get_attribute
 				read_state
-				name
+				node_name
 				where_am_i
 				has_position
 				start_the_file_over

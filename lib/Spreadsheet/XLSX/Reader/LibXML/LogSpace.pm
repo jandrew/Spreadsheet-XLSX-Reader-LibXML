@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::LogSpace;
-use version; our $VERSION = qv('v0.4.2');
+use version; our $VERSION = qv('v0.5_1');
 
 use Moose::Role;
 use Types::Standard qw(
@@ -20,6 +20,8 @@ has log_space =>(
 	);
 
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
+
+
 
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
 

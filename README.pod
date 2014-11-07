@@ -1,35 +1,352 @@
-=head1 Spreadsheet::XLSX::Reader::LibXML
+=head1 Spreadsheet::XLSX::Reader::LibXML=head1 NAME
 
-Read xlsx spreadsheet files with LibXML
+Spreadsheet::XLSX::Reader::LibXML - Read xlsx spreadsheet files with LibXML
 
-=head1 Description
+=head1 SYNOPSIS
 
-The goal is to write a spreadsheet parser based on L<XML::LibXML> and L<Moose> that 
-matches the API of L<Spreadsheet::ParseExcel> as closely as possible.
+The following uses the 'TestBook.xlsx' file found in the t/test_files/ folder
 
-=head1 Caveat Utilitor
+	use strict;
+	use warnings;
+	use Spreadsheet::XLSX::Reader::LibXML;
 
-B<Although it is my primary focus it is not working yet!>
+	my $parser   = Spreadsheet::XLSX::Reader::LibXML->new();
+	my $workbook = $parser->parse( 'TestBook.xlsx' );
 
-This package is alpha quality until this notice is removed.  By that I mean the API 
-is still subject to change.
+	if ( !defined $workbook ) {
+		die $parser->error(), "\n";
+	}
+
+	for my $worksheet ( $workbook->worksheets() ) {
+
+		my ( $row_min, $row_max ) = $worksheet->row_range();
+		my ( $col_min, $col_max ) = $worksheet->col_range();
+
+		for my $row ( $row_min .. $row_max ) {
+			for my $col ( $col_min .. $col_max ) {
+
+				my $cell = $worksheet->get_cell( $row, $col );
+				next unless $cell;
+
+				print "Row, Col    = ($row, $col)\n";
+				print "Value       = ", $cell->value(),       "\n";
+				print "Unformatted = ", $cell->unformatted(), "\n";
+				print "\n";
+			}
+		}
+		last;# In order not to read all sheets
+	}
+
+	###########################
+	# SYNOPSIS Screen Output
+	# 01: Row, Col    = (0, 0)
+	# 02: Value       = Category
+	# 03: Unformatted = Category
+	# 04: 
+	# 05: Row, Col    = (0, 1)
+	# 06: Value       = Total
+	# 07: Unformatted = Total
+	# 08: 
+	# 09: Row, Col    = (0, 2)
+	# 10: Value       = Date
+	# 11: Unformatted = Date
+	# 12: 
+	# 13: Row, Col    = (1, 0)
+	# 14: Value       = Red
+	# 16: Unformatted = Red
+	# 17: 
+	# 18: Row, Col    = (1, 1)
+	# 19: Value       = 5
+	# 20: Unformatted = 5
+	# 21: 
+	# 22: Row, Col    = (1, 2)
+	# 23: Value       = 2017-2-14
+	# 24: Unformatted = 41318
+	# 25: 
+	# More intermediate rows ... 
+	# 82: 
+	# 83: Row, Col    = (6, 2)
+	# 84: Value       = 2016-2-6
+	# 85: Unformatted = 40944
+	###########################
+
+
+
+=head1 DESCRIPTION
+
+This is another module for parsing Excel 2007+ workbooks.  It is designed to use 
+L<XML::LibXML> and in this iteration only has an  <XML::LibXML::Reader> parser.  
+Future iterations could include a DOM parser option.  The goal of this package is 
+three fold.  First, adhere more closely to the L<Spreadsheet::ParseExcel> API so 
+that less work would be needed to integrate both of them.  Second, to provide an 
+XLSX sheet parser that is built on L<XML::LibXML>.  I<The other two primary options 
+for XLSX parsing on CPAN use either a one-off XML parser or L<XML::Twig> and it was 
+difficult for me to tell if the bugs I encountered with them were associated with 
+the XML parsers or just inherent to the reader itself.  By the time I had educated 
+myself enough to know the difference I had written this.>  Finally, I wanted to 
+improve date handling so that custom format development and implementation would be 
+easier.  I leveraged coercions from L<Type::Coercion> to do this but anything that 
+follows that format will work here.
+
+In the process of learning and building I also wrote some additional features for 
+this parser that are not found in the L<Spreadsheet::ParseExcel> package.  Read the 
+details below for more information.  For instance in the L<SYNOPSIS|/SYNOPSIS> the 
+'$parser' and the '$workbook' are actually the same class.  You could combine both 
+steps by calling new with the 'file_name' attribute called out.  Afterward it is 
+still possible to call ->error on the instance.  On the other hand this package does 
+not yet provide the same access to the formatting elements provided in 
+L<Spreadsheet::ParseExcel>.  That is on the longish and incomplete TODO list.
+
+This is a L<Moose> based package.  As such it is designed to be (fairly) extensible.  
+Some design departures in this module were driven by Excel's new organization of the 
+XML format but others were Moose driven.
+.
+
+=head2 Attributes
+
+Data passed to new when creating an instance (parser).  For modification of 
+these attributes see the listed L<Methods|/Methods> of the instance. Note the 
+L<parse|/parse( $file_name, $formatter )> method is just a convenience method 
+and is included only for L<Spreadsheet::ParseExcel> compatibility.
+
+=head3 error_inst
+
+=over
+
+B<Definition:> This attribute holds an 'error' object instance.  It should have 
+has several methods for managing errors.  
+	
+Currently no error codes or error translation options are available but this 
+should make implementation of that easier.
+
+B<Default> an L<Spreadsheet::XLSX::Reader::LibXML::Error> instance with the 
+attributes set as;
+	
+	( should_warn => 0 )
+
+B<Range> The minimum list of methods to implement for your own instance is;
+
+	error set_error clear_error set_warnings if_warn
+		
+=back
+
+=head3 file_name
+
+=over
+
+B<Definition:> This attribute holds the full file name and path for the 
+xlsx file to be parsed.
+
+B<Default> no default - this must be provided to read a file
+
+B<Range> any unincrypted xlsx file that can be opened in Microsoft Excel
+		
+=back
+
+=head3 file_creator
+
+=over
+
+B<Definition:> This holds the information stored in the Excel Metadata 
+for who created the file originally.  B<You shouldn't set this attribute 
+yourself.>
+
+B<Default> the value from the file
+
+B<Range> A string
+		
+=back
+
+=head3 file_date_created
+
+=over
+
+B<Definition:> This holds the created date in the Excel Metadata 
+for when the file was first built.  B<You shouldn't set this attribute 
+yourself.>
+
+B<Default> the value from the file
+
+B<Range> A timestamp string (ISO ish)
+		
+=back
+
+=head3 file_modified_by
+
+=over
+
+B<Definition:> This holds the information stored in the Excel Metadata 
+for who modified the file last.  B<You shouldn't set this attribute 
+yourself.>
+
+B<Default> the value from the file
+
+B<Range> A string
+		
+=back
+
+=head3 file_date_modified
+
+=over
+
+B<Definition:> This holds the last modified date in the Excel Metadata 
+for when the file was last changed.  B<You shouldn't set this attribute 
+yourself.>
+
+B<Default> the value from the file
+
+B<Range> A timestamp string (ISO ish)
+		
+=back
+
+=head3 sheet_parser
+
+=over
+
+B<Definition:> This sets the way the .xlsx file is parsed.  For now the only 
+choice is 'reader'.
+
+B<Default> 'reader'
+
+B<Range> 'reader'
+		
+=back
+
+=head3 count_from_zero
+
+=over
+
+B<Definition:> Excel spreadsheets count from 1.  L<Spreadsheet::ParseExcel> 
+counts from zero.  This allows you to choose either way.
+
+B<Default> 1
+
+B<Range> 1 = counting from zero like Spreadsheet::ParseExcel, 
+0 = Counting from 1 lke Excel
+		
+=back
+
+=head3 file_boundary_flags
+
+=over
+
+B<Definition:> When you request data past the end of a row or past the bottom 
+of the data this package can return 'EOR' or 'EOF' to indicate that state.  
+This is especially helpful in 'while' loops.  The other option is to return 
+'undef'.  This is problematic if some cells in your table are empty which also 
+returns undef.
+
+B<Default> 1
+
+B<Range> 1 = return 'EOR' or 'EOF' flags as appropriate,
+0 = return undef when requesting a position that is out of bounds
+		
+=back
+
+=head3 empty_is_end
+
+=over
+
+B<Definition:> The excel convention is to read the table left to right and top 
+to bottom.  Some tables have uneven columns from row to row.  This allows the 
+several methods that take 'next' values to wrap after the last element with data 
+rather than going to the max column.
+
+B<Default> 0
+
+B<Range> 1 = treat all columns short of the max column for the sheet as being in 
+the table, 0 = end each row after the last cell with data rather than going to the 
+max sheet column
+		
+=back
+
+=head3 from_the_edge
+
+=over
+
+B<Definition:> Some data tables start in the top left corner.  Others do not.  I 
+don't reccomend that practice but when aquiring data in the wild it is often good 
+to adapt.  This attribute sets whether the file reads from the top left edge or from 
+the top row with data and starting from the leftmost column with data.
+
+B<Default> 1
+
+B<Range> 1 = treat the top left corner of the sheet even if there is no data in 
+the top row or leftmost column, 0 = Set the minimum row and minimum columns to be 
+the first row and first column with data
+		
+=back
+
+=head3 default_format_list
+
+=over
+
+B<Definition:> This is a departure from L<Spreadsheet::ParseExcel> for two reasons.  
+First, it doesn't use the same modules.  Second, this accepts a role with two methods 
+where ParseExcel accepts an object instance.
+
+B<Default> Spreadsheet::XLSX::Reader::LibXML::FmtDefault
+
+B<Range> a L<Moose> role with the methods 'get_defined_excel_format' and 
+'change_output_encoding' it should be noted that libxml2 which is the underlying code 
+for L<XML::LibXML> allways attempts to get the data into perl friendly strings.  That 
+means this should only tweak the data on the way out and does not affect the data on the 
+way in.
+		
+=back
+
+=head3 format_string_parser
+
+=over
+
+B<Definition:> This is the interpreter that turns the excel format string from 
+L<format_string_parser|/format_string_parser> into a L<Type::Tiny> coercion.  If you 
+don't like the output or the method you can write your own Moose Role and add it here.
+
+B<Default> Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings
+
+B<Range> a L<Moose> role with the method 'parse_excel_format_string'
+		
+=back
+
+=head3 group_return_type
+
+=over
+
+B<Definition:> Traditionally ParseExcel returns a cell object with lots of methods 
+to reveal information about the cell.  In reality this is probably not used very much 
+so in the interest of simplifying you can get a cell object instance set to the cell 
+information.  Or you can just get the raw value in the cell or you can get the cell value 
+formatted either the way the sheet specified or the way you specify.  See the 
+'custom_formats' attribute for the L<Spreadsheet::XLSX::Reader::LibXML::Worksheet> class 
+to insert custom targeted formats for use with the parser.  All empty cells return undef 
+no matter what.
+
+B<Default> instance
+
+B<Range> instance = returns a populated L<Spreadsheet::XLSX::Reader::LibXML::Cell> instance,
+unformatted = returns the raw value of the cell with no modifications, value = returns just 
+the formatted value stored in the excel cell
+		
+=back
 
 =head1 Build from Source - (for example git)
-	
-Download a compressed file with the code
-	
-Extract the code from the compressed file.  If you are using tar this should work:
 
-	tar -zxvf Spreadsheet-XLSX-Reader-0.xx.tar.gz
+=over
+	
+B<1.> Download a compressed file with the code
+	
+B<2.> Extract the code from the compressed file
 
-Change into the extracted directory
+B<3.> Change (cd) into the extracted directory
+
+=back
 
 (For Windows find what version of make was used to compile your perl)
 
 	perl  -V:make
 
 Then
-(for Windows substitute the correct make function (s/make/dmake/g)?)
 
 	>perl Makefile.PL
 
@@ -37,8 +354,9 @@ Then
 
 	>make test
 
-	>make install # As sudo/root
+	>make install
 
 	>make clean
+	(use the windows make version as appropriate (dmake?))
 	
 =cut

@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::Error;
-use version; our $VERSION = qv('v0.4.2');
+use version; our $VERSION = qv('v0.5_1');
 
 use Moose;
 use Carp qw( cluck );

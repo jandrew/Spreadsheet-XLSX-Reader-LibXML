@@ -1,0 +1,17 @@
+=pod
+
+=encoding utf-8
+
+=head1 NAME
+
+Spreadsheet::XLSX::Reader::LibXML::Worksheet - Read xlsx worksheets with LibXML
+
+=head1 DESCRIPTION
+
+As you may have noticed this is only the pod explaining the Worksheet class not the 
+actual class which is an amalgam of classes, roles, and traits each with its own code 
+file.
+
+This POD has not been written yet!
+
+=cut

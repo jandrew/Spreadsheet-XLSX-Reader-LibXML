@@ -1,4 +1,4 @@
-#########1 Test File for Spreadsheet::XLSX::Reader::XMLDOM::Styles    7#########8#########9
+#########1 Test File for Spreadsheet::XLSX::Reader::LibXML::XMLDOM::Styles      8#########9
 #!perl
 BEGIN{ $ENV{PERL_TYPE_TINY_XS} = 0; }
 $| = 1;
@@ -8,8 +8,8 @@ use	Test::Moose;
 use	MooseX::ShortCut::BuildInstance v1.8 qw( build_instance );
 use Data::Dumper;
 use	lib
-		'../../../../../../Log-Shiras/lib',
-		'../../../../../lib',;
+		'../../../../../../../Log-Shiras/lib',
+		'../../../../../../lib',;
 #~ use Log::Shiras::Switchboard qw( :debug );
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(#
 ###LogSD						name_space_bounds =>{
@@ -40,9 +40,9 @@ use	lib
 ###LogSD					);
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
-use	Spreadsheet::XLSX::Reader::XMLDOM::Styles;
-use	Spreadsheet::XLSX::Reader::Error;
-my	$test_file = ( @ARGV ) ? $ARGV[0] : '../../../../test_files/xl/';
+use	Spreadsheet::XLSX::Reader::LibXML::XMLDOM::Styles;
+use	Spreadsheet::XLSX::Reader::LibXML::Error;
+my	$test_file = ( @ARGV ) ? $ARGV[0] : '../../../../../test_files/xl/';
 	$test_file .= 'styles.xml';
 ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space => 'main', );
 ###LogSD		$phone->talk( level => 'trace', message => [ "Test file is: $test_file" ] );
@@ -87,19 +87,19 @@ my  		@class_methods = qw(
 ###LogSD		$phone->talk( level => 'info', message => [ "easy questions ..." ] );
 map{ 
 has_attribute_ok
-			'Spreadsheet::XLSX::Reader::XMLDOM::Styles', $_,
-										"Check that Spreadsheet::XLSX::Reader::XMLDOM::Styles has the -$_- attribute"
+			'Spreadsheet::XLSX::Reader::LibXML::XMLDOM::Styles', $_,
+										"Check that Spreadsheet::XLSX::Reader::LibXML::XMLDOM::Styles has the -$_- attribute"
 } 			@class_attributes;
 map{
-can_ok		'Spreadsheet::XLSX::Reader::XMLDOM::Styles', $_,
+can_ok		'Spreadsheet::XLSX::Reader::LibXML::XMLDOM::Styles', $_,
 } 			@class_methods;
 
 ###LogSD		$phone->talk( level => 'info', message => [ "harder questions ..." ] );
 lives_ok{
-			$test_instance	=	Spreadsheet::XLSX::Reader::XMLDOM::Styles->new(
+			$test_instance	=	Spreadsheet::XLSX::Reader::LibXML::XMLDOM::Styles->new(
 									file_name	=> $test_file,
 									log_space	=> 'Test',
-									error_inst	=> Spreadsheet::XLSX::Reader::Error->new(
+									error_inst	=> Spreadsheet::XLSX::Reader::LibXML::Error->new(
 										should_warn => 1,
 										#~ should_warn => 0,# to turn off cluck when the error is set
 									),

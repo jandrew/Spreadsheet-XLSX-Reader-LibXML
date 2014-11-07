@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML;
-use version; our $VERSION = qv('v0.4.2');
+use version; our $VERSION = qv('v0.5_1');
 
 use 5.010;
 use	Moose;
@@ -8,60 +8,64 @@ use	MooseX::HasDefaults::RO;
 use	Archive::Zip;
 use	OLE::Storage_Lite;
 use	File::Temp;
-#~ $File::Temp::DEBUG = 1;
-use	DateTime::Format::Flexible;
 use Types::Standard qw(
-        HashRef
-		Str
+ 		InstanceOf			Str       		StrMatch
+		Enum				HashRef			ArrayRef
+		CodeRef				Int				HasMethods
 		Bool
-		ArrayRef
-		Object
-		Int
-		CodeRef
-		InstanceOf
     );
-use lib	'../../../lib',;
-use 	Spreadsheet::XLSX::Reader::Error;
-with 	'Spreadsheet::XLSX::Reader::LogSpace';
+use	MooseX::ShortCut::BuildInstance v1.8 qw( build_instance should_re_use_classes );
+should_re_use_classes( 1 );
+use lib	'../../../../lib',;
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
-use Spreadsheet::XLSX::Reader::Types v0.1 qw(
-		XLSXFile
-        ParserType
-		EpochYear
-	);
+with 	'Spreadsheet::XLSX::Reader::LibXML::LogSpace';
 ###LogSD	use Log::Shiras::UnhideDebug;
-use	Spreadsheet::XLSX::Reader::XMLReader::SharedStrings;
-use	Spreadsheet::XLSX::Reader::XMLReader::CalcChain;
-use	Spreadsheet::XLSX::Reader::XMLDOM::Styles;
-use	Spreadsheet::XLSX::Reader::XMLReader::Worksheet;
+use	Spreadsheet::XLSX::Reader::LibXML::Error v0.5;
+use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles v0.5;
+use	Spreadsheet::XLSX::Reader::LibXML::FmtDefault v0.5;
+use	Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings v0.5;
+use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings v0.5;
+use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet v0.5;
+use	Spreadsheet::XLSX::Reader::LibXML::Types v0.5 qw( XLSXFile ParserType );
 
 #########1 Dispatch Tables    3#########4#########5#########6#########7#########8#########9
 
-
+my	$parser_modules ={
+		reader =>{
+			sharedStrings =>{
+				superclasses	=> ['Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings'],
+				attributes		=> [qw( error_inst )],
+				store			=> '_set_shared_strings_instance',
+				package			=> 'SharedStringsInstance',
+			},
+			styles =>{
+				superclasses			=> ['Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles'],
+				attributes				=> [qw( epoch_year error_inst )],
+				add_roles_in_sequence	=> [qw( default_format_list format_string_parser )],#### Does self cover excel_epoch?
+				store					=> '_set_styles_instance',
+				package					=> 'StylesInstance',
+			},
+			worksheet =>{
+				superclasses	=> ['Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet'],
+				store			=> '_set_worksheet_superclass',
+			},
+		},
+	};
 
 #########1 Public Attributes  3#########4#########5#########6#########7#########8#########9
 
-has error_inst =>(
-		isa			=> InstanceOf[ 'Spreadsheet::XLSX::Reader::Error' ],
+has	error_inst =>(
+		isa			=> 	HasMethods[qw(
+							error set_error clear_error set_warnings if_warn
+						) ],
 		clearer		=> '_clear_error_inst',
-		reader		=> '_get_error_instance',
+		reader		=> 'get_error_inst',
 		required	=> 1,
-		default		=> sub{ Spreadsheet::XLSX::Reader::Error->new() },
-		handles 	=>{
-			error			=> 'error',
-			set_error		=> 'set_error',
-			clear_error		=> 'clear_error',
-			_set_warnings	=> 'set_warnings',# This row is the magic
-			if_warn			=> 'if_warn'
-		},
-	);
-with	'Spreadsheet::XLSX::Reader::CellToColumnRow'; #Here to load set_error first
-
-has should_warn =>(
-		isa		=> Bool,
-		trigger	=> \&_set_warnings,
-		writer	=> 'set_warnings',
+		handles =>[ qw(
+			error set_error clear_error set_warnings if_warn
+		) ],
+		default => sub{ Spreadsheet::XLSX::Reader::LibXML::Error->new( should_warn => 0 ) },
 	);
 
 has file_name =>(
@@ -72,26 +76,30 @@ has file_name =>(
 		trigger		=> \&_build_file,
 	);
 	
-has creator =>(
+has file_creator =>(
 		isa		=> Str,
+		reader	=> 'creator',
 		writer	=> '_set_creator',
 		clearer	=> '_clear_creator',
 	);
 	
-has modified_by =>(
+has file_modified_by =>(
 		isa		=> Str,
+		reader	=> 'modified_by',
 		writer	=> '_set_modified_by',
 		clearer	=> '_clear_modified_by',
 	);
 	
-has date_created =>(
-		isa		=> 'DateTime',
+has file_date_created =>(
+		isa		=> StrMatch[qr/^\d{4}\-\d{2}\-\d{2}/],
+		reader	=> 'date_created',
 		writer	=> '_set_date_created',
 		clearer	=> '_clear_date_created',
 	);
 	
-has date_modified =>(
-		isa		=> 'DateTime',
+has file_date_modified =>(
+		isa		=> StrMatch[qr/^\d{4}\-\d{2}\-\d{2}/],
+		reader	=> 'date_modified',
 		writer	=> '_set_date_modified',
 		clearer	=> '_clear_date_modified',
 	);
@@ -103,51 +111,55 @@ has sheet_parser =>(
 		default	=> 'reader',
 		coerce	=> 1,
 	);
+
+has count_from_zero =>(
+		isa		=> Bool,
+		reader	=> 'counting_from_zero',
+		writer	=> 'set_count_from_zero',
+		default	=> 1,
+	);
 	
-has sheet_parser_modules =>(### Add Data::Walk::Extracted manipulators
-		isa		=> HashRef,
-		traits	=> ['Hash'],
-		writer	=> 'set_sheet_parser_modules',
-		reader	=> 'get_sheet_parser_modules',
-		default	=> sub{
-			{
-				reader =>{
-					sharedStrings =>{
-						module		=> 'Spreadsheet::XLSX::Reader::XMLReader::SharedStrings',
-					},
-					calcChain		=>{
-						module		=> 'Spreadsheet::XLSX::Reader::XMLReader::CalcChain',
-					},
-					styles =>{
-						module		=> 'Spreadsheet::XLSX::Reader::XMLDOM::Styles',
-						attributes	=> [ 'excel_epoch', 'self' ],#### Does self cover excel_epoch?
-					},
-					worksheet =>{
-						module		=> 'Spreadsheet::XLSX::Reader::XMLReader::Worksheet',
-					},
-				},
-				dom	=>{
-					sharedStrings =>{
-						module		=> 'Spreadsheet::XLSX::Reader::XMLDOM::SharedStrings',
-					},
-					calcChain =>{
-						module		=> 'Spreadsheet::XLSX::Reader::XMLDOM::CalcChain',
-					},
-					styles =>{
-						module		=> 'Spreadsheet::XLSX::Reader::XMLDOM::Styles',
-						attributes	=> [ 'excel_epoch', 'self' ],#### Does self cover excel_epoch?
-					},
-					worksheet =>{
-						module		=> 'Spreadsheet::XLSX::Reader::XMLDOM::Worksheet',
-					},
-				},
-			},
-		},
-		handles =>{
-			_get_module_list => 'get',
-			_has_parser_type => 'exists',
-			
-		},
+has file_boundary_flags =>(
+		isa			=> Bool,
+		reader		=> 'boundary_flag_setting',
+		writer		=> 'change_boundary_flag',
+		default		=> 1,
+		required	=> 1,
+	);
+
+has empty_is_end =>(
+		isa		=> Bool,
+		writer	=> 'set_empty_is_end',
+		reader	=> 'is_empty_the_end',
+		default	=> 0,
+	);
+
+has from_the_edge =>(
+		isa		=> Bool,
+		reader	=> '_starts_at_the_edge',
+		writer	=> 'set_from_the_edge',
+		default	=> 1,
+	);
+
+has default_format_list =>(
+		isa		=> Str,
+		writer	=> 'set_default_format_list',
+		reader	=> 'get_default_format_list',
+		default	=> 'Spreadsheet::XLSX::Reader::LibXML::FmtDefault',
+	);
+
+has format_string_parser =>(
+		isa		=> Str,
+		writer	=> 'set_format_string_parser',
+		reader	=> 'get_format_string_parser',
+		default	=> 'Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings',
+	);
+
+has group_return_type =>(
+		isa		=> Enum[qw( unformatted value instance )],
+		reader	=> 'get_group_return_type',
+		writer	=> 'set_group_return_type',
+		default	=> 'instance',
 	);
 
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
@@ -161,11 +173,12 @@ has sheet_parser_modules =>(### Add Data::Walk::Extracted manipulators
 
 sub parse{
 
-    my ( $self, $file_name ) = @_;
+    my ( $self, $file_name, $formatter ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new(
 	###LogSD					name_space 	=> $self->get_log_space .  '::Workbook::parse', );
 	###LogSD		$phone->talk( level => 'info', message =>[
-	###LogSD			'Arrived at parse for: ', $file_name ] );
+	###LogSD			'Arrived at parse for: ', $file_name, "with formatter: $formatter" ] );
+	$self->set_format_string_parser( $formatter ) if $formatter;
 	$self->set_file_name( $file_name );
 	return ( $self->has_file_name ) ? $self : undef;
 }
@@ -195,55 +208,58 @@ sub worksheet{
 	###LogSD	my	$phone = Log::Shiras::Telephone->new(
 	###LogSD					name_space 	=> $self->get_log_space .  '::Workbook::worksheet', );
 	###LogSD		$phone->talk( level => 'info', message =>[
-	###LogSD			"Arrived at worksheet with: ", $worksheet_name ] );
+	###LogSD			"Arrived at (build a) worksheet with: ", $worksheet_name ] );
 	
 	# Handle an implied 'next sheet'
 	if( !$worksheet_name ){
 		###LogSD	$phone->talk( level => 'info', message =>[
 		###LogSD		"No worksheet name passed" ] );
 		$next_position = ( !$self->in_the_list ) ? 0 : ($self->_current_worksheet_position + 1);
+		###LogSD	$phone->talk( level => 'info', message =>[
+		###LogSD		"No worksheet name passed", "Attempting position: $next_position" ] );
 		if( $next_position >= $self->number_of_sheets ){
 			###LogSD	$phone->talk( level => 'info', message =>[
 			###LogSD		"Reached the end of the worksheet list" ] );
 			return undef;
 		}
 		$worksheet_name = $self->worksheet_name( $next_position );
+		###LogSD	$phone->talk( level => 'info', message =>[
+		###LogSD		"Now attempting to build the worksheet named: $worksheet_name", ] );
 	}
 	
 	# build the worksheet
 	my	$worksheet_info = $self->_get_worksheet_info( $worksheet_name );
-	$next_position //= $worksheet_info->{position};
-	$worksheet_info->{shared_strings_instance} = $self->_shared_strings_instance if
-		$self->_shared_strings_instance;
-	$worksheet_info->{calc_chain_instance} = $self->_calc_chain_instance if
-		$self->_calc_chain_instance;
-	$worksheet_info->{styles_instance} = $self->_styles_instance if
-		$self->_styles_instance;
-	delete $worksheet_info->{rel_id};
-	delete $worksheet_info->{position};
 	###LogSD	$phone->talk( level => 'info', message =>[
-	###LogSD		"The next worksheet is: $worksheet_name",
-	###LogSD		"Using Class: " .  $self->_get_module_list( $self->get_parser_type )->{worksheet}->{module},
-	###LogSD		"With worksheet ref:", 
+	###LogSD		'Returned worksheet info:', $worksheet_info, ] );
+	$next_position //= $worksheet_info->{position};
+	#~ $worksheet_info->{_sheet_rel_id} = $worksheet_info->{rel_id};
+	#~ delete $worksheet_info->{rel_id};
+	#~ $worksheet_info->{_sheet_position} = $worksheet_info->{position};
+	#~ delete $worksheet_info->{position};
+	###LogSD	$phone->talk( level => 'info', message =>[
+	###LogSD		"Building the next worksheet with:",
 	###LogSD		{
-	###LogSD			log_space 	=> $self->get_log_space . "::Worksheet",
-	###LogSD			sheet_name	=> $worksheet_name,
-	###LogSD			error_inst	=> $self->_get_error_instance,
-	###LogSD			%{$worksheet_info},
+	###LogSD			superclasses	=> $self->_get_worksheet_superclass,
+	###LogSD			log_space 		=> $self->get_log_space . "::Worksheet",
+	###LogSD			sheet_name		=> $worksheet_name,
+	###LogSD			workbook_instance => '(self)',
+	###LogSD			%$worksheet_info,
 	###LogSD		}										] );
-	my	$worksheet = $self->_get_module_list( $self->get_parser_type )->{worksheet}->{module}->new(
-						log_space 		=> $self->get_log_space . "::Worksheet",
-						count_from_zero	=> $self->counting_from_zero,
-						sheet_name		=> $worksheet_name,
-						error_inst		=> $self->_get_error_instance,
-						%{$worksheet_info},  );
+	my	$worksheet = 	build_instance(
+							superclasses		=> $self->_get_worksheet_superclass,
+							package				=> 'WorksheetInstance',
+							log_space 			=> $self->get_log_space . "::Worksheet",
+							sheet_name			=> $worksheet_name,
+							workbook_instance	=> $self,
+							error_inst			=> $self->get_error_inst,
+							%{$worksheet_info}, 
+						);
 	if( $worksheet ){
 		###LogSD	$phone->talk( level => 'info', message =>[
-		###LogSD		"Successfully loaded: $worksheet_name",
-		###LogSD		"With worksheet ref:", $worksheet_info ] );
+		###LogSD		"Successfully loaded: $worksheet_name",] );
 		$self->_set_current_worksheet_position( $next_position );
 	}else{
-		$self->error( "Failed to build the object for worksheet: $worksheet_name" );
+		$self->set_error( "Failed to build the object for worksheet: $worksheet_name" );
 		return undef;
 	}
 	my $cleaner_ref = $self->_link_cleaner_array;
@@ -258,217 +274,36 @@ sub worksheet{
 	
 	return $worksheet;
 }
-	
-
-#~ ###############################################################################
-#~ #
-#~ # read_file()
-#~ #
-#~ # Unzip the XLSX file and read the [Content_Types].xml file to get the
-#~ # structure of the contained XML files.
-#~ #
-#~ # Return a valid Workbook object if successful. If not return undef and set
-#~ # the error status.
-#~ #
-#~ sub read_file {
-
-    #~ my ( $self, $file_name ) = @_;
-	#~ my	$phone = Log::Shiras::Telephone->new( fail_over => $fail_over,
-					#~ name_space 	=> $self->get_log_space .  '::workbook::read_file', );
-	#~ debug_line{ $phone->talk( level => 'info', message =>[
-					#~ 'Arrived at read_file for: ', $file_name ] ) };
-	#~ $self->_clear_shared_strings;
-	#~ $self->_clear_calc_chain;
-	#~ $self->_clear_temp_dir;
-	#~ $self->_clear_worksheet_list;
-	#~ $self->_clear_worksheet_lookup;
-	#~ $self->_clear_creator;
-	#~ $self->_clear_modified_by;
-	#~ $self->_clear_date_created;
-	#~ $self->_clear_date_modified;
-	#~ my	$return_failure = 0;
-    #~ if ( !-e $file_name ){
-		#~ $phone->talk( level => 'warn', message =>[
-			#~ "File doesn't exist: ", $file_name 		] );
-		#~ $return_failure = 1;
-	#~ }elsif( -z $file_name ) {
-		#~ $phone->talk( level => 'warn', message =>[
-			#~ "There is nothing in the file: ", $file_name ] );
-		#~ $return_failure = 1;
-	#~ }
-	#~ if( $return_failure ){
-		#~ $self->_clear_file_name;
-		#~ return( undef );
-	#~ }
-
-    #~ # Check for xls or encrypted OLE files.
-    #~ my $ole_file = $self->_check_if_ole_file( $file_name );
-	
-    #~ return( undef ) if $ole_file;
-
-    #~ # Create a, locally scoped, temp dir to unzip the XLSX file into.
-	#~ my	$temp_dir = File::Temp->newdir( DIR => undef );
-    #~ $self->_set_temp_dir( $temp_dir );
-	
-    #~ # Create an Archive::Zip object to unzip the XLSX file.
-    #~ my $zip_file = Archive::Zip->new();
-
-    #~ # Read the XLSX zip file and catch any errors.
-    #~ eval { $zip_file->read( $file_name ) };
-    #~ if ( $@ ) {
-		#~ $phone->talk( 	level	=> 'warn',
-						#~ message =>[ "File has zip error(s):", $@ ] );
-		#~ return undef;
-	#~ }
-
-    #~ # Extract the XML files from the XLSX zip.
-    #~ $zip_file->extractTree( '', $self->_get_temp_dir . '/' );
-	#~ debug_line{ $phone->talk( level => 'trace', message =>[ "Zip file: ", $zip_file ] ) };
-	#~ my	$intermediate = $self->_get_temp_dir;
-	#~ debug_line{ $phone->talk( level	=> 'trace', message =>[
-					#~ "Temp dir: $intermediate", "Temp Dir contains: ", <$intermediate/*> ] ) };
-	
-	#~ # Load general workbook information to this instance
-	#~ my	$workbook_file = $self->_get_temp_dir . '/xl/workbook.xml';
-	#~ debug_line{ $phone->talk( level => 'debug', message =>[ "Loading $workbook_file"	] ) };
-	#~ my ( $rel_lookup, $id_lookup ) = $self->_load_workbook_file( $workbook_file );
-		#~ $workbook_file = $self->_get_temp_dir . '/xl/_rels/workbook.xml.rels';
-	#~ debug_line{ $phone->talk( level => 'debug', message =>[ "Loading $workbook_file"	] ) };
-	#~ my ( $pivot_lookup ) = $self->_load_rels_workbook_file( $rel_lookup, $workbook_file );
-		#~ $workbook_file = $self->_get_temp_dir . '/docProps/core.xml';
-	#~ debug_line{ $phone->talk( level => 'debug', message =>[ "Loading $workbook_file"	] ) };
-	#~ $self->_load_doc_props_file( $workbook_file );
-	
-	#~ # Build the instances for all the shared worksheet files
-	#~ if( $self->_has_parser_type( $self->get_parser_type ) ){
-		#~ $self->_set_shared_worksheet_files( $self->_get_module_list( $self->get_parser_type) );
-	#~ }else{
-		#~ $phone->talk( level => 'fatal', message =>[
-			#~ "No definitions for the sheet parser type: ",
-			#~ $self->get_parser_type							] );
-	#~ my	$wait = <>;
-	#~ }
-	
-	#~ my	$shared_strings_file = $self->_get_temp_dir . '/xl/sharedStrings.xml';
-	#~ $phone->talk( level => 'debug', message =>[ "Loading sharedStrings: $shared_strings_file",] );
-	#~ my $shared_strings = 	Excel::Reader::XLSX::Shiras::SharedStrings->new( 
-								#~ shared_string_file => $shared_strings_file,
-							#~ );
-	#~ $self->_set_shared_strings_instance( $shared_strings );
-	#~ print "Loaded shared strings file\n";
-	
-	
-	
-	
-	
-	#~ my	$parser = XML::LibXML->new;
-	#~ my	$content_doc = $parser->parse_file( $content_types_file );
-	#~ my	$top = 0;
-	#~ my	$has_workbook = 0;
-	#~ for my $node ( $content_doc->getElementsByTagName( 'Override' ) ){
-		#~ my	$part_name = $node->getAttribute( 'PartName' );
-			#~ $part_name =~ s{^/}{};
-		#~ $phone->talk(	level => 'trace',
-						#~ message =>[	"Node: $top",
-									#~ "Part Name: $part_name", ], );
-		#~ if( -e $self->_get_temp_dir . $part_name ){
-			#~ $phone->talk(	level => 'warn',
-							#~ message =>[	
-								#~ 'Listed file -' . $self->_get_temp_dir . $part_name .
-								#~ '- does not exist', ], );
-		#~ }elsif( -z $self->_get_temp_dir . $part_name ){
-			#~ $phone->talk(	level => 'warn',
-							#~ message =>[	
-								#~ 'Listed file -' . $self->_get_temp_dir . $part_name .
-								#~ '- has zero size', ], );
-		#~ }
-		#~ my	$failed_match = 1;
-		#~ for my $match ( keys %$content_types ){
-			#~ if( $part_name =~ /$match\d*\.xml$/ ){
-				#~ $failed_match = 0;
-				#~ my	$method = $content_types->{$match}->[0];
-				#~ $self->$method(
-					#~ @{$content_types->{$match}}[ 1 .. $#{$content_types->{$match}} ],
-					#~ $part_name
-				#~ );
-				#~ last;
-			#~ }
-		#~ }
-		#~ if( $failed_match ){
-			#~ $phone->talk(
-				#~ level 	=> 'warn',
-				#~ message =>[	"No action found for Part Name: $part_name", ], );
-		#~ }
-		#~ $top++;
-	#~ }
-	#~ if( !$has_workbook ){
-		#~ $phone->talk( level => 'warn', message =>[	"No workbook found!", ], );
-		#~ return undef;
-	#~ }
-	
-	#~ my	$shared_strings = $parser->parse_file( $self->_get_temp_dir . $self
-    #~ # Create a reader object to read the sharedStrings.xml file.
-    #~ my $shared_strings = Excel::Reader::XLSX::Package::SharedStrings->new();
-
-    #~ # Read the sharedStrings if present. Only files with strings have one.
-    #~ if ( $files{_shared_strings} ) {
-
-        #~ $shared_strings->_parse_file( $tempdir . $files{_shared_strings} );
-    #~ }
-
-    #~ # Create a reader object for the workbook.xml file.
-    #~ my $workbook = Excel::Reader::XLSX::Workbook->new(
-        #~ $tempdir,
-        #~ $shared_strings,
-        #~ %files
-
-    #~ );
-
-    #~ # Read data from the workbook.xml file.
-    #~ $workbook->_parse_file( $tempdir . $files{_workbook} );
-
-    #~ # Store information in the reader object.
-    #~ $self->{_files}          = \%files;
-    #~ $self->{_shared_strings} = $shared_strings;
-    #~ $self->{_package_dir}    = $tempdir;
-    #~ $self->{_zipfile}        = $zipfile;
-
-    #~ return $workbook;
-	#~ return $self;
-#~ }
 
 #########1 Private Attributes 3#########4#########5#########6#########7#########8#########9
 
 has _epoch_year =>(
-		isa		=> EpochYear,
+		isa		=> Enum[qw( 1900 1904 )],
 		writer	=> '_set_epoch_year',
 		reader	=> 'get_epoch_year',
 		default	=> 1900,
 	);
-
+	
 has _shared_strings_instance =>(
-	isa		=> Object,
-	writer	=>'_set_sharedStrings',
-	handles	=>{
-		get_shared_string_position => 'get_position',
-	},
-	clearer	=> '_clear_shared_strings',
-);
+		isa			=> HasMethods[ 'get_shared_string_position' ],
+		predicate	=> '_has_shared_strings_file',
+		writer		=>'_set_shared_strings_instance',
+		clearer		=> '_clear_shared_strings',
+		handles		=>[ 'get_shared_string_position' ],
+	);
+	
+has _styles_instance =>(
+		isa			=> HasMethods[qw( get_format_position )],
+		writer		=> '_set_styles_instance',
+		clearer		=> '_clear_styles',
+		predicate	=> '_has_styles_file',
+		handles		=>[ 'get_format_position' ],
+	);
 
 has _calc_chain_instance =>(
-	isa		=> Object,
-	writer	=>'_set_calcChain',
-	handles	=>{
-		get_calc_chain_position => 'get_position',
-	},
+	isa	=> 	HasMethods[qw( get_calc_chain_position )],
+	writer	=>'_set_calc_chain',
 	clearer	=> '_clear_calc_chain',
-);
-
-has _styles_instance =>(
-	isa		=> Object,
-	writer	=>'_set_styles',
-	#~ handles	=> [ qw( get_calc_chain_item ) ],
-	clearer	=> '_clear_styles',
 );
 
 has '_temp_dir' =>(
@@ -517,6 +352,13 @@ has _link_cleaner_array =>(
 		isa		=> ArrayRef[CodeRef],
 		clearer	=> '_clear_link_cleaner_array',
 		writer	=> '_set_link_cleaner_array',
+	);
+	
+has _worksheet_superclass =>(
+		isa		=> ArrayRef,
+		clearer	=> '_clear_worksheet_superclass',
+		writer	=> '_set_worksheet_superclass',
+		reader	=> '_get_worksheet_superclass',
 	);
 
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
@@ -603,9 +445,9 @@ sub _build_file{
 	$self->_load_doc_props_file( $workbook_file );
 	#~ my $wait = <>;
 	# Build the instances for all the shared files (data for sheets shared across worksheets)
-	if( $self->_has_parser_type( $self->get_parser_type ) ){
+	if( exists $parser_modules->{ $self->get_parser_type } ){
 		my	$result = 	$self->_set_shared_worksheet_files(
-							$self->_get_module_list( $self->get_parser_type )
+							$parser_modules->{ $self->get_parser_type }
 						);
 		return undef if !$result;
 	}else{
@@ -683,7 +525,7 @@ sub _load_workbook_file{
 	for my $sheet ( $dom->getElementsByTagName( 'sheet' ) ){
 		my	$sheet_name = $sheet->getAttribute( 'name' );
 		push @$list, $sheet_name;
-		@{$sheet_ref->{$sheet_name}}{ 'sheet_id', 'rel_id', 'position' } = (
+		@{$sheet_ref->{$sheet_name}}{ 'sheet_id', 'sheet_rel_id', 'sheet_position' } = (
 				$sheet->getAttribute( 'sheetId' ),
 				$sheet->getAttribute( 'r:id' ),
 				$position++,
@@ -758,16 +600,16 @@ sub _load_doc_props_file{
 	$self->_set_creator( ($dom->getElementsByTagName( 'dc:creator' ))[0]->textContent() );
 	$self->_set_modified_by( ($dom->getElementsByTagName( 'cp:lastModifiedBy' ))[0]->textContent() );
 	$self->_set_date_created(
-		DateTime::Format::Flexible->parse_datetime(
+		#~ DateTime::Format::Flexible->parse_datetime(
 			($dom->getElementsByTagName( 'dcterms:created' ))[0]->textContent(),
-			time_zone => 'floating'
-		)
+			#~ time_zone => 'floating'
+		#~ )
 	);
 	$self->_set_date_modified(
-		DateTime::Format::Flexible->parse_datetime(
+		#~ DateTime::Format::Flexible->parse_datetime(
 			($dom->getElementsByTagName( 'dcterms:modified' ))[0]->textContent(),
-			time_zone => 'floating'
-		)
+			#~ time_zone => 'floating'
+		#~ )
 	);
 	###LogSD	$phone->talk( level => 'trace', message => [ "Current object:", $self ] );
 	#~ my $wait = <>;
@@ -782,38 +624,50 @@ sub _set_shared_worksheet_files{
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		"Building the shared worksheet files with the lookup ref:", $object_ref,
 	###LogSD		"Reviewing files:", @file_list ] );
+	my $file_lookup;
+	for my $file ( @file_list ){
+		if( $file =~ /xl\/([^\.]*)\.xml$/ ){
+			$file_lookup->{$1} = $file;
+		}
+	}
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		"File lookup list: ", $file_lookup], );
+	
 	my	$name_space = $self->get_log_space;
-	for my $next ( @file_list ){
-		if( $next =~ /[\/\\](([^\/\\]+)\.xml)$/ ){
-			my	$name = $2;
-			next if $name eq 'workbook';
-			if( exists $object_ref->{$name} ){
+	for my $file ( keys %$object_ref ){
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"checking the file class: $file",], );
+		if( $file eq 'worksheet' ){
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"Storing the worksheet superclass: ", $object_ref->{worksheet}->{superclasses}], );
+			my $method = $object_ref->{$file}->{store};
+			$self->$method( $object_ref->{$file}->{superclasses} );
+		}elsif( exists $file_lookup->{$file} ){
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"Attempting to load the file: ${file}\.xml", ], );
+			my @args = ( file_name => $file_lookup->{$file} );
+			push @args, ( package => $object_ref->{$file}->{package} ) if exists $object_ref->{$file}->{package};
+			push @args, ( superclasses => $object_ref->{$file}->{superclasses} ) if exists $object_ref->{$file}->{superclasses};
+			for my $attribute ( @{$object_ref->{$file}->{attributes}} ){
 				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		"Loading the file: $next",
-				###LogSD		"To the class: " . $object_ref->{$name}->{module},
-				###LogSD		"With name: $name",
-				###LogSD		"And log space: $name_space" ], );
-				my	$sub_name;
-				if( $object_ref->{$name}->{module} =~ /$name_space(.*)/ ){
-					$sub_name = "$name_space$1";
-				}else{
-					$sub_name = $name;
-				}
-				###LogSD	$phone->talk( level => 'trace', message => [
-				###LogSD		"Loading the base name space as: $sub_name", 
-				###LogSD		"For package: " . __PACKAGE__ ], );
-				my	$new_instance = $object_ref->{$name}->{module}->new(
-										file_name 		=> $next,
-										log_space 		=> $sub_name,
-										error_inst		=> $self->_get_error_instance,
-										#~ _workbook_link	=> $self,
-									);
-				my	$attribute_setter = "_set_$name";
-				$self->$attribute_setter( $new_instance );
-			}else{
-				$self->error( "No object available to load the -$name- xml file" );
-				return undef;
+				###LogSD		"Building attribute: $attribute", ], );
+				my $method = 'get_' . $attribute;
+				push @args, $attribute, $self->$method;
 			}
+			my $role_ref;
+			for my $role ( @{$object_ref->{$file}->{add_roles_in_sequence}} ){
+				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD		"collecting the role for: $role", ], );
+				my $method = 'get_' . $role;
+				push @$role_ref, $self->$method;
+			}
+			push @args, ( add_roles_in_sequence => $role_ref ) if $role_ref;
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"Final args for building the instance:", @args ], );
+			my $method = $object_ref->{$file}->{store};
+			$self->$method( build_instance( @args ) );
+		}else{
+			$self->set_error( "No file to load into the object: $file" );
 		}
 	}
 	return 1;
@@ -855,869 +709,364 @@ __END__
 
 Spreadsheet::XLSX::Reader::LibXML - Read xlsx spreadsheet files with LibXML
 
-
-#~ ###############################################################################
-#~ #
-#~ # _check_files_exist()
-#~ #
-#~ # Verify that the subfiles read from the Content_Types actually exist;
-#~ #
-#~ sub _check_files_exist {
-
-    #~ my $self    = shift;
-    #~ my $tempdir = shift;
-    #~ my %files   = @_;
-    #~ my @filenames;
-
-    #~ # Get the filenames for the files hash.
-    #~ for my $key ( keys %files ) {
-        #~ my $filename = $files{$key};
-
-        #~ # Worksheets are stored in an aref.
-        #~ if ( ref $filename ) {
-            #~ push @filenames, @$filename;
-        #~ }
-        #~ else {
-            #~ push @filenames, $filename;
-        #~ }
-    #~ }
-
-    #~ # Verify that the files exist.
-    #~ for my $filename ( @filenames ) {
-        #~ if ( !-e $tempdir . $filename ) {
-            #~ $self->{_error_extra_text} = $filename;
-            #~ return;
-        #~ }
-    #~ }
-
-    #~ return 1;
-#~ }
-
-#########1 Private Attributes 3#########4#########5#########6#########7#########8#########9
-
-has '_temp_dir' =>(
-	isa		=> 'File::Temp::Dir',
-	writer	=> '_set_temp_dir',
-	reader	=> '_get_temp_dir_object',
-	clearer	=> '_clear_temp_dir',
-	handles	=>{
-		_get_temp_dir => 'dirname',
-	},
-);
-
-has '_theme' =>(
-	isa		=> Str,
-	writer	=> '_set_theme',
-	reader	=> '_get_theme',
-	clearer	=> '_clear_theme',
-);
-
-has '_app' =>(
-	isa		=> Str,
-	writer	=> '_set_app',
-	reader	=> '_get_app',
-	clearer	=> '_clear_app',
-);
-
-has '_styles' =>(
-	isa		=> Str,
-	writer	=> '_set_styles',
-	reader	=> '_get_styles',
-	clearer	=> '_clear_styles',
-);
-
-has '_core' =>(
-	isa		=> Str,
-	writer	=> '_set_core',
-	reader	=> '_get_core',
-	clearer	=> '_clear_core',
-);
-
-has '_shared_strings' =>(
-	isa		=> Str,
-	writer	=> '_set_shared_strings',
-	reader	=> '_get_shared_strings',
-	clearer	=> '_clear_shared_strings',
-);
-
-has '_workbook' =>(
-	isa		=> Str,
-	writer	=> '_set_workbook',
-	reader	=> '_get_workbook',
-	clearer	=> '_clear_workbook',
-);
-
-has '_workbook_rels' =>(
-	isa		=> Str,
-	writer	=> '_set_workbook_rels',
-	reader	=> '_get_workbook_rels',
-	clearer	=> '_clear_workbook_rels',
-);
-
-has '_worksheets' =>(
-	isa		=> ArrayRef,
-	writer	=> '_set_worksheets',
-	reader	=> '_get_worksheets',
-	clearer	=> '_clear_worksheets',
-	default => sub{ [] },
-);
-
-#########1 Private Methods    3#########4#########5#########6#########7#########8#########9
-
-
-###############################################################################
-#
-# _check_if_ole_file()
-#
-# Check if the file in an OLE compound doc. This can happen in a few cases.
-# This first is when the file is xls and not xlsx. The second is when the
-# file is an encrypted xlsx file. We also handle the case of unknown OLE
-# file types.
-#
-# Porting note. As a lightweight test you can check for OLE files by looking
-# for the magic number 0xD0CF11E0 (docfile0) at the start of the file.
-#
-sub _check_if_ole_file {
-
-    my ( $self, $file_name ) = @_;
-	my	$phone = Log::Shiras::Telephone->new;
-		$phone->talk(
-			level => 'info',
-			message =>[ 'Arrived at _check_if_ole_file for: ', $file_name, ], );
-    my	$ole = OLE::Storage_Lite->new( $file_name );
-    my	$pps = $ole->getPpsTree();
-
-    # If getPpsTree() failed then this isn't an OLE file.
-    return if !$pps;
-
-    # Loop through the PPS children below the root.
-	my	$caught_failure = 0;
-    for my $child_pps ( @{ $pps->{Child} } ) {
-
-        my $pps_name = OLE::Storage_Lite::Ucs2Asc( $child_pps->{Name} );
-
-        # Match an Excel xls file.
-        if ( $pps_name eq 'Workbook' || $pps_name eq 'Book' ) {
-			$phone->talk(
-				level => 'warn',
-				message =>[ 'File is xls not xlsx: ', $file_name, ], );
-				$caught_failure = 1;
-				last;
-        }elsif( $pps_name eq 'EncryptedPackage' ) {
-			$phone->talk(
-				level => 'warn',
-				message =>[ 'File is encrypted xlsx: ', $file_name, ], );
-				$caught_failure = 1;
-				last;
-        }
-    }
-	
-	$phone->talk(
-		level => 'warn',
-		message =>[ 'File is unknown OLE doc type: ', $file_name, ], );
-	
-	return 1;
-}
-
-sub _set_attribute{
-	my ( $self, $attribute, $value ) = @_;
-	my	$phone = Log::Shiras::Telephone->new;
-		$phone->talk(
-			level => 'info',
-			message =>[ "Setting attribute -$attribute- to value: $value" ], );
-	my	$method = '_set' . $attribute;
-	$self->$method( $value );
-	$phone->talk( level => 'debug', message =>[ 'Action complete ...' ], );
-}
-
-sub _log_workbook{
-	my ( $self, $attribute, $value ) = @_;
-	my	$phone = Log::Shiras::Telephone->new;
-		$phone->talk(
-			level => 'info',
-			message =>[ "Setting attribute -$attribute- to value: $value" ], );
-	my	$value_rels = $value;
-		$value_rels =~ s{(workbook.xml)}{_rels/$1.rels};
-	$self->_set_attribute( $attribute, $value );
-	$self->_set_attribute( $attribute . '_rels', $value_rels );
-	$phone->talk( level => 'debug', message =>[ 'Action complete ...' ], );
-}
-
-sub _push_attribute{
-	my ( $self, $attribute, $value ) = @_;
-	my	$phone = Log::Shiras::Telephone->new;
-		$phone->talk(
-			level => 'info',
-			message =>[ "Pushing value -$value- on to attribute: " . $attribute ], );
-	my	$getter = '_get' . $attribute;
-	my	$setter = '_set' . $attribute;
-	my	$array_ref = $self->$getter;
-	push @$array_ref, $value;
-	$self->$setter( $array_ref );
-	$phone->talk( level => 'debug', message =>[ 'Action complete for: ', $self->$getter ], );
-}
-
-my $xml_string = 
-'<sst>
-	<si>
-		<r>
-			<rPr>
-				<sz val="11"/>
-				<color rgb="FFFF0000"/>
-				<rFont val="Calibri"/>
-				<family val="2"/>
-				<scheme val="minor"/>
-			</rPr>
-			<t>Cell</t>
-		</r>
-		<r>
-			<rPr>
-				<sz val="11"/>
-				<color theme="1"/>
-				<rFont val="Calibri"/>
-				<family val="2"/>
-				<scheme val="minor"/>
-			</rPr>
-			<t xml:space="preserve"> </t>
-		</r>
-		<r>
-			<rPr>
-				<b/>
-				<sz val="11"/>
-				<color theme="1"/>
-				<rFont val="Calibri"/>
-				<family val="2"/>
-				<scheme val="minor"/>
-			</rPr>
-			<t>A2</t>
-		</r>
-	</si>
-	<si>
-		<r>
-			<rPr>
-				<sz val="11"/>
-				<color rgb="FF00B0F0"/>
-				<rFont val="Calibri"/>
-				<family val="2"/>
-				<scheme val="minor"/>
-			</rPr>
-			<t>Cell</t>
-		</r>
-		<r>
-			<rPr>
-				<sz val="11"/>
-				<color theme="1"/>
-				<rFont val="Calibri"/>
-				<family val="2"/>
-				<scheme val="minor"/>
-			</rPr>
-			<t xml:space="preserve"> </t>
-		</r>
-		<r>
-			<rPr>
-				<i/>
-				<sz val="11"/>
-				<color theme="1"/>
-				<rFont val="Calibri"/>
-				<family val="2"/>
-				<scheme val="minor"/>
-			</rPr>
-			<t>B2</t>
-		</r>
-	</si>
-</sst>';
-sub _read_shared_strings{
-	my ( $self, $attribute, $value ) = @_;
-	my	$phone = Log::Shiras::Telephone->new;
-		$phone->talk(
-			level => 'info',
-			message =>[ "Putting the contents of -$value- in attribute: " . $attribute ], );
-	#~ my $temp_dir = $self->_get_ temp_dir;
-	#~ $temp_dir =~ s/\\/\//g;
-	#~ print "$temp_dir\n";
-	#~ print "$_\n" for <$temp_dir*>;
-	my ( $string_list, );
-	#~ my	$document 		= $parser->parse_file( ($self->_get_temp_dir . $value) );
-						$parser->parse_chunk( $xml_string );
-	my	$sst_node	= 	$parser->parse_chunk( "", 1 );
-	#~ my ( $sst_node, ) 	= $document->getElementsByTagName( 'sst' );
-	#~ my	$count			= $sst_node->getAttribute( 'count' );
-	#~ my	$unique_count	= $sst_node->getAttribute( 'uniqueCount' );
-	$phone->talk(
-		level => 'info',
-		message =>[	
-			#~ "Opened xml sharedStrings with count -$count- and unique count: $unique_count",
-			"Node: ", $sst_node->serialize() ], );#$xml_string, $sst_node,
-	my	$one = 0;
-	my ( $master_ref, $data_ref );
-	for my $string_node ( $sst_node->getElementsByTagName( 'si' ) ){
-		my	$string_data_ref;
-		$phone->talk(
-			level => 'trace',
-			message =>[ "String node $one text : " . $string_node->serialize() ], );
-		$data_ref = $self->_xml_to_data_ref( $string_node, $data_ref );
-		push @$master_ref, $data_ref;
-	#~ $self->$setter( $array_ref );
-	#~ $phone->talk( level => 'debug', message =>[ 'Action complete for: ', $self->$getter ], );
-	}
-	$phone->talk(
-			level => 'trace',
-			message =>[ "Master Ref: ", $master_ref ], );
-}
-
-sub _xml_to_data_ref{
-	my ( $self, $xml_node, $data_ref ) = @_;
-	my	$message_ref = [ 	'Reached _xml_to_data_ref for node named -' .
-							$xml_node->getName() . '- with string:',
-							$xml_node->serialize() ];
-	push( @$message_ref, ('Append to ref:', $data_ref) ) if $data_ref;
-	my	$phone = Log::Shiras::Telephone->new;
-		$phone->talk( level => 'info', message =>$message_ref );
-	for my $child_node ( $xml_node->childNodes() ){
-		$phone->talk( level => 'info', message =>[
-			'Reached _xml_to_data_ref for node named -' . $child_node->getName() . 
-			'- with string:' . $child_node->serialize() ], );
-		if( $child_node->getName() eq 't' ){
-			$data_ref->{t} = $child_node->textContent();
-		}else{
-			if( $child_node->textContent() ){
-				$data_ref->{$child_node->getName()}->{value} = $child_node->textContent();
-			}
-			#~ my	$new_ref = $data_ref;
-			$phone->talk( level => 'debug', message =>[
-				'need to parse something besides a text node', $data_ref ], );
-		}
-		$phone->talk( level => 'fatal', message =>[
-			'final parse:', $data_ref ], );
-	}
-	return $data_ref;
-}
-#~ ###############################################################################
-#~ #
-#~ # error().
-#~ #
-#~ # Return an error string for a failed read.
-#~ #
-#~ sub error {
-
-    #~ my $self        = shift;
-    #~ my $error_index = $self->{_error_status};
-    #~ my $error       = $error_strings[$error_index];
-
-    #~ if ( $self->{_error_extra_text} ) {
-        #~ $error .= ': ' . $self->{_error_extra_text};
-    #~ }
-
-    #~ return $error;
-#~ }
-
-
-#~ ###############################################################################
-#~ #
-#~ # error_code().
-#~ #
-#~ # Return an error code for a failed read.
-#~ #
-#~ sub error_code {
-
-    #~ my $self = shift;
-
-    #~ return $self->{_error_status};
-#~ }
-
-#########1 Phinish            3#########4#########5#########6#########7#########8#########9
-
-no Moose;
-__PACKAGE__->meta->make_immutable(
-	inline_constructor => 0,
-);
-
-1;
-# The preceding line will help the module return a true value
-
-#########1 main pod docs      3#########4#########5#########6#########7#########8#########9
-__END__
-
-
-
-=head1 NAME
-
-Excel::Reader::XLSX - Efficient data reader for the Excel XLSX file format.
-
 =head1 SYNOPSIS
 
-The following is a simple Excel XLSX file reader using C<Excel::Reader::XLSX>:
+The following uses the 'TestBook.xlsx' file found in the t/test_files/ folder
 
-    use strict;
-    use warnings;
-    use Excel::Reader::XLSX;
+	use strict;
+	use warnings;
+	use Spreadsheet::XLSX::Reader::LibXML;
 
-    my $reader   = Excel::Reader::XLSX->new();
-    my $workbook = $reader->read_file( 'Book1.xlsx' );
+	my $parser   = Spreadsheet::XLSX::Reader::LibXML->new();
+	my $workbook = $parser->parse( 'TestBook.xlsx' );
 
-    if ( !defined $workbook ) {
-        die $reader->error(), "\n";
-    }
+	if ( !defined $workbook ) {
+		die $parser->error(), "\n";
+	}
 
-    for my $worksheet ( $workbook->worksheets() ) {
+	for my $worksheet ( $workbook->worksheets() ) {
 
-        my $sheetname = $worksheet->name();
+		my ( $row_min, $row_max ) = $worksheet->row_range();
+		my ( $col_min, $col_max ) = $worksheet->col_range();
 
-        print "Sheet = $sheetname\n";
+		for my $row ( $row_min .. $row_max ) {
+			for my $col ( $col_min .. $col_max ) {
 
-        while ( my $row = $worksheet->next_row() ) {
+				my $cell = $worksheet->get_cell( $row, $col );
+				next unless $cell;
 
-            while ( my $cell = $row->next_cell() ) {
+				print "Row, Col    = ($row, $col)\n";
+				print "Value       = ", $cell->value(),       "\n";
+				print "Unformatted = ", $cell->unformatted(), "\n";
+				print "\n";
+			}
+		}
+		last;# In order not to read all sheets
+	}
 
-                my $row   = $cell->row();
-                my $col   = $cell->col();
-                my $value = $cell->value();
-
-				print "  Cell ($row, $col) = ";
-				print ((( $value ) ? $value : 'undef') . "\n");
-            }
-        }
-    }
-
-    __END__
+	###########################
+	# SYNOPSIS Screen Output
+	# 01: Row, Col    = (0, 0)
+	# 02: Value       = Category
+	# 03: Unformatted = Category
+	# 04: 
+	# 05: Row, Col    = (0, 1)
+	# 06: Value       = Total
+	# 07: Unformatted = Total
+	# 08: 
+	# 09: Row, Col    = (0, 2)
+	# 10: Value       = Date
+	# 11: Unformatted = Date
+	# 12: 
+	# 13: Row, Col    = (1, 0)
+	# 14: Value       = Red
+	# 16: Unformatted = Red
+	# 17: 
+	# 18: Row, Col    = (1, 1)
+	# 19: Value       = 5
+	# 20: Unformatted = 5
+	# 21: 
+	# 22: Row, Col    = (1, 2)
+	# 23: Value       = 2017-2-14
+	# 24: Unformatted = 41318
+	# 25: 
+	# More intermediate rows ... 
+	# 82: 
+	# 83: Row, Col    = (6, 2)
+	# 84: Value       = 2016-2-6
+	# 85: Unformatted = 40944
+	###########################
 
 
 
 =head1 DESCRIPTION
 
-C<Excel::Reader::XLSX> is a fast and lightweight parser for Excel XLSX files. XLSX is the Office Open XML, OOXML, format used by Excel 2007 and later.
-
-B<Note: This software is designated as alpha quality until this notice is removed.> The API shouldn't change but functionality is currently limited.
-
-=head1 Reader
-
-The C<Excel::Reader::XLSX> constructor returns a Reader object that is used to read an Excel XLSX file:
-
-    my $reader   = Excel::Reader::XLSX->new();
-    my $workbook = $reader->read_file( 'Book1.xlsx' );
-    die $reader->error() if !defined $workbook;
-
-    for my $worksheet ( $workbook->worksheets() ) {
-        while ( my $row = $worksheet->next_row() ) {
-            while ( my $cell = $row->next_cell() ) {
-                my $value = $cell->value();
-                ...
-            }
-        }
-    }
-
-The C<Excel::Reader::XLSX> object is used to return sub-objects that represent the functional parts of an Excel spreadsheet, L</Workbook>, L</Worksheet>, L</Row> and L</Cell>:
-
-     Reader
-       +- Workbook
-          +- Worksheet
-             +- Row
-                +- Cell
-
-The C<Reader> object has the following methods:
-
-    read_file()
-    error()
-    error_code()
-
-=head2 read_file()
-
-The C<read_file> Reader method is used to read an Excel XLSX file and return a C<Workbook> object:
-
-    my $reader   = Excel::Reader::XLSX->new();
-    my $workbook = $reader->read_file( 'Book1.xlsx' );
-    ...
-
-It is recommended that the success of the C<read_file()> method is always checked using one of the error checking methods below.
-
-=head2 error()
-
-The C<error()> Reader method returns an error string if C<read_file()> fails:
-
-    my $reader   = Excel::Reader::XLSX->new();
-    my $workbook = $reader->read_file( 'Book1.xlsx' );
-
-    if ( !defined $workbook ) {
-        die $reader->error(), "\n";
-    }
-    ...
-
-The C<error()> strings and associated C<error_code()> numbers are:
-
-    error()                              error_code()
-    =======                              ============
-    ''                                   0
-    'File not found'                     1
-    'File is xls not xlsx'               2
-    'File is encrypted xlsx'             3
-    'File is unknown OLE doc type'       4
-    'File has zip error'                 5
-    'File is missing subfile'            6
-    'File has no [Content_Types].xml'    7
-    'File has no workbook.xml'           8
-
-
-=head2 error_code()
-
-The C<error_code()> Reader method returns an error code if C<read_file()> fails:
-
-    my $reader   = Excel::Reader::XLSX->new();
-    my $workbook = $reader->read_file( 'Book1.xlsx' );
-
-    if ( !defined $workbook ) {
-        die "Got error code ", $parser->error_code, "\n";
-    }
-
-This method is useful if you wish to use you own error strings or error handling methods.
-
-
-=head1 Workbook
-
-=head2 Workbook Methods
-
-An C<Excel::Reader::XLSX> C<Workbook> object is returned by the Reader C<read_file()> method:
-
-    my $reader   = Excel::Reader::XLSX->new();
-    my $workbook = $reader->read_file( 'Book1.xlsx' );
-    ...
-
-The C<Workbook> object has the following methods:
-
-    worksheets()
-    worksheet()
-
-=head2 worksheets()
-
-The Workbook C<worksheets()> method returns an array of
-C<Worksheet> objects. This method is generally used to iterate through
-all the worksheets in an Excel workbook and read the data:
-
-    for my $worksheet ( $workbook->worksheets() ) {
-      ...
-    }
-
-
-=head2 worksheet()
-
-The Workbook C<worksheet()> method returns a single C<Worksheet>
-object using the sheetname or the zero based index.
-
-    my $worksheet = $workbook->worksheet( 'Sheet1' );
-
-    # Or via the index.
-
-    my $worksheet = $workbook->worksheet( 0 );
-
-
-=head1 Worksheet
-
-=head2 Worksheet Methods
-
-The C<Worksheet> object is returned from a L</Workbook> object and is used to access row data.
-
-    my $reader   = Excel::Reader::XLSX->new();
-    my $workbook = $reader->read_file( 'Book1.xlsx' );
-    die $reader->error() if !defined $workbook;
-
-    for my $worksheet ( $workbook->worksheets() ) {
-        ...
-    }
-
-The C<Worksheet> object has the following methods:
-
-     next_row()
-     name()
-     index()
-
-=head2 next_row()
-
-The C<next_row()> method returns a L</Row> object representing the next
-row in the worksheet.
-
-        my $row = $worksheet->next_row();
-
-It returns C<undef> if there are no more rows containing data or formatting in the worksheet. This allows you to iterate over all the rows in a worksheet as follows:
-
-        while ( my $row = $worksheet->next_row() ) { ... }
-
-Note, for efficiency the C<next_row()> method returns the next row in the file. This may not be the next sequential row. An option to read sequential rows, wheter they contain data or not will be added in a later release.
-
-=head2 name()
-
-The C<name()> method returns the name of the Worksheet object.
-
-    my $sheetname = $worksheet->name();
-
-=head2 index()
-
-The C<index()> method returns the zero-based index of the Worksheet
-object.
-
-    my $sheet_index = $worksheet->index();
-
-
-=head1 Row
-
-=head2 Row Methods
-
-The C<Row> object is returned from a L</Worksheet> object and is use to access cells in the worksheet.
-
-    my $reader   = Excel::Reader::XLSX->new();
-    my $workbook = $reader->read_file( 'Book1.xlsx' );
-    die $reader->error() if !defined $workbook;
-
-    for my $worksheet ( $workbook->worksheets() ) {
-        while ( my $row = $worksheet->next_row() ) {
-            ...
-        }
-    }
-
-The C<Row> object has the following methods:
-
-    values()
-    next_cell()
-    row_number()
-
-
-=head2 values()
-
-The C<values())> method returns an array of values for a row from the first column up to the last column containing data. Cells with no data value return an empty string C<''>.
-
-    my @values = $row->values();
-
-For example if we extracted data for the first row of the following spreadsheet we would get the values shown below:
-
-     -----------------------------------------------------------
-    |   |     A     |     B     |     C     |     D     | ...
-     -----------------------------------------------------------
-    | 1 |           | Foo       |           | Bar       | ...
-    | 2 |           |           |           |           | ...
-    | 3 |           |           |           |           | ...
-
-    # Code:
-    ...
-    my $row = $worksheet->next_row();
-    my @values = $row->values();
-    ...
-
-    # @values contains ( '', 'Foo', '', 'Bar' )
-
-
-=head2 next_cell()
-
-The C<next_cell> method returns the next, non-blank cell in the current row.
-
-    my $cell = $row->next_cell();
-
-It is usually used with a while loop. For example if we extracted data for the first row of the following spreadsheet we would get the values shown below:
-
-     -----------------------------------------------------------
-    |   |     A     |     B     |     C     |     D     | ...
-     -----------------------------------------------------------
-    | 1 |           | Foo       |           | Bar       | ...
-    | 2 |           |           |           |           | ...
-    | 3 |           |           |           |           | ...
-
-    # Code:
-    ...
-    while ( my $cell = $row->next_cell() ) {
-        my $value = $cell->value();
-        print $value, "\n";
-    }
-    ...
-
-    # Output:
-    Foo
-    Bar
-
-Note, for efficiency the C<next_cell()> method returns the next cell in the row. This may not be the next sequential cell. An option to read sequential cells, wheter they contain data or not will be added in a later release.
-
-
-=head2 row_number()
-
-The C<row_number()> method returns the zero-indexed row number for the current row:
-
-    my $row = $worksheet->next_row();
-    print $row->row_number(), "\n";
-
-
-=head1 Cell
-
-=head2 Cell Methods
-
-The C<Cell> object is used to extract data from Excel cells:
-
-    my $reader   = Excel::Reader::XLSX->new();
-    my $workbook = $reader->read_file( 'Book1.xlsx' );
-    die $reader->error() if !defined $workbook;
-
-    for my $worksheet ( $workbook->worksheets() ) {
-        while ( my $row = $worksheet->next_row() ) {
-            while ( my $cell = $row->next_cell() ) {
-                my $value = $cell->value();
-               ...
-            }
-        }
-    }
-
-The C<Cell> object has the following methods:
-
-    value()
-    row()
-    col()
-
-For example if we extracted the data for the cells in the first row of the following spreadsheet we would get the values shown below:
-
-     -----------------------------------------------------------
-    |   |     A     |     B     |     C     |     D     | ...
-     -----------------------------------------------------------
-    | 1 |           | Foo       |           | Bar       | ...
-    | 2 |           |           |           |           | ...
-    | 3 |           |           |           |           | ...
-
-    # Code:
-    ...
-    while ( my $row = $worksheet->next_row() ) {
-        while ( my $cell = $row->next_cell() ) {
-            my $row   = $cell->row();
-            my $col   = $cell->col();
-            my $value = $cell->value();
-
-            print "Cell ($row, $col) = $value\n";
-        }
-    }
-    ...
-
-    # Output:
-    Cell (0, 1) = Foo
-    Cell (0, 2) = Bar
-
-
-=head2 value()
-
-The Cell C<value()> method returns the unformatted value from the cell.
-
-    my $value = $cell->value();
-
-The "value" of the cell can be a string or  a number. In the case of a formula it returns the result of the formula and not the formal string. For dates it returns the numeric serial date.
-
-
-=head2 row()
-
-The Cell C<row()> method returns the zero-indexed row number of the cell.
-
-    my $row = $cell->row();
-
-
-=head2 col()
-
-The Cell C<col()> method returns the zero-indexed column number of the cell.
-
-    my $col = $cell->col();
-
-
-=head1 EXAMPLE
-
-Simple example of iterating through all worksheets in a workbook and printing out values from cells that contain data.
-
-    use strict;
-    use warnings;
-    use Excel::Reader::XLSX;
-
-    my $reader   = Excel::Reader::XLSX->new();
-    my $workbook = $reader->read_file( 'Book1.xlsx' );
-
-    if ( !defined $workbook ) {
-        die $reader->error(), "\n";
-    }
-
-    for my $worksheet ( $workbook->worksheets() ) {
-
-        my $sheetname = $worksheet->name();
-
-        print "Sheet = $sheetname\n";
-
-        while ( my $row = $worksheet->next_row() ) {
-
-            while ( my $cell = $row->next_cell() ) {
-
-                my $row   = $cell->row();
-                my $col   = $cell->col();
-                my $value = $cell->value();
-
-                print "  Cell ($row, $col) = $value\n";
-            }
-        }
-    }
-
-=head1 RATIONALE
-
-The rationale for this module is to have a fast memory efficient module for reading XLSX files. This is based on my experience of user requirements as the maintainer of Spreadsheet::ParseExcel.
-
-
-=head1 SEE ALSO
-
-Spreadsheet::XLSX, an XLSX reader using the old Spreadsheet::ParseExcel hash based interface: L<http://search.cpan.org/dist/Spreadsheet-XLSX/>.
-
-SimpleXlsx, a "rudimentary extension to allow parsing of information stored in Microsoft Excel XLSX spreadsheets": L<http://search.cpan.org/dist/SimpleXlsx/>.
-
-Excel::Writer::XLSX, an XLSX file writer based on the Spreadsheet::WriteExcel interface: L<http://search.cpan.org/dist/Excel-Writer-XLSX/>.
-
-
-=head1 TODO
-
-There are a lot of features still to be added. This module is very much a work in progress.
+This is another module for parsing Excel 2007+ workbooks.  It is designed to use 
+L<XML::LibXML> and in this iteration only has an  <XML::LibXML::Reader> parser.  
+Future iterations could include a DOM parser option.  The goal of this package is 
+three fold.  First, adhere more closely to the L<Spreadsheet::ParseExcel> API so 
+that less work would be needed to integrate both of them.  Second, to provide an 
+XLSX sheet parser that is built on L<XML::LibXML>.  I<The other two primary options 
+for XLSX parsing on CPAN use either a one-off XML parser or L<XML::Twig> and it was 
+difficult for me to tell if the bugs I encountered with them were associated with 
+the XML parsers or just inherent to the reader itself.  By the time I had educated 
+myself enough to know the difference I had written this.>  Finally, I wanted to 
+improve date handling so that custom format development and implementation would be 
+easier.  I leveraged coercions from L<Type::Coercion> to do this but anything that 
+follows that format will work here.
+
+In the process of learning and building I also wrote some additional features for 
+this parser that are not found in the L<Spreadsheet::ParseExcel> package.  Read the 
+details below for more information.  For instance in the L<SYNOPSIS|/SYNOPSIS> the 
+'$parser' and the '$workbook' are actually the same class.  You could combine both 
+steps by calling new with the 'file_name' attribute called out.  Afterward it is 
+still possible to call ->error on the instance.  On the other hand this package does 
+not yet provide the same access to the formatting elements provided in 
+L<Spreadsheet::ParseExcel>.  That is on the longish and incomplete TODO list.
+
+This is a L<Moose> based package.  As such it is designed to be (fairly) extensible.  
+Some design departures in this module were driven by Excel's new organization of the 
+XML format but others were Moose driven.
+.
+
+=head2 Attributes
+
+Data passed to new when creating an instance (parser).  For modification of 
+these attributes see the listed L<Methods|/Methods> of the instance. Note the 
+L<parse|/parse( $file_name, $formatter )> method is just a convenience method 
+and is included only for L<Spreadsheet::ParseExcel> compatibility.
+
+=head3 error_inst
 
 =over
 
-=item 1 Choose separate error instances per intance or use a shared error instance.
+B<Definition:> This attribute holds an 'error' object instance.  It should have 
+has several methods for managing errors.  
+	
+Currently no error codes or error translation options are available but this 
+should make implementation of that easier.
 
-=item 2 Add as much of the Spreadsheet::ParseExcel test suit to this test suit as reasonable
+B<Default> an L<Spreadsheet::XLSX::Reader::LibXML::Error> instance with the 
+attributes set as;
+	
+	( should_warn => 0 )
 
-=item * Reading from filehandles.
+B<Range> The minimum list of methods to implement for your own instance is;
 
-=item * Option to read sequential rows via C<next_row()>.
+	error set_error clear_error set_warnings if_warn
+		
+=back
 
-=item * Option to read dates instead of raw serial style numbers. This is actually harder than it would seem due to the XLSX format.
+=head3 file_name
 
-=item * Option to read formulas, urls, comments, images.
+=over
 
-=item * Spreadsheet::ParseExcel style interface.
+B<Definition:> This attribute holds the full file name and path for the 
+xlsx file to be parsed.
 
-=item * Direct cell access.
+B<Default> no default - this must be provided to read a file
 
-=item * Cell format data.
+B<Range> any unincrypted xlsx file that can be opened in Microsoft Excel
+		
+=back
+
+=head3 file_creator
+
+=over
+
+B<Definition:> This holds the information stored in the Excel Metadata 
+for who created the file originally.  B<You shouldn't set this attribute 
+yourself.>
+
+B<Default> the value from the file
+
+B<Range> A string
+		
+=back
+
+=head3 file_date_created
+
+=over
+
+B<Definition:> This holds the created date in the Excel Metadata 
+for when the file was first built.  B<You shouldn't set this attribute 
+yourself.>
+
+B<Default> the value from the file
+
+B<Range> A timestamp string (ISO ish)
+		
+=back
+
+=head3 file_modified_by
+
+=over
+
+B<Definition:> This holds the information stored in the Excel Metadata 
+for who modified the file last.  B<You shouldn't set this attribute 
+yourself.>
+
+B<Default> the value from the file
+
+B<Range> A string
+		
+=back
+
+=head3 file_date_modified
+
+=over
+
+B<Definition:> This holds the last modified date in the Excel Metadata 
+for when the file was last changed.  B<You shouldn't set this attribute 
+yourself.>
+
+B<Default> the value from the file
+
+B<Range> A timestamp string (ISO ish)
+		
+=back
+
+=head3 sheet_parser
+
+=over
+
+B<Definition:> This sets the way the .xlsx file is parsed.  For now the only 
+choice is 'reader'.
+
+B<Default> 'reader'
+
+B<Range> 'reader'
+		
+=back
+
+=head3 count_from_zero
+
+=over
+
+B<Definition:> Excel spreadsheets count from 1.  L<Spreadsheet::ParseExcel> 
+counts from zero.  This allows you to choose either way.
+
+B<Default> 1
+
+B<Range> 1 = counting from zero like Spreadsheet::ParseExcel, 
+0 = Counting from 1 lke Excel
+		
+=back
+
+=head3 file_boundary_flags
+
+=over
+
+B<Definition:> When you request data past the end of a row or past the bottom 
+of the data this package can return 'EOR' or 'EOF' to indicate that state.  
+This is especially helpful in 'while' loops.  The other option is to return 
+'undef'.  This is problematic if some cells in your table are empty which also 
+returns undef.
+
+B<Default> 1
+
+B<Range> 1 = return 'EOR' or 'EOF' flags as appropriate,
+0 = return undef when requesting a position that is out of bounds
+		
+=back
+
+=head3 empty_is_end
+
+=over
+
+B<Definition:> The excel convention is to read the table left to right and top 
+to bottom.  Some tables have uneven columns from row to row.  This allows the 
+several methods that take 'next' values to wrap after the last element with data 
+rather than going to the max column.
+
+B<Default> 0
+
+B<Range> 1 = treat all columns short of the max column for the sheet as being in 
+the table, 0 = end each row after the last cell with data rather than going to the 
+max sheet column
+		
+=back
+
+=head3 from_the_edge
+
+=over
+
+B<Definition:> Some data tables start in the top left corner.  Others do not.  I 
+don't reccomend that practice but when aquiring data in the wild it is often good 
+to adapt.  This attribute sets whether the file reads from the top left edge or from 
+the top row with data and starting from the leftmost column with data.
+
+B<Default> 1
+
+B<Range> 1 = treat the top left corner of the sheet even if there is no data in 
+the top row or leftmost column, 0 = Set the minimum row and minimum columns to be 
+the first row and first column with data
+		
+=back
+
+=head3 default_format_list
+
+=over
+
+B<Definition:> This is a departure from L<Spreadsheet::ParseExcel> for two reasons.  
+First, it doesn't use the same modules.  Second, this accepts a role with two methods 
+where ParseExcel accepts an object instance.
+
+B<Default> Spreadsheet::XLSX::Reader::LibXML::FmtDefault
+
+B<Range> a L<Moose> role with the methods 'get_defined_excel_format' and 
+'change_output_encoding' it should be noted that libxml2 which is the underlying code 
+for L<XML::LibXML> allways attempts to get the data into perl friendly strings.  That 
+means this should only tweak the data on the way out and does not affect the data on the 
+way in.
+		
+=back
+
+=head3 format_string_parser
+
+=over
+
+B<Definition:> This is the interpreter that turns the excel format string from 
+L<format_string_parser|/format_string_parser> into a L<Type::Tiny> coercion.  If you 
+don't like the output or the method you can write your own Moose Role and add it here.
+
+B<Default> Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings
+
+B<Range> a L<Moose> role with the method 'parse_excel_format_string'
+		
+=back
+
+=head3 group_return_type
+
+=over
+
+B<Definition:> Traditionally ParseExcel returns a cell object with lots of methods 
+to reveal information about the cell.  In reality this is probably not used very much 
+so in the interest of simplifying you can get a cell object instance set to the cell 
+information.  Or you can just get the raw value in the cell or you can get the cell value 
+formatted either the way the sheet specified or the way you specify.  See the 
+'custom_formats' attribute for the L<Spreadsheet::XLSX::Reader::LibXML::Worksheet> class 
+to insert custom targeted formats for use with the parser.  All empty cells return undef 
+no matter what.
+
+B<Default> instance
+
+B<Range> instance = returns a populated L<Spreadsheet::XLSX::Reader::LibXML::Cell> instance,
+unformatted = returns the raw value of the cell with no modifications, value = returns just 
+the formatted value stored in the excel cell
+		
+=back
+
+=head2 Methods
+
+These include methods to adjust attributes as well as providing a methods to load the 
+xlsx file.
+
+=head3 parse( $file_name, $formatter )
+
+=over
+
+B<Definition:> This is a convenience method to match the L<Spreadsheet::ParseExcel> equivalent.  
+it should behave the same way setting the error and returning undef for failure.
+
+B<Accepts:>$file_name = of a valid xlsx file ($required), $formatter = see the attribute 
+L<default_format_list|/default_format_list> for valid options
+
+B<Returns:> itself when passing with the xlsx file loaded or undef for failure
 
 =back
 
+worksheet
+				worksheets					get_error_inst				error
+				set_error					clear_error					set_warnings
+				if_warn						set_file_name				has_file_name
+				creator						modified_by					date_created
+				date_modified				set_parser_type				get_parser_type
+				counting_from_zero			set_count_from_zero			boundary_flag_setting
+				change_boundary_flag		set_empty_is_end			is_empty_the_end
+				set_from_the_edge			set_default_format_list		get_default_format_list
+				set_format_string_parser	get_format_string_parser	get_group_return_type
+				set_group_return_type		get_epoch_year				get_shared_string_position
+				get_format_position			get_worksheet_names			number_of_sheets
+				start_at_the_beginning		in_the_list
 
-
-
-=head1 LICENSE
-
-Either the Perl Artistic Licence L<http://dev.perl.org/licenses/artistic.html> or the GPL L<http://www.opensource.org/licenses/gpl-license.php>.
-
-
-
-
-=head1 AUTHOR
-
-John McNamara jmcnamara@cpan.org
-
-
-
-
-=head1 COPYRIGHT
-
-Copyright MMXII, John McNamara.
-
-All Rights Reserved. This module is free software. It may be used, redistributed and/or modified under the same terms as Perl itself.
-
-
-
-
-=head1 DISCLAIMER OF WARRANTY
-
-Because this software is licensed free of charge, there is no warranty for the software, to the extent permitted by applicable law. Except when otherwise stated in writing the copyright holders and/or other parties provide the software "as is" without warranty of any kind, either expressed or implied, including, but not limited to, the implied warranties of merchantability and fitness for a particular purpose. The entire risk as to the quality and performance of the software is with you. Should the software prove defective, you assume the cost of all necessary servicing, repair, or correction.
-
-In no event unless required by applicable law or agreed to in writing will any copyright holder, or any other party who may modify and/or redistribute the software as permitted by the above licence, be liable to you for damages, including any general, special, incidental, or consequential damages arising out of the use or inability to use the software (including but not limited to loss of data or data being rendered inaccurate or losses sustained by you or third parties or a failure of the software to operate with any other software), even if such holder or other party has been advised of the possibility of such damages.

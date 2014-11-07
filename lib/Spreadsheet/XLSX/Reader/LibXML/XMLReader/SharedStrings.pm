@@ -1,19 +1,25 @@
-package Spreadsheet::XLSX::Reader::XMLReader::SharedStrings;
-use version; our $VERSION = version->declare("v0.1_1");
+package Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings;
+use version; our $VERSION = qv('v0.5_1');
 
 use 5.010;
 use Moose;
 use MooseX::StrictConstructor;
 use MooseX::HasDefaults::RO;
 use Types::Standard qw(
-		Int
+		Int				HashRef			is_HashRef
     );
-use lib	'../../../../../lib';
+use Carp qw( confess );
+use lib	'../../../../../../lib';
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
-extends	'Spreadsheet::XLSX::Reader::XMLReader';
+extends	'Spreadsheet::XLSX::Reader::LibXML::XMLReader';
+with	'Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData';
 
 #########1 Public Attributes  3#########4#########5#########6#########7#########8#########9
+
+
+
+#########1 Public Methods     3#########4#########5#########6#########7#########8#########9
 
 sub get_shared_string_position{
 	my( $self, $position ) = @_;
@@ -33,7 +39,15 @@ sub get_shared_string_position{
 		return undef;#  fail
 	}
 	
-	# Initiate the read or reset the file if needed
+	# checking if the reqested position is stored
+	if( $self->_has_last_position and $position == $self->_get_last_position ){
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Already built the answer for position: $position", 
+		###LogSD		$self->_get_last_position_ref						] );
+		return $self->_get_last_position_ref;
+	}
+	
+	# Initiate the read and reset the file if needed
 	if( $self->has_position and $self->where_am_i > $position ){
 		$self->start_the_file_over;
 		###LogSD	$phone->talk( level => 'debug', message => [
@@ -50,6 +64,7 @@ sub get_shared_string_position{
 		$self->_i_am_here( 0 );
 	}
 	
+	# Advance to the proper position
 	while( $self->where_am_i < $position ){
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD		"Pulling the next cell: " . ($self->where_am_i + 1) ] );
@@ -57,18 +72,33 @@ sub get_shared_string_position{
 		$self->_i_am_here( $self->where_am_i + 1 );
 	}
 	
-	my $shared_strings_node = $self->copy_current_node( 1 );
-	###LogSD	$phone->talk( level => 'trace', message => [
-	###LogSD		"Returning shared strings node:",
-	###LogSD		(($shared_strings_node) ? $shared_strings_node->toString : '') ] );
-	return $shared_strings_node;
+	# Read the data
+	$self->_set_last_position( $position );
+	my $init_ref = $self->parse_element;
+	$self->_i_am_here( $position + 1 );
+	###LogSD	$phone->talk( level => 'trace',  message =>[
+	###LogSD		"Element parse resulted in:", $init_ref ] );
+	if( is_HashRef( $init_ref ) ){
+		if( exists $init_ref->{list} ){
+			my ( $raw_text, $rich_text );
+			for my $element( @{$init_ref->{list}} ){
+				push( @$rich_text, length( $raw_text ), $element->{rPr} ) if exists $element->{rPr};
+				$raw_text .= $element->{t}->{raw_text};
+			}
+			@$init_ref{qw( raw_text rich_text )} = ( $raw_text, $rich_text  );
+			delete $init_ref->{list};
+		}else{
+			$init_ref = $init_ref->{t};
+		}
+	}else{
+		set_error( "Unable to parse the shared string position: $position" );
+		return undef;
+	}
+	$self->_set_last_position_ref( $init_ref );
+	###LogSD	$phone->talk( level => 'trace',  message =>[
+	###LogSD		"Final element rearranging result:", $init_ref ] );
+	return $init_ref;
 }
-
-
-
-#########1 Public Methods     3#########4#########5#########6#########7#########8#########9
-
-
 
 #########1 Private Attributes 3#########4#########5#########6#########7#########8#########9
 
@@ -79,16 +109,20 @@ has _unique_count =>(
 	clearer		=> '_clear_unique_count',
 );
 
-has _count =>(
-	isa			=> Int,
-	writer		=> '_set_count',
-	reader		=> '_get_count',
-	clearer		=> '_clear_count',
-	predicate	=> '_has_count',
-);
-	
-has +_core_element =>(
-		default => 'si',
+has _last_position =>(
+		isa		=> Int,
+		writer	=> '_set_last_position',
+		reader	=> '_get_last_position',
+		predicate => '_has_last_position',
+		trigger	=> \&_clear_last_position_ref,
+	);
+
+has _last_position_ref =>(
+		isa		=> HashRef,
+		writer	=> '_set_last_position_ref',
+		reader	=> '_get_last_position_ref',
+		clearer => '_clear_last_position_ref',
+		predicate => '_has_last_position_ref',
 	);
 
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
@@ -99,7 +133,7 @@ sub _load_unique_bits{
 	###LogSD					$self->get_log_space .  '::_load_unique_bits', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			"Setting the sharedStrings unique bits" ] );
-	my	$node_name	= $self->name;
+	my	$node_name	= $self->node_name;
 	my	$found_it	= 1;
 	if( $node_name ne 'sst' ){
 		$found_it = $self->next_element( 'sst' );
@@ -108,9 +142,6 @@ sub _load_unique_bits{
 		$self->_set_unique_count( $self->get_attribute( 'uniqueCount' ) );#
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD		"The unique count is: " . $self->_get_unique_count ] );
-		$self->_set_count( $self->get_attribute( 'count' ) );#
-		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"The count is: " . $self->_get_count ] );
 		return undef;
 	}else{
 		$self->set_error( "No 'sst' element found - can't parse this as a shared strings file" );
@@ -190,7 +221,7 @@ L<MooseX::StrictConstructor>
 
 L<MooseX::HasDefaults::RO>
 
-L<Spreadsheet::XLSX::Reader::XMLReader>
+L<Spreadsheet::XLSX::Reader::LibXML::XMLReader>
 
 =back
 

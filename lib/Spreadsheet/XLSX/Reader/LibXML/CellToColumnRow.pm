@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow;
-use version; our $VERSION = qv('v0.4.2');
+use version; our $VERSION = qv('v0.5_1');
 
 use	Moose::Role;
 requires qw(
@@ -7,7 +7,6 @@ requires qw(
 	set_error
 );
 use Types::Standard qw( Bool );
-use lib	'../../../../../lib';
 ###LogSD	use Log::Shiras::Telephone;
 
 #########1 Dispatch Tables    3#########4#########5#########6#########7#########8#########9
@@ -21,22 +20,48 @@ my	$lookup_list =[ qw( A B C D E F G H I J K L M N O P Q R S T U V W X Y Z ) ];
 
 #########1 Public Attributes  3#########4#########5#########6#########7#########8#########9
 
-has count_from_zero =>(
-		isa		=> Bool,
-		#~ writer	=> 'set_count_from_zero',
-		reader	=> 'counting_from_zero',
-		default	=> 1,
-	);
+
 
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
 
 sub parse_column_row{
-	my ( $self, $cell, $excel ) = @_;
-	my ( $column, $error_list_ref );
+	my ( $self, $cell ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
 	###LogSD					($self->get_log_space .  '::parse_column_row' ), );
 	###LogSD		$phone->talk( level => 'debug', message =>[
-	###LogSD			"Parsing row number and column number from: $cell" ] );
+	###LogSD			"Parsing file row number and file column number from: $cell" ] );
+	my ( $column, $row ) = $self->_parse_column_row( $cell );
+	###LogSD	$phone->talk( level => 'debug', message =>[
+	###LogSD		"File Column: $column", "File Row: $row" ] );
+	###LogSD	use warnings 'uninitialized';
+	return( $column, $row );
+}
+
+sub build_cell_label{
+	my ( $self, $column, $row ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD					($self->get_log_space .  '::build_cell_label' ), );
+	###LogSD		$phone->talk( level => 'debug', message =>[
+	###LogSD			"Converting file column -$column- and file row -$row- to a cell ID" ] );
+	my $cell_label = $self->_build_cell_label( $column, $row );
+	###LogSD	$phone->talk( level => 'debug', message =>[
+	###LogSD		"Cell label is: $cell_label" ] );
+	return $cell_label;
+}
+
+#########1 Private Attributes 3#########4#########5#########6#########7#########8#########9
+
+
+
+#########1 Private Methods    3#########4#########5#########6#########7#########8#########9
+
+sub _parse_column_row{
+	my ( $self, $cell ) = @_;
+	my ( $column, $error_list_ref );
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD					($self->get_log_space .  '::_parse_column_row' ), );
+	###LogSD		$phone->talk( level => 'debug', message =>[
+	###LogSD			"Parsing excel row and column number from: $cell" ] );
 	my	$regex = qr/^([A-Z])?([A-Z])?([A-Z])?([0-9]*)$/;
 	my ( $one_column, $two_column, $three_column, $row ) = $cell =~ $regex;
 	no	warnings 'uninitialized';
@@ -79,18 +104,15 @@ sub parse_column_row{
 			$self->set_error( $error_list_ref->[0] );
 		}
 	}
-	
-	$column = $self->get_used_position( $column ) if defined $column and !$excel;
-	$row	= $self->get_used_position( $row ) if defined $row and !$excel;
 	###LogSD	no warnings 'uninitialized';
 	###LogSD	$phone->talk( level => 'debug', message =>[
 	###LogSD		"Column: $column", "Row: $row" ] );
-	###LogSD	use warnings 'uninitialized';
+	use warnings 'uninitialized';
 	return( $column, $row );
 }
 
-sub build_cell_label{
-	my ( $self, $column, $row, $used ) = @_;
+sub _build_cell_label{
+	my ( $self, $column, $row ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
 	###LogSD					($self->get_log_space .  '::build_cell_label' ), );
 	###LogSD	no	warnings 'uninitialized';
@@ -104,7 +126,6 @@ sub build_cell_label{
 		$column = '';
 		push @$error_list, 'missing column';
 	}else{
-		$column = $self->get_excel_position( $column ) if !$used;
 		###LogSD	$phone->talk( level => 'debug', message =>[
 		###LogSD		"Excel column: $column" ] );
 		$column -= 1;
@@ -140,7 +161,6 @@ sub build_cell_label{
 		$row = '';
 		push @$error_list, 'missing row';
 	}else{
-		$row = $self->get_excel_position( $row ) if !$used;
 		if( $row > 1048576 ){
 			push @$error_list, 'row too large';
 			$row = '';
@@ -160,42 +180,6 @@ sub build_cell_label{
 	###LogSD		"Cell label is: $cell_label" ] );
 	return $cell_label;
 }
-
-sub get_excel_position{
-	my ( $self, $used_int ) = @_;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD					($self->get_log_space .  '::get_excel_position' ), );
-	return undef if !defined $used_int;
-	###LogSD		$phone->talk( level => 'debug', message =>[
-	###LogSD			"Converting used number  -$used_int- to Excel" ] );
-	my	$excel_position = $used_int;
-	$excel_position += 1 if $self->counting_from_zero;
-	###LogSD		$phone->talk( level => 'debug', message =>[
-	###LogSD			"New position is: $excel_position" ] );
-	return $excel_position;
-}
-
-sub get_used_position{
-	my ( $self, $excel_int ) = @_;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD					($self->get_log_space .  '::get_used_position' ), );
-	return undef if !defined $excel_int;
-	###LogSD		$phone->talk( level => 'debug', message =>[
-	###LogSD			"Converting Excel  -$excel_int- to the used number" ] );
-	my	$used_position = $excel_int;
-	$used_position -= 1 if $self->counting_from_zero;
-	###LogSD		$phone->talk( level => 'debug', message =>[
-	###LogSD			"The used position is: $used_position" ] );
-	return $used_position;
-}
-
-#########1 Private Attributes 3#########4#########5#########6#########7#########8#########9
-
-
-
-#########1 Private Methods    3#########4#########5#########6#########7#########8#########9
-
-
 
 #########1 Phinish            3#########4#########5#########6#########7#########8#########9
 
