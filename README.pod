@@ -1,6 +1,6 @@
-=head1 Spreadsheet::XLSX::Reader::LibXML=head1 NAME
+=head1 Spreadsheet::XLSX::Reader::LibXML
 
-Spreadsheet::XLSX::Reader::LibXML - Read xlsx spreadsheet files with LibXML
+Read xlsx spreadsheet files with LibXML
 
 =head1 SYNOPSIS
 
