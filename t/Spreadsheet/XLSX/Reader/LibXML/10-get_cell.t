@@ -1,6 +1,22 @@
 #########1 Test File for Spreadsheet::XLSX::Reader::LibXML::GetCell   7#########8#########9
 #!evn perl
-BEGIN{ $ENV{PERL_TYPE_TINY_XS} = 0; }
+my ( $lib, $test_file );
+BEGIN{
+	$ENV{PERL_TYPE_TINY_XS} = 0;
+	my	$start_deeper = 1;
+	$lib		= 'lib';
+	$test_file	= 't/test_files/xl/';
+	for my $next ( <*> ){
+		if( ($next eq 't') and -d $next ){
+			$start_deeper = 0;
+			last;
+		}
+	}
+	if( $start_deeper ){
+		$lib		= '../../../../../' . $lib;
+		$test_file	= '../../../../test_files/xl/';
+	}
+}
 $| = 1;
 
 use	Test::Most tests => 729;
@@ -15,7 +31,8 @@ use	Types::Standard qw(
 use	MooseX::ShortCut::BuildInstance v1.8 qw( build_instance );#
 use	lib
 		'../../../../../../Log-Shiras/lib',
-		'../../../../../lib',;
+		$lib,
+	;
 #~ use Log::Shiras::Switchboard qw( :debug );
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(#
 ###LogSD						reports =>{
@@ -34,7 +51,7 @@ use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles v0.5;
 use	Spreadsheet::XLSX::Reader::LibXML::GetCell v0.5;
 ###LogSD	use Log::Shiras::UnhideDebug;
 use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet v0.5;
-my	$test_file = ( @ARGV ) ? $ARGV[0] : '../../../../test_files/xl/';
+	$test_file = ( @ARGV ) ? $ARGV[0] : $test_file;
 my	$shared_strings_file = $test_file;
 my	$styles_file = $test_file;
 	$shared_strings_file .= 'sharedStrings.xml';

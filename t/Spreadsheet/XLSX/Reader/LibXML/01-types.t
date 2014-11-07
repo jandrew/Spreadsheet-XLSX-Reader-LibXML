@@ -1,7 +1,22 @@
 #########1 Test File for Spreadsheet::XLSX::Reader::LibXML::Types     7#########8#########9
 #!env perl
-
-BEGIN{ $ENV{PERL_TYPE_TINY_XS} = 0; }
+my ( $lib, $test_file );
+BEGIN{
+	$ENV{PERL_TYPE_TINY_XS} = 0;
+	my	$start_deeper = 1;
+	$lib		= 'lib';
+	$test_file	= 't/test_files/';
+	for my $next ( <*> ){
+		if( ($next eq 't') and -d $next ){
+			$start_deeper = 0;
+			last;
+		}
+	}
+	if( $start_deeper ){
+		$lib		= '../../../../../' . $lib;
+		$test_file	= '../../../../test_files/';
+	}
+}
 $| = 1;
 
 use	Test::Most tests => 149;
@@ -10,7 +25,8 @@ use Data::Dumper;
 use Capture::Tiny qw( capture_stderr );
 use	lib 
 		'../../../../../../Log-Shiras/lib',
-		'../../../../../lib',;
+		$lib,
+	;
 #~ use Log::Shiras::Switchboard v0.21 qw( :debug );#
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(#
 ###LogSD						name_space_bounds =>{
@@ -56,7 +72,7 @@ use Spreadsheet::XLSX::Reader::LibXML::Types v0.1 qw(
 no	warnings 'once';
 $Spreadsheet::XLSX::Reader::Types::log_space = 'Test';
 use	warnings 'once';
-my	$test_dir	= ( @ARGV ) ? $ARGV[0] : '../../../../test_files/';
+my	$test_dir	= ( @ARGV ) ? $ARGV[0] : $test_file;
 my	$xlsx_file	= 'TestBook.xlsx';
 my	$xml_file	= '[Content_Types].xml';
 my  ( 

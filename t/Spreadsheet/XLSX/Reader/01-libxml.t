@@ -1,14 +1,29 @@
 #########1 Test File for Spreadsheet::XLSX::Reader::LibXML  6#########7#########8#########9
 #!env perl
-
-BEGIN{ $ENV{PERL_TYPE_TINY_XS} = 0; }
+my ( $lib, $test_file );
+BEGIN{
+	$ENV{PERL_TYPE_TINY_XS} = 0;
+	my	$start_deeper = 1;
+	$lib		= 'lib';
+	$test_file	= 't/test_files/';
+	for my $next ( <*> ){
+		if( ($next eq 't') and -d $next ){
+			$start_deeper = 0;
+			last;
+		}
+	}
+	if( $start_deeper ){
+		$lib		= '../../../../' . $lib;
+		$test_file	= '../../../test_files/'
+	}
+}
 $| = 1;
 
 use	Test::Most tests => 101;
 use	Test::Moose;
-use	lib
-		'../../../../../Log-Shiras/lib',
-		'../../../../lib',;
+use	lib	'../../../../../Log-Shiras/lib',
+		$lib,
+	;
 #~ use Log::Shiras::Switchboard v0.21 qw( :debug );#
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(
 ###LogSD						reports =>{
@@ -18,8 +33,8 @@ use	lib
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
 use Spreadsheet::XLSX::Reader::LibXML;
-my	$test_file = ( @ARGV ) ? $ARGV[0] : '../../../test_files/';
-	$test_file .= 'TestBook.xlsx';
+$test_file = ( @ARGV ) ? $ARGV[0] : $test_file;
+$test_file .= 'TestBook.xlsx';
 	#~ print "Test file is: $test_file\n";
 my  ( 
 		$error_instance, $parser, $workbook, $row_ref,

@@ -1,6 +1,22 @@
 #########1 Test File for Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings #####9
 #!env perl
-BEGIN{ $ENV{PERL_TYPE_TINY_XS} = 0; }
+my ( $lib, $test_file );
+BEGIN{
+	$ENV{PERL_TYPE_TINY_XS} = 0;
+	my	$start_deeper = 1;
+	$lib		= 'lib';
+	$test_file	= 't/test_files/xl/';
+	for my $next ( <*> ){
+		if( ($next eq 't') and -d $next ){
+			$start_deeper = 0;
+			last;
+		}
+	}
+	if( $start_deeper ){
+		$lib		= '../../../../../../' . $lib;
+		$test_file	= '../../../../../test_files/xl/';
+	}
+}
 $| = 1;
 
 use	Test::Most tests => 28;
@@ -10,7 +26,8 @@ use Data::Dumper;
 use	MooseX::ShortCut::BuildInstance qw( build_instance );
 use	lib
 		'../../../../../../../Log-Shiras/lib',
-		'../../../../../../lib',;
+		$lib,
+	;
 #~ use Log::Shiras::Switchboard qw( :debug );#
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(#
 ###LogSD						name_space_bounds =>{
@@ -26,8 +43,8 @@ use	lib
 ###LogSD	use Log::Shiras::UnhideDebug;
 use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings;
 use	Spreadsheet::XLSX::Reader::LibXML::Error;
-my	$test_file = ( @ARGV ) ? $ARGV[0] : '../../../../../test_files/xl/';
-	$test_file .= 'sharedStrings.xml';
+$test_file = ( @ARGV ) ? $ARGV[0] : $test_file;
+$test_file .= 'sharedStrings.xml';
 my  ( 
 			$test_instance, $capture, $x, @answer, $error_instance,
 	);

@@ -1,6 +1,22 @@
 #########1 Test File for Spreadsheet::XLSX::Reader::LibXML::XMLDOM::Styles      8#########9
 #!perl
-BEGIN{ $ENV{PERL_TYPE_TINY_XS} = 0; }
+my ( $lib, $test_file );
+BEGIN{
+	$ENV{PERL_TYPE_TINY_XS} = 0;
+	my	$start_deeper = 1;
+	$lib		= 'lib';
+	$test_file	= 't/test_files/xl/';
+	for my $next ( <*> ){
+		if( ($next eq 't') and -d $next ){
+			$start_deeper = 0;
+			last;
+		}
+	}
+	if( $start_deeper ){
+		$lib		= '../../../../../../' . $lib;
+		$test_file	= '../../../../../test_files/xl/';
+	}
+}
 $| = 1;
 
 use	Test::Most tests => 38;
@@ -9,7 +25,8 @@ use	MooseX::ShortCut::BuildInstance v1.8 qw( build_instance );
 use Data::Dumper;
 use	lib
 		'../../../../../../../Log-Shiras/lib',
-		'../../../../../../lib',;
+		$lib,
+	;
 #~ use Log::Shiras::Switchboard qw( :debug );
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(#
 ###LogSD						name_space_bounds =>{
@@ -74,8 +91,8 @@ use	Spreadsheet::XLSX::Reader::LibXML::FmtDefault v0.5;
 use	Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings v0.5;
 use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles v0.5;
 use	Spreadsheet::XLSX::Reader::LibXML::Error v0.5;
-my	$test_file = ( @ARGV ) ? $ARGV[0] : '../../../../../test_files/xl/';
-	$test_file .= 'styles.xml';
+$test_file = ( @ARGV ) ? $ARGV[0] : $test_file;
+$test_file .= 'styles.xml';
 ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space => 'main', );
 ###LogSD		$phone->talk( level => 'trace', message => [ "Test file is: $test_file" ] );
 my  ( 

@@ -1,7 +1,22 @@
 #########1 Test File for Spreadsheet::XLSX::Reader::XMLReader::Worksheet        8#########9
 #!env perl
-
-BEGIN{ $ENV{PERL_TYPE_TINY_XS} = 0; };
+my ( $lib, $test_file );
+BEGIN{
+	$ENV{PERL_TYPE_TINY_XS} = 0;
+	my	$start_deeper = 1;
+	$lib		= 'lib';
+	$test_file	= 't/test_files/xl/worksheets/';
+	for my $next ( <*> ){
+		if( ($next eq 't') and -d $next ){
+			$start_deeper = 0;
+			last;
+		}
+	}
+	if( $start_deeper ){
+		$lib		= '../../../../../../' . $lib;
+		$test_file	= '../../../../../test_files/xl/worksheets/';
+	}
+}
 $| = 1;
 
 use	Test::Most tests => 1326;
@@ -10,7 +25,8 @@ use	MooseX::ShortCut::BuildInstance qw( build_instance );
 use Types::Standard qw( Bool );
 use	lib
 		'../../../../../../../Log-Shiras/lib',
-		'../../../../../../lib',;
+		$lib,
+	;
 #~ use Log::Shiras::Switchboard qw( :debug );#
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(
 ###LogSD						name_space_bounds =>{
@@ -44,7 +60,7 @@ use	DateTime::Format::Flexible;
 use	Type::Coercion;
 use	Type::Tiny;
 
-my	$test_file	= ( @ARGV ) ? $ARGV[0] : '../../../../../test_files/xl/worksheets/';
+	$test_file	= ( @ARGV ) ? $ARGV[0] : $test_file;
 	$test_file .= 'sheet3.xml';
 my	$log_space	= 'Test';
 ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space => 'main', );
