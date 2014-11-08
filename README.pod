@@ -330,13 +330,15 @@ the formatted value stored in the excel cell
 		
 =back
 
-=head1 Build from Source - (for example git)
+=head1 Build/Install from Source
 
 =over
 	
 B<1.> Download a compressed file with the code
 	
-B<2.> Extract the code from the compressed file
+B<2.> Extract the code from the compressed file.  If you are using tar this should work:
+
+        tar -zxvf Spreadsheet-XLSX-Reader-LibXML-v0.xx.tar.gz
 
 B<3.> Change (cd) into the extracted directory
 
@@ -347,6 +349,7 @@ B<3.> Change (cd) into the extracted directory
 	perl  -V:make
 
 Then
+(for Windows substitute the correct make function (s/make/dmake/g)?)
 
 	>perl Makefile.PL
 
@@ -354,9 +357,8 @@ Then
 
 	>make test
 
-	>make install
+	>make install # As sudo/root
 
 	>make clean
-	(use the windows make version as appropriate (dmake?))
 	
 =cut
