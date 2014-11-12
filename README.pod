@@ -1,6 +1,8 @@
-=head1 Spreadsheet::XLSX::Reader::LibXML
+=pod
 
-Read xlsx spreadsheet files with LibXML
+=head1 NAME
+
+Spreadsheet::XLSX::Reader::LibXML - Read xlsx spreadsheet files with LibXML
 
 =head1 SYNOPSIS
 
@@ -74,9 +76,7 @@ The following uses the 'TestBook.xlsx' file found in the t/test_files/ folder
 
 =head1 DESCRIPTION
 
-This is another module for parsing Excel 2007+ workbooks.  It is designed to use 
-L<XML::LibXML> and in this iteration only has an  <XML::LibXML::Reader> parser.  
-Future iterations could include a DOM parser option.  The goal of this package is 
+This is another module for parsing Excel 2007+ workbooks.  The goal of this package is 
 three fold.  First, adhere more closely to the L<Spreadsheet::ParseExcel> API so 
 that less work would be needed to integrate both of them.  Second, to provide an 
 XLSX sheet parser that is built on L<XML::LibXML>.  I<The other two primary options 
@@ -84,9 +84,11 @@ for XLSX parsing on CPAN use either a one-off XML parser or L<XML::Twig> and it 
 difficult for me to tell if the bugs I encountered with them were associated with 
 the XML parsers or just inherent to the reader itself.  By the time I had educated 
 myself enough to know the difference I had written this.>  Finally, I wanted to 
-improve date handling so that custom format development and implementation would be 
-easier.  I leveraged coercions from L<Type::Coercion> to do this but anything that 
-follows that format will work here.
+improve integrated date handling so that custom format development and implementation 
+would be easier.  I leveraged coercions from L<Type::Coercion> to do this but anything 
+that follows that general format will work here.  Allthough, L<XML::LibXML> has multiple 
+ways to read an XML file this release only has an L<XML::LibXML::Reader> parser.  
+Future iterations could include a DOM parser option.  
 
 In the process of learning and building I also wrote some additional features for 
 this parser that are not found in the L<Spreadsheet::ParseExcel> package.  Read the 
@@ -99,36 +101,223 @@ L<Spreadsheet::ParseExcel>.  That is on the longish and incomplete TODO list.
 
 This is a L<Moose> based package.  As such it is designed to be (fairly) extensible.  
 Some design departures in this module were driven by Excel's new organization of the 
-XML format but others were Moose driven.
-.
+XML format but others were Moose driven to support extensibility.
+
+=head2 Primary Methods
+
+These are the primary ways to use this class.  For additional options see 
+L<Attributes|/Attributes> and L<Methods|/Methods>
+
+=head3 new( %attributes )
+
+=over
+
+B<Definition:> This is the way to instantiate an instance of this class.  It can 
+accept all the L<Attributes|/Attributes>, some, or none.  If the instance is started with 
+no arguments then the L<Methods|/Methods> are needed to open the xlsx file.
+
+B<Accepts:> the L<Attributes|/Attributes>
+
+B<Returns:> An instance of the L<Spreadsheet::XLSX::Reader::LibXML> class
+
+=back
+
+=head3 parse( $file_name, $formatter )
+
+=over
+
+B<Definition:> This is a convenience method to match the L<Spreadsheet::ParseExcel> equivalent.  
+It only works if the L<file_name|/file_name> attribute was not set with ->new.  It 
+is one way to set the L<file_name|/file_name> and L<default_format_list|/default_format_list>
+
+B<Accepts:>
+
+	$file_name = of a valid xlsx file (required)
+	$formatter = see the 'default_format_list' attribute for valid options (optional)
+
+B<Returns:> itself when passing with the xlsx file loaded or undef for failure
+
+=back
+
+=head3 worksheet( $name )
+
+=over
+
+B<Definition:> This method will return an  object to read values in the worksheet.  
+If no value is passed to $name then the 'next' worksheet in physical order is 
+returned. I<next will NOT wrap>
+
+B<Accepts:> the $name string representing the worksheet object you want to open
+
+B<Returns:> a L<Worksheet|Spreadsheet::XLSX::Reader::LibXML::Worksheet> object with the 
+ability to read the worksheet of that name.  Or in 'next' mode it returns undef if 
+past the last sheet
+
+B<Example:> using the implied 'next' worksheet;
+
+	while( my $worksheet = $workbook-E<gt>worksheet ){
+		# Read the next worksheet
+	}
+
+=back
+
+=head3 start_at_the_beginning
+
+=over
+
+B<Definition:> This restarts the 'next' worksheet at the first worksheet
+
+B<Accepts:>nothing
+
+B<Returns:> nothing
+
+=back
+
+=head3 worksheets
+
+=over
+
+B<Definition:> This method will return all the worksheets in the workbook as an array. 
+I<Not an array ref>.
+
+B<Accepts:>nothing
+
+B<Returns:> an array of L<Worksheet|Spreadsheet::XLSX::Reader::LibXML::Worksheet> 
+objects with all the available worksheets in the array
+
+=back
+
+=head3 worksheet_name( $Int )
+
+=over
+
+B<Definition:> This method returns the worksheet name for a given physical position 
+in the worksheet from left to right. It counts from zero even if the workbook is in 
+'count_from_one' mode.
+
+B<Accepts:>integers
+
+B<Returns:> the worksheet name
+
+B<Example:> To return only worksheet positions 2 through 4
+
+	for $x (2..4){
+		my $worksheet = $workbook->worksheet( $workbook->worksheet_name( $x ) );
+		# Read the worksheet here
+	}
+
+=back
+
+=head3 worksheet_names
+
+=over
+
+B<Definition:> This method returns an array ref of the worksheet names in the 
+workbook.
+
+B<Accepts:>nothing
+
+B<Returns:> an array ref
+
+B<Example:> Another way to parse a workbook without building all the sheets at 
+once is;
+
+	for $sheet_name ( @{$workbook->worksheet_names} ){
+		my $worksheet = $workbook->worksheet( $sheet_name );
+		# Read the worksheet here
+	}
+
+=back
+
+=head3 number_of_sheets
+
+=over
+
+B<Definition:> This method returns the count of worksheets in the workbook
+
+B<Accepts:>nothing
+
+B<Returns:> an integer
+
+=back
+
+=head3 error
+
+=over
+
+B<Definition:> This returns the most recent error message logged by the package.  
+This method is mostly relevant when an unexpected result is returned by some other 
+method.
+
+B<Accepts:>nothing
+
+B<Returns:> an error string.
+
+=back
+
+=head3 get_epoch_year
+
+=over
+
+B<Definition:> This returns the epoch year defined by the worsheet.
+
+B<Accepts:>nothing
+
+B<Returns:> 1900 (= windows) or 1904 (= 1904)
+
+=back
 
 =head2 Attributes
 
 Data passed to new when creating an instance (parser).  For modification of 
-these attributes see the listed L<Methods|/Methods> of the instance. Note the 
-L<parse|/parse( $file_name, $formatter )> method is just a convenience method 
-and is included only for L<Spreadsheet::ParseExcel> compatibility.
+these attributes see the listed 'attribute methods'. For more information on 
+attributes see L<Moose::Manual::Attributes>.
 
 =head3 error_inst
 
 =over
 
 B<Definition:> This attribute holds an 'error' object instance.  It should have 
-has several methods for managing errors.  
-	
-Currently no error codes or error translation options are available but this 
-should make implementation of that easier.
+several methods for managing errors.  Currently no error codes or error translation 
+options are available but this should make implementation of that easier.
 
-B<Default> an L<Spreadsheet::XLSX::Reader::LibXML::Error> instance with the 
+B<Default:> a L<Spreadsheet::XLSX::Reader::LibXML::Error> instance with the 
 attributes set as;
 	
 	( should_warn => 0 )
 
-B<Range> The minimum list of methods to implement for your own instance is;
+B<Range:> The minimum list of methods to implement for your own instance is;
 
 	error set_error clear_error set_warnings if_warn
 		
 =back
+
+B<attribute methods> Methods provided to adjust this attribute
+
+=head4 get_error_inst
+
+B<Definition:> returns this instance
+
+=head4 error
+
+B<Definition:> Used to get the most recently logged error
+
+=head4 set_error
+
+B<Definition:> used to set a new error string
+
+=head4 clear_error
+
+B<Definition:> used to clear the current error string in this attribute
+
+=head4 set_warnings
+
+B<Definition:> used to turn on or off real time warnings when errors are set
+
+=head4 if_warn
+
+B<Definition:> a method mostly used to extend this package and see if warnings 
+should be emitted.
 
 =head3 file_name
 
@@ -142,6 +331,16 @@ B<Default> no default - this must be provided to read a file
 B<Range> any unincrypted xlsx file that can be opened in Microsoft Excel
 		
 =back
+
+B<attribute methods> Methods provided to adjust this attribute
+
+=head4 set_file_name
+
+B<Definition:> change the set file name (this will reboot the workbook instance)
+
+=head4 has_file_name
+
+B<Definition:> this is fundamentally a way to see if the workbook loaded correctly
 
 =head3 file_creator
 
@@ -157,6 +356,12 @@ B<Range> A string
 		
 =back
 
+B<attribute methods> Methods provided to adjust this attribute
+
+=head4 creator
+
+B<Definition:> returns the name of the file creator
+
 =head3 file_date_created
 
 =over
@@ -170,6 +375,12 @@ B<Default> the value from the file
 B<Range> A timestamp string (ISO ish)
 		
 =back
+
+B<attribute methods> Methods provided to adjust this attribute
+
+=head4 date_created
+
+B<Definition:> returns the date the file was created
 
 =head3 file_modified_by
 
@@ -185,6 +396,12 @@ B<Range> A string
 		
 =back
 
+B<attribute methods> Methods provided to adjust this attribute
+
+=head4 modified_by
+
+B<Definition:> returns the user name of the person who last modified the file
+
 =head3 file_date_modified
 
 =over
@@ -199,6 +416,12 @@ B<Range> A timestamp string (ISO ish)
 		
 =back
 
+B<attribute methods> Methods provided to adjust this attribute
+
+=head4 date_modified
+
+B<Definition:> returns the date when the file was last modified
+
 =head3 sheet_parser
 
 =over
@@ -211,6 +434,16 @@ B<Default> 'reader'
 B<Range> 'reader'
 		
 =back
+
+B<attribute methods> Methods provided to adjust this attribute
+
+=head4 set_parser_type
+
+B<Definition:> the way to change the parser type
+
+=head4 get_parser_type
+
+B<Definition:> returns the currently set parser type
 
 =head3 count_from_zero
 
@@ -225,6 +458,16 @@ B<Range> 1 = counting from zero like Spreadsheet::ParseExcel,
 0 = Counting from 1 lke Excel
 		
 =back
+
+B<attribute methods> Methods provided to adjust this attribute
+
+=head4 counting_from_zero
+
+B<Definition:> a way to check the current attribute setting
+
+=head4 set_count_from_zero
+
+B<Definition:> a way to change the current attribute setting
 
 =head3 file_boundary_flags
 
@@ -243,6 +486,16 @@ B<Range> 1 = return 'EOR' or 'EOF' flags as appropriate,
 		
 =back
 
+B<attribute methods> Methods provided to adjust this attribute
+
+=head4 boundary_flag_setting
+
+B<Definition:> a way to check the current attribute setting
+
+=head4 change_boundary_flag
+
+B<Definition:> a way to change the current attribute setting
+
 =head3 empty_is_end
 
 =over
@@ -260,6 +513,16 @@ max sheet column
 		
 =back
 
+B<attribute methods> Methods provided to adjust this attribute
+
+=head4 is_empty_the_end
+
+B<Definition:> a way to check the current attribute setting
+
+=head4 set_empty_is_end
+
+B<Definition:> a way to set the current attribute setting
+
 =head3 from_the_edge
 
 =over
@@ -276,6 +539,12 @@ the top row or leftmost column, 0 = Set the minimum row and minimum columns to b
 the first row and first column with data
 		
 =back
+
+B<attribute methods> Methods provided to adjust this attribute
+
+=head4 set_from_the_edge
+
+B<Definition:> a way to set the current attribute setting
 
 =head3 default_format_list
 
@@ -295,19 +564,38 @@ way in.
 		
 =back
 
+B<attribute methods> Methods provided to adjust this attribute
+
+=head4 get_default_format_list
+
+B<Definition:> a way to check the current attribute setting
+
+=head4 set_default_format_list
+
+B<Definition:> a way to set the current attribute setting
+
 =head3 format_string_parser
 
 =over
 
-B<Definition:> This is the interpreter that turns the excel format string from 
-L<format_string_parser|/format_string_parser> into a L<Type::Tiny> coercion.  If you 
-don't like the output or the method you can write your own Moose Role and add it here.
+B<Definition:> This is the interpreter that turns the excel into a L<Type::Tiny> coercion.  
+If you don't like the output or the method you can write your own Moose Role and add it here.
 
 B<Default> Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings
 
 B<Range> a L<Moose> role with the method 'parse_excel_format_string'
 		
 =back
+
+B<attribute methods> Methods provided to adjust this attribute
+
+=head4 get_format_string_parser
+
+B<Definition:> a way to check the current attribute setting
+
+=head4 set_format_string_parser
+
+B<Definition:> a way to set the current attribute setting
 
 =head3 group_return_type
 
@@ -330,7 +618,17 @@ the formatted value stored in the excel cell
 		
 =back
 
-=head1 Build/Install from Source
+B<attribute methods> Methods provided to adjust this attribute
+
+=head4 get_group_return_type
+
+B<Definition:> a way to check the current attribute setting
+
+=head4 set_group_return_type
+
+B<Definition:> a way to set the current attribute setting
+
+=head1 BUILD / INSTALL from Source
 
 =over
 	
@@ -360,5 +658,94 @@ Then
 	>make install # As sudo/root
 
 	>make clean
-	
+
+=head1 SUPPORT
+
+=over
+
+L<github Spreadsheet::XLSX::Reader::LibXML/issues|https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML/issues>
+
+=back
+
+=head1 TODO
+
+=over
+
+B<1.> Add a pivot table reader (Not just read the values from the sheet)
+
+B<2.> Add calc chain methods
+
+B<3.> Add more exposure to workbook formatting methods
+
+B<4.> Build a DOM parser alternative for the sheets
+(Theoretically faster than the reader but uses more memory)
+
+=back
+
+=head1 AUTHOR
+
+=over
+
+=item Jed Lund
+
+=item jandrew@cpan.org
+
+=back
+
+=head1 COPYRIGHT
+
+This program is free software; you can redistribute
+it and/or modify it under the same terms as Perl itself.
+
+The full text of the license can be found in the
+LICENSE file included with this module.
+
+This software is copyrighted (c) 2014 by Jed Lund
+
+=head1 DEPENDENCIES
+
+=over
+
+B<5.010> - (L<perl>)
+
+L<version>
+
+L<Moose>
+
+L<MooseX::StrictConstructor>
+
+L<MooseX::HasDefaults::RO>
+
+L<Archive::Zip>
+
+L<OLE::Storage_Lite>
+
+L<File::Temp>
+
+L<Type::Tiny> - 0.046
+
+L<MooseX::ShortCut::BuildInstance> - 1.026
+
+L<Carp>- cluck
+
+L<XML::LibXML>
+
+L<DateTimeX::Format::Excel>
+
+L<DateTime::Format::Flexible>
+
+=back
+
+=head1 SEE ALSO
+
+=over
+
+L<Spreadsheet::XLSX>
+
+L<Spreadsheet::ParseXLSX>
+
+L<Log::Shiras|https://github.com/jandrew/Log-Shiras>
+
+=back
+
 =cut
