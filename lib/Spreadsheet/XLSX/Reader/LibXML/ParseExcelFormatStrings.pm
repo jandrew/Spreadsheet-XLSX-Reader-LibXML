@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings;
-use version; our $VERSION = qv('v0.5_1');
+use version; our $VERSION = qv('v0.10.2');
 
 use 5.010;
 use Moose::Role;
@@ -1414,104 +1414,11 @@ __END__
 
 =head1 NAME
 
-Spreadsheet::XLSX::Reader::LibXML::XMLDOM::Styles - LibXML DOM parser of Styles
-    
+Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings - Parser of XLSX format strings
+
 =head1 DESCRIPTION
 
-This is the module that is used to apply any style definitions listed in the sheet.  See 
-L<Spreadsheet::XLSX::Reader::LibXML::Worksheet> for a way to apply other styles to the 
-output.  The current styles coverage is minimal and will expand over time.  In general if 
-I didn't write the excel version of a style implementation this module will use the 
-pass-through style.
-
-=head1 SUPPORT
-
-=over
-
-L<github Spreadsheet-XLSX-Reader-LibXML/issues
-|https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML/issues>
-
-=back
-
-=head1 TODO
-
-=over
-
-B<1.> Add some L<Data::Walk::Graft> magic to the defined_excel_translations attribute so 
-this list can be managed by detail.
-
-B<2.> Add the FmtJapan, FmtJapan2, and FmtUnicode support
-
-There are a lot of features still to be added. This module is very much a work in progress.
-
-=back
-
-=over
-
-=item B<1.> implement more of the L<standard number formats
-|http://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.numberingformat(v=office.14).aspx>
-
-=back
-
-=head1 AUTHOR
-
-=over
-
-=item Jed Lund
-
-=item jandrew@cpan.org
-
-=back
-
-=head1 COPYRIGHT
-
-This program is free software; you can redistribute
-it and/or modify it under the same terms as Perl itself.
-
-The full text of the license can be found in the
-LICENSE file included with this module.
-
-This software is copyrighted (c) 2014 by Jed Lund
-
-=head1 DEPENDENCIES
-
-=over
-
-B<5.010> - (L<perl>)
-
-L<version>
-
-L<Moose>
-
-L<MooseX::StrictConstructor>
-
-L<MooseX::HasDefaults::RO>
-
-L<XML::LibXML>
-
-L<XML::LibXML::Reader>
-
-L<Type::Coercion>
-
-L<DateTimeX::Format::Excel>
-
-L<Spreadsheet::XLSX::Reader::LogSpace>
-
-L<Spreadsheet::XLSX::Reader::Types>
-
-=back
-
-=head1 SEE ALSO
-
-=over
-
-L<Spreadsheet::XLSX>
-
-L<Spreadsheet::XLSX::Reader::TempFilter>
-
-L<Log::Shiras|https://github.com/jandrew/Log-Shiras>
-
-=back
+POD not written yet!
 
 =cut
 

@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::CalcChain;
-use version; our $VERSION = qv('v0.5_1');
+use version; our $VERSION = qv('v0.10.2');
 
 use 5.010;
 use Moose;
@@ -91,76 +91,11 @@ __END__
 
 =head1 NAME
 
-Spreadsheet::XLSX::Reader::LibXML::XMLReader::CalcChain - Get a cell from the calcChain file
+Spreadsheet::XLSX::Reader::LibXML::XMLReader::CalcChain - LibXML::Reader for the calcChain file
     
 =head1 DESCRIPTION
 
-This is mostly a stub for the XMLReader branch of the workbook level functionality.  In the 
-future I would like to add the ability to know when a cell was last calculated in order to 
-allow the package to potentially (in the future) re-calculate.  For now it just accesses the 
-sheet.
-
-=head1 SUPPORT
-
-=over
-
-L<github Spreadsheet::XLSX::Reader/issues|https://github.com/jandrew/Spreadsheet-XLSX-Reader/issues>
-
-=back
-
-=head1 TODO
-
-=over
-
-B<1.> Nothing L<yet|/SUPPORT>
-
-=back
-
-=head1 AUTHOR
-
-=over
-
-=item Jed Lund
-
-=item jandrew@cpan.org
-
-=back
-
-=head1 COPYRIGHT
-
-This program is free software; you can redistribute
-it and/or modify it under the same terms as Perl itself.
-
-The full text of the license can be found in the
-LICENSE file included with this module.
-
-This software is copyrighted (c) 2014 by Jed Lund
-
-=head1 DEPENDENCIES
-
-=over
-
-B<5.010> - (L<perl>)
-
-L<version>
-
-L<Moose>
-
-L<MooseX::StrictConstructor>
-
-L<MooseX::HasDefaults::RO>
-
-L<Spreadsheet::XLSX::Reader::LibXML::XMLReader>
-
-=back
-
-=head1 SEE ALSO
-
-=over
-
-L<Spreadsheet::XLSX>
-
-=back
+POD not written yet!
 
 =cut
 

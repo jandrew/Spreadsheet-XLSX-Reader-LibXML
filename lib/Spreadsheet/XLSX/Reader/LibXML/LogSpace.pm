@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::LogSpace;
-use version; our $VERSION = qv('v0.5_1');
+use version; our $VERSION = qv('v0.10.2');
 
 use Moose::Role;
 use Types::Standard qw(
@@ -102,7 +102,7 @@ B<Returns:> the 'name_space' value
 
 =over
 
-L<github Spreadsheet-XLSX-Reader-LibXML/issues
+L<github Spreadsheet::XLSX::Reader::LibXML/issues
 |https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML/issues>
 
 =back

@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::Types;
-use version; our $VERSION = qv('v0.5_1');
+use version; our $VERSION = qv('v0.10.2');
 
 use strict;
 use warnings;
@@ -545,116 +545,11 @@ __END__
 
 =head1 NAME
 
-Spreadsheet::XLSX::Reader::LibXML::Types - A type library
+Spreadsheet::XLSX::Reader::LibXML::Types - A type library for the LibXML xlsx reader
     
 =head1 DESCRIPTION
 
-This is the package for managing types in the L<Spreadsheet::XLSX::Reader::LibXML> package.  
-Some of the types are used in the normal way.  However, the greatest volume of this 
-module is used to provide coercions for the data formats.  I used these to replace 
-excel's data conversion routines.  If you want to write a conversion of your own you 
-only need to write a L<Type::Coercion> check or a L<Type::Tiny> check with a coercion 
-and use it as described in L<Spreadsheet::XLSX::Reader::LibXML::Worksheet>.
-
-=head2 Types
-
-These are checks compatible with the L<Moose> typing system.  They are used to see 
-if passed information is compatible with some standard.  For mor information see 
-L<Type::Tiny>.
-		
-=head3 FileName
-
-=over
-
-B<Test:> to see if a passed string is a readable file 
-
-B<Accepts:> A string
-
-=back
-
-=head2 Coercions
-
-These are functions that convert passed data from a defined type to some defined 
-output.  They are primarily used in this package as format converters for L<cell
-Spreadsheet::XLSX::Reader::LibXML::Cell> data.  Most of the coercions in this package are 
-targeted at converting numbers to some formatted output.  A few of them are 
-targeted at mapping the character positions from unicode encodings to a 
-smaller encoding set for consumption elsewhere.  For a general review of how to 
-build your own coercion see L<Type::Coercions>
-		
-=head3 ZeroFromNum
-
-=over
-
-B<Accepts:> Anything including null
-
-B<Conversion:> No conversion is done.  This is a pass through.
-
-B<CReturn format:> The passed information is returned unchanged.
-
-=back
-
-=head1 SUPPORT
-
-=over
-
-L<github Spreadsheet-XLSX-Reader-LibXML/issues|https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML/issues>
-
-=back
-
-=head1 TODO
-
-=over
-
-B<1.> Add POD definitions for all Types and Coercions
-
-=back
-
-=head1 AUTHOR
-
-=over
-
-=item Jed Lund
-
-=item jandrew@cpan.org
-
-=back
-
-=head1 COPYRIGHT
-
-This program is free software; you can redistribute
-it and/or modify it under the same terms as Perl itself.
-
-The full text of the license can be found in the
-LICENSE file included with this module.
-
-This software is copyrighted (c) 2014 by Jed Lund
-
-=head1 DEPENDENCIES
-
-=over
-
-L<version>
-
-L<Type::Utils>
-
-L<Type::Library>
-
-L<Types::Standard>
-
-L<DateTimeX::Format::Excel>
-
-=back
-
-=head1 SEE ALSO
-
-=over
-
-L<Filter::Simple>
-
-L<Log::Shiras|https://github.com/jandrew/Log-Shiras>
-
-=back
+POD not written yet!
 
 =cut
 

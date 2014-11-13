@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::Error;
-use version; our $VERSION = qv('v0.5_1');
+use version; our $VERSION = qv('v0.10.2');
 
 use Moose;
 use Carp qw( cluck );
@@ -214,7 +214,7 @@ B<Returns:> Nothing (string is cleared)
 
 =over
 
-L<github Spreadsheet-XLSX-Reader-LibXML/issues|https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML/issues>
+L<github Spreadsheet::XLSX::Reader::LibXML/issues|https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML/issues>
 
 =back
 
@@ -271,6 +271,8 @@ L<Spreadsheet::XLSX::Reader::LibXML::LogSpace>
 =over
 
 L<Spreadsheet::XLSX>
+
+L<Spreadsheet::ParseXLSX>
 
 L<Log::Shiras|https://github.com/jandrew/Log-Shiras>
 

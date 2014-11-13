@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings;
-use version; our $VERSION = qv('v0.5_1');
+use version; our $VERSION = qv('v0.10.2');
 
 use 5.010;
 use Moose;
@@ -167,75 +167,7 @@ Spreadsheet::XLSX::Reader::XMLReader::SharedStrings - sharedStrings parsing with
     
 =head1 DESCRIPTION
 
-This is the XMLReader version of the Shared strings parser.  Both the XMLReader and DOM 
-versions of this parser should function in the background of this package. There shouldn't 
-be any need to manage this class by the user.
-
-=head1 SUPPORT
-
-=over
-
-L<github Spreadsheet::XLSX::Reader/issues|https://github.com/jandrew/Spreadsheet-XLSX-Reader/issues>
-
-=back
-
-=head1 TODO
-
-=over
-
-B<1.> Nothing L<yet|/SUPPORT>
-
-=back
-
-=head1 AUTHOR
-
-=over
-
-=item Jed Lund
-
-=item jandrew@cpan.org
-
-=back
-
-=head1 COPYRIGHT
-
-This program is free software; you can redistribute
-it and/or modify it under the same terms as Perl itself.
-
-The full text of the license can be found in the
-LICENSE file included with this module.
-
-This software is copyrighted (c) 2014 by Jed Lund
-
-=head1 DEPENDENCIES
-
-=over
-
-B<5.010> - (L<perl>)
-
-L<version>
-
-L<Moose>
-
-L<MooseX::StrictConstructor>
-
-L<MooseX::HasDefaults::RO>
-
-L<Spreadsheet::XLSX::Reader::LibXML::XMLReader>
-
-=back
-
-=head1 SEE ALSO
-
-=over
-
-L<Spreadsheet::XLSX>
-
-L<Spreadsheet::XLSX::Reader::TempFilter>
-
-L<Log::Shiras|https://github.com/jandrew/Log-Shiras>
-
-=back
+POD not written yet!
 
 =cut
 

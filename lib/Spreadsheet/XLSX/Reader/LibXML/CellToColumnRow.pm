@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow;
-use version; our $VERSION = qv('v0.5_1');
+use version; our $VERSION = qv('v0.10.2');
 
 use	Moose::Role;
 requires qw(
@@ -200,9 +200,10 @@ position in excel from an 'A1' style Excel cell ID.  It is important to note tha
 letters do not equal digits in a modern 26 position numeral system since the excel 
 implementation is effectivly zeroless.
 
-The default of this module, however, is to count from zero.  Meaning that cell A1 is 
-equal to (0, 0).  See the L<Attributes|/Attributes> and L<Methods|/Methods> section for 
-ways to change this behaviour.
+The default of this module is to count from 1 (the excel convention).  Meaning that cell 
+A1 is equal to (1, 1).  However, there is a layer of abstraction in order to support 
+count from zero settings using the Moose around function.  See the L<Methods|/Methods> 
+section for more details on the implementation.
 
 =head1 SYNOPSIS
 	
@@ -230,23 +231,6 @@ ways to change this behaviour.
 	# SYNOPSIS Screen Output
 	# 01: (2, 2)
 	###########################
-	
-=head2 Attributes
-
-Attiributes are ways to change the instances behaviour and can be set as arguments 
-to -E<gt>new
-
-=head3 count_from_zero
-
-=over
-
-B<Definition:> A boolean attribute that determines if the numerical output of 
-L<parse_column_row|/parse_column_row( $excel_row_id )> provides a response counting from 
-Zero or One. True = count from Zero.
-
-B<Accepts:> $bool = (1|0)
-
-=back
 	
 =head2 Methods
 
@@ -282,52 +266,12 @@ B<Returns:> ( $excel_cell_id ) - integers
 
 =back
 
-=head3 counting_from_zero( $bool )
-
-=over
-
-B<Definition:> This turns on (or off) counting from zero where the alternative is to 
-count from 1.
-
-B<Accepts:> $bool = (1|0)
-
-B<Returns:> nothing
-
-=back
-
-=head3 get_excel_position( $int )
-
-=over
-
-B<Definition:> If you wish to use this sheet agnostically of the L<count_from_zero|/count_from_zero> 
-setting then you can use this method to translate integers to a count-from-one number.  No action is 
-taken if the attribute is set to 0.
-
-B<Accepts:> a $count_from_one or a $count_from_zero int
-
-B<Returns:> a $count_from_one int
-
-=back
-
-=head3 get_used_position( $int )
-
-=over
-
-B<Definition:> If you wish to use this sheet agnostically of the L<count_from_zero|/count_from_zero> 
-setting then you can use this method to translate integers from a count-from-one number to whatever 
-scheme is in force from the attribute.  No action is taken if the attribute is set to 0.
-
-B<Accepts:> a $count_from_one int
-
-B<Returns:> a $count_from_one or a $count_from_zero int
-
-=back
-
 =head1 SUPPORT
 
 =over
 
-L<github Spreadsheet-XLSX-Reader-LibXML/issues|https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML/issues>
+L<github Spreadsheet::XLSX::Reader::LibXML/issues
+|https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML/issues>
 
 =back
 
@@ -369,10 +313,15 @@ L<Moose::Role>
 
 L<Types::Standard>
 
-requires
+=back
 
-	name_space
-	set_error
+=head2 Requires
+
+=over
+
+B<get_log_space>
+
+B<set_error>
 
 =back
 

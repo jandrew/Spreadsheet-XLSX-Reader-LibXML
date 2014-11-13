@@ -6,12 +6,413 @@
 
 Spreadsheet::XLSX::Reader::LibXML::Worksheet - Read xlsx worksheets with LibXML
 
+=head1 SYNOPSIS
+
+See the SYNOPSIS in L<Spreadsheet::XLSX::Reader::LibXML> (The Workbook level class)
+
 =head1 DESCRIPTION
 
-As you may have noticed this is only the pod explaining the Worksheet class not the 
-actual class which is an amalgam of classes, roles, and traits each with its own code 
-file.
+If you want just learn the key elements of how to use the Worksheet instances returned 
+from L<Spreadsheet::XLSX::Reader::LibXML> this POD is for you.  I<You will also want to 
+skip the next paragraph.>  First, it is best to generate a worksheet instance with the 
+main class.  Once you have done that there are several ways to step through the data and 
+return information from the identified location.
 
-This POD has not been written yet!
+As you may have noticed this is only the pod explaining the Worksheet class not the file 
+containing the actual class.  In fact worksheets are built somwhat on the fly with an 
+amalgam of classes, roles, and traits each with its own code and POD file (combined).  
+For protips to manipulate each look at the pod for each and then review the bundled tests 
+for each.  In the POD for those classes are also found details on how to extend them.  
+Additionally the test cases generally build the smallest possible group of modules from 
+this package to isolate each set of functionality so the represent a good 'under the hood' 
+look at the way each is integrated into this larger package.  The trick for testing only 
+roles or classes missing all role functionality is using L<MooseX::ShortCut::BuildInstance>.  
+For protips on manipulating Worksheet instances start with the role 
+L<Spreadsheet::XLSX::Reader::LibXML::GetCell>.
+
+=head2 The way to set what type of information is returned
+
+There is a an attribute set in the primary instance L<Spreadsheet::XLSX::Reader::LibXML> 
+called L<group_return_type|/Spreadsheet::XLSX::Reader::LibXML#group_return_type>.  Setting 
+this attribute will return either a full L<Spreadsheet::XLSX::Reader::LibXML::Cell> instance, 
+just the unformatted value, or the formatted value.  For more details on the data available 
+in the Cell instance read the documentation for L<Spreadsheet::XLSX::Reader::LibXML::Cell>.
+
+=head2 Ways to select cells for reading
+
+These are the various functions that are available (independent of sheet parser type) to 
+select which cells to read.
+
+=head3 get_cell( $row, $column )
+
+=over
+
+B<Definition:> Indicate both the requested row and requested column and the information for 
+that position will be returned.  Both $row and $column are required
+
+B<Accepts:> the list ( $row, $column ) both required
+
+B<Returns:> see L<returns|/The way to set what type of information is returned> for details 
+on what is returned
+
+=back
+
+=head3 get_next_value
+
+=over
+
+B<Definition:> Reading left to right and top to bottom this will return the next cell with 
+a value.  This actually includes cells with no value but some unique formatting such as 
+cells that have been merged with other cells.
+
+B<Accepts:> nothing
+
+B<Returns:> see L<returns|/The way to set what type of information is returned> for details 
+on what is returned
+
+=back
+
+=head3 fetchrow_arrayref( $row )
+
+=over
+
+B<Definition:> In an homage to L<DBI> I included this function to return an array ref of 
+the cells or values in the requested $row.  If no row is requested this returns the 'next' 
+row.  In the array ref any empty and non unique cell will show as 'undef'.
+
+B<Accepts:> undef|$row = a row integer indicating the desired row
+
+B<Returns:> an array ref of all possible column positions in that row with data filled in 
+as appropriate.
+
+=back
+
+=head3 fetchrow_array( $row )
+
+=over
+
+B<Definition:> This function is just like L<fetchrow_arrayref|/fetchrow_array( $row )> 
+except it returns an array instead of an array ref
+
+B<Accepts:> undef = next|$row = a row integer indicating the desired row
+
+B<Returns:> an array of all possible column positions in that row with data filled in 
+as appropriate.
+
+=back
+
+=head3 set_headers( $header_row_list )
+
+=over
+
+B<Definition:> This function is used to set headers used in the function 
+L<fetchrow_hashref|/fetchrow_hashref( $row )>.  It accepts a list of row numbers that 
+will be collated into a set of headers used to build the hashref for each row.
+The header rows are coallated in sequence with the first number taking precedence.  
+The list is also used to set the lowest row of the headers in the table.  All rows 
+at that level and higher will be considered out of the table and will return undef 
+while setting the error instance.  If some of the columns do not have values then 
+the instance will auto generate unique headers for each empty header column to fill 
+out the header ref.
+
+B<Accepts:> a list of row numbers
+
+B<Returns:> an array ref of the built headers for review
+
+=back
+
+=head3 fetchrow_hashref( $row )
+
+=over
+
+B<Definition:> This function is used to return a hashref representing the data in the 
+specified row.  If no $row value is passed it will return the 'next' row of data.  A call 
+to this function without L<setting|/set_headers( $header_row_list )> the headers first 
+will return undef and set the error instance.
+
+B<Accepts:> a target $row number for return values or undef meaning 'next'
+
+B<Returns:> a hash ref of the values for that row
+
+=back
+
+=head2 Attributes
+
+These are attributes that affect the behaviour of the returned data in the worksheet 
+instance.  In general you would not set these on instance generation, I<Because the primary 
+class will generate this instance for you>.  Rather you would use the attribue methods 
+listed with each attribute to change the attribute after the worksheet instance has been 
+generated.
+
+=head3 min_header_col
+
+=over
+
+B<Definition:> This attribute affects the hashref that is returned in the method 
+L<fetchrow_hashref|/fetchrow_hashref( $row )>.  If the table you are reading does not 
+start in the first column of the sheet then you need to indicate where to start.  
+Otherwize the fetchrow_hashref method will return auto generated headers and attach 
+them to the cell data outside your table but inside the sheet data boundaries.  This 
+attribute tells fetchrow_hashref what column to use to start the hash ref build.
+
+B<Default:> undef (which is equivalent to the minimum column of the sheet)
+
+B<Range:> The minimum column of the sheet to or less than the
+L<max_header_col|/max_header_col>
+		
+=back
+
+B<attribute methods> Methods provided to adjust this attribute
+
+=head4 get_min_header_col
+
+=over
+
+B<Definition:> returns the value stored in the attribute
+
+=back
+
+=head4 set_min_header_col
+
+=over
+
+B<Definition:> Sets a new value for the attribute
+
+=back
+
+=head4 has_min_header_col
+
+=over
+
+B<Definition:> Indicates if the attribute has a stored value
+
+=back
+
+=head3 max_header_col
+
+=over
+
+B<Definition:> This attribute affects the hashref that is returned in the method 
+L<fetchrow_hashref|/fetchrow_hashref( $row )>.  If the table you are reading ends 
+before the max column of the sheet then you need indicate where to stop reading.  
+Otherwize the fetchrow_hashref method will return auto generated headers and attach 
+them to the cell values outside your table.  This attribute tells fetchrow_hashref 
+what column to use to end the hash ref build.
+
+B<Default:> undef (equal to the maximum column of the sheet)
+
+B<Range:> The maximum column of the sheet to or less than the 
+L<min_header_col|/min_header_col>
+		
+=back
+
+B<attribute methods> Methods provided to adjust this attribute
+
+=head4 get_max_header_col
+
+=over
+
+B<Definition:> returns the value stored in the attribute
+
+=back
+
+=head4 set_max_header_col
+
+=over
+
+B<Definition:> Sets a new value for the attribute
+
+=back
+
+=head4 has_max_header_col
+
+=over
+
+B<Definition:> Indicates if the attribute has a stored value
+
+=back
+
+=head3 custom_formats
+
+=over
+
+B<Definition:> This package will generate value conversions that generally 
+match the numerical conversions set in the Excel spreadsheet.  However, it 
+may be that you want to convert the unformatted values for certain cells, 
+rows, or columns in some user defined way.  Build an object instance that 
+has the two following methods; 'assert_coerce' and 'display_name'.  Then 
+place it here in this attribute as a value to a hash key that is keyed on 
+the target Cell ID, or the row number, or the Column letter callout and 
+this package will assign that conversion when calling 'value' on the cell 
+rather than the conversion stored in the Excel spreadsheet.
+
+B<Default:> {} = no custom conversions
+
+B<Range:> keys representing cell ID's, row numbers, or column letter callouts
+
+B<Example:>
+
+Building a converter on the fly (or use L<Type::Library> or L<MooseX::Types>
+
+	use DateTimeX::Format::Excel;
+	use DateTime::Format::Flexible;
+	use Type::Coercion;
+	use Type::Tiny;
+	my	@args_list	= ( system_type => 'apple_excel' );
+	my	$converter	= DateTimeX::Format::Excel->new( @args_list );
+	my	$string_via	= sub{ 
+							my	$str = $_[0];
+							return DateTime::Format::Flexible->parse_datetime( $str );#my	$dt	= 
+							#~ return $dt->format_cldr( 'yyyy-M-d' );
+						};
+	my	$num_via	= sub{
+							my	$num = $_[0];
+							return $converter->parse_datetime( $num );#my	$dt = 
+							#~ return $dt->format_cldr( 'yyyy-M-d' );
+						};
+	
+	# Turn date strings or Excel date numbers to DateTime objects!
+	my	$date_time_from_value = Type::Coercion->new( 
+		type_coercion_map => [ Num, $num_via, Str, $string_via, ],
+	);
+	$date_time_type = Type::Tiny->new(
+			name		=> 'Custom_date_type',
+			constraint	=> sub{ ref($_) eq 'DateTime' },
+			coercion	=> $date_time_from_value,
+		);
+	
+	# Deep coercion! to handle first the $date_time_from_value coercion and then 
+	#    build a specific date string output
+	$string_type = Type::Tiny->new(
+			name		=> 'YYYYMMDD',
+			constraint	=> sub{
+				!$_ or (
+				$_ =~ /^\d{4}\-(\d{2})-(\d{2})$/ and
+				$1 > 0 and $1 < 13 and $2 > 0 and $2 < 32 )
+			},
+			coercion	=> Type::Coercion->new(
+				type_coercion_map =>[
+					$date_time_type->coercibles, sub{ my $tmp = $date_time_type->coerce( $_ ); $tmp->format_cldr( 'yyyy-MM-dd' ) },
+				],
+			),
+	);
+
+Setting custom conversions to use for the worksheet
+
+	my $worksheet = $workbook->worksheet( 'TargetWorksheetName' );
+	$worksheet->set_custom_formats( {
+		E10	=> $date_time_type,
+		10	=> $string_type,
+		D14	=> $string_type,
+	} );
+		
+=back
+
+B<attribute methods> Methods provided to adjust this attribute
+
+=head4 set_custom_formats
+
+=over
+
+B<Definition:> Sets a new (complete) hashref for the attribute
+
+=back
+
+=head4 has_custom_format( $key )
+
+=over
+
+B<Definition:> checks if the specific custom format $key is set
+
+=back
+
+=head4 set_custom_format( $key => $coercion, ... )
+
+=over
+
+B<Definition:> sets the specific custom format $key(s) with $coercion(s)
+
+=back
+
+=head4 get_custom_format( $key )
+
+=over
+
+B<Definition:> returns the specific custom format for that $key (see has_custom_format )
+
+=back
+
+=head1 BUILD / INSTALL from Source
+
+=over
+	
+B<1.> Download a compressed file with the code
+	
+B<2.> Extract the code from the compressed file.  If you are using tar this should work:
+
+        tar -zxvf Spreadsheet-XLSX-Reader-LibXML-v0.xx.tar.gz
+
+B<3.> Change (cd) into the extracted directory
+
+=back
+
+(For Windows find what version of make was used to compile your perl)
+
+	perl  -V:make
+
+Then
+(for Windows substitute the correct make function (s/make/dmake/g)?)
+
+	>perl Makefile.PL
+
+	>make
+
+	>make test
+
+	>make install # As sudo/root
+
+	>make clean
+
+=head1 SUPPORT
+
+=over
+
+L<github Spreadsheet::XLSX::Reader::LibXML/issues|https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML/issues>
+
+=back
+
+=head1 TODO
+
+=over
+
+B<1.> Add a way to set manual headers for fetchrow_hashref
+
+B<2.> Add a pivot table reader (sometimes returns different values than just the sheet shows)
+
+B<3.> Add more exposure to worksheet formatting values
+
+=back
+
+=head1 AUTHOR
+
+=over
+
+=item Jed Lund
+
+=item jandrew@cpan.org
+
+=back
+
+=head1 COPYRIGHT
+
+This program is free software; you can redistribute
+it and/or modify it under the same terms as Perl itself.
+
+The full text of the license can be found in the
+LICENSE file included with this module.
+
+This software is copyrighted (c) 2014 by Jed Lund
 
 =cut
+
+#########1#########2 main pod documentation end  5#########6#########7#########8#########9
