@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::Error;
-use version; our $VERSION = qv('v0.10.2');
+use version; our $VERSION = qv('v0.10.4');
 
 use Moose;
 use Carp qw( cluck );
@@ -214,7 +214,8 @@ B<Returns:> Nothing (string is cleared)
 
 =over
 
-L<github Spreadsheet::XLSX::Reader::LibXML/issues|https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML/issues>
+L<github Spreadsheet::XLSX::Reader::LibXML/issues
+|https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML/issues>
 
 =back
 
@@ -250,19 +251,7 @@ This software is copyrighted (c) 2014 by Jed Lund
 
 =over
 
-L<version>
-
-L<Moose::Role>
-
-L<Carp> - cluck
-
-L<Types::Standard>
-
-L<MooseX::StrictConstructor>
-
-L<MooseX::HasDefaults::RO>
-
-L<Spreadsheet::XLSX::Reader::LibXML::LogSpace>
+L<Spreadsheet::XLSX::Reader::LibXML>
 
 =back
 
@@ -270,11 +259,19 @@ L<Spreadsheet::XLSX::Reader::LibXML::LogSpace>
 
 =over
 
-L<Spreadsheet::XLSX>
+L<Spreadsheet::ParseExcel> - Excel 2003 and earlier
 
-L<Spreadsheet::ParseXLSX>
+L<Spreadsheet::XLSX> - 2007+
+
+L<Spreadsheet::ParseXLSX> - 2007+
 
 L<Log::Shiras|https://github.com/jandrew/Log-Shiras>
+
+=over
+
+All lines in this package that use Log::Shiras are commented out
+
+=back
 
 =back
 

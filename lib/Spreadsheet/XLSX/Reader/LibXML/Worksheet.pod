@@ -8,7 +8,7 @@ Spreadsheet::XLSX::Reader::LibXML::Worksheet - Read xlsx worksheets with LibXML
 
 =head1 SYNOPSIS
 
-See the SYNOPSIS in L<Spreadsheet::XLSX::Reader::LibXML> (The Workbook level class)
+See the SYNOPSIS in the L<Workbook class|Spreadsheet::XLSX::Reader::LibXML/SYNOPSIS>
 
 =head1 DESCRIPTION
 
@@ -20,25 +20,27 @@ return information from the identified location.
 
 As you may have noticed this is only the pod explaining the Worksheet class not the file 
 containing the actual class.  In fact worksheets are built somwhat on the fly with an 
-amalgam of classes, roles, and traits each with its own code and POD file (combined).  
-For protips to manipulate each look at the pod for each and then review the bundled tests 
-for each.  In the POD for those classes are also found details on how to extend them.  
-Additionally the test cases generally build the smallest possible group of modules from 
-this package to isolate each set of functionality so the represent a good 'under the hood' 
-look at the way each is integrated into this larger package.  The trick for testing only 
-roles or classes missing all role functionality is using L<MooseX::ShortCut::BuildInstance>.  
-For protips on manipulating Worksheet instances start with the role 
-L<Spreadsheet::XLSX::Reader::LibXML::GetCell>.
+amalgam of classes, roles, and traits each with their own code and POD.  Since this is a 
+L<Moose> package I tried to architect it as extensibly as possible.  For protips to 
+manipulate each element of the package look at the pod for that element and then review the 
+tests for that element.  Every .pm file has it's own test.  I<I use 
+L<MooseX::ShortCut::BuildInstance> in order to test just the role or class functionality>.  
+The file t/Spreadsheet/XLSX/Reader/LibXML/10-get_cell.t represents a good 'under the hood' 
+look at the way each is integrated into this larger package since it doesn't use the top 
+level class for the test.  The one exception to full extensibility is the worksheet class 
+itself.  Because worksheet reading is central to the functionality of this package the core 
+worksheet build is hard coded.
 
 =head2 The way to set what type of information is returned
 
-There is a an attribute set in the primary instance L<Spreadsheet::XLSX::Reader::LibXML> 
-called L<group_return_type|/Spreadsheet::XLSX::Reader::LibXML#group_return_type>.  Setting 
+There is a an attribute set in the primary instance called 
+L<group_return_type|Spreadsheet::XLSX::Reader::LibXML/group_return_type>.  Setting 
 this attribute will return either a full L<Spreadsheet::XLSX::Reader::LibXML::Cell> instance, 
 just the unformatted value, or the formatted value.  For more details on the data available 
-in the Cell instance read the documentation for L<Spreadsheet::XLSX::Reader::LibXML::Cell>.
+in the Cell instance read the documentation for the 
+L<Cell|Spreadsheet::XLSX::Reader::LibXML::Cell> instance.
 
-=head2 Ways to select cells for reading
+=head2 Methods to access data from the sheet
 
 These are the various functions that are available (independent of sheet parser type) to 
 select which cells to read.
@@ -136,13 +138,138 @@ B<Returns:> a hash ref of the values for that row
 
 =back
 
+=head3 min_row
+
+=over
+
+B<Definition:> This is the minimum row with data listed in the sheet.  This value 
+is affected by the workbook attributes 
+L<from_the_edge|Spreadsheet::XLSX::Reader::LibXML/from_the_edge>, and 
+L<count_from_zero|Spreadsheet::XLSX::Reader::LibXML/count_from_zero>
+
+B<Accepts:> nothing
+
+B<Returns:> an integer
+
+=back
+
+=head3 has_min_row
+
+=over
+
+B<Definition:> The L<predicate|Moose::Manual::Attributes/Predicate and clearer methods> 
+of min_row
+
+=back
+
+=head3 max_row
+
+=over
+
+B<Definition:> This is the maximum row with data listed in the sheet.  This value 
+is affected by the workbook attribute 
+L<count_from_zero|Spreadsheet::XLSX::Reader::LibXML/count_from_zero>
+
+B<Accepts:> nothing
+
+B<Returns:> an integer
+
+=back
+
+=head3 has_max_row
+
+=over
+
+B<Definition:> The L<predicate|Moose::Manual::Attributes/Predicate and clearer methods> 
+of max_row
+
+=back
+
+=head3 min_col
+
+=over
+
+B<Definition:> This is the minimum column with data listed in the sheet.  This value 
+is affected by the workbook attributes 
+L<from_the_edge|Spreadsheet::XLSX::Reader::LibXML/from_the_edge>, and 
+L<count_from_zero|Spreadsheet::XLSX::Reader::LibXML/count_from_zero>
+
+B<Accepts:> nothing
+
+B<Returns:> an integer
+
+=back
+
+=head3 has_min_col
+
+=over
+
+B<Definition:> The L<predicate|Moose::Manual::Attributes/Predicate and clearer methods> 
+of min_col
+
+=back
+
+=head3 max_col
+
+=over
+
+B<Definition:> This is the maximum row with data listed in the sheet.  This value 
+is affected by the workbook attribute 
+L<count_from_zero|Spreadsheet::XLSX::Reader::LibXML/count_from_zero>
+
+B<Accepts:> nothing
+
+B<Returns:> an integer
+
+=back
+
+=head3 has_max_col
+
+=over
+
+B<Definition:> The L<predicate|Moose::Manual::Attributes/Predicate and clearer methods> 
+of max_col
+
+=back
+
+=head3 row_range
+
+=over
+
+B<Definition:> This returns a list with the minimum row followed by the 
+maximum row.  This list is affected by the workbook attributes 
+L<from_the_edge|Spreadsheet::XLSX::Reader::LibXML/from_the_edge>, and 
+L<count_from_zero|Spreadsheet::XLSX::Reader::LibXML/count_from_zero>
+
+B<Accepts:> nothing
+
+B<Returns:> ( $minimum_row, $maximum_row ) - integers
+
+=back
+
+=head3 col_range
+
+=over
+
+B<Definition:> This returns a list with the minimum column followed by the 
+maximum column.  This list is affected by the workbook attributes 
+L<from_the_edge|Spreadsheet::XLSX::Reader::LibXML/from_the_edge>, and 
+L<count_from_zero|Spreadsheet::XLSX::Reader::LibXML/count_from_zero>
+
+B<Accepts:> nothing
+
+B<Returns:> ( $minimum_column, $maximum_column ) - integers
+
+=back
+
 =head2 Attributes
 
 These are attributes that affect the behaviour of the returned data in the worksheet 
 instance.  In general you would not set these on instance generation, I<Because the primary 
 class will generate this instance for you>.  Rather you would use the attribue methods 
 listed with each attribute to change the attribute after the worksheet instance has been 
-generated.
+generated.  Additionally at the end of this list you will see a link to the workbook 
+instance itself for access to all those settings as well.
 
 =head3 min_header_col
 
@@ -250,9 +377,10 @@ B<Default:> {} = no custom conversions
 
 B<Range:> keys representing cell ID's, row numbers, or column letter callouts
 
+
 B<Example:>
 
-Building a converter on the fly (or use L<Type::Library> or L<MooseX::Types>
+Building a converter on the fly (or use L<Type::Library> or L<MooseX::Types>)
 
 	use DateTimeX::Format::Excel;
 	use DateTime::Format::Flexible;
@@ -342,36 +470,203 @@ B<Definition:> returns the specific custom format for that $key (see has_custom_
 
 =back
 
-=head1 BUILD / INSTALL from Source
+=head3 sheet_rel_id
 
 =over
-	
-B<1.> Download a compressed file with the code
-	
-B<2.> Extract the code from the compressed file.  If you are using tar this should work:
 
-        tar -zxvf Spreadsheet-XLSX-Reader-LibXML-v0.xx.tar.gz
+B<Definition:> This is the relId of the sheet listed in the XML of the .xlsx file.  
+You probably don't care and you should never set this value.
+		
+=back
 
-B<3.> Change (cd) into the extracted directory
+B<attribute methods> Methods provided to adjust this attribute
+
+=head4 rel_id
+
+=over
+
+B<Definition:> returns the value stored in the attribute
 
 =back
 
-(For Windows find what version of make was used to compile your perl)
+=head3 sheet_id
 
-	perl  -V:make
+=over
 
-Then
-(for Windows substitute the correct make function (s/make/dmake/g)?)
+B<Definition:> This is the Id of the sheet listed in the XML of the .xlsx file.  
+You probably don't care and you should never set this value.
+		
+=back
 
-	>perl Makefile.PL
+B<attribute methods> Methods provided to adjust this attribute
 
-	>make
+=head4 sheet_id
 
-	>make test
+=over
 
-	>make install # As sudo/root
+B<Definition:> returns the value stored in the attribute
 
-	>make clean
+=back
+
+=head3 sheet_position
+
+=over
+
+B<Definition:> This is the visual sheet position in the .xlsx file.  
+You should never set this value.
+		
+=back
+
+B<attribute methods> Methods provided to adjust this attribute
+
+=head4 position
+
+=over
+
+B<Definition:> returns the value stored in the attribute
+
+=back
+
+=head3 sheet_name
+
+=over
+
+B<Definition:> This is the visual sheet name in the .xlsx file.  
+You should never set this value.
+		
+=back
+
+B<attribute methods> Methods provided to adjust this attribute
+
+=head4 name
+
+=over
+
+B<Definition:> returns the value stored in the attribute
+
+=back
+
+=head3 workbook_instance
+
+=over
+
+B<Definition:> This attribute holds a reference back to the workbook instance 
+so that the worksheet has access to the global settings managed there.  
+As a consequence some of the same methods available to the workbook are 
+available here in the worksheet.  I<Beware that setting or adjusting 
+the workbook level attributes with methods here will be universal and 
+affect other worksheets.>  If that doesn't make sence then don't use 
+these methods.  (Nothing to see here! Move along.)
+
+B<Default:> a Spreadsheet::XLSX::Reader::LibXML instance
+		
+=back
+
+B<attribute methods> Methods of the workbook exposed here by the 
+L<delegation|Moose::Manual::Attributes/Delegation> of the instance to 
+this class through this attribute
+
+=head4 counting_from_zero
+
+=over
+
+B<Definition:> returns the 
+<count_from_zero|Spreadsheet::XLSX::Reader::LibXML/count_from_zero> 
+state
+
+=back
+
+=head4 boundary_flag_setting
+
+=over
+
+B<Definition:> returns the 
+<file_boundary_flags|Spreadsheet::XLSX::Reader::LibXML/file_boundary_flags> 
+state
+
+=back
+
+=head4 change_boundary_flag( $Bool )
+
+=over
+
+B<Definition:> sets the 
+<file_boundary_flags|Spreadsheet::XLSX::Reader::LibXML/file_boundary_flags> 
+state (B<For the whole workbook!>)
+
+=back
+
+=head4 get_shared_string_position( $int )
+
+=over
+
+B<Definition:> returns the shared string data stored in the sharedStrings 
+file at position $int.  For more information review 
+L<Spreadsheet::XLSX::Reader::LibXML::SharedStrings>.  I<This is a delegation 
+of a delegation!>
+
+=back
+
+=head4 get_format_position( $int, [$header] )
+
+=over
+
+B<Definition:> returns the format data stored in the styles 
+file at position $int.  If the optional $header is passed only the data for that 
+header is returned.  Otherwise all styles for that position are returned.  
+For more information review 
+L<Spreadsheet::XLSX::Reader::LibXML::Styles>.  I<This is a delegation 
+of a delegation!>
+
+=back
+
+=head4 set_empty_is_end( $Bool )
+
+=over
+
+B<Definition:> sets the 
+<empty_is_end|Spreadsheet::XLSX::Reader::LibXML/empty_is_end> 
+state (B<For the whole workbook!>)
+
+=back
+
+=head4 is_empty_the_end
+
+=over
+
+B<Definition:> returns the workbook state for the attribute
+<empty_is_end|Spreadsheet::XLSX::Reader::LibXML/empty_is_end> 
+
+=back
+
+=head4 get_group_return_type
+
+=over
+
+B<Definition:> returns the workbook state for the attribute
+<group_return_type|Spreadsheet::XLSX::Reader::LibXML/group_return_type> 
+
+=back
+
+=head4 set_group_return_type( (instance|unformatted|value) )
+
+=over
+
+B<Definition:> sets the 
+<group_return_type|Spreadsheet::XLSX::Reader::LibXML/group_return_type> 
+state (B<For the whole workbook!>)
+
+=back
+
+=head4 get_epoch_year
+
+=over
+
+B<Definition:> returns the workbook state for the attribute
+<epoch_year|Spreadsheet::XLSX::Reader::LibXML/epoch_year> collected from 
+the L<Spreadsheet::XLSX::Reader::LibXML::Styles> class.
+
+=back
 
 =head1 SUPPORT
 
@@ -390,6 +685,8 @@ B<1.> Add a way to set manual headers for fetchrow_hashref
 B<2.> Add a pivot table reader (sometimes returns different values than just the sheet shows)
 
 B<3.> Add more exposure to worksheet formatting values
+
+B<4.> Add a DOM version of the parser
 
 =back
 
@@ -412,6 +709,34 @@ The full text of the license can be found in the
 LICENSE file included with this module.
 
 This software is copyrighted (c) 2014 by Jed Lund
+
+=head1 DEPENDENCIES
+
+=over
+
+L<Spreadsheet::XLSX::Reader::LibXML>
+
+=back
+
+=head1 SEE ALSO
+
+=over
+
+L<Spreadsheet::ParseExcel> - Excel 2003 and earlier
+
+L<Spreadsheet::XLSX> - 2007+
+
+L<Spreadsheet::ParseXLSX> - 2007+
+
+L<Log::Shiras|https://github.com/jandrew/Log-Shiras>
+
+=over
+
+All lines in this package that use Log::Shiras are commented out
+
+=back
+
+=back
 
 =cut
 

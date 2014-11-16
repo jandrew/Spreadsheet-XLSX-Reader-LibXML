@@ -1,0 +1,71 @@
+#!env perl
+my	$dir 	= './';
+my	$tests	= 'Spreadsheet/XLSX/Reader/';
+my	$up		= '../';
+for my $next ( <*> ){
+	if( ($next eq 't') and -d $next ){
+		$dir	= './t/';
+		$up		= '';
+		last;
+	}
+}
+
+use	TAP::Formatter::Console;
+my $formatter = TAP::Formatter::Console->new({
+					jobs => 1,
+					#~ verbosity => 1,
+				});
+my	$args ={
+		lib =>[
+			$up . 'lib',
+			#~ $up . '../Log-Shiras/lib',
+		],
+		test_args =>{
+			error_test					=>[],
+			log_space_test				=>[],
+			cell_to_column_row_test		=>[],
+			util_function_test			=>[],
+			default_format_test			=>[],
+			excel_format_string_test	=>[],
+			workbook_test				=>[ $dir . 'test_files/' ],
+			types_test					=>[ $dir . 'test_files/' ],
+			generic_reader_test			=>[ $dir . 'test_files/xl/' ],
+			get_cell_test				=>[ $dir . 'test_files/xl/' ],
+			xml_to_perl_test			=>[ $dir . 'test_files/xl/' ],
+			cell_test					=>[ $dir . 'test_files/xl/' ],
+			calc_chain_reader_test		=>[ $dir . 'test_files/xl/' ],
+			styles_sheet_test			=>[ $dir . 'test_files/xl/' ],
+			shared_strings_reader_test	=>[ $dir . 'test_files/xl/' ],
+			worksheet_test				=>[ $dir . 'test_files/xl/worksheets/' ],
+		},
+		formatter => $formatter,
+	};
+my	@tests =(
+		[  $dir . $tests . 'LibXML/01-types.t', 'types_test' ],
+		[  $dir . $tests . 'LibXML/02-error.t', 'error_test' ],
+		[  $dir . $tests . 'LibXML/03-log_space.t', 'log_space_test' ],
+		[  $dir . $tests . 'LibXML/04-xml_reader.t', 'generic_reader_test' ],
+		[  $dir . $tests . 'LibXML/05-cell_to_column_row.t', 'cell_to_column_row_test' ],
+		[  $dir . $tests . 'LibXML/XMLReader/01-xml_to_perl_data.t', 'xml_to_perl_test' ],
+		[  $dir . $tests . 'LibXML/XMLReader/02-worksheet.t', 'worksheet_test' ],
+		[  $dir . $tests . 'LibXML/06-util_functions.t', 'util_function_test' ],
+		[  $dir . $tests . 'LibXML/07-fmt_default.t', 'default_format_test' ],
+		[  $dir . $tests . 'LibXML/08-parse_excel_fmt_string.t', 'excel_format_string_test' ],
+		[  $dir . $tests . 'LibXML/XMLReader/03-sharedstrings.t', 'shared_strings_reader_test' ],
+		[  $dir . $tests . 'LibXML/XMLReader/04-calcchain.t', 'calc_chain_reader_test' ],
+		[  $dir . $tests . 'LibXML/XMLReader/05-styles.t', 'styles_sheet_test' ],
+		[  $dir . $tests . 'LibXML/09-cell.t', 'cell_test' ],
+		[  $dir . $tests . 'LibXML/10-get_cell.t', 'get_cell_test' ],
+		[  $dir . $tests . '01-libxml.t', 'workbook_test' ],
+	);
+use	TAP::Harness;
+use	TAP::Parser::Aggregator;
+my	$harness	= TAP::Harness->new( $args );
+my	$aggregator	= TAP::Parser::Aggregator->new;
+	$aggregator->start();
+	$harness->aggregate_tests( $aggregator, @tests );
+	$aggregator->stop();
+use Test::More;
+explain $formatter->summary($aggregator);
+pass( "Test Harness Testing complete" );
+done_testing();

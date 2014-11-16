@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::LogSpace;
-use version; our $VERSION = qv('v0.10.2');
+use version; our $VERSION = qv('v0.10.4');
 
 use Moose::Role;
 use Types::Standard qw(
@@ -139,11 +139,7 @@ This software is copyrighted (c) 2014 by Jed Lund
 
 =over
 
-L<version>
-
-L<Moose::Role>
-
-L<Types::Standard>
+L<Spreadsheet::XLSX::Reader::LibXML>
 
 =back
 
@@ -151,7 +147,19 @@ L<Types::Standard>
 
 =over
 
+L<Spreadsheet::ParseExcel> - Excel 2003 and earlier
+
+L<Spreadsheet::XLSX> - 2007+
+
+L<Spreadsheet::ParseXLSX> - 2007+
+
 L<Log::Shiras|https://github.com/jandrew/Log-Shiras>
+
+=over
+
+All lines in this package that use Log::Shiras are commented out
+
+=back
 
 =back
 

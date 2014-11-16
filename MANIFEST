@@ -6,9 +6,9 @@ META.json
 META.yml
 Makefile.PL
 README.pod
-SVPerlTalk.odp
 dist.ini
 lib/Spreadsheet/XLSX/Reader/LibXML.pm
+lib/Spreadsheet/XLSX/Reader/LibXML/CalcChain.pod
 lib/Spreadsheet/XLSX/Reader/LibXML/Cell.pm
 lib/Spreadsheet/XLSX/Reader/LibXML/CellToColumnRow.pm
 lib/Spreadsheet/XLSX/Reader/LibXML/Error.pm
@@ -16,6 +16,8 @@ lib/Spreadsheet/XLSX/Reader/LibXML/FmtDefault.pm
 lib/Spreadsheet/XLSX/Reader/LibXML/GetCell.pm
 lib/Spreadsheet/XLSX/Reader/LibXML/LogSpace.pm
 lib/Spreadsheet/XLSX/Reader/LibXML/ParseExcelFormatStrings.pm
+lib/Spreadsheet/XLSX/Reader/LibXML/SharedStrings.pod
+lib/Spreadsheet/XLSX/Reader/LibXML/Styles.pod
 lib/Spreadsheet/XLSX/Reader/LibXML/Types.pm
 lib/Spreadsheet/XLSX/Reader/LibXML/UtilFunctions.pm
 lib/Spreadsheet/XLSX/Reader/LibXML/Worksheet.pod

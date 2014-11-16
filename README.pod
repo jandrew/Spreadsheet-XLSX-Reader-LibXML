@@ -79,43 +79,43 @@ The following uses the 'TestBook.xlsx' file found in the t/test_files/ folder
 This is another module for parsing Excel 2007+ workbooks.  The goal of this package is 
 three fold.  First, as close as possible produce the same output as is visible in an 
 excel spreadsheet with exposure to underlying settings from Excel.  Second, adhere as 
-close as is reasonable to the L<Spreadsheet::ParseExcel> API where it doesn't conflict 
-with the first objective so that less work would be needed to integrate both of them.  
-Third, to provide an XLSX sheet parser that is built on L<XML::LibXML>.  The other 
-two primary options for XLSX parsing on CPAN use either a one-off XML parser 
+close as is reasonable to the L<Spreadsheet::ParseExcel> API (where it doesn't conflict 
+with the first objective) so that less work would be needed to integrate ParseExcel and 
+this package.  Third, to provide an XLSX sheet parser that is built on L<XML::LibXML>.  
+The other two primary options for XLSX parsing on CPAN use either a one-off XML parser 
 (L<Spreadsheet::XLSX>) or L<XML::Twig> (L<Spreadsheet::ParseXLSX>).  In general if 
-either of them already work for you without issue then there is no reason to change to this.  
-I personally found some bugs and functionality boundaries in both that I wanted to improve 
-and by the time I had educated myself enough to make improvement suggestions including 
-root causing the bugs to either the XML parser or the reader logic I had written this.
+either of them already work for you without issue then there is no reason to change to 
+this package.  I personally found some bugs and functionality boundaries in both that I 
+wanted to improve and by the time I had educated myself enough to make improvement 
+suggestions including root causing the bugs to either the XML parser or the reader logic 
+I had written this.
 
 In the process of learning and building I also wrote some additional features for 
 this parser that are not found in the L<Spreadsheet::ParseExcel> package.  For instance 
 in the L<SYNOPSIS|/SYNOPSIS> the '$parser' and the '$workbook' are actually the same class.  
 You could combine both steps by calling new with the 'file_name' attribute called out.  
 Afterward it is still possible to call ->error on the instance.  Another improvement 
-(From my perspective) is date handling.  This allows simple pluggable custom output format 
-that is more flexible than other options.  I leveraged coercions from L<Type::Coercion> 
-to do this but anything that follows that general format will work here.  Additionally,
-this is a L<Moose> based package.  As such it is designed to be (fairly) extensible by 
-writing roles and adding them to this package rather than requireing that you 
-extend the package to some new branch.  Read the full documentation for all opportunities!
+(From my perspective) is date handling.  This package allows for a simple pluggable custom 
+output format that is more flexible than other options as well as handling dates older than 
+1-January-1900.  I leveraged coercions from L<Type::Coercion> to do this but anything that 
+follows that general format will work here.  Additionally, this is a L<Moose> based package.  
+As such it is designed to be (fairly) extensible by writing roles and adding them to this 
+package rather than requiring that you extend the package to some new branch.  Read the full 
+documentation for all opportunities!
 
-On the other hand, L<XML::LibXML> has multiple ways to read an XML file this release only 
+On the other hand, L<XML::LibXML> has multiple ways to read an XML file but this release only 
 has an L<XML::LibXML::Reader> parser option.  Future iterations could include a DOM parser 
-option.  Additionally this package does not (yet0 provide the same access to the formatting 
+option.  Additionally this package does not (yet) provide the same access to the formatting 
 elements provided in L<Spreadsheet::ParseExcel>.  That is on the longish and incomplete TODO 
 list.
-
-
 
 =head2 Primary Methods
 
 These are the primary ways to use this class.  They can be used to open an .xlsx 
-workbook.  They are also the ways to set how the workbook is read.  For information 
-on how to retrieve data from the worksheets see the 
-L<Worksheet|Spreadsheet::XLSX::Reader::LibXML> documentation.  For additional workbook 
-options see the L<Attributes|/Attributes> section.
+workbook.  They are also ways to investigate information at the workbook level.  For 
+information on how to retrieve data from the worksheets see the 
+L<Worksheet|Spreadsheet::XLSX::Reader::LibXML::Worksheet> documentation.  For additional 
+workbook options see the L<Attributes|/Attributes> section.
 
 =head3 new( %attributes )
 
@@ -127,7 +127,7 @@ no arguments then the L<Methods|/Methods> are needed to open the xlsx file.
 
 B<Accepts:> the L<Attributes|/Attributes>
 
-B<Returns:> An instance of the L<Spreadsheet::XLSX::Reader::LibXML> class
+B<Returns:> An instance of this class
 
 =back
 
@@ -154,7 +154,7 @@ B<Returns:> itself when passing with the xlsx file loaded or undef for failure
 
 B<Definition:> This method will return an  object to read values in the worksheet.  
 If no value is passed to $name then the 'next' worksheet in physical order is 
-returned. I<next will NOT wrap>
+returned. I<'next' will NOT wrap>
 
 B<Accepts:> the $name string representing the worksheet object you want to open
 
@@ -164,8 +164,9 @@ past the last sheet
 
 B<Example:> using the implied 'next' worksheet;
 
-	while( my $worksheet = $workbook-E<gt>worksheet ){
-		# Read the next worksheet
+	while( my $worksheet = $workbook->worksheet ){
+		print "Reading: " . $worksheet->name . "\n";
+		# get the data needed from this worksheet
 	}
 
 =back
@@ -746,8 +747,6 @@ B<Definition:> a way to set the current attribute setting
 =back
 
 =head1 BUILD / INSTALL from Source
-
-=over
 	
 B<1.> Download a compressed file with the code
 	
@@ -757,14 +756,17 @@ B<2.> Extract the code from the compressed file.  If you are using tar this shou
 
 B<3.> Change (cd) into the extracted directory
 
-=back
+B<4.> Run the following
+
+=over
 
 (For Windows find what version of make was used to compile your perl)
 
 	perl  -V:make
-
-Then
-(for Windows substitute the correct make function (s/make/dmake/g)?)
+	
+(for Windows below substitute the correct make function (s/make/dmake/g)?)
+	
+=back
 
 	>perl Makefile.PL
 
@@ -857,11 +859,19 @@ L<DateTime::Format::Flexible>
 
 =over
 
-L<Spreadsheet::XLSX>
+L<Spreadsheet::ParseExcel> - Excel 2003 and earlier
 
-L<Spreadsheet::ParseXLSX>
+L<Spreadsheet::XLSX> - 2007+
+
+L<Spreadsheet::ParseXLSX> - 2007+
 
 L<Log::Shiras|https://github.com/jandrew/Log-Shiras>
+
+=over
+
+All lines in this package that use Log::Shiras are commented out
+
+=back
 
 =back
 

@@ -1,8 +1,8 @@
 #!perl
 package MyPackage;
 use Moose;
-use lib '../../../../lib';
-with 'Spreadsheet::XLSX::Reader::CellToColumnRow';
+use lib '../../../../../lib';
+with 'Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow';
 
 sub set_error{}
 sub get_log_space{}

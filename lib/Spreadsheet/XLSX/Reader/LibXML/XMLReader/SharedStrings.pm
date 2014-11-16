@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings;
-use version; our $VERSION = qv('v0.10.2');
+use version; our $VERSION = qv('v0.10.4');
 
 use 5.010;
 use Moose;
@@ -168,6 +168,71 @@ Spreadsheet::XLSX::Reader::XMLReader::SharedStrings - sharedStrings parsing with
 =head1 DESCRIPTION
 
 POD not written yet!
+
+=head1 SUPPORT
+
+=over
+
+L<github Spreadsheet::XLSX::Reader::LibXML/issues
+|https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML/issues>
+
+=back
+
+=head1 TODO
+
+=over
+
+B<1.> Nothing L<yet|/SUPPORT>
+
+=back
+
+=head1 AUTHOR
+
+=over
+
+=item Jed Lund
+
+=item jandrew@cpan.org
+
+=back
+
+=head1 COPYRIGHT
+
+This program is free software; you can redistribute
+it and/or modify it under the same terms as Perl itself.
+
+The full text of the license can be found in the
+LICENSE file included with this module.
+
+This software is copyrighted (c) 2014 by Jed Lund
+
+=head1 DEPENDENCIES
+
+=over
+
+L<Spreadsheet::XLSX::Reader::LibXML>
+
+=back
+
+=head1 SEE ALSO
+
+=over
+
+L<Spreadsheet::ParseExcel> - Excel 2003 and earlier
+
+L<Spreadsheet::XLSX> - 2007+
+
+L<Spreadsheet::ParseXLSX> - 2007+
+
+L<Log::Shiras|https://github.com/jandrew/Log-Shiras>
+
+=over
+
+All lines in this package that use Log::Shiras are commented out
+
+=back
+
+=back
 
 =cut
 

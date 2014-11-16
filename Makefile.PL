@@ -47,12 +47,11 @@ my %WriteMakefileArgs = (
     "Capture::Tiny" => 0,
     "Data::Dumper" => 0,
     "Spreadsheet::ParseExcel" => 0,
-    "Spreadsheet::XLSX::Reader::CellToColumnRow" => 0,
     "Spreadsheet::XLSX::Reader::Error" => 0,
     "Test::Moose" => 0,
     "Test::Most" => 0
   },
-  "VERSION" => "v0.10.2",
+  "VERSION" => "v0.10.4",
   "test" => {
     "TESTS" => "t/Spreadsheet/XLSX/Reader/*.t t/Spreadsheet/XLSX/Reader/LibXML/*.t t/Spreadsheet/XLSX/Reader/LibXML/XMLReader/*.t"
   }
@@ -74,7 +73,6 @@ my %FallbackPrereqs = (
   "MooseX::StrictConstructor" => 0,
   "OLE::Storage_Lite" => 0,
   "Spreadsheet::ParseExcel" => 0,
-  "Spreadsheet::XLSX::Reader::CellToColumnRow" => 0,
   "Spreadsheet::XLSX::Reader::Error" => 0,
   "Test::Moose" => 0,
   "Test::Most" => 0,

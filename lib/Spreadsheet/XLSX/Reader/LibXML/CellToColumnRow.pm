@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow;
-use version; our $VERSION = qv('v0.10.2');
+use version; our $VERSION = qv('v0.10.4');
 
 use	Moose::Role;
 requires qw(
@@ -192,18 +192,6 @@ __END__
 =head1 NAME
 
 Spreadsheet::XLSX::Reader::LibXML::CellToRowColumn - Translate Excel cell IDs to row column
-    
-=head1 DESCRIPTION
-
-This is a fairly simple implementation of a regex and math to find the column and row
-position in excel from an 'A1' style Excel cell ID.  It is important to note that column 
-letters do not equal digits in a modern 26 position numeral system since the excel 
-implementation is effectivly zeroless.
-
-The default of this module is to count from 1 (the excel convention).  Meaning that cell 
-A1 is equal to (1, 1).  However, there is a layer of abstraction in order to support 
-count from zero settings using the Moose around function.  See the L<Methods|/Methods> 
-section for more details on the implementation.
 
 =head1 SYNOPSIS
 	
@@ -212,8 +200,8 @@ section for more details on the implementation.
 	use Moose;
 	with 'Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow';
 
-	sub set_error{}
-	sub get_log_space{}
+	sub set_error{} #Required method of this role
+	sub get_log_space{} #Required method of this role
 		
 	sub my_method{
 		my ( $self, $cell ) = @_;
@@ -231,38 +219,67 @@ section for more details on the implementation.
 	# SYNOPSIS Screen Output
 	# 01: (2, 2)
 	###########################
+    
+=head1 DESCRIPTION
+
+This is a L<Moose Role|Moose::Manual::Roles>. The role provides methods to convert back 
+and forth betwee Excel Cell ID and row column numbers.  The role also provides a layer 
+of abstraction so that it is possible to implement 
+L<around|Moose::Manual::MethodModifiers/AROUND modifiers> on these methods so that the 
+data provided by the user can be in the user context and the method implementation will 
+still be in the Excel context.  For example this package uses this abstraction to allow 
+the user to call or receive row column numbers in either the 
+L<count from zero|Spreadsheet::XLSX::Reader::LibXML/count_from_zero> context used by 
+L<Spreadsheet::ParseExcel> or the count from one context used by Excel.  It is important 
+to note that column letters do not equal digits in a modern 26 position numeral system 
+since the excel implementation is effectivly zeroless.
+
+The default for this module is to count from 1 (the excel convention).  Meaning that cell 
+ID 'A1' is equal to (1, 1) and column row (3, 2) is equal to the cell ID 'C2'.
 	
 =head2 Methods
 
 Methods are object methods (not functional methods)
 
-=head3 parse_column_row( $excel_row_id, $count_from_one )
+=head3 parse_column_row( $excel_cell_id )
 
 =over
 
 B<Definition:> This is the way to turn an alpha numeric Excel cell ID into row and column 
-integers.  If count_from_zero = 1 but you want (column, row) pairs returned counting from 
-1 then set $count_from_one = 1.  Or leave it blank to have the pair returned in the format 
-defined by L<count_from_zero|/count_from_zero>
+integers.  This method uses a count from 1 methodology.  Since this method is actually just 
+a layer of abstraction above the real method for the calculation you can wrap it in an 
+L<around|Moose::Manual::MethodModifiers/AROUND modifiers> block to modify the output to 
+the desired user format without affecting other parts of the package that need the 
+unfiltered conversion.  If you want both then use the following call when unfiltered results 
+are required;
 
-B<Accepts:> $excel_row_id, $count_from_one
+	$self->_parse_column_row( $excel_cell_id )
+
+B<Accepts:> $excel_cell_id
 
 B<Returns:> ( $column_number, $row_number ) - integers
 
 =back
 
-=head3 build_cell_label( $column, $row, $count_from_one )
+=head3 build_cell_label( $column, $row, )
 
 =over
 
-B<Definition:> This is the way to turn a (column, row) pair into an excel ID.  If 
-$count_from_one is set then the ($column, $row pair will be treated at counting from one 
-independant of how L<count_from_zero|/count_from_zero> is set.
-integers
+B<Definition:> This is the way to turn a (column, row) pair into an Excel Cell ID.  The  
+underlying method uses a count from 1 methodology.  Since this method is actually just 
+a layer of abstraction above the real method for the calculation you can wrap it in an 
+L<around|Moose::Manual::MethodModifiers/AROUND modifiers> block to modify the input from 
+the implemented user format to the count from one methodology without affecting other parts 
+of the package that need the unfiltered conversion.  If you want both then use the following 
+call when unfiltered results are required;
+
+	$self->_build_cell_label( $column, $row )
+	
+The column and the row must be provided in that order for both public and private methods.
 
 B<Accepts:> $column, $row, $count_from_one (in that order and position)
 
-B<Returns:> ( $excel_cell_id ) - integers
+B<Returns:> ( $excel_cell_id ) - qr/[A-Z]{1,3}\d+/
 
 =back
 
@@ -307,21 +324,7 @@ This software is copyrighted (c) 2014 by Jed Lund
 
 =over
 
-L<version>
-
-L<Moose::Role>
-
-L<Types::Standard>
-
-=back
-
-=head2 Requires
-
-=over
-
-B<get_log_space>
-
-B<set_error>
+L<Spreadsheet::XLSX::Reader::LibXML>
 
 =back
 
@@ -329,9 +332,19 @@ B<set_error>
 
 =over
 
-L<Spreadsheet::XLSX>
+L<Spreadsheet::ParseExcel> - Excel 2003 and earlier
+
+L<Spreadsheet::XLSX> - 2007+
+
+L<Spreadsheet::ParseXLSX> - 2007+
 
 L<Log::Shiras|https://github.com/jandrew/Log-Shiras>
+
+=over
+
+All lines in this package that use Log::Shiras are commented out
+
+=back
 
 =back
 
