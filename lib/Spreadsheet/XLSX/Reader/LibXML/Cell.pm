@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::Cell;
-use version; our $VERSION = qv('v0.10.4');
+use version; our $VERSION = qv('v0.10.6');
 
 use 5.010;
 use Moose;
@@ -332,10 +332,10 @@ cell.
 B<Default:> undef (If the cell has formatting but no value then undef will be stored here).
 
 B<Range:> Any string or number
-		
-=back
 
 B<attribute methods> Methods provided to adjust this attribute
+		
+=back
 
 =head4 unformatted
 
@@ -373,10 +373,10 @@ rich text array.
 B<Default:> undef = no rich text defined for this cell
 
 B<Range:> an array ref of rich_text positions and definitions
-		
-=back
 
 B<attribute methods> Methods provided to adjust this attribute
+		
+=back
 
 =head4 get_rich_text
 
@@ -403,10 +403,10 @@ B<Definition:> This holds the font assigned to the cell
 B<Default:> undef
 
 B<Range:> a hashref of font definitions
-		
-=back
 
 B<attribute methods> Methods provided to adjust this attribute
+		
+=back
 
 =head4 get_font
 
@@ -433,10 +433,10 @@ B<Definition:> This holds the border settings assigned to the cell
 B<Default:> undef
 
 B<Range:> a hashref of border definitions
-		
-=back
 
 B<attribute methods> Methods provided to adjust this attribute
+		
+=back
 
 =head4 get_border
 
@@ -463,10 +463,10 @@ B<Definition:> This holds the border settings assigned to the cell
 B<Default:> undef
 
 B<Range:> a hashref of style definitions
-		
-=back
 
 B<attribute methods> Methods provided to adjust this attribute
+		
+=back
 
 =head4 get_style
 
@@ -493,10 +493,10 @@ B<Definition:> This holds the fill settings assigned to the cell
 B<Default:> undef
 
 B<Range:> a hashref of style definitions
-		
-=back
 
 B<attribute methods> Methods provided to adjust this attribute
+		
+=back
 
 =head4 get_fill
 
@@ -527,10 +527,10 @@ B<Default:> Text
 
 B<Range:> Text = Strings, Numeric = Real Numbers, Date = Real Numbers with an 
 assigned Date conversion, Custom = any stored value with a custom conversion
-		
-=back
 
 B<attribute methods> Methods provided to adjust this attribute
+		
+=back
 
 =head4 type
 
@@ -557,10 +557,10 @@ B<Definition:> This holds the byte encodeing of the data stored in the cell
 B<Default:> Unicode
 
 B<Range:> Traditional encoding options
-		
-=back
 
 B<attribute methods> Methods provided to adjust this attribute
+		
+=back
 
 =head4 encoding
 
@@ -589,10 +589,10 @@ with a :
 B<Default:> undef
 
 B<Range:> two cell ID's
-		
-=back
 
 B<attribute methods> Methods provided to adjust this attribute
+		
+=back
 
 =head4 merge_range
 
@@ -620,10 +620,10 @@ formula the Excel formula string is stored in this attribute.
 B<Default:> undef
 
 B<Range:> Excel formula string
-		
-=back
 
 B<attribute methods> Methods provided to adjust this attribute
+		
+=back
 
 =head4 formula
 
@@ -647,11 +647,11 @@ B<Definition:> Indicates if the attribute has anything stored
 
 B<Definition:> This is the sheet row that the cell was read from
 
-B<Range:> the minimum row to the maximum  row
-		
-=back
+B<Range:> the minimum row to the maximum row
 
 B<attribute methods> Methods provided to adjust this attribute
+		
+=back
 
 =head4 row
 
@@ -675,11 +675,11 @@ B<Definition:> Indicates if the attribute has anything stored
 
 B<Definition:> This is the sheet column that the cell was read from
 
-B<Range:> the minimum column to the maximum  column
-		
-=back
+B<Range:> the minimum column to the maximum column
 
 B<attribute methods> Methods provided to adjust this attribute
+		
+=back
 
 =head4 col
 
@@ -702,10 +702,10 @@ B<Definition:> Indicates if the attribute has anything stored
 =over
 
 B<Definition:> This is the sheet ID of the cell
-		
-=back
 
 B<attribute methods> Methods provided to adjust this attribute
+		
+=back
 
 =head4 cell_id
 
@@ -728,10 +728,10 @@ B<Definition:> Indicates if the attribute has anything stored
 =over
 
 B<Definition:> This stores any hyperlink from the cell
-		
-=back
 
 B<attribute methods> Methods provided to adjust this attribute
+		
+=back
 
 =head4 get_hyperlink
 
@@ -763,10 +763,10 @@ B<Range:> If you wish to set this with your own code it must have two
 methods.  First, 'assert_coerce' which will be applied when transforming 
 the unformatted value.  Second, 'display_name' which will be used to self 
 identify.
-		
-=back
 
 B<attribute methods> Methods provided to adjust this attribute
+		
+=back
 
 =head4 get_coercion
 

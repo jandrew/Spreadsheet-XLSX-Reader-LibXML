@@ -1,4 +1,4 @@
-#!env perl
+#!/usr/bin/env perl
 my	$dir 	= './';
 my	$tests	= 'Spreadsheet/XLSX/Reader/';
 my	$up		= '../';

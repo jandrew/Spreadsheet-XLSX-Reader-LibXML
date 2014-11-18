@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::Error;
-use version; our $VERSION = qv('v0.10.4');
+use version; our $VERSION = qv('v0.10.6');
 
 use Moose;
 use Carp qw( cluck );
@@ -50,6 +50,8 @@ has should_warn =>(
 
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
 
+
+
 #########1 Phinish            3#########4#########5#########6#########7#########8#########9
 
 no Moose;
@@ -64,73 +66,103 @@ __END__
 =head1 NAME
 
 Spreadsheet::XLSX::Reader::LibXML::Error - Moose class for remembering the last error
-    
-=head1 DESCRIPTION
-
-This Moose class contains two attributes.  The first is used to store the current error string.  
-The second, is set to turn on or off pushing the error string to STDERR.
 
 =head1 SYNOPSIS
 	
-	#!perl
-	$|=1;
-	use MooseX::ShortCut::BuildInstance qw( build_instance );
-	use Spreadsheet::XLSX::Reader::Error;
+    #!/usr/bin/env perl
+    $|=1;
+    use MooseX::ShortCut::BuildInstance qw( build_instance );
+    use Spreadsheet::XLSX::Reader::LibXML::Error;
 
-	my 	$action = build_instance(
-			add_attributes =>{ 
-				error_inst =>{
-					handles =>[ qw( error set_error clear_error set_warnings if_warn ) ],
-				},
-			},
-			error_inst => Spreadsheet::XLSX::Reader::Error->new(
-				should_warn => 1,
-				# should_warn => 0,# to turn off cluck when the error is set
-			),
-		);
-	print	$action->dump;
-			$action->set_error( "You did something wrong" );
-	print	$action->dump;
-	print	$action->error . "\n";
+    my  $action = build_instance(
+            add_attributes =>{ 
+                error_inst =>{
+                    handles =>[ qw( error set_error clear_error set_warnings if_warn ) ],
+                },
+            },
+			error_inst => Spreadsheet::XLSX::Reader::LibXML::Error->new(
+                should_warn => 1,
+                # should_warn => 0,# to turn off cluck when the error is set
+            ),
+        );
+    print $action->dump;
+          $action->set_error( "You did something wrong" );
+    print $action->dump;
+    print $action->error . "\n";
 	
-	##############################################################################
-	# SYNOPSIS Screen Output
-	# 01: $VAR1 = bless( {
-	# 02:                  'error_inst' => bless( {
-	# 03:                                           'should_warn' => 1,
-	# 04:											'log_space' => 'Spreadsheet::XLSX::Reader::LogSpace'
-	# 04:                                         }, 'Spreadsheet::XLSX::Reader::Error' )
-	# 05:                }, 'ANONYMOUS_SHIRAS_MOOSE_CLASS_1' );
-	# 06: You did something wrong line 19
- 	# 07: at ../lib/Spreadsheet/XLSX/Reader/Error.pm line 28.
-	# 08:        Spreadsheet::XLSX::Reader::Error::__ANON__('Spreadsheet::XLSX::Reader::Error=HASH(0x45e818)', 'You did something wrong') called at writer Spreadsheet::XLSX::Reader::Error::set_error of attribute error_string (defined at ../lib/Spreadsheet/XLSX/Reader/Error.pm line 28) line 9
- 	# 09:        Spreadsheet::XLSX::Reader::Error::set_error('Spreadsheet::XLSX::Reader::Error'=HASH(0x45e818)', 'You did something wrong') called at C:/strawberry/perl/site/lib/Moose/Meta/Method/Delegation.pm line 110
- 	# 10:        ANONYMOUS_SHIRAS_MOOSE_CLASS_1::set_error('ANONYMOUS_SHIRAS_MOOSE_CLASS_1=HASH(0x45e890)', 'You did something wrong') called at error_example.pl line 19
- 	# 11: $VAR1 = bless( {
-  	# 12:                 'error_inst' => bless( {
- 	# 13:                                           'should_warn' => 1,
- 	# 14:                                           'error_string' => 'You did something wrong'
- 	# 15:                                         }, 'Spreadsheet::XLSX::Reader::Error' )
- 	# 16:                }, 'ANONYMOUS_SHIRAS_MOOSE_CLASS_1' );
- 	# 17: You did something wrong
-	##############################################################################
+    ##############################################################################
+    # SYNOPSIS Screen Output
+    # 01: $VAR1 = bless( {
+    # 02:             'error_inst' => bless( {
+    # 03:                                 'should_warn' => 1,
+    # 04:                                 'log_space' => 'Spreadsheet::XLSX::Reader::LogSpace'
+    # 04:                             }, 'Spreadsheet::XLSX::Reader::Error' )
+    # 05:         }, 'ANONYMOUS_SHIRAS_MOOSE_CLASS_1' );
+    # 06: You did something wrong line 19
+    # 07: at ../lib/Spreadsheet/XLSX/Reader/Error.pm line 28.
+    # 08:    Spreadsheet::XLSX::Reader::Error::__ANON__('Spreadsheet::XLSX::Reader::Error=HASH(0x45e818)', 'You did something wrong') called at writer Spreadsheet::XLSX::Reader::Error::set_error of attribute error_string (defined at ../lib/Spreadsheet/XLSX/Reader/Error.pm line 28) line 9
+    # 09:    Spreadsheet::XLSX::Reader::Error::set_error('Spreadsheet::XLSX::Reader::Error'=HASH(0x45e818)', 'You did something wrong') called at C:/strawberry/perl/site/lib/Moose/Meta/Method/Delegation.pm line 110
+    # 10:    ANONYMOUS_SHIRAS_MOOSE_CLASS_1::set_error('ANONYMOUS_SHIRAS_MOOSE_CLASS_1=HASH(0x45e890)', 'You did something wrong') called at error_example.pl line 19
+    # 11: $VAR1 = bless( {
+    # 12:             'error_inst' => bless( {
+    # 13:                                 'should_warn' => 1,
+    # 14:                                 'error_string' => 'You did something wrong'
+    # 15:                             }, 'Spreadsheet::XLSX::Reader::Error' )
+    # 16:         }, 'ANONYMOUS_SHIRAS_MOOSE_CLASS_1' );
+    # 17: You did something wrong
+    ##############################################################################
+    
+=head1 DESCRIPTION
+
+This L<Moose> class contains two L<attributes|Moose::Manual::Attributes>.  It is intended 
+to be used through (by) L<delegation|Moose::Manual::Delegation> in other classes.  The first 
+attribute is used to store the current error string.  The second, is set to turn on or off 
+pushing the error string to STDERR when the first attribute is (re)set.
 
 =head2 Attributes
 
-Data passed to new when creating an instance (parser).  For modification of 
-these attributes see the listed L</Methods> of the instance.
+Data passed to new when creating an instance.   For modification of 
+these attributes see the listed 'attribute methods'. For more information on 
+attributes see L<Moose::Manual::Attributes>.
 
 =head3 error_string
 
 =over
 
 B<Definition:> This stores the most recent error string for recall later.  It 
-also provides a link to debug logging as needed.
+also provides a hook to debug logging through 
+L<Log::Shiras|https://github.com/jandrew/Log-Shiras>.
 
 B<Default> undef (init_arg = undef)
 
 B<Range> any string
+
+B<attribute methods> Methods provided to adjust this attribute
 		
+=back
+
+=head4 error
+
+=over
+
+B<Definition:> returns the currently stored error
+
+=back
+
+=head4 clear_error
+
+=over
+
+B<Definition:> clears the currently stored error
+
+=back
+
+=head4 set_error( $error_string )
+
+=over
+
+B<Definition:> sets the attribute to $error_string.
+
 =back
 
 =head3 should_warn
@@ -142,71 +174,25 @@ return a stack trace when the error_string attribute is set.
 
 B<Default> 1 -> it will cluck
 
-B<Range> Bool
+B<Range> Boolean values
+
+B<attribute methods> Methods provided to adjust this attribute
 		
 =back
 
-=head2 Methods
-
-These include methods to adjust attributes.
-		
-=head3 set_warnings( $bool )
+=head4 set_warnings( $bool )
 
 =over
 
 B<Definition:> Turn clucked warnings on or off
 
-B<Accepts:> Boolean values
-
-B<Returns:> nothing
-
 =back
-		
-=head3 if_warn
+
+=head4 if_warn
 
 =over
 
-B<Definition:> Check the current should_warn attribute value
-
-B<Accepts:> Nothing
-
-B<Returns:> $bool representing the current should_warn attribute value
-
-=back
-		
-=head3 error
-
-=over
-
-B<Definition:> Returns the currently stored error string
-
-B<Accepts:> Nothing
-
-B<Returns:> $error representing the current error_string attribute value
-
-=back
-
-=head3 set_error( $error_string )
-
-=over
-
-B<Definition:> method to set (update) the current error string
-
-B<Accepts:> $error_string
-
-B<Returns:> Nothing
-
-=back
-
-=head3 clear_error
-
-=over
-
-B<Definition:> method to clear the current error string
-
-B<Accepts:> Nothing
-
-B<Returns:> Nothing (string is cleared)
+B<Definition:> Returns the current setting of this attribute
 
 =back
 
@@ -223,7 +209,8 @@ L<github Spreadsheet::XLSX::Reader::LibXML/issues
 
 =over
 
-B<1.> Nothing L<yet|/SUPPORT>
+B<1.> get clases in this package to return error numbers rather than 
+error strings and then provide opportunity for this class to localize.
 
 =back
 

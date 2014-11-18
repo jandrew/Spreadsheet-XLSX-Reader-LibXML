@@ -1095,6 +1095,18 @@ sub _build_scientific_sub{
 				$changed_integer .= $2;
 				$integer = $2;
 				$decimal = $3;
+				if( $decimal =~ /(9{4}9+)(\d*)/ ){
+					my $adder = 1 . 0 x length( $2 );
+					###LogSD	$phone->talk( level => 'debug', message => [
+					###LogSD		"Initial decimal: $decimal",
+					###LogSD		"Adjusting a potentially underreported decimal with: $adder",  ] );
+					$decimal += $adder;
+					###LogSD	$phone->talk( level => 'debug', message => [
+					###LogSD		"Resulting decimal: $decimal",  ] );
+					$decimal = sprintf( '%0.30d', $decimal );
+					###LogSD	$phone->talk( level => 'debug', message => [
+					###LogSD		"Resulting decimal: $decimal",  ] );
+				}
 			my	$adjusted_position = length( $changed_integer );
 			my	$exponent = $initial_position - $adjusted_position;
 			###LogSD	$phone->talk( level => 'trace', message => [
@@ -1120,6 +1132,8 @@ sub _build_scientific_sub{
 				if( exists $code_hash_ref->{decimal}->{max_length} and
 					length( $decimal ) > $code_hash_ref->{decimal}->{max_length} ){
 					my $test_decimal = '0.' . $decimal;
+					###LogSD	$phone->talk( level => 'debug', message => [
+					###LogSD		"Implementing the sprintf string: %.$code_hash_ref->{decimal}->{max_length}f",  ] );
 					$test_decimal = sprintf( "%.$code_hash_ref->{decimal}->{max_length}f", $test_decimal );
 					$test_decimal =~ /(\d)\.(\d+)/;
 					$integer += $1;

@@ -1,8 +1,8 @@
-#!perl
+#!/usr/bin/env perl
 $|=1;
-use lib '../../../../lib';
+use lib '../../../../../lib';
 use MooseX::ShortCut::BuildInstance qw( build_instance );
-use Spreadsheet::XLSX::Reader::Error;
+use Spreadsheet::XLSX::Reader::LibXML::Error;
 
 my 	$action = build_instance(
 		add_attributes =>{ 
@@ -10,7 +10,7 @@ my 	$action = build_instance(
 				handles =>[ qw( error set_error clear_error set_warnings if_warn ) ],
 			},
 		},
-		error_inst => Spreadsheet::XLSX::Reader::Error->new(
+		error_inst => Spreadsheet::XLSX::Reader::LibXML::Error->new(
 			should_warn => 1,
 			# should_warn => 0,# to turn off cluck when the error is set
 		),

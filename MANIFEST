@@ -43,11 +43,11 @@ t/Spreadsheet/XLSX/Reader/LibXML/XMLReader/02-worksheet.t
 t/Spreadsheet/XLSX/Reader/LibXML/XMLReader/03-sharedstrings.t
 t/Spreadsheet/XLSX/Reader/LibXML/XMLReader/04-calcchain.t
 t/Spreadsheet/XLSX/Reader/LibXML/XMLReader/05-styles.t
+t/Spreadsheet/XLSX/Reader/LibXML/XMLReader/calcchain_example.pl
 t/Spreadsheet/XLSX/Reader/LibXML/cell_to_column_row_example.pl
 t/Spreadsheet/XLSX/Reader/LibXML/error_example.pl
-t/Spreadsheet/XLSX/Reader/libxml_exampl.pl
-t/test_files/Rich.xls
-t/test_files/TestBook.xls
+t/Spreadsheet/XLSX/Reader/LibXML/fmt_default_example.pl
+t/Spreadsheet/XLSX/Reader/libxml_example.pl
 t/test_files/TestBook.xlsx
 t/test_files/ValueFormatExample.xlsx
 t/test_files/[Content_Types].xml
@@ -61,7 +61,6 @@ t/test_files/xl/pivotCache/pivotCacheDefinition1.xml
 t/test_files/xl/pivotCache/pivotCacheRecords1.xml
 t/test_files/xl/pivotTables/_rels/pivotTable1.xml.rels
 t/test_files/xl/pivotTables/pivotTable1.xml
-t/test_files/xl/printerSettings/printerSettings1.bin
 t/test_files/xl/sharedStrings.xml
 t/test_files/xl/styles.xml
 t/test_files/xl/theme/theme1.xml
@@ -71,4 +70,3 @@ t/test_files/xl/worksheets/_rels/sheet3.xml.rels
 t/test_files/xl/worksheets/sheet1.xml
 t/test_files/xl/worksheets/sheet2.xml
 t/test_files/xl/worksheets/sheet3.xml
-t/test_files/xls_test.pl

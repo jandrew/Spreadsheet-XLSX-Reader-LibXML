@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow;
-use version; our $VERSION = qv('v0.10.4');
+use version; our $VERSION = qv('v0.10.6');
 
 use	Moose::Role;
 requires qw(
@@ -191,11 +191,11 @@ __END__
 
 =head1 NAME
 
-Spreadsheet::XLSX::Reader::LibXML::CellToRowColumn - Translate Excel cell IDs to row column
+Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow - Translate Excel cell IDs to column row
 
 =head1 SYNOPSIS
 	
-	#!perl
+	#!/usr/bin/env perl
 	package MyPackage;
 	use Moose;
 	with 'Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow';
@@ -212,7 +212,7 @@ Spreadsheet::XLSX::Reader::LibXML::CellToRowColumn - Translate Excel cell IDs to
 
 	package main;
 
-	my $parser = MyPackage->new( count_from_zero => 0 );
+	my $parser = MyPackage->new;
 	print '(' . join( ', ', $parser->my_method( 'B2' ) ) . ")'\n";
 	
 	###########################
@@ -223,7 +223,7 @@ Spreadsheet::XLSX::Reader::LibXML::CellToRowColumn - Translate Excel cell IDs to
 =head1 DESCRIPTION
 
 This is a L<Moose Role|Moose::Manual::Roles>. The role provides methods to convert back 
-and forth betwee Excel Cell ID and row column numbers.  The role also provides a layer 
+and forth betwee Excel Cell ID and column row numbers.  The role also provides a layer 
 of abstraction so that it is possible to implement 
 L<around|Moose::Manual::MethodModifiers/AROUND modifiers> on these methods so that the 
 data provided by the user can be in the user context and the method implementation will 
@@ -236,6 +236,29 @@ since the excel implementation is effectivly zeroless.
 
 The default for this module is to count from 1 (the excel convention).  Meaning that cell 
 ID 'A1' is equal to (1, 1) and column row (3, 2) is equal to the cell ID 'C2'.
+
+=head2 Requires
+
+These are methods used by the Role but not provided by the role.  Any class consuming this 
+role will not build without these methods provided by the class prior to loading this role.
+
+=head3 get_log_space
+
+=over
+
+B<Definition:> Used to return the log space used by the code protected by ###LogSD.  See
+L<Log::Shiras||https://github.com/jandrew/Log-Shiras> for more information.
+
+=back
+
+=head3 set_error( $error_string )
+
+=over
+
+B<Definition:> Used to set errors that occur in code from this role.  See
+L<Spreadsheet::XLSX::Reader::LibXML::Error> for the default implementation of this functionality.
+
+=back
 	
 =head2 Methods
 
@@ -245,7 +268,7 @@ Methods are object methods (not functional methods)
 
 =over
 
-B<Definition:> This is the way to turn an alpha numeric Excel cell ID into row and column 
+B<Definition:> This is the way to turn an alpha numeric Excel cell ID into column and row 
 integers.  This method uses a count from 1 methodology.  Since this method is actually just 
 a layer of abstraction above the real method for the calculation you can wrap it in an 
 L<around|Moose::Manual::MethodModifiers/AROUND modifiers> block to modify the output to 

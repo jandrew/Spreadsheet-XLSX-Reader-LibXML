@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::FmtDefault;
-use version; our $VERSION = qv('v0.10.4');
+use version; our $VERSION = qv('v0.10.6');
 
 use	5.010;
 use	Moose::Role;
@@ -111,10 +111,163 @@ __END__
 =head1 NAME
 
 Spreadsheet::XLSX::Reader::LibXML::FmtDefault - Default xlsx number formats and localization
+
+=head1 SYNOPSIS
+
+    #!/usr/bin/env perl
+    package MyPackage;
+    use Moose;
+    with 'Spreadsheet::XLSX::Reader::LibXML::FmtDefault';
+    
+    sub get_log_space{}
+    
+    package main;
+    
+    my $parser = MyPackage->new;
+    print '(' . join( ', ', $parser->get_defined_excel_format( 14 ) ) . ")\n";
+	
+	###########################
+	# SYNOPSIS Screen Output
+	# 01: (yyyy-m-d)
+	###########################
     
 =head1 DESCRIPTION
 
-POD not written yet!
+This L<Moose Role|Moose::Manual::Roles> is the primary tool for localization.  It stores the 
+number conversion format strings for the set region.  In this particular case it is the base 
+L<english conversion
+|http://openxmldeveloper.org/blog/b/openxmldeveloper/archive/2012/02/16/dates-in-spreadsheetml.aspx> 
+set.  It does rely on L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings> to build 
+the actual coercions used to transform numbers for each string.  However, the 
+ParseExcelFormatStrings transformation should work for all regions strings.
+
+The role also includes a string conversion function that is implemented after the data is 
+extracted by libxml2 from the xml file.  Specifically libxml2 attempts to determine the input 
+encoding from the xml header and convert whatever format the file is in to unicode so the 
+conversion out should be from unicode to your L<target_encoding|/target_encoding>.   
+L<For now|/TODO> no encoding (output) conversion is actually provided and the function is 
+essentially a pass-through of standard perl unicode.
+
+=head2 Requires
+
+These are methods used by the Role but not provided by the role.  Any class consuming this 
+role will not build without these methods provided by the class prior to loading this role.
+
+=head3 get_log_space
+
+=over
+
+B<Definition:> Used to return the log space used by the code protected by ###LogSD.  See
+L<Log::Shiras||https://github.com/jandrew/Log-Shiras> for more information.
+
+=back
+	
+=head2 Primary Methods
+
+These are the primary ways to use this class.  For additional FmtDefault options see the 
+L<Attributes|/Attributes> section.
+
+=head3 change_output_encoding( $string )
+
+=over
+
+B<Definition:> Currently this is a placeholder that is always called by the L<Worksheet
+|Spreadsheet::XLSX::Reader::Worksheet> when a cell value is retreived in order to allow 
+for I<future> encoding adjustments on the way out.  See L<XML::LibXML> for an explanation 
+of how the encoding in is handled.  This conversion is done prior to any number formatting.  
+If you are replacing this role you need to have the function and you can use it to mangle 
+your output string any way you want.
+
+B<Accepts:> a unicode string
+
+B<Returns:> the converted string
+
+=back
+
+=head3 get_defined_excel_format( $integer )
+
+=over
+
+B<Definition:> This will return the preset excel format string for the stored position
+
+B<Accepts:> an $integer for the format string position
+
+B<Returns:> an excel format string
+
+=back
+
+=head3 total_defined_excel_formats
+
+=over
+
+B<Definition:> This will return the count of all defined Excel format strings for this 
+localization.  The primary value is to understand if the format string is a pre-set value 
+or if the general .xlsx sheet reader should look in the 
+L<Styles|Spreadsheet::XLSX::Reader::LibXML::Styles> sheet for the format string.
+
+B<Accepts:> nothing
+
+B<Returns:> the total count of the pre-defined number coercion formats
+
+=back
+
+=head3 get_defined_excel_format_list
+
+=over
+
+B<Definition:> This will return the complete list of defined formats as an array ref
+
+B<Accepts:> nothing
+
+B<Returns:> an array ref of all pre-defined format strings
+
+=back
+
+=head3 set_defined_excel_format_list
+
+=over
+
+B<Definition:> If you don't want to re-write this role you can just set a new 
+array ref of format strings that you want excel to use.  The strings need to comply with 
+the capabilities of L<Spreadsheet::XLSX::Reader:LibXML::ParseExcelFormatStrings>.  With 
+any luck means they need to comply with the Excel L<format string definitions
+|http://office.microsoft.com/en-us/excel-help/create-or-delete-a-custom-number-format-HP005199500.aspx>.  
+This role is used in the L<Styles|Spreadsheet::XLSX::Reader::LibXML::Styles> class but 
+I<this method is actually exposed all the way up to the L<Workbook
+|Spreadsheet::XLSX::Reader::LibXML> class through L<Delegation|Moose::Manual::Delegation>.>########################### Start Here
+
+B<Accepts:> an array ref of format strings
+
+B<Returns:> nothing
+
+=back
+
+=head2 Attributes
+
+Data passed to new when creating an instance.   For modification of 
+these attributes see the listed 'attribute methods'. For more information on 
+attributes see L<Moose::Manual::Attributes>.
+
+=head3 file_name
+
+=over
+
+B<Definition:> This needs to be the full file path to the calcChain file to 
+be parsed.
+
+B<Required:> Yes
+
+B<Default:> none
+
+B<Range> an actual Excel 2007+ calcChain file
+
+B<attribute methods> Methods provided to adjust this attribute
+		
+=back
+
+=head4 get_file_name
+
+=over
 
 =head1 SUPPORT
 
@@ -129,7 +282,8 @@ L<github Spreadsheet::XLSX::Reader::LibXML/issues
 
 =over
 
-B<1.> Nothing L<yet|/SUPPORT>
+B<1.> Actually make the L<change_output_encoding|/change_output_encoding> method do 
+something usefull.
 
 =back
 

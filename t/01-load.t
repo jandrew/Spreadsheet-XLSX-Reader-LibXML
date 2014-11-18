@@ -1,4 +1,4 @@
-#!env perl
+#!/usr/bin/env perl
 ### Test that the module(s) load!(s)
 use	Test::More;
 BEGIN{ use_ok( Test::Pod, qw( 1.48 ) ) };

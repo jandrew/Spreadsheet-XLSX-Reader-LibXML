@@ -1,14 +1,12 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader;
-use version; our $VERSION = qv('v0.10.4');
+use version; our $VERSION = qv('v0.10.6');
 
 use 5.010;
 use Moose;
 use MooseX::StrictConstructor;
 use MooseX::HasDefaults::RO;
 use Types::Standard qw(
-		Int
-		Str
-		InstanceOf
+		Int				Str				HasMethods
 		FileHandle
     );
 use XML::LibXML::Reader;
@@ -16,7 +14,7 @@ use lib	'../../../../../lib',;
 with 'Spreadsheet::XLSX::Reader::LibXML::LogSpace';
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
-use Spreadsheet::XLSX::Reader::LibXML::Types v0.1 qw(
+use Spreadsheet::XLSX::Reader::LibXML::Types v0.10 qw(
 		XMLFile
 	);
 
@@ -30,7 +28,9 @@ has file_name =>(
 	);
 
 has	error_inst =>(
-		isa			=> InstanceOf[ 'Spreadsheet::XLSX::Reader::LibXML::Error' ],
+		isa			=> 	HasMethods[qw(
+							error set_error clear_error set_warnings if_warn
+						) ],
 		clearer		=> '_clear_error_inst',
 		reader		=> '_get_error_inst',
 		required	=> 1,

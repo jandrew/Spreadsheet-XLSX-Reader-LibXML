@@ -10,7 +10,7 @@ use	MooseX::ShortCut::BuildInstance v1.8 qw( build_instance );#
 use	lib
 		'../../../../../../Log-Shiras/lib',
 		'../../../../../lib',;
-#~ use Log::Shiras::Switchboard qw( :debug );
+use Log::Shiras::Switchboard qw( :debug );
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(#
 ###LogSD						reports =>{
 ###LogSD							log_file =>[ Print::Log->new ],
@@ -164,7 +164,7 @@ is			$test_instance->get_defined_excel_format( $position ), $answer_list->[$posi
 ok			my $coercion = $test_instance->parse_excel_format_string( $test_instance->get_defined_excel_format( $position ) ),
 										,"..and try to turn it into a Type::Tiny coercion";
 			for my $row_pos ( 1 .. $#{$answer_list->[$position]} ){
-###LogSD	if( $position == 12 and $row_pos == 19 ){
+###LogSD	if( $position == 11 and $row_pos == 8 ){# 
 ###LogSD		$operator->add_name_space_bounds( {
 ###LogSD			main =>{
 ###LogSD				UNBLOCK =>{
@@ -173,11 +173,11 @@ ok			my $coercion = $test_instance->parse_excel_format_string( $test_instance->g
 ###LogSD			},
 ###LogSD			Test =>{
 ###LogSD				_build_number =>{
-###LogSD					_build_fraction_sub =>{
+#~ ###LogSD					_build_fraction_sub =>{
 ###LogSD						UNBLOCK =>{
 ###LogSD							log_file => 'trace',
 ###LogSD						},
-###LogSD					},
+#~ ###LogSD					},
 ###LogSD				},
 ###LogSD				_util_function =>{
 ###LogSD					UNBLOCK =>{

@@ -8,11 +8,155 @@ Spreadsheet::XLSX::Reader::LibXML::CalcChain - Read xlsx calcChain files with Li
 
 =head1 SYNOPSIS
 
-See the SYNOPSIS in the L<Workbook class|Spreadsheet::XLSX::Reader::LibXML/SYNOPSIS>
+The following uses the 'calcChain.xml' file found in the t/test_files/xl/ folder.  
+It also uses the XMLReader version of the CalcChain class.  Any version will do.
+
+
+	
+    #!/usr/bin/env perl
+    $|=1;
+    use Data::Dumper;
+    use Spreadsheet::XLSX::Reader::LibXML::Error;
+    use Spreadsheet::XLSX::Reader::LibXML::XMLReader::CalcChain;
+
+    my $file_instance = Spreadsheet::XLSX::Reader::LibXML::XMLReader::CalcChain->new(
+                            file_name => 'calcChain.xml',
+							error_inst => Spreadsheet::XLSX::Reader::LibXML::Error->new,
+                        );
+    print Dumper( $file_instance->get_calc_chain_position( 2 ) );
+	
+	}
+
+	###########################
+	# SYNOPSIS Screen Output
+	# 01: $VAR1 = {
+	# 02:           'r' => 'D14',
+	# 03:           's' => '1'
+ 	# 04:         };
+	###########################
 
 =head1 DESCRIPTION
 
-The POD is not written yet!
+This general class is written to access the sub file calcChain in an unzipped .xlsx file.  The 
+file is generally found in the xl/ folder of the unzipped file.  This file contains the calculation 
+sequence and data source used for identified formulas in the sheet.  (The formula tie to these 
+elements is maintained outside of this sheet.  To build it differently you would need to fork the 
+L<github|https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML> package and insert the call for 
+this class in the $parser_modules variable maintained in the L<Spreadsheet::XLSX::Reader::LibXML> 
+class.  (about line 34).  Each individual type of CalcChain reader '.pm' file also has it's own POD.
+	
+=head2 Primary Methods
+
+These are the primary ways to use this class.  For additional calcChain options see the 
+L<Attributes|/Attributes> section.
+
+=head3 get_calc_chain_position( $integer )
+
+=over
+
+B<Definition:> This will return the calcChain information from the identified $integer position.  
+(Counting from zero).  The information is returned as a perl hash ref.
+
+B<Accepts:> an $integer for the calcChain position
+
+B<Returns:> a hash ref of data
+
+=back
+
+=head2 Attributes
+
+Data passed to new when creating an instance.   For modification of 
+these attributes see the listed 'attribute methods'. For more information on 
+attributes see L<Moose::Manual::Attributes>.
+
+=head3 file_name
+
+=over
+
+B<Definition:> This needs to be the full file path to the calcChain file to 
+be parsed.
+
+B<Required:> Yes
+
+B<Default:> none
+
+B<Range> an actual Excel 2007+ calcChain file
+
+B<attribute methods> Methods provided to adjust this attribute
+		
+=back
+
+=head4 get_file_name
+
+=over
+
+=head3 error_inst
+
+=over
+
+B<Definition:> Currently all CalcChain readers require an 
+L<Error|Spreadsheet::XLSX::Reader::LibXML::Error> instance.
+
+B<Required:> Yes
+
+B<Default:> none
+
+B<Range:> The minimum list of methods to implement for your own instance is;
+
+	error set_error clear_error set_warnings if_warn
+
+B<attribute methods> Methods provided to adjust this attribute
+		
+=back
+
+=head4 get_error_inst
+
+=over
+
+B<Definition:> returns this instance
+
+=back
+
+=head4 error
+
+=over
+
+B<Definition:> Used to get the most recently logged error
+
+=back
+
+=head4 set_error
+
+=over
+
+B<Definition:> used to set a new error string
+
+=back
+
+=head4 clear_error
+
+=over
+
+B<Definition:> used to clear the current error string in this attribute
+
+=back
+
+=head4 set_warnings
+
+=over
+
+B<Definition:> used to turn on or off real time warnings when errors are set
+
+=back
+
+=head4 if_warn
+
+=over
+
+B<Definition:> a method mostly used to extend this package and see if warnings 
+should be emitted.
+
+=back
 
 =head1 SUPPORT
 

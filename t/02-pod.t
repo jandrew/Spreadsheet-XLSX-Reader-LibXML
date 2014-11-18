@@ -1,4 +1,4 @@
-#!env perl
+#!/usr/bin/env perl
 ### Test that the pod files run
 use Test::More;
 use Test::Pod 1.48;

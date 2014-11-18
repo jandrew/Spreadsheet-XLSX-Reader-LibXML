@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML;
-use version; our $VERSION = qv('v0.10.4');
+use version; our $VERSION = qv('v0.10.6');
 
 use 5.010;
 use	Moose;
@@ -42,7 +42,7 @@ my	$parser_modules ={
 			styles =>{
 				superclasses			=> ['Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles'],
 				attributes				=> [qw( epoch_year error_inst )],
-				add_roles_in_sequence	=> [qw( default_format_list format_string_parser )],#### Does self cover excel_epoch?
+				add_roles_in_sequence	=> [qw( default_format_list format_string_parser )],
 				store					=> '_set_styles_instance',
 				package					=> 'StylesInstance',
 			},
@@ -297,7 +297,7 @@ has _styles_instance =>(
 		writer		=> '_set_styles_instance',
 		clearer		=> '_clear_styles',
 		predicate	=> '_has_styles_file',
-		handles		=>[ 'get_format_position' ],
+		handles		=>[ 'get_format_position', 'set_defined_excel_format_list' ],
 	);
 
 has _calc_chain_instance =>(
@@ -713,6 +713,7 @@ Spreadsheet::XLSX::Reader::LibXML - Read xlsx spreadsheet files with LibXML
 
 The following uses the 'TestBook.xlsx' file found in the t/test_files/ folder
 
+	#!/usr/bin/env perl
 	use strict;
 	use warnings;
 	use Spreadsheet::XLSX::Reader::LibXML;
@@ -813,6 +814,28 @@ has an L<XML::LibXML::Reader> parser option.  Future iterations could include a 
 option.  Additionally this package does not (yet) provide the same access to the formatting 
 elements provided in L<Spreadsheet::ParseExcel>.  That is on the longish and incomplete TODO 
 list.
+
+The package operates on the workbook with three primary tiers of classes.  All other classes 
+in this package are for architectual extensibility.
+
+=over
+
+---> Workbook level (This class)
+
+=over
+
+---> L<Worksheet level|Spreadsheet::XLSX::Reader::LibXML::Worksheet>
+
+=over
+
+---> L<Cell level|Spreadsheet::XLSX::Reader::LibXML::Cell> - 
+L<optional|/group_return_type>
+
+=back
+
+=back
+
+=back
 
 =head2 Primary Methods
 
@@ -1004,10 +1027,10 @@ attributes set as;
 B<Range:> The minimum list of methods to implement for your own instance is;
 
 	error set_error clear_error set_warnings if_warn
-		
-=back
 
 B<attribute methods> Methods provided to adjust this attribute
+		
+=back
 
 =head4 get_error_inst
 
@@ -1068,10 +1091,10 @@ xlsx file to be parsed.
 B<Default> no default - this must be provided to read a file
 
 B<Range> any unincrypted xlsx file that can be opened in Microsoft Excel
-		
-=back
 
 B<attribute methods> Methods provided to adjust this attribute
+		
+=back
 
 =head4 set_file_name
 
@@ -1100,10 +1123,10 @@ yourself.>
 B<Default> the value from the file
 
 B<Range> A string
-		
-=back
 
 B<attribute methods> Methods provided to adjust this attribute
+		
+=back
 
 =head4 creator
 
@@ -1124,10 +1147,10 @@ yourself.>
 B<Default> the value from the file
 
 B<Range> A timestamp string (ISO ish)
-		
-=back
 
 B<attribute methods> Methods provided to adjust this attribute
+		
+=back
 
 =head4 date_created
 
@@ -1148,10 +1171,10 @@ yourself.>
 B<Default> the value from the file
 
 B<Range> A string
-		
-=back
 
 B<attribute methods> Methods provided to adjust this attribute
+		
+=back
 
 =head4 modified_by
 
@@ -1172,10 +1195,10 @@ yourself.>
 B<Default> the value from the file
 
 B<Range> A timestamp string (ISO ish)
-		
-=back
 
 B<attribute methods> Methods provided to adjust this attribute
+		
+=back
 
 =head4 date_modified
 
@@ -1195,10 +1218,10 @@ choice is 'reader'.
 B<Default> 'reader'
 
 B<Range> 'reader'
-		
-=back
 
 B<attribute methods> Methods provided to adjust this attribute
+		
+=back
 
 =head4 set_parser_type
 
@@ -1227,10 +1250,10 @@ B<Default> 1
 
 B<Range> 1 = counting from zero like Spreadsheet::ParseExcel, 
 0 = Counting from 1 lke Excel
-		
-=back
 
 B<attribute methods> Methods provided to adjust this attribute
+		
+=back
 
 =head4 counting_from_zero
 
@@ -1262,10 +1285,10 @@ B<Default> 1
 
 B<Range> 1 = return 'EOR' or 'EOF' flags as appropriate,
 0 = return undef when requesting a position that is out of bounds
-		
-=back
 
 B<attribute methods> Methods provided to adjust this attribute
+		
+=back
 
 =head4 boundary_flag_setting
 
@@ -1297,10 +1320,10 @@ B<Default> 0
 B<Range> 1 = treat all columns short of the max column for the sheet as being in 
 the table, 0 = end each row after the last cell with data rather than going to the 
 max sheet column
-		
-=back
 
 B<attribute methods> Methods provided to adjust this attribute
+		
+=back
 
 =head4 is_empty_the_end
 
@@ -1332,10 +1355,10 @@ B<Default> 1
 B<Range> 1 = treat the top left corner of the sheet even if there is no data in 
 the top row or leftmost column, 0 = Set the minimum row and minimum columns to be 
 the first row and first column with data
-		
-=back
 
 B<attribute methods> Methods provided to adjust this attribute
+		
+=back
 
 =head4 set_from_the_edge
 
@@ -1360,10 +1383,10 @@ B<Range> a L<Moose> role with the methods 'get_defined_excel_format' and
 for L<XML::LibXML> allways attempts to get the data into perl friendly strings.  That 
 means this should only tweak the data on the way out and does not affect the data on the 
 way in.
-		
-=back
 
 B<attribute methods> Methods provided to adjust this attribute
+		
+=back
 
 =head4 get_default_format_list
 
@@ -1391,10 +1414,10 @@ If you don't like the output or the method you can write your own Moose Role and
 B<Default> Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings
 
 B<Range> a L<Moose> role with the method 'parse_excel_format_string'
-		
-=back
 
 B<attribute methods> Methods provided to adjust this attribute
+		
+=back
 
 =head4 get_format_string_parser
 
@@ -1430,10 +1453,10 @@ B<Default> instance
 B<Range> instance = returns a populated L<Spreadsheet::XLSX::Reader::LibXML::Cell> instance,
 unformatted = returns the raw value of the cell with no modifications, value = returns just 
 the formatted value stored in the excel cell
-		
-=back
 
 B<attribute methods> Methods provided to adjust this attribute
+		
+=back
 
 =head4 get_group_return_type
 
