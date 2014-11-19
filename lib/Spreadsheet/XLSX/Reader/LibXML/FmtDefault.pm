@@ -234,7 +234,7 @@ any luck means they need to comply with the Excel L<format string definitions
 |http://office.microsoft.com/en-us/excel-help/create-or-delete-a-custom-number-format-HP005199500.aspx>.  
 This role is used in the L<Styles|Spreadsheet::XLSX::Reader::LibXML::Styles> class but 
 I<this method is actually exposed all the way up to the L<Workbook
-|Spreadsheet::XLSX::Reader::LibXML> class through L<Delegation|Moose::Manual::Delegation>.>########################### Start Here
+|Spreadsheet::XLSX::Reader::LibXML> class through L<Delegation|Moose::Manual::Delegation>.> ########################### Start Here
 
 B<Accepts:> an array ref of format strings
 

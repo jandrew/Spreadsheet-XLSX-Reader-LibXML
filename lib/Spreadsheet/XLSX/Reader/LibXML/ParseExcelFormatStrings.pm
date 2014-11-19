@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings;
-use version; our $VERSION = qv('v0.10.4');
+use version; our $VERSION = qv('v0.10.6');
 
 use 5.010;
 use Moose::Role;
@@ -1095,17 +1095,31 @@ sub _build_scientific_sub{
 				$changed_integer .= $2;
 				$integer = $2;
 				$decimal = $3;
-				if( $decimal =~ /(9{4}9+)(\d*)/ ){
-					my $adder = 1 . 0 x length( $2 );
+				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD		"Initial integer: $integer",
+				###LogSD		"Initial decimal: $decimal",  ] );
+				if( $decimal =~ /^(0+)?([1-8][0-9]+)?(9{4}9+)([1-9]+)?(0+)?$/ ){
+					$decimal = undef;
+					$decimal = $2 if $2;
+					$decimal .= $3;
+					$decimal .= $4 if $4;
+					my	$adder	= 1;
+						$adder .= 0 x length( $4 ) if $4;
+					my $stripped_length = length( $decimal );
 					###LogSD	$phone->talk( level => 'debug', message => [
-					###LogSD		"Initial decimal: $decimal",
+					###LogSD		"Stripped decimal: $decimal",
 					###LogSD		"Adjusting a potentially underreported decimal with: $adder",  ] );
 					$decimal += $adder;
 					###LogSD	$phone->talk( level => 'debug', message => [
 					###LogSD		"Resulting decimal: $decimal",  ] );
-					$decimal = sprintf( '%0.30d', $decimal );
+					if( length( $decimal ) > $stripped_length ){
+						$integer++;
+						$decimal = substr( $decimal, 1, $stripped_length );
+					}
+					#~ $decimal = sprintf( '%0.30d', $decimal );
 					###LogSD	$phone->talk( level => 'debug', message => [
-					###LogSD		"Resulting decimal: $decimal",  ] );
+					###LogSD		"Resulting decimal: $decimal",
+					###LogSD		"Resulting integer: $decimal",  ] );
 				}
 			my	$adjusted_position = length( $changed_integer );
 			my	$exponent = $initial_position - $adjusted_position;

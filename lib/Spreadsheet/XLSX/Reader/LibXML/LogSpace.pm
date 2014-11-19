@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::LogSpace;
-use version; our $VERSION = qv('v0.10.4');
+use version; our $VERSION = qv('v0.10.6');
 
 use Moose::Role;
 use Types::Standard qw(

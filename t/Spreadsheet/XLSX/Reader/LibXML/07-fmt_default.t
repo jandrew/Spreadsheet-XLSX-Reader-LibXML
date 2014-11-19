@@ -10,7 +10,7 @@ use	MooseX::ShortCut::BuildInstance v1.8 qw( build_instance );#
 use	lib
 		'../../../../../../Log-Shiras/lib',
 		'../../../../../lib',;
-use Log::Shiras::Switchboard qw( :debug );
+#~ use Log::Shiras::Switchboard qw( :debug );
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(#
 ###LogSD						reports =>{
 ###LogSD							log_file =>[ Print::Log->new ],

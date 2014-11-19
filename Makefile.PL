@@ -46,6 +46,7 @@ my %WriteMakefileArgs = (
   "TEST_REQUIRES" => {
     "Capture::Tiny" => 0,
     "Data::Dumper" => 0,
+    "Spreadsheet::ParseExcel" => 0,
     "Test::Moose" => 0,
     "Test::Most" => 0
   },
@@ -70,6 +71,7 @@ my %FallbackPrereqs = (
   "MooseX::ShortCut::BuildInstance" => "v1.8.0",
   "MooseX::StrictConstructor" => 0,
   "OLE::Storage_Lite" => 0,
+  "Spreadsheet::ParseExcel" => 0,
   "Test::Moose" => 0,
   "Test::Most" => 0,
   "Type::Coercion" => 0,

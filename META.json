@@ -49,6 +49,7 @@
          "requires" : {
             "Capture::Tiny" : "0",
             "Data::Dumper" : "0",
+            "Spreadsheet::ParseExcel" : "0",
             "Test::Moose" : "0",
             "Test::Most" : "0"
          }
