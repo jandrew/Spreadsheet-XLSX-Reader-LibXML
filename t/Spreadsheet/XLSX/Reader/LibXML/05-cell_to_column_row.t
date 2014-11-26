@@ -73,7 +73,7 @@ my			$error_ref =[
 				qr/\QThe requested row cannot be less than one - you requested: 0\E/,
 				qr/\QCould not parse the column component from -10-\E/,
 				qr/\QCould not parse the row component from -A-\E/,
-				qr/\QThe regex (?^:^([A-Z])?([A-Z])?([A-Z])?([0-9]*)$) could not match -Z1.1-\E/,
+				qr/\Qcould not match -Z1.1-\E/,
 				undef,undef,undef,undef,undef,undef,undef,undef,undef,undef,
 				undef,undef,undef,undef,undef,undef,undef,undef,undef,undef,
 				undef,undef,undef,undef,undef,undef,undef,undef,undef,undef,
@@ -83,7 +83,7 @@ my			$error_ref =[
 				qr/\QThe requested row cannot be less than one - you requested: 0\E/,
 				qr/\QCould not parse the column component from -10-\E/,
 				qr/\QCould not parse the row component from -A-\E/,
-				qr/\QThe regex (?^:^([A-Z])?([A-Z])?([A-Z])?([0-9]*)$) could not match -Z1.1-\E/,
+				qr/\Qcould not match -Z1.1-\E/,
 			];
 ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space => 'main', );
 ###LogSD		$phone->talk( level => 'info', message => [ "initial questions ..." ] );

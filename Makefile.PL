@@ -53,7 +53,7 @@ my %WriteMakefileArgs = (
     "Test::Most" => 0,
     "Test::TypeTiny" => 0
   },
-  "VERSION" => "v0.12.2",
+  "VERSION" => "v0.12.4",
   "test" => {
     "TESTS" => "t/Spreadsheet/XLSX/Reader/*.t t/Spreadsheet/XLSX/Reader/LibXML/*.t t/Spreadsheet/XLSX/Reader/LibXML/XMLReader/*.t"
   }

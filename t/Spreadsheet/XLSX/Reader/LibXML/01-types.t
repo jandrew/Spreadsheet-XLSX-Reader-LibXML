@@ -75,16 +75,16 @@ my			$question_ref =[
 			];
 my			$answer_ref = [
 				[],
-				[undef, undef, qr/Could not find \/ read the file: badfile\.not/, ],
-				[undef, qr/The string -badfile.not- does not have an xlsx file extension/, ],
-				[undef, qr/The string -badfile.not- does not have an xml file extension/, ],
-				[undef, undef, qr/\QThe string -badfile.not- does not match (?^:^(dom|reader|sax)$)\E/, ],
-				[undef, undef, qr/\Q2000 is not an excel epoch\E/, ],
-				[undef, undef, qr/\A0 is not a cell ID\E/, ],
-				[undef, undef, undef, qr/\-3 is not a positive number\E/, ],
-				[undef, undef, undef, qr/0 is not a negative number\E/, ],
-				[undef, undef, qr/s is not zero (or undef)\E/, qr/2 is not zero (or undef)\E/, ],
-				[undef, undef, undef, undef, qr/\-1 is not a negative number\E/, ],
+				[undef, undef, 'Could not find / read the file: badfile.not', ],
+				[undef, 'The string -badfile.not- does not have an xlsx file extension', ],
+				[undef, 'The string -badfile.not- does not have an xml file extension', ],
+				[undef, undef, 'The string -badfile.not- does not match ', ],
+				[undef, undef, '2000 is not an excel epoch', ],
+				[undef, undef, '0 is not a cell ID', ],
+				[undef, undef, undef, '\-3 is not a positive number', ],
+				[undef, undef, undef, '0 is not a negative number', ],
+				[undef, undef, 's is not zero (or undef)', '2 is not zero (or undef)', ],
+				[undef, undef, undef, undef, '-1 is not a negative number', ],
 			];
 ###LogSD my $phone = Log::Shiras::Telephone->new;
 ###LogSD	$phone->talk( level => 'debug', message =>[ 'Start your engines ...' ] );
