@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML;
-use version; our $VERSION = qv('v0.10.6');
+use version; our $VERSION = qv('v0.12.2');
 
 use 5.010;
 use	Moose;
@@ -14,20 +14,20 @@ use Types::Standard qw(
 		CodeRef				Int				HasMethods
 		Bool
     );
-use	MooseX::ShortCut::BuildInstance v1.8 qw( build_instance should_re_use_classes );
+use	MooseX::ShortCut::BuildInstance 1.028 qw( build_instance should_re_use_classes );
 should_re_use_classes( 1 );
 use lib	'../../../../lib',;
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
 with 	'Spreadsheet::XLSX::Reader::LibXML::LogSpace';
 ###LogSD	use Log::Shiras::UnhideDebug;
-use	Spreadsheet::XLSX::Reader::LibXML::Error v0.5;
-use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles v0.5;
-use	Spreadsheet::XLSX::Reader::LibXML::FmtDefault v0.5;
-use	Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings v0.5;
-use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings v0.5;
-use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet v0.5;
-use	Spreadsheet::XLSX::Reader::LibXML::Types v0.5 qw( XLSXFile ParserType );
+use	Spreadsheet::XLSX::Reader::LibXML::Error;
+use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles;
+use	Spreadsheet::XLSX::Reader::LibXML::FmtDefault;
+use	Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings;
+use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings;
+use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet;
+use	Spreadsheet::XLSX::Reader::LibXML::Types qw( XLSXFile ParserType );
 
 #########1 Dispatch Tables    3#########4#########5#########6#########7#########8#########9
 
@@ -164,13 +164,6 @@ has group_return_type =>(
 
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
 
-
-###############################################################################
-#
-# parse()
-#
-# A convenience method to duplicate Spreadsheet::ParseExcel processes
-
 sub parse{
 
     my ( $self, $file_name, $formatter ) = @_;
@@ -297,7 +290,9 @@ has _styles_instance =>(
 		writer		=> '_set_styles_instance',
 		clearer		=> '_clear_styles',
 		predicate	=> '_has_styles_file',
-		handles		=>[ 'get_format_position', 'set_defined_excel_format_list' ],
+		handles		=>[qw(
+			get_format_position	set_defined_excel_format_list change_output_encoding
+		) ],
 	);
 
 has _calc_chain_instance =>(
@@ -362,14 +357,6 @@ has _worksheet_superclass =>(
 	);
 
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
-	
-	
-
-###########################################################################################
-#
-# _build_file()
-#
-# Unzip the .xlsx file and extract the generic information into perl data structures
 
 sub _build_file{
 
@@ -458,19 +445,6 @@ sub _build_file{
 	return $self;
 }
 
-
-###############################################################################
-#
-# _check_if_ole_file()
-#
-# Check if the file is an OLE compound doc. This can happen in a few cases.
-# This first is when the file is xls and not xlsx. The second is when the
-# file is an encrypted xlsx file. We also handle the case of unknown OLE
-# file types.
-#
-# Porting note. As a lightweight test you can check for OLE files by looking
-# for the magic number 0xD0CF11E0 (docfile0) at the start of the file.
-#
 sub _check_if_ole_file {
 
     my ( $self, $file_name ) = @_;
@@ -612,7 +586,6 @@ sub _load_doc_props_file{
 		#~ )
 	);
 	###LogSD	$phone->talk( level => 'trace', message => [ "Current object:", $self ] );
-	#~ my $wait = <>;
 }
 
 sub _set_shared_worksheet_files{
@@ -777,8 +750,6 @@ The following uses the 'TestBook.xlsx' file found in the t/test_files/ folder
 	# 84: Value       = 2016-2-6 #(shows as 2/6/2016 in the sheet)
 	# 85: Unformatted = 40944
 	###########################
-
-
 
 =head1 DESCRIPTION
 
@@ -1029,10 +1000,10 @@ B<Range:> The minimum list of methods to implement for your own instance is;
 	error set_error clear_error set_warnings if_warn
 
 B<attribute methods> Methods provided to adjust this attribute
-		
-=back
 
-=head4 get_error_inst
+=over
+
+=B<get_error_inst>
 
 =over
 
@@ -1040,7 +1011,7 @@ B<Definition:> returns this instance
 
 =back
 
-=head4 error
+B<error>
 
 =over
 
@@ -1048,7 +1019,7 @@ B<Definition:> Used to get the most recently logged error
 
 =back
 
-=head4 set_error
+B<set_error>
 
 =over
 
@@ -1056,7 +1027,7 @@ B<Definition:> used to set a new error string
 
 =back
 
-=head4 clear_error
+B<clear_error>
 
 =over
 
@@ -1064,7 +1035,7 @@ B<Definition:> used to clear the current error string in this attribute
 
 =back
 
-=head4 set_warnings
+B<set_warnings>
 
 =over
 
@@ -1072,12 +1043,16 @@ B<Definition:> used to turn on or off real time warnings when errors are set
 
 =back
 
-=head4 if_warn
+B<if_warn>
 
 =over
 
 B<Definition:> a method mostly used to extend this package and see if warnings 
 should be emitted.
+
+=back
+		
+=back
 
 =back
 
@@ -1094,9 +1069,9 @@ B<Range> any unincrypted xlsx file that can be opened in Microsoft Excel
 
 B<attribute methods> Methods provided to adjust this attribute
 		
-=back
+=over
 
-=head4 set_file_name
+B<set_file_name>
 
 =over
 
@@ -1104,11 +1079,15 @@ B<Definition:> change the set file name (this will reboot the workbook instance)
 
 =back
 
-=head4 has_file_name
+B<has_file_name>
 
 =over
 
 B<Definition:> this is fundamentally a way to see if the workbook loaded correctly
+
+=back
+
+=back
 
 =back
 
@@ -1126,13 +1105,17 @@ B<Range> A string
 
 B<attribute methods> Methods provided to adjust this attribute
 		
-=back
+=over
 
-=head4 creator
+B<creator>
 
 =over
 
 B<Definition:> returns the name of the file creator
+
+=back
+
+=back
 
 =back
 
@@ -1150,13 +1133,17 @@ B<Range> A timestamp string (ISO ish)
 
 B<attribute methods> Methods provided to adjust this attribute
 		
-=back
+=over
 
-=head4 date_created
+B<date_created>
 
 =over
 
 B<Definition:> returns the date the file was created
+
+=back
+
+=back
 
 =back
 
@@ -1174,13 +1161,17 @@ B<Range> A string
 
 B<attribute methods> Methods provided to adjust this attribute
 		
-=back
+=over
 
-=head4 modified_by
+B<modified_by>
 
 =over
 
 B<Definition:> returns the user name of the person who last modified the file
+
+=back
+
+=back
 
 =back
 
@@ -1198,13 +1189,17 @@ B<Range> A timestamp string (ISO ish)
 
 B<attribute methods> Methods provided to adjust this attribute
 		
-=back
+=over
 
-=head4 date_modified
+B<date_modified>
 
 =over
 
 B<Definition:> returns the date when the file was last modified
+
+=back
+
+=back
 
 =back
 
@@ -1221,9 +1216,9 @@ B<Range> 'reader'
 
 B<attribute methods> Methods provided to adjust this attribute
 		
-=back
+=over
 
-=head4 set_parser_type
+B<set_parser_type>
 
 =over
 
@@ -1231,11 +1226,15 @@ B<Definition:> the way to change the parser type
 
 =back
 
-=head4 get_parser_type
+B<get_parser_type>
 
 =over
 
 B<Definition:> returns the currently set parser type
+
+=back
+
+=back
 
 =back
 
@@ -1253,9 +1252,9 @@ B<Range> 1 = counting from zero like Spreadsheet::ParseExcel,
 
 B<attribute methods> Methods provided to adjust this attribute
 		
-=back
+=over
 
-=head4 counting_from_zero
+B<counting_from_zero>
 
 =over
 
@@ -1263,11 +1262,15 @@ B<Definition:> a way to check the current attribute setting
 
 =back
 
-=head4 set_count_from_zero
+B<set_count_from_zero>
 
 =over
 
 B<Definition:> a way to change the current attribute setting
+
+=back
+
+=back
 
 =back
 
@@ -1288,9 +1291,9 @@ B<Range> 1 = return 'EOR' or 'EOF' flags as appropriate,
 
 B<attribute methods> Methods provided to adjust this attribute
 		
-=back
+=over
 
-=head4 boundary_flag_setting
+B<boundary_flag_setting>
 
 =over
 
@@ -1298,11 +1301,15 @@ B<Definition:> a way to check the current attribute setting
 
 =back
 
-=head4 change_boundary_flag
+B<change_boundary_flag>
 
 =over
 
 B<Definition:> a way to change the current attribute setting
+
+=back
+
+=back
 
 =back
 
@@ -1323,9 +1330,9 @@ max sheet column
 
 B<attribute methods> Methods provided to adjust this attribute
 		
-=back
+=over
 
-=head4 is_empty_the_end
+B<is_empty_the_end>
 
 =over
 
@@ -1333,11 +1340,15 @@ B<Definition:> a way to check the current attribute setting
 
 =back
 
-=head4 set_empty_is_end
+B<set_empty_is_end>
 
 =over
 
 B<Definition:> a way to set the current attribute setting
+
+=back
+
+=back
 
 =back
 
@@ -1358,13 +1369,17 @@ the first row and first column with data
 
 B<attribute methods> Methods provided to adjust this attribute
 		
-=back
+=over
 
-=head4 set_from_the_edge
+B<set_from_the_edge>
 
 =over
 
 B<Definition:> a way to set the current attribute setting
+
+=back
+
+=back
 
 =back
 
@@ -1386,9 +1401,9 @@ way in.
 
 B<attribute methods> Methods provided to adjust this attribute
 		
-=back
+=over
 
-=head4 get_default_format_list
+B<get_default_format_list>
 
 =over
 
@@ -1396,11 +1411,15 @@ B<Definition:> a way to check the current attribute setting
 
 =back
 
-=head4 set_default_format_list
+B<set_default_format_list>
 
 =over
 
 B<Definition:> a way to set the current attribute setting
+
+=back
+
+=back
 
 =back
 
@@ -1417,9 +1436,9 @@ B<Range> a L<Moose> role with the method 'parse_excel_format_string'
 
 B<attribute methods> Methods provided to adjust this attribute
 		
-=back
+=over
 
-=head4 get_format_string_parser
+B<get_format_string_parser>
 
 =over
 
@@ -1427,11 +1446,15 @@ B<Definition:> a way to check the current attribute setting
 
 =back
 
-=head4 set_format_string_parser
+B<set_format_string_parser>
 
 =over
 
 B<Definition:> a way to set the current attribute setting
+
+=back
+
+=back
 
 =back
 
@@ -1456,9 +1479,9 @@ the formatted value stored in the excel cell
 
 B<attribute methods> Methods provided to adjust this attribute
 		
-=back
+=over
 
-=head4 get_group_return_type
+B<get_group_return_type>
 
 =over
 
@@ -1466,7 +1489,7 @@ B<Definition:> a way to check the current attribute setting
 
 =back
 
-=head4 set_group_return_type
+B<set_group_return_type>
 
 =over
 
@@ -1474,17 +1497,26 @@ B<Definition:> a way to set the current attribute setting
 
 =back
 
+=back
+
+=back
+
 =head1 BUILD / INSTALL from Source
+
+B<1.> Ensure that you have the libxml2 and libxml2-dev libraries installed using 
+your favorite package installer
+
+http://xmlsoft.org/
 	
-B<1.> Download a compressed file with the code
+B<2.> Download a compressed file with the code
 	
-B<2.> Extract the code from the compressed file.  If you are using tar this should work:
+B<3.> Extract the code from the compressed file.  If you are using tar this should work:
 
         tar -zxvf Spreadsheet-XLSX-Reader-LibXML-v0.xx.tar.gz
 
-B<3.> Change (cd) into the extracted directory
+B<4.> Change (cd) into the extracted directory
 
-B<4.> Run the following
+B<5.> Run the following
 
 =over
 
@@ -1518,13 +1550,20 @@ L<github Spreadsheet::XLSX::Reader::LibXML/issues|https://github.com/jandrew/Spr
 
 =over
 
-B<1.> Add a pivot table reader (Not just read the values from the sheet)
+B<1.> Build L<Alien::LibXML::Devel> to load the libxml2-devel libraries from source and 
+require that and L<Alien::LibXML> in the build file. So all needed requirements for L<XML::LibXML> 
+are met
 
-B<2.> Add calc chain methods
+This includes the libxml2 and libxml2-dev libraries
 
-B<3.> Add more exposure to workbook formatting methods
+B<2.> Add a pivot table reader (Not just read the values from the sheet)
 
-B<4.> Build a DOM parser alternative for the sheets
+B<3.> Add calc chain methods
+
+B<4.> Add more exposure to workbook formatting methods
+
+B<5.> Build a DOM parser alternative for the sheets
+
 (Theoretically faster than the reader but uses more memory)
 
 =back
@@ -1576,6 +1615,8 @@ L<MooseX::ShortCut::BuildInstance> - 1.026
 L<Carp>- cluck
 
 L<XML::LibXML>
+
+L<Clone>
 
 L<DateTimeX::Format::Excel>
 

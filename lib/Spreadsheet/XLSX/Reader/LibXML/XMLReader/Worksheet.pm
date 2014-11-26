@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet;
-use version; our $VERSION = qv('v0.10.6');
+use version; our $VERSION = qv('v0.12.2');
 
 
 use	5.010;
@@ -55,7 +55,7 @@ has workbook_instance =>(
 						get_format_position			set_empty_is_end
 						is_empty_the_end			_starts_at_the_edge
 						get_group_return_type		set_group_return_type
-						get_epoch_year
+						get_epoch_year				change_output_encoding
 					)],
 		handles	=> [qw(
 						counting_from_zero			boundary_flag_setting
@@ -64,7 +64,7 @@ has workbook_instance =>(
 						get_format_position			set_empty_is_end
 						is_empty_the_end			_starts_at_the_edge
 						get_group_return_type		set_group_return_type
-						get_epoch_year
+						get_epoch_year				change_output_encoding
 					)],
 		required => 1,
 	);

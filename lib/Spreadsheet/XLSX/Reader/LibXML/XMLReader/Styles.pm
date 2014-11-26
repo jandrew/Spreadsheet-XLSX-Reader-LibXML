@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles;
-use version; our $VERSION = qv('v0.10.6');
+use version; our $VERSION = qv('v0.12.2');
 
 use 5.010;
 use Moose;

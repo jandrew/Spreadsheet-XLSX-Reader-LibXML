@@ -395,6 +395,7 @@ lives_ok{
 										get_group_return_type		=> sub{},
 										set_group_return_type		=> sub{},
 										get_epoch_year				=> sub{ return '1904' },
+										change_output_encoding		=> sub{ $_[0] },
 									},
 									add_attributes =>{
 										empty_is_end =>{

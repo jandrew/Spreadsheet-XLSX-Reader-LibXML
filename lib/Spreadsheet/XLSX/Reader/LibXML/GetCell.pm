@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::GetCell;
-use version; our $VERSION = qv('v0.10.6');
+use version; our $VERSION = qv('v0.12.2');
 
 use	Moose::Role;
 requires qw(
@@ -9,7 +9,7 @@ requires qw(
 	_get_row_all				_get_error_inst				counting_from_zero
 	boundary_flag_setting		change_boundary_flag		_has_shared_strings_file
 	get_shared_string_position	_has_styles_file			get_format_position
-	get_group_return_type		set_group_return_type
+	change_output_encoding		get_group_return_type		set_group_return_type
 );
 use Types::Standard qw(
 	Bool 						HasMethods					Enum
@@ -17,9 +17,9 @@ use Types::Standard qw(
 	is_ArrayRef					HashRef						is_HashRef
 );# Int
 ###LogSD	use Log::Shiras::Telephone;
-###LogSD	use Log::Shiras::UnhideDebug;
 use lib	'../../../../../lib',;
-use	Spreadsheet::XLSX::Reader::LibXML::Cell v0.5;
+###LogSD	use Log::Shiras::UnhideDebug;
+use	Spreadsheet::XLSX::Reader::LibXML::Cell;
 
 #########1 Dispatch Tables    3#########4#########5#########6#########7#########8#########9
 
@@ -73,7 +73,9 @@ has custom_formats =>(
 
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
 
+sub get_col_row{ my $self = shift; $self->_get_col_row( @_ ); };
 
+sub get_row_all{ my $self = shift; $self->_get_row_all( @_ ); };
 
 sub get_cell{
     my ( $self, $requested_row, $requested_column ) = @_;
@@ -107,8 +109,6 @@ sub get_cell{
 	
 	return $return;
 }
-
-
 
 sub get_next_value{
     my ( $self, ) = @_;
@@ -156,7 +156,7 @@ sub fetchrow_arrayref{
 			if( is_HashRef( $cell ) ){
 				###LogSD	$phone->talk( level => 'debug', message =>[
 				###LogSD		'Building out the cell:', $cell ] );
-				push @$return, $self->_build_out_the_cell( $cell, $self->get_group_return_type );
+				push @$return, $self->_build_out_the_cell( $cell, );
 			}else{
 				push @$return, $cell;
 			}
@@ -359,7 +359,10 @@ sub _build_out_the_cell{
 		}
 		###LogSD	$phone->talk( level => 'debug', message =>[
 		###LogSD		"Cell raw text is:", $result->{cell_unformatted}] );
-		return $result->{cell_unformatted} if $self->get_group_return_type eq 'unformatted';
+		if( $self->get_group_return_type eq 'unformatted' ){
+			my $reformatted = $self->change_output_encoding( $result->{cell_unformatted} );
+			return  $reformatted;
+		}
 		my	$custom_format;
 		if( $self->has_custom_format( $result->{r} ) ){
 			###LogSD	$phone->talk( level => 'debug', message =>[
@@ -382,7 +385,8 @@ sub _build_out_the_cell{
 			###LogSD	$phone->talk( level => 'debug', message =>[
 			###LogSD		'Cell custom_format is:', $custom_format ] );
 			if( $self->get_group_return_type eq 'value' ){
-				return $custom_format->assert_coerce( $result->{cell_unformatted} );
+				my $reformatted = $self->change_output_encoding( $result->{cell_unformatted} );
+				return $custom_format->assert_coerce( $reformatted );
 			}
 		}
 		if( exists $result->{f} ){
@@ -458,8 +462,15 @@ sub _build_out_the_cell{
 		$result->{cell_col} = $self->_get_used_position( $result->{col} );
 		delete $result->{col};
 		$result->{error_inst} = $self->_get_error_inst;
-		###LogSD		$phone->talk( level => 'debug', message =>[
-		###LogSD			"Final ref is:", $result ] );
+		$result->{log_space} = $self->get_log_space . '::Cell';
+		$result->{unformatted_converter} = sub{ 
+			my	$string = $_[0];
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD		"Sending stuff to converter: $string", @_ ] );
+			$self->change_output_encoding( $string ) 
+		};
+		###LogSD	$phone->talk( level => 'debug', message =>[
+		###LogSD		"Final ref is:", $result ] );
 		
 		# build cell
 		$return = Spreadsheet::XLSX::Reader::LibXML::Cell->new( %$result );
@@ -470,10 +481,6 @@ sub _build_out_the_cell{
 	###LogSD			"Cell is:", $return ] );
 	return $return;
 }
-
-sub get_col_row{ my $self = shift; $self->_get_col_row( @_ ); };
-
-sub get_row_all{ my $self = shift; $self->_get_row_all( @_ ); };
 
 #########1 Phinish            3#########4#########5#########6#########7#########8#########9
 

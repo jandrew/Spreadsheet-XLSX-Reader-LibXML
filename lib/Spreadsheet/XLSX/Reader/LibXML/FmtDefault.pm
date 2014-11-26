@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::FmtDefault;
-use version; our $VERSION = qv('v0.10.6');
+use version; our $VERSION = qv('v0.12.2');
 
 use	5.010;
 use	Moose::Role;
@@ -38,7 +38,7 @@ sub	change_output_encoding{
 	###LogSD	my	$phone = Log::Shiras::Telephone->new(
 	###LogSD				name_space 	=> $self->get_log_space . '::change_output_encoding', );
 	###LogSD		$phone->talk( level => 'info', message => [
-	###LogSD				"Changing the encoding of: $string",
+	###LogSD				"Changing the encoding of: ", @_,
 	###LogSD				'..to encoding type: ' . $self->get_target_encoding ] );
 	return $string;
 }
@@ -188,7 +188,10 @@ B<Returns:> the converted string
 
 =over
 
-B<Definition:> This will return the preset excel format string for the stored position
+B<Definition:> This will return the preset excel format string for the stored position.  
+This role is used in the L<Styles|Spreadsheet::XLSX::Reader::LibXML::Styles> class but 
+I<this method is actually exposed all the way up to the L<Workbook
+|Spreadsheet::XLSX::Reader::LibXML> class through L<Delegation|Moose::Manual::Delegation>.>
 
 B<Accepts:> an $integer for the format string position
 
@@ -230,11 +233,11 @@ B<Returns:> an array ref of all pre-defined format strings
 B<Definition:> If you don't want to re-write this role you can just set a new 
 array ref of format strings that you want excel to use.  The strings need to comply with 
 the capabilities of L<Spreadsheet::XLSX::Reader:LibXML::ParseExcelFormatStrings>.  With 
-any luck means they need to comply with the Excel L<format string definitions
+any luck means they comply with the Excel L<format string definitions
 |http://office.microsoft.com/en-us/excel-help/create-or-delete-a-custom-number-format-HP005199500.aspx>.  
 This role is used in the L<Styles|Spreadsheet::XLSX::Reader::LibXML::Styles> class but 
 I<this method is actually exposed all the way up to the L<Workbook
-|Spreadsheet::XLSX::Reader::LibXML> class through L<Delegation|Moose::Manual::Delegation>.> ########################### Start Here
+|Spreadsheet::XLSX::Reader::LibXML> class through L<Delegation|Moose::Manual::Delegation>.>
 
 B<Accepts:> an array ref of format strings
 
@@ -244,30 +247,67 @@ B<Returns:> nothing
 
 =head2 Attributes
 
-Data passed to new when creating an instance.   For modification of 
-these attributes see the listed 'attribute methods'. For more information on 
-attributes see L<Moose::Manual::Attributes>.
+Data passed to new when creating the L<Styles|Spreadsheet::XLSX::Reader::LibXML::Styles> 
+instance.   For modification of these attributes see the listed 'attribute methods'.
+For more information on attributes see L<Moose::Manual::Attributes>.
 
-=head3 file_name
+=head3 excel_region
 
 =over
 
-B<Definition:> This needs to be the full file path to the calcChain file to 
-be parsed.
+B<Definition:> This records the target region of this localization role
 
-B<Required:> Yes
-
-B<Default:> none
-
-B<Range> an actual Excel 2007+ calcChain file
+B<Default:> en = english
 
 B<attribute methods> Methods provided to adjust this attribute
 		
-=back
+=over
 
-=head4 get_file_name
+=B<get_excel_region>
 
 =over
+
+B<Definition:> returns the value of the attribute (en)
+
+=back
+
+=back
+
+=back
+
+=head3 target_encoding
+
+=over
+
+B<Definition:> This is the target output encoding
+
+B<Default:> UTF-8
+
+B<Range:> No real options here (since it currently is a noop)
+
+B<attribute methods> Methods provided to adjust this attribute
+		
+=over
+
+=B<set_target_encoding( $encoding )>
+
+=over
+
+B<Definition:> Changing this won't affect anything
+
+=back
+
+=B<get_target_encoding>
+
+=over
+
+B<Definition:> Returns the currently set attribute value
+
+=back
+
+=back
+
+=back
 
 =head1 SUPPORT
 

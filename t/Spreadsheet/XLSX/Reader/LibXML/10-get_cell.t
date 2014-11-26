@@ -299,7 +299,7 @@ lives_ok{
 											styles_instance =>{
 												isa			=> HasMethods[ 'get_format_position' ],
 												predicate	=> '_has_styles_file',
-												handles		=>[ 'get_format_position' ],
+												handles		=>[ 'get_format_position', 'change_output_encoding' ],
 											},
 											count_from_zero =>{
 												isa		=> Bool,
@@ -358,20 +358,23 @@ explain									"Test get_cell";
 			INITIALRUN: for my $row ( $row_min .. ($row_max + 1) ) {
             for my $col ( $col_min .. $col_max ) {
 
-#~ ###LogSD	if( $row == 3 and $col == 2 ){
-#~ ###LogSD		$operator->add_name_space_bounds( {
-#~ ###LogSD			main =>{
-#~ ###LogSD				UNBLOCK =>{
-#~ ###LogSD					log_file => 'debug',
-#~ ###LogSD				},
-#~ ###LogSD			},
+###LogSD	if( $row == 1 and $col == 0 ){
+###LogSD		$operator->add_name_space_bounds( {
+###LogSD			main =>{
+###LogSD				UNBLOCK =>{
+###LogSD					log_file => 'debug',
+###LogSD				},
+###LogSD			},
 #~ ###LogSD			Test =>{
-#~ ###LogSD				UNBLOCK =>{
-#~ ###LogSD					log_file => 'trace',
-#~ ###LogSD				},
+###LogSD				UNBLOCK =>{
+###LogSD					log_file => 'trace',
+###LogSD				},
 #~ ###LogSD			},
-#~ ###LogSD		} );
-#~ ###LogSD	}
+###LogSD		} );
+###LogSD	}
+###LogSD	elsif( $row == 1 and $col == 1 ){
+###LogSD		exit 1;
+###LogSD	}
 
 lives_ok{	$cell = $test_instance->get_cell( $row, $col ) }
 										"Get anything at the cell for row -$row- and col -$col-";

@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings;
-use version; our $VERSION = qv('v0.10.6');
+use version; our $VERSION = qv('v0.12.2');
 
 use 5.010;
 use Moose::Role;
@@ -20,12 +20,13 @@ use Types::Standard qw(
 use Carp qw( confess );
 use	Type::Coercion;
 use	Type::Tiny;
-use DateTimeX::Format::Excel v0.12;
+use DateTimeX::Format::Excel 0.012;
 use DateTime::Format::Flexible;
+use Clone 'clone';
 use lib	'../../../../../lib',;
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
-use	Spreadsheet::XLSX::Reader::LibXML::Types v0.5 qw(
+use	Spreadsheet::XLSX::Reader::LibXML::Types 0.012 qw(
 		PositiveNum				NegativeNum
 		ZeroOrUndef				NotNegativeNum
 		Excel_number_0
@@ -33,13 +34,61 @@ use	Spreadsheet::XLSX::Reader::LibXML::Types v0.5 qw(
 
 #########1 Dispatch Tables & Package Variables    5#########6#########7#########8#########9
 
-my $coercion_index		= 0;
-my @type_list			= ( PositiveNum, NegativeNum, ZeroOrUndef, Str );
-my $last_date_cldr		= 'yyyy-m-d';
-my $last_duration		= 0;
-my $last_sub_seconds	= 0;
-my $last_format_rem		= 0;
-my $duration_order		={ h => 'm', m =>'s', s =>'0' };
+my	$coercion_index		= 0;
+my	@type_list			= ( PositiveNum, NegativeNum, ZeroOrUndef, Str );
+my	$last_date_cldr		= 'yyyy-m-d';
+my	$last_duration		= 0;
+my	$last_sub_seconds	= 0;
+my	$last_format_rem	= 0;
+my	$duration_order		={ h => 'm', m =>'s', s =>'0' };
+my	$number_build_dispatch ={
+		all =>[qw(
+			_convert_negative
+			_divide_by_thousands
+			_convert_to_percent
+			_split_decimal_integer
+			_move_decimal_point
+			_build_fraction
+			_round_decimal
+			_add_commas
+			_pad_exponent
+		)],
+		scientific =>[qw(
+			_convert_negative
+			_split_decimal_integer
+			_move_decimal_point
+			_round_decimal
+			_add_commas
+			_pad_exponent
+		)],
+		percent =>[qw(
+			_convert_negative
+			_convert_to_percent
+			_split_decimal_integer
+			_round_decimal
+			_add_commas
+		)],
+		fraction =>[qw(
+			_convert_negative
+			_split_decimal_integer
+			_build_fraction
+			_add_commas
+		)],
+		integer =>[qw(
+			_convert_negative
+			_divide_by_thousands
+			_split_decimal_integer
+			_round_decimal
+			_add_commas
+		)],
+		decimal =>[qw(
+			_convert_negative
+			_divide_by_thousands
+			_split_decimal_integer
+			_round_decimal
+			_add_commas
+		)],
+	};
 
 #########1 Public Attributes  3#########4#########5#########6#########7#########8#########9
 
@@ -296,10 +345,9 @@ sub _build_text{
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		"Final sprintf string: $sprintf_string" ] );
 	my	$return_sub = sub{
-			my $adjusted_input = $self->change_output_encoding( $_[0] );
 			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"Updated Input: $adjusted_input" ] );
-			return sprintf( $sprintf_string, $adjusted_input );
+			###LogSD		"Updated Input: $_[0]" ] );
+			return sprintf( $sprintf_string, $_[0] );
 		};
 	return( Str, $return_sub );
 }
@@ -729,20 +777,25 @@ sub _build_number{
 	my $method = '_build_' . lc( $number_type ) . '_sub';
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		"Resolved the number type to: $number_type",
-	###LogSD		'Working with settings:', $code_hash_ref] );
+	###LogSD		'Working with settings:', $code_hash_ref ] );
+	
+	# Set negative type
+	if( $type_filter->name eq 'NegativeNum' ){
+		$code_hash_ref->{negative_type} = 1;
+	}
 	my $conversion_sub = $self->$method( $type_filter, $list_ref, $code_hash_ref );
 		
 	return( $type_filter, $conversion_sub );
 }
 
 sub _build_integer_sub{
-	my( $self, $type_filter, $list_ref, $code_hash_ref ) = @_;
+	my( $self, $type_filter, $list_ref, $conversion_defs ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
 	###LogSD					$self->get_log_space .  '::_build_number::_build_integer_sub', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			"Building an anonymous sub to return integer values",
 	###LogSD			'With type constraint: ' . $type_filter->name,
-	###LogSD			'..using list ref:' , $list_ref, '..and code hash ref:', $code_hash_ref	] );
+	###LogSD			'..using list ref:' , $list_ref, '..and conversion defs:', $conversion_defs	] );
 	
 	my $sprintf_string;
 	# Process once to determine what to do
@@ -758,47 +811,33 @@ sub _build_integer_sub{
 			$sprintf_string .= $piece->[1];
 		}
 	}
+	$conversion_defs->{no_decimal} = 1;
+	$conversion_defs->{sprintf_string} = $sprintf_string;
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		"Final sprintf string: $sprintf_string" ] );
+	my $dispatch_sequence = $number_build_dispatch->{decimal};
 	
 	my 	$conversion_sub = sub{
 			my $adjusted_input = $_[0];
-			if( $adjusted_input ){
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		"Integer Input: $adjusted_input" ] );
-				$adjusted_input = $self->change_output_encoding( $adjusted_input );
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		"Updated integer Input: $adjusted_input", 'For integer: ' . int( $adjusted_input ) ] );
-				if( $type_filter->name eq 'NegativeNum' ){
-					$adjusted_input = -1 * $adjusted_input;
-					###LogSD	$phone->talk( level => 'debug', message => [
-					###LogSD		"Removed negative: $adjusted_input" ] );
-				}
-				my $decimal = abs( $adjusted_input - int( $adjusted_input ) );
-				$adjusted_input = int( $adjusted_input );
-				if( $decimal >= 0.5 ){
-					$adjusted_input = ( $adjusted_input < 0 ) ?
-						($adjusted_input - 1) : ($adjusted_input + 1);
-				}
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		"Removed the decimal: $decimal", "From adjusted input: $adjusted_input" ] );
-				if( exists $code_hash_ref->{integer}->{leading_zeros} and
-					length( $adjusted_input ) < $code_hash_ref->{integer}->{leading_zeros} ){
-					$adjusted_input = ('0' x ( $code_hash_ref->{integer}->{leading_zeros} - length( $adjusted_input ) ) ) . $adjusted_input;
-					###LogSD	$phone->talk( level => 'debug', message => [
-					###LogSD		"Set leading zeros: $adjusted_input" ] );
-				}
-				if( exists $code_hash_ref->{integer}->{comma} ){
-					$adjusted_input = $self->_add_integer_separator( $adjusted_input, @{ $code_hash_ref->{integer}}{ 'comma','group_length' } );
-					###LogSD	$phone->talk( level => 'debug', message => [
-					###LogSD		"Added commas: $adjusted_input" ] );
-				}
-			}else{
+			if( !defined $adjusted_input or $adjusted_input eq '' ){
 				###LogSD	$phone->talk( level => 'debug', message => [
 				###LogSD		"Return undef for empty strings" ] );
 				return undef;
 			}
-			return sprintf( $sprintf_string, $adjusted_input );
+			my	$value_definitions = clone( $conversion_defs );
+				$value_definitions->{initial_value} = $adjusted_input;
+			###LogSD	$phone->talk( level => 'trace', message => [
+			###LogSD		'Building scientific output with:',  $conversion_defs,
+			###LogSD		'..and dispatch sequence:', $dispatch_sequence ] );
+			my $built_ref = $self->_build_elements( $dispatch_sequence, $value_definitions );
+			###LogSD	$phone->talk( level => 'trace', message => [
+			###LogSD		"Received built ref:", $built_ref ] );
+			my	$return .= sprintf(
+					$built_ref->{sprintf_string},
+					$built_ref->{integer}->{value}
+				);
+			$return = $built_ref->{sign} . $return if $built_ref->{sign} and $return;
+			return $return;
 		};
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		"Conversion sub for filter name: " . $type_filter->name, $conversion_sub ] );
@@ -807,13 +846,13 @@ sub _build_integer_sub{
 }
 
 sub _build_decimal_sub{
-	my( $self, $type_filter, $list_ref, $code_hash_ref ) = @_;
+	my( $self, $type_filter, $list_ref, $conversion_defs ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
 	###LogSD					$self->get_log_space .  '::_build_number::_build_decimal_sub', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			"Building an anonymous sub to return decimal values",
 	###LogSD			'With type constraint: ' . $type_filter->name,
-	###LogSD			'..using list ref:' , $list_ref, '..and code hash ref:', $code_hash_ref	] );
+	###LogSD			'..using list ref:' , $list_ref, '..and code hash ref:', $conversion_defs ] );
 	
 	my $sprintf_string;
 	# Process once to determine what to do
@@ -831,81 +870,33 @@ sub _build_decimal_sub{
 			$sprintf_string .= $piece->[1];
 		}
 	}
+	$conversion_defs->{sprintf_string} = $sprintf_string;
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		"Final sprintf string: $sprintf_string" ] );
+	my $dispatch_sequence = $number_build_dispatch->{decimal};
 	
 	my 	$conversion_sub = sub{
 			my $adjusted_input = $_[0];
-			my ( $integer, $decimal );
-			if( $adjusted_input ){
-				$adjusted_input = $self->change_output_encoding( $adjusted_input );
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		"Updated integer Input: $adjusted_input" ] );
-				if( $type_filter->name eq 'NegativeNum' ){
-					$adjusted_input = -1 * $adjusted_input;
-					###LogSD	$phone->talk( level => 'debug', message => [
-					###LogSD		"Removed negative: $adjusted_input" ] );
-				}
-				if( exists $code_hash_ref->{divide_by_thousands} ){
-					$adjusted_input = $adjusted_input/( 1000**$code_hash_ref->{divide_by_thousands} );
-					###LogSD	$phone->talk( level => 'debug', message => [
-					###LogSD		"Divided by thousands: $adjusted_input" ] );
-				}
-			}else{
+			if( !defined $adjusted_input or $adjusted_input eq '' ){
 				###LogSD	$phone->talk( level => 'debug', message => [
 				###LogSD		"Return undef for empty strings" ] );
 				return undef;
 			}
-			$integer = int( $adjusted_input );
-			$decimal = abs( $adjusted_input - $integer );
-			$decimal = undef if !$decimal;
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"Split input: $adjusted_input", "..to integer: $integer", 
-			###LogSD		(($decimal) ? "..and decimal: $decimal" : undef)			 ] );
-			if( $decimal ){
-				if( exists $code_hash_ref->{decimal}->{max_length} and
-					length( $decimal ) > $code_hash_ref->{decimal}->{max_length} ){
-					$decimal = sprintf( "%.$code_hash_ref->{decimal}->{max_length}f", $decimal );
-					###LogSD	$phone->talk( level => 'debug', message => [
-					###LogSD		"Rounded decimal to: $decimal" ] );
-				}
-				$decimal =~ /(\d)\.(\d+)/;
-				$decimal = $2;
-				if( $1 ){
-					$integer = ($integer < 0 ) ? ($integer - $1) : ($integer + $1);
-				}
-				if( exists $code_hash_ref->{decimal}->{trailing_zeros} and
-					length( $decimal ) < $code_hash_ref->{decimal}->{trailing_zeros} ){
-					$decimal = $decimal . ('0' x ( $code_hash_ref->{decimal}->{trailing_zeros} - length( $decimal ) ) );
-					###LogSD	$phone->talk( level => 'debug', message => [
-					###LogSD		"Set trailing zeros: $decimal" ] );
-				}
-			}else{
-				$decimal = '0' x $code_hash_ref->{decimal}->{trailing_zeros};
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		"Providing default decimal: $decimal" ] );
-			}
-			if( $integer ){
-				if( exists $code_hash_ref->{integer}->{leading_zeros} and
-					length( $integer ) < $code_hash_ref->{integer}->{leading_zeros} ){
-					$integer = ('0' x ( $code_hash_ref->{integer}->{leading_zeros} - length( $integer ) ) ) . $integer;
-					###LogSD	$phone->talk( level => 'debug', message => [
-					###LogSD		"Set leading zeros: $integer" ] );
-				}elsif( !$integer ){
-					$integer = '0' x $code_hash_ref->{integer}->{leading_zeros};
-					###LogSD	$phone->talk( level => 'debug', message => [
-					###LogSD		"Build out integer to leading zeros: $integer" ] );
-				}
-			}
-			if( exists $code_hash_ref->{integer}->{comma} ){
-				$integer = $self->_add_integer_separator( $integer, @{ $code_hash_ref->{integer}}{ 'comma', 'group_length' } );
-				###LogSD	$phone->talk( level => 'debug', message =>[
-				###LogSD		"Added commas to integer: $integer" ] );
-			}
-			
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"Processing integer: $integer", "..and decimal: $decimal", "..with sprintf: $sprintf_string" ] );
-			return sprintf( $sprintf_string, $integer, $decimal);
+			my	$value_definitions = clone( $conversion_defs );
+				$value_definitions->{initial_value} = $adjusted_input;
+			###LogSD	$phone->talk( level => 'trace', message => [
+			###LogSD		'Building scientific output with:',  $conversion_defs,
+			###LogSD		'..and dispatch sequence:', $dispatch_sequence ] );
+			my $built_ref = $self->_build_elements( $dispatch_sequence, $value_definitions );
+			###LogSD	$phone->talk( level => 'trace', message => [
+			###LogSD		"Received built ref:", $built_ref ] );
+			my	$return .= sprintf(
+					$built_ref->{sprintf_string},
+					$built_ref->{integer}->{value},
+					$built_ref->{decimal}->{value},
+				);
+			$return = $built_ref->{sign} . $return if $built_ref->{sign} and $return;
+			return $return;
 		};
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		"Conversion sub for filter name: " . $type_filter->name, $conversion_sub ] );
@@ -914,15 +905,16 @@ sub _build_decimal_sub{
 }
 
 sub _build_percent_sub{
-	my( $self, $type_filter, $list_ref, $code_hash_ref ) = @_;
+	my( $self, $type_filter, $list_ref, $conversion_defs ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
 	###LogSD					$self->get_log_space .  '::_build_number::_build_percent_sub', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			"Building an anonymous sub to return decimal values",
 	###LogSD			'With type constraint: ' . $type_filter->name,
-	###LogSD			'..using list ref:' , $list_ref, '..and code hash ref:', $code_hash_ref	] );
+	###LogSD			'..using list ref:' , $list_ref, '..and code hash ref:', $conversion_defs	] );
 	
-	my ( $sprintf_string, $decimal_count );
+	my $sprintf_string;
+	my $decimal_count = 0;
 	# Process once to determine what to do
 	for my $piece ( @$list_ref ){
 		###LogSD	$phone->talk( level => 'debug', message => [
@@ -941,79 +933,42 @@ sub _build_percent_sub{
 			$sprintf_string .= $piece->[1];
 		}
 	}
+	$conversion_defs->{no_decimal} = 1 if $decimal_count < 2;
+	$conversion_defs->{sprintf_string} = $sprintf_string;
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		"Final sprintf string: $sprintf_string" ] );
+	my $dispatch_sequence = $number_build_dispatch->{percent};
 	
 	my 	$conversion_sub = sub{
 			my $adjusted_input = $_[0];
-			my ( $integer, $decimal );
-			if( $adjusted_input ){
-				$adjusted_input = $self->change_output_encoding( $adjusted_input );
-				$adjusted_input = $adjusted_input*100;
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		"Updated integer Input: $adjusted_input" ] );
-				if( $type_filter->name eq 'NegativeNum' ){
-					$adjusted_input = -1 * $adjusted_input;
-					###LogSD	$phone->talk( level => 'debug', message => [
-					###LogSD		"Removed negative: $adjusted_input" ] );
-				}
-			}else{
+			if( !defined $adjusted_input or $adjusted_input eq '' ){
 				###LogSD	$phone->talk( level => 'debug', message => [
 				###LogSD		"Return undef for empty strings" ] );
 				return undef;
 			}
-			$integer = int( $adjusted_input );
-			$decimal = abs( $adjusted_input - $integer );
-			$decimal = undef if !$decimal;
-			if( ($decimal_count == 1) and $decimal and ($decimal >= 0.5) ){
-				$integer = ($integer < 0 ) ? ($integer - 1) : ($integer + 1);
+			my	$value_definitions = clone( $conversion_defs );
+				$value_definitions->{initial_value} = $adjusted_input;
+			###LogSD	$phone->talk( level => 'trace', message => [
+			###LogSD		'Building scientific output with:',  $conversion_defs,
+			###LogSD		'..and dispatch sequence:', $dispatch_sequence ] );
+			my $built_ref = $self->_build_elements( $dispatch_sequence, $value_definitions );
+			###LogSD	$phone->talk( level => 'trace', message => [
+			###LogSD		"Received built ref:", $built_ref ] );
+			my $return;
+			if( $decimal_count < 2 ){
+				$return .= sprintf(
+					$built_ref->{sprintf_string},
+					$built_ref->{integer}->{value}
+				);
+			}else{
+				$return .= sprintf(
+					$built_ref->{sprintf_string},
+					$built_ref->{integer}->{value},
+					$built_ref->{decimal}->{value},
+				);
 			}
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"Split input: $adjusted_input", "..to integer: $integer", 
-			###LogSD		(($decimal) ? "..and decimal: $decimal" : undef)			 ] );
-			if( $integer ){
-				if( exists $code_hash_ref->{integer}->{leading_zeros} and
-					length( $integer ) < $code_hash_ref->{integer}->{leading_zeros} ){
-					$integer = ('0' x ( $code_hash_ref->{integer}->{leading_zeros} - length( $integer ) ) ) . $integer;
-					###LogSD	$phone->talk( level => 'debug', message => [
-					###LogSD		"Set leading zeros: $integer" ] );
-				}elsif( !$integer ){
-					$integer = '0' x $code_hash_ref->{integer}->{leading_zeros};
-					###LogSD	$phone->talk( level => 'debug', message => [
-					###LogSD		"Build out integer to leading zeros: $integer" ] );
-				}
-			}
-			if( exists $code_hash_ref->{integer}->{comma} ){
-				$integer = $self->_add_integer_separator( $integer, @{ $code_hash_ref->{integer}}{ 'comma', 'group_length' } );
-				###LogSD	$phone->talk( level => 'debug', message =>[
-				###LogSD		"Added commas to integer: $integer" ] );
-			}
-			
-			if( $decimal ){
-				if( exists $code_hash_ref->{decimal}->{max_length} and
-					length( $decimal ) > $code_hash_ref->{decimal}->{max_length} ){
-					$decimal = sprintf( "%.$code_hash_ref->{decimal}->{max_length}f", $decimal );
-					###LogSD	$phone->talk( level => 'debug', message => [
-					###LogSD		"Rounded decimal to: $decimal" ] );
-				}
-				$decimal =~ /\.(\d+)/;
-				$decimal = $1;
-				if( exists $code_hash_ref->{decimal}->{trailing_zeros} and
-					length( $decimal ) < $code_hash_ref->{decimal}->{trailing_zeros} ){
-					$decimal = $decimal . ('0' x ( $code_hash_ref->{decimal}->{trailing_zeros} - length( $decimal ) ) );
-					###LogSD	$phone->talk( level => 'debug', message => [
-					###LogSD		"Set trailing zeros: $decimal" ] );
-				}
-			}elsif( $decimal_count == 2 ){
-				$decimal = '0' x $code_hash_ref->{decimal}->{trailing_zeros};
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		"Providing default decimal: $decimal" ] );
-			}
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"Processing integer: $integer",
-			###LogSD		(($decimal) ? "..and decimal: $decimal" : undef),
-			###LogSD		"..with sprintf: $sprintf_string" ] );
-			return sprintf( $sprintf_string, $integer, $decimal);
+			$return = $built_ref->{sign} . $return if $built_ref->{sign} and $return;
+			return $return;
 		};
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		"Conversion sub for filter name: " . $type_filter->name, $conversion_sub ] );
@@ -1022,17 +977,17 @@ sub _build_percent_sub{
 }
 
 sub _build_scientific_sub{
-	my( $self, $type_filter, $list_ref, $code_hash_ref ) = @_;
+	my( $self, $type_filter, $list_ref, $conversion_defs ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
 	###LogSD					$self->get_log_space .  '::_build_number::_build_scientific_sub', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			"Building an anonymous sub to return decimal values",
 	###LogSD			'With type constraint: ' . $type_filter->name,
-	###LogSD			'..using list ref:' , $list_ref, '..and code hash ref:', $code_hash_ref	] );
+	###LogSD			'..using list ref:' , $list_ref, '..and code hash ref:', $conversion_defs	] );
 	
-	my ( $sprintf_string, $exponent_sprintf );
 	# Process once to determine what to do
-	my	$no_decimal = ( exists $code_hash_ref->{decimal} ) ? 0 : 1 ;
+	my ( $sprintf_string, $exponent_sprintf );
+	$conversion_defs->{no_decimal} = ( exists $conversion_defs->{decimal} ) ? 0 : 1 ;
 	for my $piece ( @$list_ref ){
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD		"processing number piece:", $piece ] );
@@ -1041,13 +996,13 @@ sub _build_scientific_sub{
 				$sprintf_string .= $1;
 				$exponent_sprintf = '%';
 				$exponent_sprintf .= '+' if $2 eq '+';
-				if( exists $code_hash_ref->{exponent}->{leading_zeros} ){
-					$exponent_sprintf .= '0.' . $code_hash_ref->{exponent}->{leading_zeros};
+				if( exists $conversion_defs->{exponent}->{leading_zeros} ){
+					$exponent_sprintf .= '0.' . $conversion_defs->{exponent}->{leading_zeros};
 				}
 				$exponent_sprintf .= 'd';
 			}elsif( $piece->[0] eq '.' ){
 				$sprintf_string .= '.';
-				$no_decimal = 0;
+				$conversion_defs->{no_decimal} = 0;
 			}elsif( $exponent_sprintf ){
 				$sprintf_string .= $exponent_sprintf;
 			}else{
@@ -1058,141 +1013,43 @@ sub _build_scientific_sub{
 			$sprintf_string .= $piece->[1];
 		}
 	}
+	$conversion_defs->{sprintf_string} = $sprintf_string;
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		"Final sprintf string: $sprintf_string" ] );
+	my $dispatch_sequence = $number_build_dispatch->{scientific};
 	
 	my 	$conversion_sub = sub{
 			my $adjusted_input = $_[0];
-			if( $adjusted_input ){
-				$adjusted_input = $self->change_output_encoding( $adjusted_input );
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		"Updated scientific Input: $adjusted_input" ] );
-				if( $type_filter->name eq 'NegativeNum' ){
-					$adjusted_input = -1 * $adjusted_input;
-					###LogSD	$phone->talk( level => 'debug', message => [
-					###LogSD		"Removed negative: $adjusted_input" ] );
-				}
-			}else{
+			if( !defined $adjusted_input or $adjusted_input eq '' ){
 				###LogSD	$phone->talk( level => 'debug', message => [
 				###LogSD		"Return undef for empty strings" ] );
 				return undef;
 			}
+			my	$value_definitions = clone( $conversion_defs );
+				$value_definitions->{initial_value} = $adjusted_input;
 			###LogSD	$phone->talk( level => 'trace', message => [
-			###LogSD		"Testing string: " . sprintf( '%0.30f', $adjusted_input ) ] );
-			my @results = sprintf( '%0.30f', $adjusted_input ) =~ /^(-)?(\d+)(\.)?(\d+)?/;
-			my	$sign 			= $1;
-			my	$integer 		= $2;
-			my	$place_holder 	= $3;
-			my	$decimal		= $4;
-			my	$numbers		= $integer . ((defined $decimal) ? $decimal : '');# . '0000000000000000'
-			my	$initial_position = length( $integer );
-				$numbers =~ /([1-9])/;
-			my	$start_real = pos();
-			my	$integer_length = $integer % $code_hash_ref->{integer}->{leading_zeros};
-				$integer_length ||= $code_hash_ref->{integer}->{leading_zeros};
-			$numbers =~ /(0*)(\d{$integer_length})(\d+)?/;
-			my	$changed_integer = $1;
-				$changed_integer .= $2;
-				$integer = $2;
-				$decimal = $3;
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		"Initial integer: $integer",
-				###LogSD		"Initial decimal: $decimal",  ] );
-				if( $decimal =~ /^(0+)?([1-8][0-9]+)?(9{4}9+)([1-9]+)?(0+)?$/ ){
-					$decimal = undef;
-					$decimal = $2 if $2;
-					$decimal .= $3;
-					$decimal .= $4 if $4;
-					my	$adder	= 1;
-						$adder .= 0 x length( $4 ) if $4;
-					my $stripped_length = length( $decimal );
-					###LogSD	$phone->talk( level => 'debug', message => [
-					###LogSD		"Stripped decimal: $decimal",
-					###LogSD		"Adjusting a potentially underreported decimal with: $adder",  ] );
-					$decimal += $adder;
-					###LogSD	$phone->talk( level => 'debug', message => [
-					###LogSD		"Resulting decimal: $decimal",  ] );
-					if( length( $decimal ) > $stripped_length ){
-						$integer++;
-						$decimal = substr( $decimal, 1, $stripped_length );
-					}
-					#~ $decimal = sprintf( '%0.30d', $decimal );
-					###LogSD	$phone->talk( level => 'debug', message => [
-					###LogSD		"Resulting decimal: $decimal",
-					###LogSD		"Resulting integer: $decimal",  ] );
-				}
-			my	$adjusted_position = length( $changed_integer );
-			my	$exponent = $initial_position - $adjusted_position;
+			###LogSD		'Building scientific output with:',  $conversion_defs,
+			###LogSD		'..and dispatch sequence:', $dispatch_sequence ] );
+			my $built_ref = $self->_build_elements( $dispatch_sequence, $value_definitions );
 			###LogSD	$phone->talk( level => 'trace', message => [
-			###LogSD		"Results of adjusted input are:", @results,
-			###LogSD		"Yielding numbers: $numbers", "..initial position: $initial_position",
-			###LogSD		(($start_real) ? "..and start of the real numbers: $start_real" : undef),
-			###LogSD		"Integer length: $integer_length", "Changed integer: $changed_integer",
-			###LogSD		"With new integer: $integer", "New decimal: $decimal", "..and exponent: $exponent" ] );
-			my	$test_mod = $exponent % $code_hash_ref->{integer}->{minimum_length};
-			if( $test_mod ){
-				###LogSD	$phone->talk( level => 'info', message => [
-				###LogSD		"The exponent -$exponent- does not divide to the required multiple of: " . $code_hash_ref->{integer}->{minimum_length},
-				###LogSD		"There is a remainder of: $test_mod",   ] );
-				$exponent -= $test_mod;
-				$decimal =~ /(.{$test_mod})(.+)/;
-				$integer .= $1;
-				$decimal = $2;
-				###LogSD	$phone->talk( level => 'info', message => [
-				###LogSD		"After adjustement ithe exponent is: $exponent",
-				###LogSD		"The integer is: $integer", "The decimal is: $decimal"   ] );
-			}
-			if( $decimal  ){
-				if( exists $code_hash_ref->{decimal}->{max_length} and
-					length( $decimal ) > $code_hash_ref->{decimal}->{max_length} ){
-					my $test_decimal = '0.' . $decimal;
-					###LogSD	$phone->talk( level => 'debug', message => [
-					###LogSD		"Implementing the sprintf string: %.$code_hash_ref->{decimal}->{max_length}f",  ] );
-					$test_decimal = sprintf( "%.$code_hash_ref->{decimal}->{max_length}f", $test_decimal );
-					$test_decimal =~ /(\d)\.(\d+)/;
-					$integer += $1;
-					$decimal = $2;
-					###LogSD	$phone->talk( level => 'debug', message => [
-					###LogSD		"Rounded decimal to: $decimal", "With integer: $integer" ] );
-				}elsif( $decimal =~ /^[5-9]/ ){
-					$integer += 1;
-				}
-				if( exists $code_hash_ref->{decimal}->{trailing_zeros} and
-					length( $decimal ) < $code_hash_ref->{decimal}->{trailing_zeros} ){
-					$decimal = $decimal . ('0' x ( $code_hash_ref->{decimal}->{trailing_zeros} - length( $decimal ) ) );
-					###LogSD	$phone->talk( level => 'debug', message => [
-					###LogSD		"Set trailing zeros: $decimal" ] );
-				}
+			###LogSD		"Received built ref:", $built_ref ] );
+			my $return;
+			if( $built_ref->{no_decimal} ){
+				$return .= sprintf(
+					$built_ref->{sprintf_string},
+					$built_ref->{integer}->{value},
+					$built_ref->{exponent}->{value}
+				);
 			}else{
-				$decimal = '0' x $code_hash_ref->{decimal}->{trailing_zeros};
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		"Providing default decimal: $decimal" ] );
+				$return .= sprintf(
+					$built_ref->{sprintf_string},
+					$built_ref->{integer}->{value},
+					$built_ref->{decimal}->{value},
+					$built_ref->{exponent}->{value}
+				);
 			}
-			if( $integer ){
-				if( exists $code_hash_ref->{integer}->{leading_zeros} and
-					length( $integer ) < $code_hash_ref->{integer}->{leading_zeros} ){
-					$integer = ('0' x ( $code_hash_ref->{integer}->{leading_zeros} - length( $integer ) ) ) . $integer;
-					###LogSD	$phone->talk( level => 'debug', message => [
-					###LogSD		"Set leading zeros: $integer" ] );
-				}
-				$integer = $sign . $integer if $sign;
-			}
-			if( exists $code_hash_ref->{integer}->{comma} ){
-				$integer = $self->_add_integer_separator( $integer, @{ $code_hash_ref->{integer}}{ 'comma', 'group_length' } );
-				###LogSD	$phone->talk( level => 'debug', message =>[
-				###LogSD		"Added commas to integer: $integer" ] );
-			}
-			#~ Should allow no decimal in scientific notiation?  (Excel does!)
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"Processing integer: $integer",
-			###LogSD		((defined $decimal) ? "..and decimal: $decimal" : undef),
-			###LogSD		"and Exponent: $exponent",
-			###LogSD		"..with sprintf: $sprintf_string" ] );
-			if( $no_decimal ){
-				return sprintf( $sprintf_string, $integer, $exponent);
-			}else{
-				return sprintf( $sprintf_string, $integer, $decimal, $exponent);
-			}
+			$return = $built_ref->{sign} . $return if $built_ref->{sign} and $return;
+			return $return;
 		};
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		"Conversion sub for filter name: " . $type_filter->name, $conversion_sub ] );
@@ -1201,234 +1058,351 @@ sub _build_scientific_sub{
 }
 
 sub _build_fraction_sub{
-	my( $self, $type_filter, $list_ref, $code_hash_ref ) = @_;
+	my( $self, $type_filter, $list_ref, $conversion_defs ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
 	###LogSD					$self->get_log_space .  '::_build_number::_build_fraction_sub', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			"Building an anonymous sub to return integer and fraction strings",
 	###LogSD			'With type constraint: ' . $type_filter->name,
-	###LogSD			'..using list ref:' , $list_ref, '..and code hash ref:', $code_hash_ref	] );
+	###LogSD			'..using list ref:' , $list_ref, '..and code hash ref:', $conversion_defs	] );
 	
-	my $sprintf_string;
-	# Process once to determine what to do
-	my $input = 0;
-	for my $piece ( @$list_ref ){
-		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"processing number piece:", $piece ] );
-		if( defined $piece->[0] and $input < 2 ){
-			$sprintf_string .= '%s';
-			$input++;
+	# I'm worried about pulling the sprintf parser out of here and I may need to put it back sometime
+	
+	my $dispatch_sequence = $number_build_dispatch->{fraction};
+	my $conversion_sub = sub{
+		my $adjusted_input = $_[0];
+		if( !defined $adjusted_input or $adjusted_input eq '' ){
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"Return undef for empty strings" ] );
+			return undef;
 		}
-		if( $piece->[1] and $piece->[1] ne '/' ){
-			$sprintf_string .= $piece->[1];
-		}
+		my	$value_definitions = clone( $conversion_defs );
+			$value_definitions->{initial_value} = $adjusted_input;
 		###LogSD	$phone->talk( level => 'trace', message => [
-		###LogSD		"updated sprintf: $sprintf_string", "Input count: $input" ] );
-	}
-	my $fract_sprintf = $sprintf_string;
-	$fract_sprintf =~ s/%s\s//;
-	###LogSD	$phone->talk( level => 'debug', message => [
-	###LogSD		"Final sprintf string: $sprintf_string" ] );
-	my $conversion_sub;
-	if( exists $code_hash_ref->{fraction}->{divisor} ){
-		$conversion_sub = sub{
-			my $adjusted_input = $_[0];
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"Received conversion request for fixed divisor: " .
-			###LogSD		$code_hash_ref->{fraction}->{divisor}, 
-			###LogSD		((defined $adjusted_input) ? "..with input: $adjusted_input" : undef) ] );
-			my ( $integer, $decimal );
-			if( $adjusted_input ){
-				$adjusted_input = $self->change_output_encoding( $adjusted_input );
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		"Updated fraction Input: $adjusted_input" ] );
-				if( $type_filter->name eq 'NegativeNum' ){
-					$adjusted_input = -1 * $adjusted_input;
-					###LogSD	$phone->talk( level => 'debug', message => [
-					###LogSD		"Removed negative: $adjusted_input" ] );
-				}
-			}else{
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		"Return undef for empty strings" ] );
-				return undef;
+		###LogSD		'Building scientific output with:',  $conversion_defs,
+		###LogSD		'..and dispatch sequence:', $dispatch_sequence ] );
+		my $built_ref = $self->_build_elements( $dispatch_sequence, $value_definitions );
+		###LogSD	$phone->talk( level => 'trace', message => [
+		###LogSD		"Received built ref:", $built_ref ] );
+		my $return;
+		if( $built_ref->{integer}->{value} ){
+			$return = $built_ref->{integer}->{value};
+			if( $built_ref->{fraction}->{value} ){
+				$return .= ' ';
 			}
-			my $sign = '';
-			if( $adjusted_input < 0 ){
-				$sign = '-';
-				$adjusted_input *= -1;
-			}
-			$integer = int( $adjusted_input );
-			$decimal = $adjusted_input - $integer;
-			$decimal = undef if !$decimal;
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"Split input: $adjusted_input", "..to integer: $integer", 
-			###LogSD		(($decimal) ? "..and decimal: $decimal" : undef)			 ] );
-			
-			# Build the fraction
-			my $fraction;
-			if( $decimal ){
-				my $low_numerator = int( $decimal*$code_hash_ref->{fraction}->{divisor} );
-				my $high_numerator = $low_numerator + 1;
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		"Calculated low numerator: $low_numerator", 
-				###LogSD		"..and high numerator: $high_numerator"			 ] );
-				my $numerator = ( 
-						($decimal - $low_numerator/$code_hash_ref->{fraction}->{divisor}) < 
-						($high_numerator/$code_hash_ref->{fraction}->{divisor} - $decimal)		) ?
-							$low_numerator : $high_numerator ;
-				if( $numerator == $code_hash_ref->{fraction}->{divisor} ){
-					$integer += 1;
-					$fraction = undef;
-				}elsif( $numerator == 0 ){
-					$fraction = undef;
-				}else{
-					$fraction = $numerator . '/' . $code_hash_ref->{fraction}->{divisor};
-				}
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		"Resolved decimal: $decimal",
-				###LogSD		(($fraction) ? "..to fraction: $fraction" : "..to no fraction") ] );
-			}else{
-				$fraction = undef;
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		'No decimal so no fraction' ] );
-			}
-			if( $integer ){
-				if( exists $code_hash_ref->{integer}->{leading_zeros} and
-					length( $integer ) < $code_hash_ref->{integer}->{leading_zeros} ){
-					$integer = ('0' x ( $code_hash_ref->{integer}->{leading_zeros} - length( $integer ) ) ) . $integer;
-					###LogSD	$phone->talk( level => 'debug', message => [
-					###LogSD		"Set leading zeros: $integer" ] );
-				}elsif( !$integer ){
-					$integer = '0' x $code_hash_ref->{integer}->{leading_zeros};
-					###LogSD	$phone->talk( level => 'debug', message => [
-					###LogSD		"Build out integer to leading zeros: $integer" ] );
-				}
-				if( exists $code_hash_ref->{integer}->{comma} ){
-					$integer = $self->_add_integer_separator( $integer, @{ $code_hash_ref->{integer}}{ 'comma', 'group_length' } );
-					###LogSD	$phone->talk( level => 'debug', message =>[
-					###LogSD		"Added commas to integer: $integer" ] );
-				}
-				$integer = $sign . $integer;
-				if( !$fraction ){
-					###LogSD	$phone->talk( level => 'debug', message => [
-					###LogSD		"No fraction identified - sending just the integer" ] );
-					return sprintf( $fract_sprintf, $integer);
-				}
-			}else{
-				if( !$fraction and $adjusted_input ){
-					###LogSD	$phone->talk( level => 'debug', message => [
-					###LogSD		"No resovlvable integer or fraction value - sending zero" ] );
-					return sprintf( $fract_sprintf, 0 );
-				}
-				$fraction = $sign . $fraction;
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		"No integer found sending just the fraction" ] );
-				return sprintf( $fract_sprintf, $fraction);
-			}
-			
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"Processing integer: $integer", "..and fraction: $fraction", "..with sprintf: $sprintf_string" ] );
-			return sprintf( $sprintf_string, $integer, $fraction);
-		};
-	}else{
-		$conversion_sub = sub{
-			my $adjusted_input = $_[0];
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		'Received conversion request for fixed width fraction' .
-			###LogSD		((defined $code_hash_ref->{fraction}->{target_length}) ? (' of width -' . $code_hash_ref->{fraction}->{target_length} . '-') : '') .
-			###LogSD		((defined $adjusted_input) ? " with input: $adjusted_input" : '') ] );
-			my ( $integer, $decimal );
-			if( $adjusted_input ){
-				$adjusted_input = $self->change_output_encoding( $adjusted_input );
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		"Updated fraction Input: $adjusted_input" ] );
-				if( $type_filter->name eq 'NegativeNum' ){
-					$adjusted_input = -1 * $adjusted_input;
-					###LogSD	$phone->talk( level => 'debug', message => [
-					###LogSD		"Removed negative: $adjusted_input" ] );
-				}
-			}else{
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		"Return undef for empty strings" ] );
-				return undef;
-			}
-			my $sign = '';
-			if( $adjusted_input < 0 ){
-				$sign = '-';
-				$adjusted_input *= -1;
-			}
-			$integer = int( $adjusted_input );
-			$decimal = $adjusted_input - $integer;
-			$decimal = undef if !$decimal;
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"Split input: $adjusted_input", "..to integer: $integer", 
-			###LogSD		(($decimal) ? "..and decimal: $decimal" : undef)			 ] );
-			
-			# Build the fraction
-			my $fraction;
-			if( $decimal ){
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		"Processing decimal: $decimal",  ] );
-				$fraction = $self->_continuous_fraction( $decimal, 20, $code_hash_ref->{fraction}->{target_length} );
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		(($fraction) ? "Received return fraction: $fraction" : "Decimal too small for a fraction") ] );
-				if( defined $fraction ){
-					if( $fraction !~ /\// ){
-						$integer += $fraction;
-						$fraction = undef;
-					}
-				}else{
-					$fraction = undef;
-				}
-			}else{
-				$fraction = undef;
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		'No decimal so no fraction' ] );
-			}
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		(($fraction) ? "Finished the decimal with fraction: $fraction" : undef),  ] );
-			if( $integer ){
-				if( exists $code_hash_ref->{integer}->{leading_zeros} and
-					length( $integer ) < $code_hash_ref->{integer}->{leading_zeros} ){
-					$integer = ('0' x ( $code_hash_ref->{integer}->{leading_zeros} - length( $integer ) ) ) . $integer;
-					###LogSD	$phone->talk( level => 'debug', message => [
-					###LogSD		"Set leading zeros: $integer" ] );
-				}elsif( !$integer ){
-					$integer = '0' x $code_hash_ref->{integer}->{leading_zeros};
-					###LogSD	$phone->talk( level => 'debug', message => [
-					###LogSD		"Build out integer to leading zeros: $integer" ] );
-				}
-				if( exists $code_hash_ref->{integer}->{comma} ){
-					$integer = $self->_add_integer_separator( $integer, @{ $code_hash_ref->{integer}}{ 'comma', 'group_length' } );
-					###LogSD	$phone->talk( level => 'debug', message =>[
-					###LogSD		"Added commas to integer: $integer" ] );
-				}
-				$integer = $sign . $integer;
-				if( !$fraction ){
-					###LogSD	$phone->talk( level => 'debug', message => [
-					###LogSD		"No decimal found sending just the integer" ] );
-					return sprintf( $fract_sprintf, $integer);
-				}
-			}else{
-				if( $fraction ){
-					$fraction = $sign . $fraction;
-				}else{
-					$fraction = 0;
-				}
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		"No integer found sending just the fraction" ] );
-				return sprintf( $fract_sprintf, $fraction);
-			}
-			
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"Processing integer: $integer", "..and fraction: $fraction", "..with sprintf: $sprintf_string" ] );
-			return sprintf( $sprintf_string, $integer, $fraction);
-		};
-	}
+		}
+		if( $built_ref->{fraction}->{value} ){
+			$return .= $built_ref->{fraction}->{value};
+		}
+		if( !$return and $built_ref->{initial_value} ){
+			$return = 0;
+		}
+		$return = $built_ref->{sign} . $return if $built_ref->{sign} and $return;
+		return $return;
+	};
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		"Conversion sub for filter name: " . $type_filter->name, $conversion_sub ] );
 	
 	return $conversion_sub;
+}
+
+sub _build_elements{
+	my( $self, $dispatch_ref, $value_definitions, ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD					$self->get_log_space .  '::_build_number::_build_elements', );
+	###LogSD		$phone->talk( level => 'debug', message => [
+	###LogSD			'Reached the dispatcher for number building with:', $value_definitions,
+	###LogSD			'..using dispatch list', $dispatch_ref	] );
+	for my $method ( @$dispatch_ref ){
+		$value_definitions = $self->$method( $value_definitions );
+		###LogSD		$phone->talk( level => 'debug', message => [
+		###LogSD			'Updated value definitions:', $value_definitions, ] );
+	}
+	return $value_definitions;
+}
+
+sub _convert_negative{
+	my( $self, $value_definitions, ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD					$self->get_log_space .  '::_build_number::_build_elements::_convert_negative', );
+	###LogSD		$phone->talk( level => 'debug', message => [
+	###LogSD			'Reached _convert_negative with:', $value_definitions,	] );
+	
+	if( $value_definitions->{negative_type} and $value_definitions->{initial_value} < 0 ){
+		$value_definitions->{initial_value} = $value_definitions->{initial_value} * -1;
+	}
+	###LogSD		$phone->talk( level => 'debug', message => [
+	###LogSD			'updated value definitions:', $value_definitions,	] );
+	return $value_definitions;
+}
+
+sub _divide_by_thousands{
+	my( $self, $value_definitions, ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD					$self->get_log_space .  '::_build_number::_build_elements::_divide_by_thousands', );
+	###LogSD		$phone->talk( level => 'debug', message => [
+	###LogSD			'Reached _convert_to_percent with:', $value_definitions,	] );
+	if(	$value_definitions->{initial_value} and
+		$value_definitions->{divide_by_thousands} ){
+		$value_definitions->{initial_value} =
+			$value_definitions->{initial_value}/
+				( 1000**$value_definitions->{divide_by_thousands} );
+	}
+	###LogSD		$phone->talk( level => 'debug', message => [
+	###LogSD			'updated value definitions:', $value_definitions,	] );
+	return $value_definitions;
+}
+
+sub _convert_to_percent{
+	my( $self, $value_definitions, ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD					$self->get_log_space .  '::_build_number::_build_elements::_convert_to_percent', );
+	###LogSD		$phone->talk( level => 'debug', message => [
+	###LogSD			'Reached _convert_to_percent with:', $value_definitions,	] );
+	
+	$value_definitions->{initial_value} = $value_definitions->{initial_value} * 100;
+	###LogSD		$phone->talk( level => 'debug', message => [
+	###LogSD			'updated value definitions:', $value_definitions,	] );
+	return $value_definitions;
+}
+
+sub _split_decimal_integer{
+	my( $self, $value_definitions, ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD					$self->get_log_space .  '::_build_number::_build_elements::_split_decimal_integer', );
+	###LogSD		$phone->talk( level => 'debug', message => [
+	###LogSD			'Reached _split_decimal_integer with:', $value_definitions,	] );
+	
+	# split integer and decimal
+	my @results = sprintf( '%0.30f', $value_definitions->{initial_value} ) =~ /^(-)?(\d+)(\.)?(\d+)?/;
+	my	$integer = $2;
+	my	$decimal = $4;
+		$value_definitions->{sign} = $1;
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		'Results:', @results,
+	###LogSD		'integer: ' . $integer, 'decimal: ' . $decimal,
+	###LogSD		(($1) ? 'sign: ' . $1 : '' ),  ] );
+	
+	# handle slightly underreported decimals
+	if(	$decimal and
+		my @results = $decimal =~ /^(0+)?([1-8][0-9]+)?(9{4}9+)([0-9]*[1-9])?(0+)?$/ ){
+		$decimal = undef;
+		$decimal = $2 if defined $2;
+		$decimal .= $3;
+		$decimal .= $4 if defined$4;
+		my	$adder	= 1;
+			$adder .= 0 x length( $4 ) if $4;
+		my $stripped_length = length( $decimal );
+			$stripped_length += length( $results[0] ) if defined $results[0];
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		'Results:', @results,
+		###LogSD		'Stripped decimal: ' . $decimal,
+		###LogSD		"Adjusting a potentially underreported decimal with: $adder",  ] );
+		$decimal += $adder;
+		$decimal = $results[0] . $decimal if defined $results[0];
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		'Resulting decimal: ' . $decimal  ] );
+		if( length( $decimal ) > $stripped_length ){
+			$integer++;
+			$decimal = substr( $decimal, 1, $stripped_length );
+		}
+	}
+	$value_definitions->{integer}->{value} = $integer;
+	$value_definitions->{decimal}->{value} = $decimal;
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		'Updated ref:', $value_definitions		] );
+	return $value_definitions;
+}
+
+sub _move_decimal_point{
+	my( $self, $value_definitions, ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD					$self->get_log_space .  '::_build_number::_build_elements::_move_decimal_point', );
+	###LogSD		$phone->talk( level => 'debug', message => [
+	###LogSD			'Reached _move_decimal_point with:', $value_definitions,	] );
+	my	$exponent;
+	if(	$value_definitions->{integer}->{value} and 
+		$value_definitions->{integer}->{value} =~ /([1-9])/ ){
+		my $stopped = $+[0];
+		###LogSD	$phone->talk( level => 'debug', message =>[ "Matched integer value at: $stopped",	] );
+		$exponent = length( $value_definitions->{integer}->{value} ) - $stopped;
+	}elsif( $value_definitions->{decimal}->{value} and 
+			 $value_definitions->{decimal}->{value} =~ /([1-9])/ ){
+		my $stopped = $+[0];
+		###LogSD	$phone->talk( level => 'debug', message =>[ "Matched decimal value at: -$stopped",	] );
+		$exponent =  '-' . $stopped;
+	}else{
+		$exponent = 0;
+	}
+	###LogSD	$phone->talk( level => 'debug', message =>[ "Initial exponent: $exponent",	] );
+	my	$exponent_remainder = $exponent % $value_definitions->{integer}->{minimum_length};
+	###LogSD	$phone->talk( level => 'debug', message =>[ "Exponent remainder: $exponent_remainder",	] );
+		$exponent -= $exponent_remainder;
+	###LogSD	$phone->talk( level => 'debug', message =>[ "New exponent: $exponent",	] );
+		$value_definitions->{exponent}->{value} = $exponent;
+	if( $exponent < 0 ){
+		my $adjustment = $exponent * -1;
+		###LogSD	$phone->talk( level => 'info', message => [
+		###LogSD		"The exponent |$exponent| is less than zero - the decimal must move to the right"  ] );
+		$value_definitions->{decimal}->{value} =~ /(.{$adjustment})(.+)/;
+		$value_definitions->{integer}->{value} = ($1 * 1);
+		$value_definitions->{decimal}->{value} = $2;
+	}elsif( $exponent > 0 ){
+		###LogSD	$phone->talk( level => 'info', message => [
+		###LogSD		"The exponent -$exponent- is greater than zero - the decimal must move to the left"  ] );
+		$value_definitions->{integer}->{value} =~ /(.*)(.{$exponent})$/;
+		$value_definitions->{decimal}->{value} = $2 . $value_definitions->{decimal}->{value};
+		$value_definitions->{integer}->{value} = $1;
+	}
+	
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		'Updated ref:', $value_definitions		] );
+	return $value_definitions;
+}
+
+sub _round_decimal{
+	my( $self, $value_definitions, ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD					$self->get_log_space .  '::_build_number::_build_elements::_round_decimal', );
+	###LogSD		$phone->talk( level => 'debug', message => [
+	###LogSD			'Reached _round_decimal with:', $value_definitions,	] );
+	if( $value_definitions->{no_decimal} ){
+		###LogSD	$phone->talk( level => 'info', message => [
+		###LogSD		"No decimal condition identified - rounding integer as needed"  ] );
+		if( substr( $value_definitions->{decimal}->{value}, 0, 1 ) > 4 ){
+			$value_definitions->{integer}->{value}++;
+		}
+		delete $value_definitions->{decimal};
+	}elsif( $value_definitions->{decimal}->{max_length} ){
+		###LogSD	$phone->talk( level => 'info', message => [
+		###LogSD		"Enforcing decimal max length: " . $value_definitions->{decimal}->{max_length}  ] );
+		if( !$value_definitions->{decimal}->{value} ){
+			###LogSD	$phone->talk( level => 'info', message => [
+			###LogSD		"Decimal found to be 0 or no string"] );
+			$value_definitions->{decimal}->{value} = 
+				0 x $value_definitions->{decimal}->{max_length};
+		}else{
+			$value_definitions->{decimal}->{value} =~ 
+				/^(.{$value_definitions->{decimal}->{max_length}})(.)/;
+			$value_definitions->{decimal}->{value} = $1;
+			###LogSD	$phone->talk( level => 'info', message => [
+			###LogSD		"New decimal: " . $value_definitions->{decimal}->{value}] );
+			if( $2 and $2 > 4 ){
+				###LogSD	$phone->talk( level => 'info', message => [
+				###LogSD		"Need to round the decimal up for: $2" ] );
+				$value_definitions->{decimal}->{value}++;
+				if( length( $value_definitions->{decimal}->{value} ) > 
+					$value_definitions->{decimal}->{max_length} 			){
+					###LogSD	$phone->talk( level => 'info', message => [
+					###LogSD		"Need to round the integer up because: " . $value_definitions->{decimal}->{value} ] );
+					$value_definitions->{integer}->{value}++;
+					$value_definitions->{decimal}->{value} = 
+						substr( $value_definitions->{decimal}->{value}, 1 );
+					###LogSD	$phone->talk( level => 'info', message => [
+					###LogSD		"New decimal: " . $value_definitions->{decimal}->{value}] );
+				}
+			}
+		}
+	}
+	
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		'Updated ref:', $value_definitions		] );
+	return $value_definitions;
+}
+
+sub _add_commas{
+	my( $self, $value_definitions, ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD					$self->get_log_space .  '::_build_number::_build_elements::_add_commas', );
+	###LogSD		$phone->talk( level => 'debug', message => [
+	###LogSD			'Reached _add_commas with:', $value_definitions,	] );
+	if( exists $value_definitions->{integer}->{comma} ){
+		$value_definitions->{integer}->{value} = $self->_add_integer_separator(
+			$value_definitions->{integer}->{value},
+			$value_definitions->{integer}->{comma},
+			$value_definitions->{integer}->{group_length},
+		);
+	}
+	
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		'Updated ref:', $value_definitions		] );
+	return $value_definitions;
+}
+
+sub _pad_exponent{
+	my( $self, $value_definitions, ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD					$self->get_log_space .  '::_build_number::_build_elements::_pad_exponent', );
+	###LogSD		$phone->talk( level => 'debug', message => [
+	###LogSD			'Reached _pad_exponent with:', $value_definitions,	] );
+	if(	$value_definitions->{exponent}->{leading_zeros} and 
+		length( $value_definitions->{exponent}->{value} ) <
+		$value_definitions->{exponent}->{leading_zeros}		 ){
+		$value_definitions->{exponent}->{value} =
+			0 x ( $value_definitions->{exponent}->{leading_zeros} - 
+					length( $value_definitions->{exponent}->{value} ) ) .
+			$value_definitions->{exponent}->{value};
+	}
+	
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		'Updated ref:', $value_definitions		] );
+	return $value_definitions;
+}
+
+sub _build_fraction{
+	my( $self, $value_definitions, ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD					$self->get_log_space .  '::_build_number::_build_elements::_build_fraction', );
+	###LogSD		$phone->talk( level => 'debug', message => [
+	###LogSD			'Reached _build_fraction with:', $value_definitions,	] );
+	if( exists $value_definitions->{decimal}->{value} ){
+		$value_definitions->{fraction}->{value} = 
+			( $value_definitions->{fraction}->{divisor} ) ?
+				$self->_build_divisor_fraction( $value_definitions ) :
+				$self->_continuous_fraction(
+					'0.' . $value_definitions->{decimal}->{value}, 20,
+					$value_definitions->{fraction}->{target_length},
+				);
+	}
+	$value_definitions->{fraction}->{value} //= 0;
+	if( $value_definitions->{fraction}->{value} eq '1' ){
+		$value_definitions->{integer}->{value}++;
+		$value_definitions->{fraction}->{value} = 0;
+	}
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		'Updated ref:', $value_definitions		] );
+	return $value_definitions;
+}
+
+sub _build_divisor_fraction{
+	my( $self, $value_definitions, ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD					$self->get_log_space .  '::_build_number::_build_elements::_build_divisor_fraction', );
+	###LogSD		$phone->talk( level => 'debug', message => [
+	###LogSD			'Reached _build_divisor_fraction with:', $value_definitions,	] );
+	my $divisor = $value_definitions->{fraction}->{divisor};
+	my $decimal = '0.' . $value_definitions->{decimal}->{value};
+	my $low_numerator = int( $divisor * $decimal );
+	my $high_numerator = $low_numerator + 1;
+	my $low_delta = $decimal - ($low_numerator / $divisor);
+	my $high_delta = ($high_numerator / $divisor) - $decimal;
+	my $return;
+	my $add_denominator = 0;
+	if( $low_delta < $high_delta ){
+		$return = $low_numerator;
+		$add_denominator = 1 if $return;
+	}else{
+		$return = $high_numerator;
+		if( $high_numerator == $divisor ){
+			$return = 1;
+		}else{
+			$add_denominator = 1;
+		}
+	}
+	$return .= "/$divisor" if $add_denominator;
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		"Final fraction: $return"		] );
+	return $return;
 }
 
 #########1 Phinish            3#########4#########5#########6#########7#########8#########9

@@ -12,6 +12,13 @@ use	lib
 		'../../../../../lib',;
 #~ use Log::Shiras::Switchboard qw( :debug );
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(#
+###LogSD						name_space_bounds =>{
+###LogSD							main =>{
+###LogSD								UNBLOCK =>{
+###LogSD									log_file => 'info',
+###LogSD								},
+###LogSD							},
+###LogSD						},
 ###LogSD						reports =>{
 ###LogSD							log_file =>[ Print::Log->new ],
 ###LogSD						},
@@ -80,8 +87,8 @@ lives_ok{
 										'Spreadsheet::XLSX::Reader::LibXML::FmtDefault',
 										'Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings'
 									],
-									log_space				=> 'Test',
-									epoch_year				=> 1904,
+									log_space	=> 'Test',
+									epoch_year 	=> 1904,
 								);
 }										"Prep a test ParseExcelFormatStrings instance";
 map{ 
@@ -97,18 +104,41 @@ can_ok		$test_instance, $_,
 ###LogSD		$phone->talk( level => 'info', message => [ "hardest questions ..." ] );
 			no warnings 'uninitialized';
 			for my $position ( 0 .. $#$question_list ){
-###LogSD	if( $position == 2 ){
+###LogSD		$phone->talk( level => 'debug', message => [ 'processing excel format string: ' . $question_list->[$position]->[0]  ] );
+ok			my $coercion = $test_instance->parse_excel_format_string( $question_list->[$position]->[0] ),
+										"Build a coercion with excel format string: $question_list->[$position]->[0]";
+###LogSD		$phone->talk( level => 'debug', message => [ 'Built a coercion named : ' . $coercion->name  ] );
+			for my $row_pos ( 1 .. $#{$question_list->[$position]} ){
+###LogSD	if( $position == 4 and $row_pos == 1 ){
 ###LogSD		$operator->add_name_space_bounds( {
-###LogSD			main =>{
-###LogSD				UNBLOCK =>{
-###LogSD					log_file => 'debug',
-###LogSD				},
+###LogSD			UNBLOCK =>{
+###LogSD				log_file => 'warn',
 ###LogSD			},
 ###LogSD			Test =>{
 ###LogSD				_build_number =>{
-###LogSD					_build_scientific_sub =>{
+###LogSD					_build_elements =>{
 ###LogSD						UNBLOCK =>{
-###LogSD							log_file => 'trace',
+###LogSD							log_file => 'warn',
+###LogSD						},
+###LogSD						_split_decimal_integer =>{
+###LogSD							UNBLOCK =>{
+###LogSD								log_file => 'trace',
+###LogSD							},
+###LogSD						},
+###LogSD						_move_decimal_point =>{
+###LogSD							UNBLOCK =>{
+###LogSD								log_file => 'warn',
+###LogSD							},
+###LogSD						},
+###LogSD						_build_fraction =>{
+###LogSD							UNBLOCK =>{
+###LogSD								log_file => 'trace',
+###LogSD							},
+###LogSD						},
+###LogSD						_round_decimal =>{
+###LogSD							UNBLOCK =>{
+###LogSD								log_file => 'trace',
+###LogSD							},
 ###LogSD						},
 ###LogSD					},
 ###LogSD				},
@@ -117,10 +147,12 @@ can_ok		$test_instance, $_,
 ###LogSD						log_file => 'warn',
 ###LogSD					},
 ###LogSD				},
-###LogSD				_util_function =>{
+###LogSD				parse_excel_format_string =>{
 ###LogSD					UNBLOCK =>{
-###LogSD						log_file => 'trace',
+###LogSD						log_file => 'warn',
 ###LogSD					},
+###LogSD				},
+###LogSD				_util_function =>{
 ###LogSD					_gcd =>{
 ###LogSD						BLOCK=>{
 ###LogSD							log_file => 'fatal',
@@ -128,6 +160,11 @@ can_ok		$test_instance, $_,
 ###LogSD					},
 ###LogSD					_integer_and_decimal =>{
 ###LogSD						BLOCK=>{
+###LogSD							log_file => 'fatal',
+###LogSD						},
+###LogSD					},
+###LogSD					_continuous_fraction =>{
+###LogSD						UNBLOCK=>{
 ###LogSD							log_file => 'fatal',
 ###LogSD						},
 ###LogSD					},
@@ -139,14 +176,9 @@ can_ok		$test_instance, $_,
 ###LogSD				},
 ###LogSD			},
 ###LogSD		} );
-###LogSD	}elsif( $position == 3 ){
+###LogSD	}elsif( $position == 5 ){
 ###LogSD		exit 1;
 ###LogSD	}
-###LogSD		$phone->talk( level => 'debug', message => [ 'processing excel format string: ' . $question_list->[$position]->[0]  ] );
-ok			my $coercion = $test_instance->parse_excel_format_string( $question_list->[$position]->[0] ),
-										"Build a coercion with excel format string: $question_list->[$position]->[0]";
-###LogSD		$phone->talk( level => 'debug', message => [ 'Built a coercion named : ' . $coercion->name  ] );
-			for my $row_pos ( 1 .. $#{$question_list->[$position]} ){
 ###LogSD		$phone->talk( level => 'info', message => [ "Group position: $position", "Test position: $row_pos" ] );
 ###LogSD		$phone->talk( level => 'debug', message => [ "Attempting to coerce: $question_list->[$position]->[$row_pos]"  ] );
 is			$coercion->assert_coerce( $question_list->[$position]->[$row_pos] ), $answer_list->[$position]->[$row_pos],
