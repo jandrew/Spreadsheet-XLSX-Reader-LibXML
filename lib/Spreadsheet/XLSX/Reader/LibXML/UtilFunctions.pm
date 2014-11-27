@@ -1,12 +1,13 @@
 package Spreadsheet::XLSX::Reader::LibXML::UtilFunctions;
-use version; our $VERSION = qv('v0.12.4');
+use version; our $VERSION = qv('v0.14.2');
 
 use	5.010;
 use	Moose::Role;
+use	Carp qw( confess );
 requires qw(
 	get_log_space		
 );
-use Types::Standard qw( is_Int );
+use Types::Standard qw( is_Int is_Num );
 use lib	'../../../../../../lib',;
 ###LogSD	use Log::Shiras::Telephone;
 
@@ -63,6 +64,7 @@ sub _continuous_fraction{# http://www.perlmonks.org/?node_id=41961
 	###LogSD				"..and max digits: $max_digits",			] );
 	my	@continuous_integer_list;
 	my	$start_decimal = $decimal;
+	confess "Passed bad decimal: $decimal" if !is_Num( $decimal );
 	while( $max_iterations > 0 and ($decimal >= 0.00001) ){
 		$decimal = 1/$decimal;
 		( my $integer, $decimal ) = $self->_integer_and_decimal( $decimal );

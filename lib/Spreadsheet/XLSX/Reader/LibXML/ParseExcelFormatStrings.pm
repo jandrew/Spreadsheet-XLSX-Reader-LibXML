@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings;
-use version; our $VERSION = qv('v0.12.4');
+use version; our $VERSION = qv('v0.14.2');
 
 use 5.010;
 use Moose::Role;
@@ -17,7 +17,7 @@ use Types::Standard qw(
 		HasMethods				Bool
 		is_Object
     );
-use Carp qw( confess );
+use Carp qw( confess );# cluck
 use	Type::Coercion;
 use	Type::Tiny;
 use DateTimeX::Format::Excel 0.012;
@@ -1185,7 +1185,7 @@ sub _split_decimal_integer{
 	
 	# handle slightly underreported decimals
 	if(	$decimal and
-		my @results = $decimal =~ /^(0+)?([1-8][0-9]+)?(9{4}9+)([0-9]*[1-9])?(0+)?$/ ){
+		my @results = sprintf( '%s',$decimal ) =~ /^(0+)?([1-8][0-9]+)?(9{4}9+)([0-9]*[1-9])?(0+)?$/ ){
 		$decimal = undef;
 		$decimal = $2 if defined $2;
 		$decimal .= $3;
@@ -1199,16 +1199,16 @@ sub _split_decimal_integer{
 		###LogSD		'Stripped decimal: ' . $decimal,
 		###LogSD		"Adjusting a potentially underreported decimal with: $adder",  ] );
 		$decimal += $adder;
-		$decimal = $results[0] . $decimal if defined $results[0];
+		$decimal = $results[0] . sprintf( '%s',$decimal ) if defined $results[0];
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD		'Resulting decimal: ' . $decimal  ] );
-		if( length( $decimal ) > $stripped_length ){
+		if( length( sprintf( '%s',$decimal ) ) > $stripped_length ){
 			$integer++;
-			$decimal = substr( $decimal, 1, $stripped_length );
+			$decimal = substr( sprintf( '%s',$decimal ), 1, $stripped_length );
 		}
 	}
 	$value_definitions->{integer}->{value} = $integer;
-	$value_definitions->{decimal}->{value} = $decimal;
+	$value_definitions->{decimal}->{value} = sprintf( '%s', $decimal );
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		'Updated ref:', $value_definitions		] );
 	return $value_definitions;
@@ -1227,7 +1227,7 @@ sub _move_decimal_point{
 		###LogSD	$phone->talk( level => 'debug', message =>[ "Matched integer value at: $stopped",	] );
 		$exponent = length( $value_definitions->{integer}->{value} ) - $stopped;
 	}elsif( $value_definitions->{decimal}->{value} and 
-			 $value_definitions->{decimal}->{value} =~ /([1-9])/ ){
+			  sprintf( '%s',$value_definitions->{decimal}->{value} ) =~ /([1-9])/ ){
 		my $stopped = $+[0];
 		###LogSD	$phone->talk( level => 'debug', message =>[ "Matched decimal value at: -$stopped",	] );
 		$exponent =  '-' . $stopped;
@@ -1244,14 +1244,14 @@ sub _move_decimal_point{
 		my $adjustment = $exponent * -1;
 		###LogSD	$phone->talk( level => 'info', message => [
 		###LogSD		"The exponent |$exponent| is less than zero - the decimal must move to the right"  ] );
-		$value_definitions->{decimal}->{value} =~ /(.{$adjustment})(.+)/;
+		 sprintf( '%s',$value_definitions->{decimal}->{value} ) =~ /(.{$adjustment})(.+)/;
 		$value_definitions->{integer}->{value} = ($1 * 1);
-		$value_definitions->{decimal}->{value} = $2;
+		$value_definitions->{decimal}->{value} =  sprintf( '%s',$2 );
 	}elsif( $exponent > 0 ){
 		###LogSD	$phone->talk( level => 'info', message => [
 		###LogSD		"The exponent -$exponent- is greater than zero - the decimal must move to the left"  ] );
 		$value_definitions->{integer}->{value} =~ /(.*)(.{$exponent})$/;
-		$value_definitions->{decimal}->{value} = $2 . $value_definitions->{decimal}->{value};
+		$value_definitions->{decimal}->{value} = $2 .  sprintf( '%s',$value_definitions->{decimal}->{value} );
 		$value_definitions->{integer}->{value} = $1;
 	}
 	
@@ -1269,7 +1269,7 @@ sub _round_decimal{
 	if( $value_definitions->{no_decimal} ){
 		###LogSD	$phone->talk( level => 'info', message => [
 		###LogSD		"No decimal condition identified - rounding integer as needed"  ] );
-		if( substr( $value_definitions->{decimal}->{value}, 0, 1 ) > 4 ){
+		if( substr( sprintf( '%s',$value_definitions->{decimal}->{value} ), 0, 1 ) > 4 ){
 			$value_definitions->{integer}->{value}++;
 		}
 		delete $value_definitions->{decimal};
@@ -1282,7 +1282,7 @@ sub _round_decimal{
 			$value_definitions->{decimal}->{value} = 
 				0 x $value_definitions->{decimal}->{max_length};
 		}else{
-			$value_definitions->{decimal}->{value} =~ 
+			sprintf( '%s',$value_definitions->{decimal}->{value} ) =~ 
 				/^(.{$value_definitions->{decimal}->{max_length}})(.)/;
 			$value_definitions->{decimal}->{value} = $1;
 			###LogSD	$phone->talk( level => 'info', message => [
@@ -1355,12 +1355,13 @@ sub _build_fraction{
 	###LogSD					$self->get_log_space .  '::_build_number::_build_elements::_build_fraction', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			'Reached _build_fraction with:', $value_definitions,	] );
+	#~ cluck $value_definitions->{decimal}->{value};
 	if( exists $value_definitions->{decimal}->{value} ){
 		$value_definitions->{fraction}->{value} = 
 			( $value_definitions->{fraction}->{divisor} ) ?
 				$self->_build_divisor_fraction( $value_definitions ) :
 				$self->_continuous_fraction(
-					'0.' . $value_definitions->{decimal}->{value}, 20,
+					'0.' . sprintf( '%s',$value_definitions->{decimal}->{value} ), 20,
 					$value_definitions->{fraction}->{target_length},
 				);
 	}
