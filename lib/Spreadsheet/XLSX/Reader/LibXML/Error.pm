@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::Error;
-use version; our $VERSION = qv('v0.14.2');
+use version; our $VERSION = qv('v0.16.2');
 
 use Moose;
 use Carp qw( cluck );
@@ -17,6 +17,8 @@ use lib	'../../../../../lib',;
 with 'Spreadsheet::XLSX::Reader::LibXML::LogSpace';
 ###LogSD	use Log::Shiras::TapWarn qw( re_route_warn restore_warn );
 ###LogSD	use Log::Shiras::Telephone;
+
+#########1 Public Attributes  3#########4#########5#########6#########7#########8#########9
 
 has error_string =>(
 		isa		=> Str,
@@ -118,6 +120,16 @@ This L<Moose> class contains two L<attributes|Moose::Manual::Attributes>.  It is
 to be used through (by) L<delegation|Moose::Manual::Delegation> in other classes.  The first 
 attribute is used to store the current error string.  The second, is set to turn on or off 
 pushing the error string to STDERR when the first attribute is (re)set.
+
+This class uses a role for full functional implementation.  Read the documentation 
+for each of the role(s) as well as this documentation to gain a complete picture of this 
+class.
+
+=head2 with
+
+These are attached role(s) for additional (re-used) functionality
+
+=head3 L<Spreadsheet::XLSX::Reader::LibXML::LogSpace>
 
 =head2 Attributes
 
@@ -238,7 +250,19 @@ This software is copyrighted (c) 2014 by Jed Lund
 
 =over
 
-L<Spreadsheet::XLSX::Reader::LibXML>
+L<version>
+
+L<Moose>
+
+L<Carp> - cluck
+
+L<MooseX::StrictConstructor>
+
+L<MooseX::HasDefaults::RO>
+
+L<Types::Standard>
+
+L<lib>
 
 =back
 

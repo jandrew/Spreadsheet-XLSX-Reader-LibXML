@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::CalcChain;
-use version; our $VERSION = qv('v0.14.2');
+use version; our $VERSION = qv('v0.16.2');
 
 use 5.010;
 use Moose;
@@ -91,11 +91,64 @@ __END__
 
 =head1 NAME
 
-Spreadsheet::XLSX::Reader::LibXML::XMLReader::CalcChain - LibXML::Reader for the calcChain file
+Spreadsheet::XLSX::Reader::LibXML::XMLReader::CalcChain - LibXML::XMLReader for the calcChain file
+
+=head1 SYNOPSIS
+
+See General SYNOPSIS L<Spreadsheet::XLSX::Reader::LibXML::CalcChain/SYNOPSIS>
     
 =head1 DESCRIPTION
 
-POD not written yet!
+This class is used to access the sub file calcChain.xml from an unzipped .xlsx file.  
+The file to be read is generally found in the xl/ sub folder after the master file is 
+unzipped.  The calcChain.xml file contains the calculation sequence and data source(s) 
+used when building the value for cells with formulas.  (The formula presented in the 
+L<Cell|Spreadsheet::XlSX::Reader::LibXML::Cell> instance is collected from somewhere 
+else.
+
+This particular class uses the L<XML::LibXML::XMLReader> to parse the file.  The 
+intent with that reader is to maintain the minimum amount of the file in working memory.  
+As a consequence two things are sacrificed.  First this implementation will read the file 
+serially.  This means that to read a previous element the file must start over at the 
+beginning.  Second, the connection between the XMLReader and the file is broken to 
+rewind the file pointer.  In an effort to minimize this pain the system file 'open' 
+function is handled in a separate file handle variable so that a new system open is 
+not required on each rewind.  For information regarding necessary steps to replace 
+this package review the L<general|Spreadsheet::XLSX::Reader::LibXML::CalcChain/DESCRIPTION> 
+documentation
+
+This is a child class that both inherits from a parent and collates a role for full 
+functional implementation.  Read the documentation for each of them as well as this 
+documentation to gain a complete picture of this class.
+
+=head2 extends
+
+This is the parent class of this class
+
+=head3 L<Spreadsheet::XLSX::Reader::LibXML::XMLReader>
+
+=head2 with
+
+These are attached roles for additional (re-used) functionality
+
+=head3 L<Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData>
+
+=head2 Primary Functions
+
+These are the primary way(s) to use this class.
+
+=head3 get_calc_chain_position( $integer )
+
+=over
+
+B<Definition:> This will return the calcChain information from the identified $integer position.  
+(Counting from zero).  The information is returned as a perl hash ref.
+
+B<Accepts:> an $integer for the calcChain position
+
+B<Returns:> a hash ref of data
+
+=back
 
 =head1 SUPPORT
 
@@ -138,7 +191,21 @@ This software is copyrighted (c) 2014 by Jed Lund
 
 =over
 
-L<Spreadsheet::XLSX::Reader::LibXML>
+L<version>
+
+B<5.010> - (L<perl>)
+
+L<Moose>
+
+L<MooseX::StrictConstructor>
+
+L<MooseX::HasDefaults::RO>
+
+L<lib>
+
+L<Spreadsheet::XLSX::Reader::LibXML::XMLReader>
+
+L<Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData>
 
 =back
 

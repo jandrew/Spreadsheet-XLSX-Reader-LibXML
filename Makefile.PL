@@ -27,6 +27,7 @@ my %WriteMakefileArgs = (
     "DateTime::Format::Flexible" => 0,
     "DateTimeX::Format::Excel" => "0.012",
     "File::Temp" => 0,
+    "List::Util" => "1.33",
     "Moose" => "2.1213",
     "Moose::Role" => 0,
     "MooseX::HasDefaults::RO" => 0,
@@ -74,7 +75,7 @@ my %WriteMakefileArgs = (
     "lib" => 0,
     "version" => "0.77"
   },
-  "VERSION" => "v0.14.2",
+  "VERSION" => "v0.16.2",
   "test" => {
     "TESTS" => "t/Spreadsheet/XLSX/Reader/*.t t/Spreadsheet/XLSX/Reader/LibXML/*.t t/Spreadsheet/XLSX/Reader/LibXML/XMLReader/*.t"
   }

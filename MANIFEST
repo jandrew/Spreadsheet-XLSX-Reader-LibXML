@@ -47,6 +47,7 @@ t/Spreadsheet/XLSX/Reader/LibXML/XMLReader/calcchain_example.pl
 t/Spreadsheet/XLSX/Reader/LibXML/cell_to_column_row_example.pl
 t/Spreadsheet/XLSX/Reader/LibXML/error_example.pl
 t/Spreadsheet/XLSX/Reader/LibXML/fmt_default_example.pl
+t/Spreadsheet/XLSX/Reader/LibXML/parse_excel_fmt_string_example.pl
 t/Spreadsheet/XLSX/Reader/libxml_example.pl
 t/test_files/Rich.xls
 t/test_files/TestBook.xls

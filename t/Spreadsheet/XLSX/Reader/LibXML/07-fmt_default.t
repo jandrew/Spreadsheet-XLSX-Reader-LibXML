@@ -164,7 +164,7 @@ is			$test_instance->get_defined_excel_format( $position ), $answer_list->[$posi
 ok			my $coercion = $test_instance->parse_excel_format_string( $test_instance->get_defined_excel_format( $position ) ),
 										,"..and try to turn it into a Type::Tiny coercion";
 			for my $row_pos ( 1 .. $#{$answer_list->[$position]} ){
-###LogSD	if( $position == 1 and $row_pos == 5 ){
+###LogSD	if( $position == 11 and $row_pos == 9 ){
 ###LogSD		$operator->add_name_space_bounds( {
 ###LogSD			UNBLOCK =>{
 ###LogSD				log_file => 'warn',
@@ -221,7 +221,7 @@ ok			my $coercion = $test_instance->parse_excel_format_string( $test_instance->g
 ###LogSD				},
 ###LogSD			},
 ###LogSD		} );
-###LogSD	}elsif( $position == 2 ){
+###LogSD	}elsif( $position == 12 ){
 ###LogSD		exit 1;
 ###LogSD	}
 ###LogSD		$phone->talk( level => 'info', message => [ "Group position: $position", "Test position: $row_pos" ] );

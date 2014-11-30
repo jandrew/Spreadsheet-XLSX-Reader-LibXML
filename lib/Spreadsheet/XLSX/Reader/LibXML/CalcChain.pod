@@ -33,19 +33,25 @@ It also uses the XMLReader version of the CalcChain class.  (Any version will do
 
 =head1 DESCRIPTION
 
-This general class is written to access the sub file calcChain in an unzipped .xlsx file.  
-Eventually there will be a parent class for each type of XML Parser.  The file to be read is 
-generally found in the xl/ folder of the unzipped file.  This file contains the calculation 
-sequence and data source used for identified formulas in the sheet.  (The formula tie to these 
-elements is maintained outside of this sheet.  To build it differently you would need to fork the 
-L<github|https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML> package and insert the call for 
-this class in the $parser_modules variable maintained in the L<Spreadsheet::XLSX::Reader::LibXML> 
-class.  (about line 34).  Each individual type of CalcChain reader '.pm' file also has it's own POD.
+This general class is written to access the sub file calcChain.xml from an unzipped 
+.xlsx file.  The file to be read is generally found in the xl/ sub folder after the 
+master file is unzipped.  The calcChain.xml file contains the calculation sequence 
+and data source(s) used when building the value for cells with formulas.  (The 
+formula presented in the L<Cell|Spreadsheet::XlSX::Reader::LibXML::Cell> instance is 
+collected from somewhere else.  This documentation is for a general explanation but 
+the example uses an XMLReader version for this file.  Documentation specific to that 
+reader can be found in L<~XMLReader::CalcChain
+|Spreadsheet::XLSX::Reader::LibXML::XMLReader::CalcChain>.  To replace or augment 
+this class you would need to fork the L<github
+|https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML> package and insert a call 
+for your new class in the $parser_modules variable maintained in the 
+L<Spreadsheet::XLSX::Reader::LibXML> class.  (about line 34).
 	
-=head2 Primary Methods
+=head2 Required Methods
 
-These are the primary ways to use this class.  For additional calcChain options see the 
-L<Attributes|/Attributes> section.
+These are the primary way(s) to use this class.  For additional CalcChain options see the 
+L<Attributes|/Attributes> section.  I<All replacement classes must provide these methods.>  
+Methods used to manipulate the attributes are listed in each attribute.
 
 =head3 get_calc_chain_position( $integer )
 

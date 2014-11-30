@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow;
-use version; our $VERSION = qv('v0.14.2');
+use version; our $VERSION = qv('v0.16.2');
 
 use	Moose::Role;
 requires qw(
@@ -237,10 +237,10 @@ since the excel implementation is effectivly zeroless.
 The default for this module is to count from 1 (the excel convention).  Meaning that cell 
 ID 'A1' is equal to (1, 1) and column row (3, 2) is equal to the cell ID 'C2'.
 
-=head2 Requires
+=head2 requires
 
-These are methods used by the Role but not provided by the role.  Any class consuming this 
-role will not build without these methods provided by the class prior to loading this role.
+These are methods used by this Role but not provided by the role.  Any class consuming this 
+role will not build unless it first provides these methods prior to loading this role.
 
 =head3 get_log_space
 
@@ -347,7 +347,11 @@ This software is copyrighted (c) 2014 by Jed Lund
 
 =over
 
-L<Spreadsheet::XLSX::Reader::LibXML>
+L<version>
+
+L<Moose::Role>
+
+L<Types::Standard>
 
 =back
 

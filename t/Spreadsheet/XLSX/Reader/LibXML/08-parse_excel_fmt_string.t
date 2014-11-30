@@ -78,7 +78,7 @@ my			$answer_list =[
 ###LogSD		$phone->talk( level => 'info', message => [ "easy questions ..." ] );
 lives_ok{
 			$test_instance	=	build_instance(
-									package	=> 'ParseExcelFormatStringsTest4',
+									package	=> 'ParseExcelFormatStringsTest',
 									roles	=>[ 
 										'Spreadsheet::XLSX::Reader::LibXML::LogSpace'
 									],
@@ -109,13 +109,16 @@ ok			my $coercion = $test_instance->parse_excel_format_string( $question_list->[
 										"Build a coercion with excel format string: $question_list->[$position]->[0]";
 ###LogSD		$phone->talk( level => 'debug', message => [ 'Built a coercion named : ' . $coercion->name  ] );
 			for my $row_pos ( 1 .. $#{$question_list->[$position]} ){
-###LogSD	if( $position == 4 and $row_pos == 1 ){
+###LogSD	if( $position == 3 and $row_pos == 12 ){
 ###LogSD		$operator->add_name_space_bounds( {
 ###LogSD			UNBLOCK =>{
 ###LogSD				log_file => 'warn',
 ###LogSD			},
 ###LogSD			Test =>{
 ###LogSD				_build_number =>{
+###LogSD					UNBLOCK =>{
+###LogSD						log_file => 'warn',
+###LogSD					},
 ###LogSD					_build_elements =>{
 ###LogSD						UNBLOCK =>{
 ###LogSD							log_file => 'warn',
@@ -127,7 +130,7 @@ ok			my $coercion = $test_instance->parse_excel_format_string( $question_list->[
 ###LogSD						},
 ###LogSD						_move_decimal_point =>{
 ###LogSD							UNBLOCK =>{
-###LogSD								log_file => 'warn',
+###LogSD								log_file => 'trace',
 ###LogSD							},
 ###LogSD						},
 ###LogSD						_build_fraction =>{
@@ -176,7 +179,7 @@ ok			my $coercion = $test_instance->parse_excel_format_string( $question_list->[
 ###LogSD				},
 ###LogSD			},
 ###LogSD		} );
-###LogSD	}elsif( $position == 5 ){
+###LogSD	}elsif( $position == 4	 ){
 ###LogSD		exit 1;
 ###LogSD	}
 ###LogSD		$phone->talk( level => 'info', message => [ "Group position: $position", "Test position: $row_pos" ] );
