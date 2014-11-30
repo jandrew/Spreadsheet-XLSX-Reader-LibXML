@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings;
-use version; our $VERSION = qv('v0.16.2');
+use version; our $VERSION = qv('v0.18.2');
 
 use 5.010;
 use Moose::Role;
@@ -832,7 +832,7 @@ sub _build_integer_sub{
 			###LogSD		"Received built ref:", $built_ref ] );
 			my	$return .= sprintf(
 					$built_ref->{sprintf_string},
-					sprintf( '%s', $built_ref->{integer}->{value} )
+					$built_ref->{integer}->{value}
 				);
 			$return = $built_ref->{sign} . $return if $built_ref->{sign} and $return;
 			return $return;
@@ -890,8 +890,8 @@ sub _build_decimal_sub{
 			###LogSD		"Received built ref:", $built_ref ] );
 			my	$return .= sprintf(
 					$built_ref->{sprintf_string},
-					sprintf( '%s', $built_ref->{integer}->{value} ),
-					sprintf( '%s', $built_ref->{decimal}->{value} ),
+					$built_ref->{integer}->{value},
+					$built_ref->{decimal}->{value},
 				);
 			$return = $built_ref->{sign} . $return if $built_ref->{sign} and $return;
 			return $return;
@@ -956,13 +956,13 @@ sub _build_percent_sub{
 			if( $decimal_count < 2 ){
 				$return .= sprintf(
 					$built_ref->{sprintf_string},
-					sprintf( '%s', $built_ref->{integer}->{value} ),
+					$built_ref->{integer}->{value},
 				);
 			}else{
 				$return .= sprintf(
 					$built_ref->{sprintf_string},
-					sprintf( '%s', $built_ref->{integer}->{value} ),
-					sprintf( '%s', $built_ref->{decimal}->{value} ),
+					$built_ref->{integer}->{value},
+					$built_ref->{decimal}->{value},
 				);
 			}
 			$return = $built_ref->{sign} . $return if $built_ref->{sign} and $return;
@@ -1035,15 +1035,15 @@ sub _build_scientific_sub{
 			if( $built_ref->{no_decimal} ){
 				$return .= sprintf(
 					$built_ref->{sprintf_string},
-					sprintf( '%s', $built_ref->{integer}->{value} ),
-					sprintf( '%s', $built_ref->{exponent}->{value} )
+					$built_ref->{integer}->{value},
+					$built_ref->{exponent}->{value}
 				);
 			}else{
 				$return .= sprintf(
 					$built_ref->{sprintf_string},
-					sprintf( '%s', $built_ref->{integer}->{value} ),
-					sprintf( '%s', $built_ref->{decimal}->{value} ),
-					sprintf( '%s', $built_ref->{exponent}->{value} )
+					$built_ref->{integer}->{value},
+					$built_ref->{decimal}->{value} ,
+					$built_ref->{exponent}->{value} 
 				);
 			}
 			$return = $built_ref->{sign} . $return if $built_ref->{sign} and $return;
@@ -1172,22 +1172,18 @@ sub _split_decimal_integer{
 	###LogSD			'Reached _split_decimal_integer with:', $value_definitions,	] );
 	
 	# Extract negative sign
+	#~ confess "Initial value not a number: $value_definitions->{initial_value}" if !is_Num( $value_definitions->{initial_value} );
 	if( $value_definitions->{initial_value} < 0 ){
 		$value_definitions->{sign} = '-';
 		$value_definitions->{initial_value} = $value_definitions->{initial_value} * -1;
 	}
 	
 	# Build the integer
-	$value_definitions->{integer}->{value} = 
-		#~ ( $value_definitions->{no_decimal} ) ?
-			#~ int( $value_definitions->{initial_value} + 0.500000001 ) :
-			int( $value_definitions->{initial_value} );
+	$value_definitions->{integer}->{value} = int( $value_definitions->{initial_value} );
+	#~ confess "Initial value not a number: $value_definitions->{initial_value}" if !is_Num( $value_definitions->{initial_value} );
 		
 	# Build the decimal
-	#~ if( !$value_definitions->{no_decimal} ){
-		my $decimal = $value_definitions->{initial_value} - $value_definitions->{integer}->{value};
-		$value_definitions->{decimal}->{value} = sprintf( '%016s', int( $decimal * 10000000000000000 ) );# limit decimals to 16 positions
-	#~ }
+	$value_definitions->{decimal}->{value} = $value_definitions->{initial_value} - $value_definitions->{integer}->{value};
 	###LogSD	$phone->talk( level => 'debug', message =>[ 'Updated ref: ', $value_definitions  ] );
 	return $value_definitions;
 }
@@ -1198,17 +1194,20 @@ sub _move_decimal_point{
 	###LogSD					$self->get_log_space .  '::_build_number::_build_elements::_move_decimal_point', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			'Reached _move_decimal_point with:', $value_definitions,	] );
-	my	$exponent;
+	my ( $exponent, $stopped );
 	if(defined	$value_definitions->{integer}->{value} and 
 		sprintf( '%.0f', $value_definitions->{integer}->{value} ) =~ /([1-9])/ ){
-		my $stopped = $+[0];
+		$stopped = $+[0];
 		###LogSD	$phone->talk( level => 'debug', message =>[ "Matched integer value at: $stopped",	] );
 		$exponent = length( sprintf( '%.0f', $value_definitions->{integer}->{value} ) ) - $stopped;
-	}elsif( defined $value_definitions->{decimal}->{value} and 
-			 sprintf( '%016s', $value_definitions->{decimal}->{value} ) =~ /([1-9])/ ){
-		my $stopped = $+[0];
-		###LogSD	$phone->talk( level => 'debug', message =>[ "Matched decimal value at: -$stopped",	] );
-		$exponent =  '-' . $stopped;
+	}elsif( $value_definitions->{decimal}->{value} ){ 
+		if( $value_definitions->{decimal}->{value} =~ /E(-?\d+)$/i ){
+			$exponent = $1 * 1;
+		}elsif( $value_definitions->{decimal}->{value} =~ /([1-9])/ ){
+			$exponent = $+[0] * -1;
+			$exponent += 2;
+			###LogSD	$phone->talk( level => 'debug', message =>[ "Matched decimal value at: $exponent",	] );
+		}
 	}else{
 		$exponent = 0;
 	}
@@ -1217,25 +1216,27 @@ sub _move_decimal_point{
 	###LogSD	$phone->talk( level => 'debug', message =>[ "Exponent remainder: $exponent_remainder",	] );
 		$exponent -= $exponent_remainder;
 	###LogSD	$phone->talk( level => 'debug', message =>[ "New exponent: $exponent",	] );
-		$value_definitions->{exponent}->{value} = sprintf( '%s', $exponent );
+		$value_definitions->{exponent}->{value} = $exponent;
 	if( $exponent < 0 ){
-		my $adjustment = $exponent * -1;
+		my $adjustment = '1' . (0 x abs($exponent));
 		###LogSD	$phone->talk( level => 'info', message => [
-		###LogSD		"The exponent |$exponent| is less than zero - the decimal must move to the right"  ] );
-		sprintf( '%016s',$value_definitions->{decimal}->{value} ) =~ /(.{$adjustment})(.+)/;
-		confess "Not a number: $1" if $1 and !is_Num( $1 );
-		$value_definitions->{integer}->{value} .= $1;
-		$value_definitions->{decimal}->{value} = $2;# sprintf( '%s', $2 );
+		###LogSD		"The exponent |$exponent| is less than zero - the decimal must move to the right by: $adjustment"  ] );
+		my $new_integer = $value_definitions->{integer}->{value} * $adjustment;
+		my $new_decimal = $value_definitions->{decimal}->{value} * $adjustment;
+		my $decimal_int = int( $new_decimal );
+		###LogSD	$phone->talk( level => 'info', message => [
+		###LogSD		"Bumped integer: $new_integer", "Bumped decimal: $new_decimal", "Decimal integer: $decimal_int" ] );
+		$value_definitions->{integer}->{value} = $new_integer + $decimal_int;
+		$value_definitions->{decimal}->{value} = $new_decimal - $decimal_int;
 	}elsif( $exponent > 0 ){
+		my $adjustment = '1' . (0 x $exponent);
 		###LogSD	$phone->talk( level => 'info', message => [
 		###LogSD		"The exponent -$exponent- is greater than zero - the decimal must move to the left"  ] );
-		sprintf( '%.0f', $value_definitions->{integer}->{value} ) =~ /(.*)(.{$exponent})$/;
-		$value_definitions->{integer}->{value} = $1;
-		if( $value_definitions->{decimal}->{value} ){
-			$value_definitions->{decimal}->{value} = $2 . $value_definitions->{decimal}->{value};
-		}else{
-			$value_definitions->{decimal}->{value} = $2;
-		}
+		my $new_integer = $value_definitions->{integer}->{value} / $adjustment;
+		my $new_decimal = $value_definitions->{decimal}->{value} / $adjustment;
+		my $integer_int = int( $new_integer );
+		$value_definitions->{integer}->{value} = $integer_int;
+		$value_definitions->{decimal}->{value} = $new_decimal + ($new_integer - $integer_int);
 	}
 	
 	###LogSD	$phone->talk( level => 'debug', message => [
@@ -1250,68 +1251,35 @@ sub _round_decimal{
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			'Reached _round_decimal with:', $value_definitions,	] );
 	if( $value_definitions->{no_decimal} ){
-		my $decimal_start = '0.' . $value_definitions->{decimal}->{value};
-		if( $decimal_start > 0.4998 ){
+		if( $value_definitions->{decimal}->{value} > 0.4998 ){# Err on the side of fixing precision up
 			###LogSD	$phone->talk( level => 'info', message => [
 			###LogSD		'Rouding the integer -' . $value_definitions->{integer}->{value} .
-			###LogSD		"- for the no-decimal condition with decimal: $decimal_start",  ] );
+			###LogSD		"- for the no-decimal condition with decimal: $value_definitions->{decimal}->{value}",  ] );
 			$value_definitions->{integer}->{value}++;
 		}
 		delete $value_definitions->{decimal};
 	}elsif( $value_definitions->{decimal}->{max_length} ){
 		###LogSD	$phone->talk( level => 'info', message => [
 		###LogSD		"Enforcing decimal max length: " . $value_definitions->{decimal}->{max_length}  ] );
-		if( !defined $value_definitions->{decimal}->{value} ){
+		if( $value_definitions->{decimal}->{value} ){
+			my $adder			= '0.' . (0 x $value_definitions->{decimal}->{max_length}) . '00002';
+			my $sprintf_string	= '%.' . $value_definitions->{decimal}->{max_length} . 'f';
+			my $round_decimal	= sprintf( $sprintf_string,  ($value_definitions->{decimal}->{value}+$adder) );
 			###LogSD	$phone->talk( level => 'info', message => [
-			###LogSD		"Decimal found to be 0 or no string"] );
-			$value_definitions->{decimal}->{value} = '0.' .
-				0 x $value_definitions->{decimal}->{max_length};
-		}else{
-			sprintf( '%s',$value_definitions->{decimal}->{value} ) =~ 
-				/^(.{$value_definitions->{decimal}->{max_length}})(.)(.{4})?/;
-			$value_definitions->{decimal}->{value} = $1;
-			my	$decimal_length = length( $1 );
-			my	$round = $2;
-			my	$round_error;
-				$round_error = $2 if $2;
-				$round_error .= $3 if $3;
-			my	$round_up = 0;
-			###LogSD	$phone->talk( level => 'info', message => [
-			###LogSD		"New decimal: " . $value_definitions->{decimal}->{value},
-			###LogSD		(($round) ? "Possible round up value: $round" : ''),
-			###LogSD		(($round_error) ? "..other round up value: $round_error" : ''),] );
-			if( $round and $round > 4 ){
-				$round_up = 1;
+			###LogSD		"Sprintf string: $sprintf_string", "Rounded decimal: $round_decimal", "Adder: $adder",] );
+			if( $round_decimal >= 1 ){
+				$value_definitions->{integer}->{value}++;
+				$round_decimal -= 1;
 				###LogSD	$phone->talk( level => 'info', message => [
-				###LogSD		"Need to round the decimal up for: $2" ] );
-			}elsif( $round_error and $round_error eq '49999' ){
-				$round_up = 1;
-				###LogSD	$phone->talk( level => 'info', message => [
-				###LogSD		"Rounding up decimal for possible underreported value: $round_error" ] );
+				###LogSD		"New integer: " . $value_definitions->{integer}->{value}, "New decimal: $round_decimal" ] );
 			}
-			if( $round_up ){
-				my $rounding_decimal = '0.' . $value_definitions->{decimal}->{value};
-				my $rounding_add = '0.' . (0 x ( $decimal_length - 1 )) . '1';
-				my $new_decimal = $rounding_decimal + $rounding_add;
-				###LogSD	$phone->talk( level => 'info', message => [
-				###LogSD		"Rounding up decimal: $rounding_decimal", "..with: $rounding_add",
-				###LogSD		"Resulting in new decimal: $new_decimal",							] );
-				my $sprintf_string	= '%0' . $value_definitions->{decimal}->{max_length} . 's';
-				my $de_decimal		= '1' . 0 x $value_definitions->{decimal}->{max_length};
-				if( $new_decimal >= 1 ){
-					$value_definitions->{integer}->{value}++;
-					$value_definitions->{decimal}->{value} = 
-						sprintf( $sprintf_string, int( ($new_decimal - 1) * $de_decimal ) );
-					###LogSD	$phone->talk( level => 'info', message => [
-					###LogSD		"New integer: " . $value_definitions->{integer}->{value},
-					###LogSD		"New decimal: " . $value_definitions->{decimal}->{value}, ] );
-				}else{
-					$value_definitions->{decimal}->{value} = 
-						sprintf( $sprintf_string, int( $new_decimal * $de_decimal ) );
-					###LogSD	$phone->talk( level => 'info', message => [
-					###LogSD		"Final decimal: " . $value_definitions->{decimal}->{value}, ] );
-				}
-			}
+			my $decimal_multiply = '1' . (0 x $value_definitions->{decimal}->{max_length});
+			my $string_sprintf = '%0' . $value_definitions->{decimal}->{max_length} . 's';
+			$value_definitions->{decimal}->{value} = sprintf( $string_sprintf, ($round_decimal * $decimal_multiply) );
+		}
+		
+		if( !$value_definitions->{decimal}->{value} ){
+			$value_definitions->{decimal}->{value} = 0 x $value_definitions->{decimal}->{max_length};
 		}
 	}
 	
@@ -1326,7 +1294,7 @@ sub _add_commas{
 	###LogSD					$self->get_log_space .  '::_build_number::_build_elements::_add_commas', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			'Reached _add_commas with:', $value_definitions,	] );
-	$value_definitions->{integer}->{value} = $value_definitions->{integer}->{value} * 1;
+	#~ $value_definitions->{integer}->{value} = $value_definitions->{integer}->{value} * 1;########################### delete if not needed
 	if( exists $value_definitions->{integer}->{comma} ){
 		$value_definitions->{integer}->{value} = $self->_add_integer_separator(
 			sprintf( '%.0f', $value_definitions->{integer}->{value} ),
@@ -1346,15 +1314,11 @@ sub _pad_exponent{
 	###LogSD					$self->get_log_space .  '::_build_number::_build_elements::_pad_exponent', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			'Reached _pad_exponent with:', $value_definitions,	] );
-	if(	$value_definitions->{exponent}->{leading_zeros} and 
-		length( sprintf( '%s', $value_definitions->{exponent}->{value} ) ) <
-		$value_definitions->{exponent}->{leading_zeros}		 ){
-		$value_definitions->{exponent}->{value} =
-			0 x ( $value_definitions->{exponent}->{leading_zeros} - 
-					length( sprintf( '%s', $value_definitions->{exponent}->{value} ) ) ) .
-			sprintf( '%s', $value_definitions->{exponent}->{value} );
+	if(	$value_definitions->{exponent}->{leading_zeros} ){
+		my $pad_string = '%0' . $value_definitions->{exponent}->{leading_zeros} . 's';
+		$value_definitions->{exponent}->{value} = 
+			sprintf( $pad_string, sprintf( '%.0f', $value_definitions->{exponent}->{value} ) );
 	}
-	
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		'Updated ref:', $value_definitions		] );
 	return $value_definitions;
@@ -1366,16 +1330,14 @@ sub _build_fraction{
 	###LogSD					$self->get_log_space .  '::_build_number::_build_elements::_build_fraction', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			'Reached _build_fraction with:', $value_definitions,	] );
-	#~ cluck $value_definitions->{decimal}->{value};
-	if( exists $value_definitions->{decimal}->{value} ){
-		my $real_decimal = '0.' . sprintf( '%s', $value_definitions->{decimal}->{value} );
+	if( $value_definitions->{decimal}->{value} ){
 		$value_definitions->{fraction}->{value} = 
 			( $value_definitions->{fraction}->{divisor} ) ?
 				$self->_build_divisor_fraction(
-					$value_definitions->{fraction}->{divisor}, $real_decimal
+					$value_definitions->{fraction}->{divisor}, $value_definitions->{decimal}->{value}
 				) :
 				$self->_continuous_fraction(
-					$real_decimal, 20, 	$value_definitions->{fraction}->{target_length},
+					$value_definitions->{decimal}->{value}, 20, $value_definitions->{fraction}->{target_length},
 				);
 	}
 	delete $value_definitions->{decimal};
@@ -1438,8 +1400,7 @@ Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings - Parser of XLSX form
 	use Moose;
 
 	sub get_log_space{};
-		
-	use lib '../../../../../lib';
+	
 	with 	'Spreadsheet::XLSX::Reader::LibXML::UtilFunctions',
 			'Spreadsheet::XLSX::Reader::LibXML::FmtDefault';
 	# call 'with' a second time to ensure that the prior methods are recorded
@@ -1467,8 +1428,9 @@ Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings - Parser of XLSX form
 =head1 DESCRIPTION
 
 This is a general purpose L<Moose Role|Moose::Manual::Roles> that will convert Excel 
-L<format strings|Create or delete a custom number format - Excel - Office.com> into 
-L<Type::Coercion> objects in order to implement the conversion defined by the format 
+L<format strings
+|office.microsoft.com/en-us/excel-help/create-or-delete-a-custom-number-format-HP005199500.aspx> 
+into L<Type::Coercion> objects in order to implement the conversion defined by the format 
 string.  It is somewhat tricky in that it takes 
 
 =head1 SUPPORT
