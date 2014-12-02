@@ -30,7 +30,6 @@ BEGIN{ use_ok( Spreadsheet::XLSX::Reader::LibXML::XMLReader, 0.018 ) };
 BEGIN{ use_ok( Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow, 0.018 ) };
 BEGIN{ use_ok( Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData, 0.018 ) };
 BEGIN{ use_ok( Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet, 0.018 ) };
-BEGIN{ use_ok( Spreadsheet::XLSX::Reader::LibXML::UtilFunctions, 0.018 ) };
 BEGIN{ use_ok( Spreadsheet::XLSX::Reader::LibXML::FmtDefault, 0.018 ) };
 BEGIN{ use_ok( Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings, 0.018 ) };
 BEGIN{ use_ok( Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings, 0.018 ) };

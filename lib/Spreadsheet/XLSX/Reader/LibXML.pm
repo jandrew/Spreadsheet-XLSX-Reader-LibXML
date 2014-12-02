@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML;
-use version 0.77; our $VERSION = qv('v0.18.2');
+use version 0.77; our $VERSION = qv('v0.20.2');
 
 use 5.010;
 use	List::Util 1.33;
@@ -292,7 +292,9 @@ has _styles_instance =>(
 		clearer		=> '_clear_styles',
 		predicate	=> '_has_styles_file',
 		handles		=>[qw(
-			get_format_position	set_defined_excel_format_list change_output_encoding
+			get_format_position			set_defined_excel_format_list
+			change_output_encoding		get_date_behavior
+			set_date_behavior
 		) ],
 	);
 
@@ -1594,7 +1596,7 @@ This software is copyrighted (c) 2014 by Jed Lund
 
 =over
 
-B<5.010> - (L<perl>)
+L<perl 5.010|perl/5.10.0>
 
 L<version>
 
@@ -1614,7 +1616,7 @@ L<Type::Tiny> - 0.046
 
 L<MooseX::ShortCut::BuildInstance> - 1.026
 
-L<Carp>- cluck
+L<Carp> - cluck
 
 L<XML::LibXML>
 

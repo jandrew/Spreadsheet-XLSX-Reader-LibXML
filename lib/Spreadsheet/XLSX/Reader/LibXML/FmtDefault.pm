@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::FmtDefault;
-use version; our $VERSION = qv('v0.18.2');
+use version; our $VERSION = qv('v0.20.2');
 
 use	5.010;
 use	Moose::Role;
@@ -133,6 +133,12 @@ Spreadsheet::XLSX::Reader::LibXML::FmtDefault - Default xlsx number formats and 
     
 =head1 DESCRIPTION
 
+B<This documentation is written to explain ways to extend this package.  To use the data 
+extraction of Excel workbooks, worksheets, and cells please review the documentation for  
+L<Spreadsheet::XLSX::Reader::LibXML>,
+L<Spreadsheet::XLSX::Reader::LibXML::Worksheet>, and 
+L<Spreadsheet::XLSX::Reader::LibXML::Cell>>
+
 This L<Moose Role|Moose::Manual::Roles> is the primary tool for localization.  It stores the 
 number conversion format strings for the set region.  In this particular case it is the base 
 L<english conversion
@@ -147,6 +153,11 @@ encoding from the xml header and convert whatever format the file is in to unico
 conversion out should be from unicode to your L<target_encoding|/target_encoding>.   
 L<For now|/TODO> no encoding (output) conversion is actually provided and the function is 
 essentially a pass-through of standard perl unicode.
+
+To replace this module just build a L<Moose::Role|Moose::Manual::Roles> that has the following 
+L<Primary Methods|/Primary Methods> and L<Attributes|/Attributes>.  Then set the 
+L<default_format_list|Spreadsheet::XLSX::Reader::LibXML/default_format_list> attribute with 
+the new role name when initially starting L<Spreadsheet::XLSX::Reader::LibXML>.
 
 =head2 requires
 
@@ -249,7 +260,8 @@ B<Returns:> nothing
 
 Data passed to new when creating the L<Styles|Spreadsheet::XLSX::Reader::LibXML::Styles> 
 instance.   For modification of these attributes see the listed 'attribute methods'.
-For more information on attributes see L<Moose::Manual::Attributes>.
+For more information on attributes see L<Moose::Manual::Attributes>.  Most of these are 
+not exposed to the top level of L<Spreadsheet::XLSX::Reader::LibXML>.
 
 =head3 excel_region
 
@@ -356,7 +368,7 @@ This software is copyrighted (c) 2014 by Jed Lund
 
 L<version>
 
-B<5.010> -(L<perl>)
+L<perl 5.010|perl/5.10.0>
 
 L<Moose::Role>
 

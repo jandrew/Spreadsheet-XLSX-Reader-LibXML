@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::Cell;
-use version; our $VERSION = qv('v0.18.2');
+use version; our $VERSION = qv('v0.20.2');
 
 use 5.010;
 use Moose;
@@ -180,7 +180,7 @@ sub value{
 	}
 	$formatted =~ s/\\//g if $formatted;
 	###LogSD	$phone->talk( level => 'debug', message => [
-	###LogSD		"Format is:", $self->format_name,
+	###LogSD		"Format is:", $self->coercion_name,
 	###LogSD		"Returning the formated value: " . $formatted ] );
 	return $formatted;
 }
@@ -976,7 +976,7 @@ This software is copyrighted (c) 2014 by Jed
 
 L<version>
 
-B<5.010> - (L<perl>)
+L<perl 5.010|perl/5.10.0>
 
 L<Moose>
 

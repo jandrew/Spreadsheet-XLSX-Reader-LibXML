@@ -1,19 +1,17 @@
 package Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings;
-use version; our $VERSION = qv('v0.18.2');
+use version; our $VERSION = qv('v0.20.2');
 
 use 5.010;
 use Moose::Role;
 requires qw(
-	get_log_space					_add_integer_separator
-	_continuous_fraction			change_output_encoding
-	get_excel_region				_integer_and_decimal
+	get_log_space					get_excel_region
 );
 use Types::Standard qw(
 		Int							Str						Maybe
 		Num							HashRef					ArrayRef
 		CodeRef						Object					ConsumerOf
 		InstanceOf					HasMethods				Bool
-		is_Object					is_Num
+		is_Object					is_Num					is_Int
     );
 use Carp qw( confess );# cluck
 use	Type::Coercion;
@@ -107,6 +105,17 @@ has	datetime_dates =>(
 		reader	=> 'get_date_behavior',
 		writer	=> 'set_date_behavior',
 		default	=> 0,
+	);
+	
+has	format_cash =>(
+		isa		=> HashRef,
+		traits	=> ['Hash'],
+		handles =>{
+			has_cached_format => 'exists',
+			get_cached_format => 'get',
+			set_cached_format => 'set',
+		},
+		default	=> sub{ {} },
 	);
 
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
@@ -307,17 +316,8 @@ sub parse_excel_format_string{# Currently only handles dates and times
 	
 
 #########1 Private Attributes 3#########4#########5#########6#########7#########8#########9
-	
-has	_format_cash =>(
-		isa		=> HashRef,
-		traits	=> ['Hash'],
-		handles =>{
-			has_cached_format => 'exists',
-			get_cached_format => 'get',
-			set_cached_format => 'set',
-		},
-		default	=> sub{ {} },
-	);
+
+
 
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
 
@@ -540,10 +540,6 @@ sub _build_datestring{
 	###LogSD			"Building an anonymous sub to process date strings" ] );
 	
 	my ( $cldr_string, $format_remainder );
-	#~ my	$is_duration = 0;
-	#~ if( !$self->get_date_behavior ){
-		#~ $cldr_string = $last_date_cldr;
-	#~ }
 	my	$conversion_sub = sub{ 
 			my	$date = $_[0];
 			if( !$date ){
@@ -1172,7 +1168,6 @@ sub _split_decimal_integer{
 	###LogSD			'Reached _split_decimal_integer with:', $value_definitions,	] );
 	
 	# Extract negative sign
-	#~ confess "Initial value not a number: $value_definitions->{initial_value}" if !is_Num( $value_definitions->{initial_value} );
 	if( $value_definitions->{initial_value} < 0 ){
 		$value_definitions->{sign} = '-';
 		$value_definitions->{initial_value} = $value_definitions->{initial_value} * -1;
@@ -1180,7 +1175,6 @@ sub _split_decimal_integer{
 	
 	# Build the integer
 	$value_definitions->{integer}->{value} = int( $value_definitions->{initial_value} );
-	#~ confess "Initial value not a number: $value_definitions->{initial_value}" if !is_Num( $value_definitions->{initial_value} );
 		
 	# Build the decimal
 	$value_definitions->{decimal}->{value} = $value_definitions->{initial_value} - $value_definitions->{integer}->{value};
@@ -1294,7 +1288,6 @@ sub _add_commas{
 	###LogSD					$self->get_log_space .  '::_build_number::_build_elements::_add_commas', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			'Reached _add_commas with:', $value_definitions,	] );
-	#~ $value_definitions->{integer}->{value} = $value_definitions->{integer}->{value} * 1;########################### delete if not needed
 	if( exists $value_definitions->{integer}->{comma} ){
 		$value_definitions->{integer}->{value} = $self->_add_integer_separator(
 			sprintf( '%.0f', $value_definitions->{integer}->{value} ),
@@ -1336,7 +1329,7 @@ sub _build_fraction{
 				$self->_build_divisor_fraction(
 					$value_definitions->{fraction}->{divisor}, $value_definitions->{decimal}->{value}
 				) :
-				$self->_continuous_fraction(
+				$self->_continued_fraction(
 					$value_definitions->{decimal}->{value}, 20, $value_definitions->{fraction}->{target_length},
 				);
 	}
@@ -1380,6 +1373,214 @@ sub _build_divisor_fraction{
 	return $return;
 }
 
+sub _add_integer_separator{
+	my ( $self, $int, $comma, $frequency ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new(
+	###LogSD				name_space 	=> $self->get_log_space . '::_util_function::_add_integer_separator', );
+	###LogSD		$phone->talk( level => 'info', message => [
+	###LogSD				"Attempting to add the separator -$comma- to " . 
+	###LogSD				"the integer portion of: $int" ] );
+		$comma //= ',';
+	my	@number_segments;
+	if( is_Int( $int ) ){
+		while( $int =~ /(-?\d+)(\d{$frequency})$/ ){
+			$int= $1;
+			unshift @number_segments, $2;
+		}
+		unshift @number_segments, $int;
+		###LogSD	$phone->talk( level => 'info', message => [
+		###LogSD		'Final parsed list:', @number_segments ] );
+		return join( $comma, @number_segments );
+	}else{
+		###LogSD	$phone->talk( level => 'warn', message => [
+		###LogSD		"-$int- is not an integer!" ] );
+		return undef;
+	}
+}
+
+sub _continued_fraction{# http://www.perlmonks.org/?node_id=41961
+	my ( $self, $decimal, $max_iterations, $max_digits ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new(
+	###LogSD				name_space 	=> $self->get_log_space . '::_util_function::_continued_fraction', );
+	###LogSD		$phone->talk( level => 'info', message => [
+	###LogSD				"Attempting to build an integer fraction with decimal: $decimal",
+	###LogSD				"Using max iterations: $max_iterations",
+	###LogSD				"..and max digits: $max_digits",			] );
+	my	@continuous_integer_list;
+	my	$start_decimal = $decimal;
+	confess "Passed bad decimal: $decimal" if !is_Num( $decimal );
+	while( $max_iterations > 0 and ($decimal >= 0.00001) ){
+		$decimal = 1/$decimal;
+		( my $integer, $decimal ) = $self->_integer_and_decimal( $decimal );
+		###LogSD	$phone->talk( level => 'info', message => [
+		###LogSD		"The integer of the inverse decimal is: $integer",
+		###LogSD		"The remaining decimal is: $decimal" ] );
+		if($integer > 999 or ($decimal < 0.00001 and $decimal > 1e-10) ){
+			###LogSD	$phone->talk( level => 'info', message => [
+			###LogSD		"Either I found a large integer: $integer",
+			###LogSD		"...or the decimal is small: $decimal" ] );
+			if( $integer <= 999 ){
+				push @continuous_integer_list, $integer;
+			}
+			last;
+		}
+		push @continuous_integer_list, $integer;
+		$max_iterations--;
+		###LogSD	$phone->talk( level => 'info', message => [
+		###LogSD		"Remaining iterations: $max_iterations" ] );
+	}
+	###LogSD	$phone->talk( level => 'info', message => [
+	###LogSD		"The current continuous fraction integer list is:", @continuous_integer_list ] );
+	my ( $numerator, $denominator ) = $self->_integers_to_fraction( @continuous_integer_list );
+	if( !$numerator or ( $denominator and length( $denominator ) > $max_digits ) ){
+		my $denom = 9 x $max_digits;
+		my ( $int, $dec ) = $self->_integer_and_decimal( $start_decimal * $denom );
+		$int++;
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Passing through the possibilities with start numerator: $int",
+		###LogSD		"..and start denominator: $denom", "Against start decimal: $decimal"] );
+		my $lowest = ( $start_decimal >= 0.5 ) ?
+				{ delta => (1-$start_decimal), numerator => 1, denominator => 1 } :
+				{ delta => ($start_decimal-0), numerator => 0, denominator => 1 } ;
+		while( $int ){
+			my @check_list;
+			my $low_int = $int - 1;
+			my $low_denom = int( $low_int/$start_decimal ) + 1;
+			push @check_list,
+					{ delta => abs( $int/$denom - $start_decimal ), numerator => $int, denominator => $denom },
+					{ delta => abs( $low_int/$denom - $start_decimal ), numerator => $low_int, denominator => $denom },
+					{ delta => abs( $low_int/$low_denom - $start_decimal ), numerator => $low_int, denominator => $low_denom },
+					{ delta => abs( $int/$low_denom - $start_decimal ), numerator => $int, denominator => $low_denom };
+			my @fixed_list = sort { $a->{delta} <=> $b->{delta} } @check_list;
+			###LogSD	$phone->talk( level => 'trace', message => [
+			###LogSD		'Built possible list of lower fractions:', @fixed_list ] );
+			if( $fixed_list[0]->{delta} < $lowest->{delta} ){
+				$lowest = $fixed_list[0];
+				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD		'Updated lowest with:', $lowest ] );
+			}
+			$int = $low_int;
+			$denom = $low_denom - 1;
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"Attempting new possibilities with start numerator: $int",
+			###LogSD		"..and start denominator: $denom", "Against start decimal: $decimal"] );
+		}
+		($numerator, $denominator) = $self->_best_fraction( @$lowest{qw( numerator denominator )} );
+	}
+	###LogSD	$phone->talk( level => 'info', message => [
+	###LogSD		(($numerator) ? "Final numerator: $numerator" : undef),
+	###LogSD		(($denominator) ? "Final denominator: $denominator" : undef), ] );
+	if( !$numerator ){
+		###LogSD	$phone->talk( level => 'info', message => [
+		###LogSD		"Fraction is below the finite value - returning undef" ] );
+		return undef;
+	}elsif( !$denominator or $denominator == 1 ){
+		###LogSD	$phone->talk( level => 'info', message => [
+		###LogSD		"Rounding up to: $numerator" ] );
+		return( $numerator );
+	}else{
+		###LogSD	$phone->talk( level => 'info', message => [
+		###LogSD		"The final fraction is: $numerator/$denominator" ] );
+		return $numerator . '/' . $denominator;
+	}
+}
+
+# Takes a list of terms in a continued fraction, and converts them
+# into a fraction.
+sub _integers_to_fraction {# ints_to_frac
+	my ( $self, $numerator, $denominator) = (shift, 0, 1); # Seed with 0 (not all elements read here!)
+	###LogSD	my	$phone = Log::Shiras::Telephone->new(
+	###LogSD				name_space 	=> $self->get_log_space . '::_util_function::_integers_to_fraction', );
+	###LogSD		$phone->talk( level => 'info', message => [
+	###LogSD				"Attempting to build an integer fraction with the continuous fraction list: " .
+	###LogSD				join( ' - ', @_ ), "With a seed numerator of -0- and seed denominator of -1-" ] );
+	for my $integer( reverse @_ ){# Get remaining elements
+		###LogSD	$phone->talk( level => 'info', message => [ "Now processing: $integer" ] );
+		($numerator, $denominator) =
+			($denominator, $integer * $denominator + $numerator);
+		###LogSD	$phone->talk( level => 'info', message => [
+		###LogSD		"New numerator: $numerator", "New denominator: $denominator", ] );
+	}
+	($numerator, $denominator) = $self->_best_fraction($numerator, $denominator);
+	###LogSD	$phone->talk( level => 'info', message => [
+	###LogSD		"Updated numerator: $numerator",
+	###LogSD		(($denominator) ? "..and denominator: $denominator" : undef) ] );
+	return ( $numerator, $denominator );
+}
+
+
+# Takes a numerator and denominator, in scalar context returns
+# the best fraction describing them, in list the numerator and
+# denominator
+sub _best_fraction{#frac_standard 
+	my ($self, $n, $m) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new(
+	###LogSD				name_space 	=> $self->get_log_space . '::_util_function::_best_fraction', );
+	###LogSD		$phone->talk( level => 'info', message => [
+	###LogSD				"Finding the best fraction", "Start numerator: $n", "Start denominator: $m" ] );
+	$n = $self->_integer_and_decimal($n);
+	$m = $self->_integer_and_decimal($m);
+	###LogSD	$phone->talk( level => 'info', message => [ 
+	###LogSD		"Updated numerator and denominator ( $n / $m )" ] );
+	my $k = $self->_gcd($n, $m);
+	###LogSD	$phone->talk( level => 'info', message => [ "Greatest common divisor: $k" ] );
+	$n = $n/$k;
+	$m = $m/$k;
+	###LogSD	$phone->talk( level => 'info', message => [ 
+	###LogSD		"Reduced numerator and denominator ( $n / $m )" ] );
+	if ($m < 0) {
+		###LogSD	$phone->talk( level => 'info', message => [ "the divisor is less than zero" ] );
+		$n *= -1;
+		$m *= -1;
+	}
+	$m = undef if $m == 1;
+	###LogSD	no warnings 'uninitialized';
+	###LogSD	$phone->talk( level => 'info', message => [ 
+	###LogSD		"Final numerator and denominator ( $n / $m )" ] );
+	###LogSD	use warnings 'uninitialized';
+	if (wantarray) {
+		return ($n, $m);
+	}else {
+		return ( $m ) ? "$n/$m" : $n;
+	}
+}
+
+# Takes a number, returns the best integer approximation and
+#	(in list context) the error.
+sub _integer_and_decimal {# In the future see if this will merge with _split_decimal_integer
+	my ( $self, $decimal ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new(
+	###LogSD				name_space 	=> $self->get_log_space . '::_util_function::_integer_and_decimal', );
+	###LogSD		$phone->talk( level => 'info', message => [ 
+	###LogSD				"Splitting integer from decimal for: $decimal" ] );
+	my $integer = int( $decimal );
+	###LogSD		$phone->talk( level => 'info', message => [ "Integer: $integer" ] );
+	if(wantarray){
+		return($integer, $decimal - $integer);
+	}else{
+		return $integer;
+	}
+}
+
+# Euclidean algorithm for calculating a GCD.
+# Takes two integers, returns the greatest common divisor.
+sub _gcd {
+	my ($self, $n, $m) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new(
+	###LogSD				name_space 	=> $self->get_log_space . '::_util_function::_gcd', );
+	###LogSD		$phone->talk( level => 'info', message => [ 
+	###LogSD				"Finding the greatest common divisor for ( $n and $m )" ] );
+	while ($m) {
+		my $k = $n % $m;
+		###LogSD	$phone->talk( level => 'info', message => [ 
+		###LogSD		"Remainder after division: $k" ] );
+		($n, $m) = ($m, $k);
+		###LogSD	$phone->talk( level => 'info', message => [ 
+		###LogSD		"Updated factors ( $n and $m )" ] );
+	}
+	return $n;
+}
+
 #########1 Phinish            3#########4#########5#########6#########7#########8#########9
 
 no Moose::Role;
@@ -1408,7 +1609,7 @@ Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings - Parser of XLSX form
 
 	package main;
 
-	my	$parser 		= MyPackage->new( epoch_year => 1904 );
+	my	$parser 	= MyPackage->new( epoch_year => 1904 );
 	my	$conversion	= $parser->parse_excel_format_string( '[$-409]dddd, mmmm dd, yyyy;@' );
 	print 'For conversion named: ' . $conversion->name . "\n";
 	for my	$unformatted_value ( '7/4/1776 11:00.234 AM', 0.112311 ){
@@ -1427,11 +1628,236 @@ Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings - Parser of XLSX form
 
 =head1 DESCRIPTION
 
+B<This documentation is written to explain ways to extend this package.  To use the data 
+extraction of Excel workbooks, worksheets, and cells please review the documentation for  
+L<Spreadsheet::XLSX::Reader::LibXML>,
+L<Spreadsheet::XLSX::Reader::LibXML::Worksheet>, and 
+L<Spreadsheet::XLSX::Reader::LibXML::Cell>>
+
 This is a general purpose L<Moose Role|Moose::Manual::Roles> that will convert Excel 
 L<format strings
 |office.microsoft.com/en-us/excel-help/create-or-delete-a-custom-number-format-HP005199500.aspx> 
 into L<Type::Coercion> objects in order to implement the conversion defined by the format 
-string.  It is somewhat tricky in that it takes 
+string.  It does allow for the format string to have up to four parts separated by semi-colons.  
+The four parts are positive, zero, negative, and text.  In the Excel version the text is just a 
+pass through.  Because excel does not record dates prior to 1900ish as numbers this will actually 
+take the date format indicated by the number portion and try and use that output format to coerce 
+a text date into the same values.  All dates are processed into and then potentially back out of 
+L<DateTime> objects.
+
+To replace this module just build a L<Moose::Role|Moose::Manual::Roles> that has the following 
+L<Primary Methods|/Primary Methods> and L<Attributes|/Attributes>.  Then set the 
+L<format_string_parser|Spreadsheet::XLSX::Reader::LibXML/format_string_parser> attribute with 
+the new role name when initially starting L<Spreadsheet::XLSX::Reader::LibXML>.
+
+The decimal conversion to fractions initially uses the L<continued fraction
+|http://en.wikipedia.org/wiki/Continued_fraction> algorythm to calculate a possible 
+fraction for the pased $decimal value with the setting of 20 max iterations and a maximum 
+denominator width defined by the format string.  If that does not resolve satisfactorily it 
+then calculates an over/under numerator with decreasing denominators from the maximum denominator 
+(based on the format string) all the way to the denominator of 2 and takes the most accurate result.  
+There is no early-out set in this computation so if you reach this point for multi digit 
+denominators it is computationally intensive.  (Not that continued fractions are computationally 
+so cheap.).  However, doing the calculation this way generally yields the same result as Excel.  
+In some few cases the result is more accurate.  I was unable to duplicate the results from 
+Excel exactly.
+
+=head2 requires
+
+These are method(s) used by this Role but not provided by the role.  Any class consuming this 
+role will not build without first providing these methods prior to loading this role.
+
+=head3 get_log_space
+
+=over
+
+B<Definition:> Used to return the log space used by the code protected by ###LogSD.  See
+L<Log::Shiras||https://github.com/jandrew/Log-Shiras> for more information.
+
+=back
+
+=head3 get_excel_region
+
+=over
+
+B<Definition:> Used to return the two letter region ID.  This ID is then used by 
+L<DateTime::Format::Flexible> to interpret date strings.  Currently this method is 
+provided by L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault> when it is loaded as a 
+role of L<Spreadsheet::XLSX::Reader::LibXML::Styles>.
+
+=back
+	
+=head2 Primary Methods
+
+These are the primary ways to use this Role.  For additional ParseExcelFormatStrings options 
+see the L<Attributes|/Attributes> section.
+
+=head3 parse_excel_format_string( $string )
+
+=over
+
+B<Definition:> This is the method to convert Excel L<format strings
+|office.microsoft.com/en-us/excel-help/create-or-delete-a-custom-number-format-HP005199500.aspx> 
+into L<Type::Coercion> objects.  The type coercion objects are then used to convert L<unformatted|
+Spreadsheet::XLSX::Reader::LibXML::Cell/unformatted> values into formatted values using the 
+L<assert_coerce|Type::Coercion/Coercion> method. Coercions built allow for the format string to 
+have up to four parts separated by semi-colons.  These four parts correlate to four different data 
+input ranges.  The four parts are positive, zero, negative, and text.  If three substrings are sent 
+then the data input is split to positive and zero, negative, and text.  If two input types are sent 
+the data input is split between numbers and text.  One input type is a take all comers with the 
+exception of dates.  Dates always add a possible from-text conversion to process Excel pre-1900ish 
+dates.  This is because excel does not record dates prior to 1900ish as numbers.  All dates are 
+processed into and then L<potentially|/datetime_dates> back out of L<DateTime> objects.  This 
+requires L<deep or stacked coercions|Type::Tiny::Manual::Coercions/Deep-Coercions>.
+
+B<Accepts:> an Excel number L<format string
+|office.microsoft.com/en-us/excel-help/create-or-delete-a-custom-number-format-HP005199500.aspx>
+
+B<Returns:> a L<Type::Coercion> object with type filters set for each input type from the string
+
+=back
+
+=head2 Attributes
+
+Data passed to new when creating the L<Styles|Spreadsheet::XLSX::Reader::LibXML::Styles> 
+instance.   For modification of these attributes see the listed 'attribute methods'.
+For more information on attributes see L<Moose::Manual::Attributes>.  Most of these are 
+not exposed to the top level of L<Spreadsheet::XLSX::Reader::LibXML>.
+
+=head3 epoch_year
+
+=over
+
+B<Definition:> This is the epoch year in the Excel sheet.  It differentiates between 
+Windows and Apple Excel implementations.  For more information see 
+L<DateTimeX::Format::Excel|DateTimeX::Format::Excel/DESCRIPTION>
+
+B<Default:> 1900
+
+B<attribute methods> Methods provided to adjust this attribute
+		
+=over
+
+=B<get_epoch_year>
+
+=over
+
+B<Definition:> returns the value of the attribute
+
+=back
+
+=back
+
+=back
+
+=head3 datetime_dates
+
+=over
+
+B<Definition:> It may be that you desire the full L<DateTime> object rather than 
+the finalized datestring when converting unformatted data to formatted date data. 
+This attribute sets whether data coersions are built to do the full conversion or 
+just to a DateTime object.
+
+B<Default:> 0 = unformatted values are coerced completely to date strings (1 = 
+stop at DateTime)
+
+B<attribute methods> Methods provided to adjust this attribute
+		
+=over
+
+=B<get_date_behavior>
+
+=over
+
+B<Definition:> returns the value of the attribute
+
+=back
+
+=back
+		
+=over
+
+=B<set_date_behavior( $Bool )>
+
+=over
+
+B<Definition:> sets the attribute value (only new coercions are affected)
+
+B<Accepts:> Boolean values
+
+=back
+
+=back
+
+=back
+
+=head3 cache_formats
+
+=over
+
+B<Definition:> In order to save re-building the coercion each time it 
+is required, built coercions can be cached with the format string as the key.  
+This attribute sets whether caching is turned on or not.
+
+B<Default:> 1 = caching is on
+
+B<attribute methods> Methods provided to adjust this attribute
+		
+=over
+
+=B<get_cache_behavior>
+
+=over
+
+B<Definition:> returns the value of the attribute
+
+=back
+
+=back
+
+=back
+
+=head3 format_cash
+
+=over
+
+B<Definition:> This is the format cache described in L<cache_formats|/cache_formats>.  
+It stores pre-built formats for re-use.
+
+B<Default:> {}
+
+B<attribute methods> Methods provided to adjust this attribute
+		
+=over
+
+=B<has_cached_format( $format_string )>
+
+=over
+
+B<Definition:> returns true if the $format_string has a pre-built coersion already stored
+
+=back
+
+=B<set_cached_format( $format_string => $coercion )>
+
+=over
+
+B<Definition:> sets the coersion object for $format_string key
+
+=back
+
+=B<get_cached_format( $format_string )>
+
+=over
+
+B<Definition:> gets the coersion object stored against the $format_string key
+
+=back
+
+=back
+
+=back
 
 =head1 SUPPORT
 
@@ -1446,7 +1872,7 @@ L<github Spreadsheet::XLSX::Reader::LibXML/issues
 
 =over
 
-B<1.> Nothing L<yet|/SUPPORT>
+B<1.> Attempt to merge _split_decimal_integer and _integer_and_decimal
 
 =back
 
@@ -1474,7 +1900,23 @@ This software is copyrighted (c) 2014 by Jed Lund
 
 =over
 
-L<Spreadsheet::XLSX::Reader::LibXML>
+L<version>
+
+L<perl 5.010|perl/5.10.0>
+
+L<Moose::Role>
+
+L<Carp>
+
+L<Type::Tiny> - 0.046
+
+L<DateTimeX::Format::Excel> - 0.012
+
+L<DateTime::Format::Flexible>
+
+L<Clone> - clone
+
+L<Spreadsheet::XLSX::Reader::LibXML::Types>
 
 =back
 

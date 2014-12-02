@@ -34,6 +34,7 @@ my %WriteMakefileArgs = (
     "MooseX::ShortCut::BuildInstance" => "1.028",
     "MooseX::StrictConstructor" => 0,
     "OLE::Storage_Lite" => 0,
+    "Spreadsheet::XLSX::Reader::LibXML::UtilFunctions" => 0,
     "Type::Coercion" => 0,
     "Type::Library" => "0.046",
     "Type::Tiny" => "0.046",
@@ -75,7 +76,7 @@ my %WriteMakefileArgs = (
     "lib" => 0,
     "version" => "0.77"
   },
-  "VERSION" => "v0.18.2",
+  "VERSION" => "v0.20.2",
   "test" => {
     "TESTS" => "t/Spreadsheet/XLSX/Reader/*.t t/Spreadsheet/XLSX/Reader/LibXML/*.t t/Spreadsheet/XLSX/Reader/LibXML/XMLReader/*.t"
   }
@@ -100,6 +101,7 @@ my %FallbackPrereqs = (
   "MooseX::StrictConstructor" => 0,
   "OLE::Storage_Lite" => 0,
   "Spreadsheet::ParseExcel" => 0,
+  "Spreadsheet::XLSX::Reader::LibXML::UtilFunctions" => 0,
   "Test::Moose" => 0,
   "Test::Most" => 0,
   "Test::TypeTiny" => 0,

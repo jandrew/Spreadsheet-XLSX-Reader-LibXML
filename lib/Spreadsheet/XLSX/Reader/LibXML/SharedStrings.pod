@@ -12,6 +12,12 @@ See the SYNOPSIS in the L<Workbook class|Spreadsheet::XLSX::Reader::LibXML/SYNOP
 
 =head1 DESCRIPTION
 
+B<This documentation is written to explain ways to extend this package.  To use the data 
+extraction of Excel workbooks, worksheets, and cells please review the documentation for  
+L<Spreadsheet::XLSX::Reader::LibXML>,
+L<Spreadsheet::XLSX::Reader::LibXML::Worksheet>, and 
+L<Spreadsheet::XLSX::Reader::LibXML::Cell>>
+
 The POD is not written yet!
 
 =head1 SUPPORT

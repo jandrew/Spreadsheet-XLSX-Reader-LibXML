@@ -82,7 +82,7 @@ B<Definition:> In an homage to L<DBI> I included this function to return an arra
 the cells or values in the requested $row.  If no row is requested this returns the 'next' 
 row.  In the array ref any empty and non unique cell will show as 'undef'.
 
-B<Accepts:> undef|$row = a row integer indicating the desired row
+B<Accepts:> undef = next|$row = a row integer indicating the desired row
 
 B<Returns:> an array ref of all possible column positions in that row with data filled in 
 as appropriate.
@@ -93,7 +93,7 @@ as appropriate.
 
 =over
 
-B<Definition:> This function is just like L<fetchrow_arrayref|/fetchrow_array( $row )> 
+B<Definition:> This function is just like L<fetchrow_arrayref|/fetchrow_arrayref( $row )> 
 except it returns an array instead of an array ref
 
 B<Accepts:> undef = next|$row = a row integer indicating the desired row
@@ -103,7 +103,7 @@ as appropriate.
 
 =back
 
-=head3 set_headers( $header_row_list )
+=head3 set_headers( @header_row_list )
 
 =over
 
@@ -665,6 +665,47 @@ state (B<For the whole workbook!>)
 B<Definition:> returns the workbook state for the attribute
 <epoch_year|Spreadsheet::XLSX::Reader::LibXML/epoch_year> collected from 
 the L<Spreadsheet::XLSX::Reader::LibXML::Styles> class.
+
+=back
+
+=head4 change_output_encoding
+
+=over
+
+B<Definition:> This is a L<delegated|Moose::Manual::Delegation> method from 
+the L<styles|Spreadsheet::XLSX::Reader::LibXML::Styles> class (stored as a 
+private instance in the workbook).  It is held (and documented) in the 
+L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault> role.  It (L<potentially
+|Spreadsheet::XLSX::Reader::LibXML::FmtDefault/change_output_encoding( $string )>
+) can process a string to a new output encoding.
+
+=back
+
+=head4 get_date_behavior
+
+=over
+
+B<Definition:> This is a L<delegated|Moose::Manual::Delegation> method from 
+the L<styles|Spreadsheet::XLSX::Reader::LibXML::Styles> class (stored as a 
+private instance in the workbook).  It is held (and documented) in the 
+L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings> role.  It will 
+indicate how far unformatted L<transformation
+|Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/datetime_dates> 
+is carried for date coercions. 
+
+=back
+
+=head4 set_date_behavior
+
+=over
+
+B<Definition:> This is a L<delegated|Moose::Manual::Delegation> method from 
+the L<styles|Spreadsheet::XLSX::Reader::LibXML::Styles> class (stored as a 
+private instance in the workbook).  It is held (and documented) in the 
+L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings> role.  It will 
+set how far unformatted L<transformation
+|Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/datetime_dates> 
+is carried for date coercions. 
 
 =back
 

@@ -33,6 +33,12 @@ It also uses the XMLReader version of the CalcChain class.  (Any version will do
 
 =head1 DESCRIPTION
 
+B<This documentation is written to explain ways to extend this package.  To use the data 
+extraction of Excel workbooks, worksheets, and cells please review the documentation for  
+L<Spreadsheet::XLSX::Reader::LibXML>,
+L<Spreadsheet::XLSX::Reader::LibXML::Worksheet>, and 
+L<Spreadsheet::XLSX::Reader::LibXML::Cell>>
+
 This general class is written to access the sub file calcChain.xml from an unzipped 
 .xlsx file.  The file to be read is generally found in the xl/ sub folder after the 
 master file is unzipped.  The calcChain.xml file contains the calculation sequence 

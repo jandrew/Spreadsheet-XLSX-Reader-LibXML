@@ -19,7 +19,6 @@ lib/Spreadsheet/XLSX/Reader/LibXML/ParseExcelFormatStrings.pm
 lib/Spreadsheet/XLSX/Reader/LibXML/SharedStrings.pod
 lib/Spreadsheet/XLSX/Reader/LibXML/Styles.pod
 lib/Spreadsheet/XLSX/Reader/LibXML/Types.pm
-lib/Spreadsheet/XLSX/Reader/LibXML/UtilFunctions.pm
 lib/Spreadsheet/XLSX/Reader/LibXML/Worksheet.pod
 lib/Spreadsheet/XLSX/Reader/LibXML/XMLReader.pm
 lib/Spreadsheet/XLSX/Reader/LibXML/XMLReader/CalcChain.pm
@@ -33,7 +32,6 @@ t/Spreadsheet/XLSX/Reader/LibXML/02-error.t
 t/Spreadsheet/XLSX/Reader/LibXML/03-log_space.t
 t/Spreadsheet/XLSX/Reader/LibXML/04-xml_reader.t
 t/Spreadsheet/XLSX/Reader/LibXML/05-cell_to_column_row.t
-t/Spreadsheet/XLSX/Reader/LibXML/06-util_functions.t
 t/Spreadsheet/XLSX/Reader/LibXML/07-fmt_default.t
 t/Spreadsheet/XLSX/Reader/LibXML/08-parse_excel_fmt_string.t
 t/Spreadsheet/XLSX/Reader/LibXML/09-cell.t

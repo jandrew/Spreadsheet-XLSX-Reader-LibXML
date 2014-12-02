@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet;
-use version; our $VERSION = qv('v0.18.2');
+use version; our $VERSION = qv('v0.20.2');
 
 
 use	5.010;
@@ -56,6 +56,7 @@ has workbook_instance =>(
 						is_empty_the_end			_starts_at_the_edge
 						get_group_return_type		set_group_return_type
 						get_epoch_year				change_output_encoding
+						get_date_behavior			set_date_behavior
 					)],
 		handles	=> [qw(
 						counting_from_zero			boundary_flag_setting
@@ -65,6 +66,7 @@ has workbook_instance =>(
 						is_empty_the_end			_starts_at_the_edge
 						get_group_return_type		set_group_return_type
 						get_epoch_year				change_output_encoding
+						get_date_behavior			set_date_behavior
 					)],
 		required => 1,
 	);
@@ -635,6 +637,12 @@ Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet - A LibXML::Reader works
 See the SYNOPSIS in L<Spreadsheet::XLSX::Reader::LibXML>
     
 =head1 DESCRIPTION
+
+B<This documentation is written to explain ways to extend this package.  To use the data 
+extraction of Excel workbooks, worksheets, and cells please review the documentation for  
+L<Spreadsheet::XLSX::Reader::LibXML>,
+L<Spreadsheet::XLSX::Reader::LibXML::Worksheet>, and 
+L<Spreadsheet::XLSX::Reader::LibXML::Cell>>
 
 POD not written yet!
 

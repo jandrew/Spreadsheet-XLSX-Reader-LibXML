@@ -915,7 +915,7 @@ This software is copyrighted (c) 2014 by Jed Lund
 
 =over
 
-B<5.010> - (L<perl>)
+L<perl 5.010|perl/5.10.0>
 
 L<version>
 
@@ -935,7 +935,7 @@ L<Type::Tiny> - 0.046
 
 L<MooseX::ShortCut::BuildInstance> - 1.026
 
-L<Carp>- cluck
+L<Carp> - cluck
 
 L<XML::LibXML>
 

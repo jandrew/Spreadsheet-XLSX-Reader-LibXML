@@ -43,14 +43,14 @@ use	lib
 ###LogSD	use Log::Shiras::UnhideDebug;
 use	Spreadsheet::XLSX::Reader::LibXML::Error;
 ###LogSD	use Log::Shiras::UnhideDebug;
-use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings v0.5;
-use	Spreadsheet::XLSX::Reader::LibXML::FmtDefault v0.5;
-use	Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings v0.5;
+use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings;
+use	Spreadsheet::XLSX::Reader::LibXML::FmtDefault;
+use	Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings;
 ###LogSD	use Log::Shiras::UnhideDebug;
-use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles v0.5;
-use	Spreadsheet::XLSX::Reader::LibXML::GetCell v0.5;
+use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles;
+use	Spreadsheet::XLSX::Reader::LibXML::GetCell;
 ###LogSD	use Log::Shiras::UnhideDebug;
-use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet v0.5;
+use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet;
 	$test_file = ( @ARGV ) ? $ARGV[0] : $test_file;
 my	$shared_strings_file = $test_file;
 my	$styles_file = $test_file;
@@ -320,6 +320,12 @@ lives_ok{
 												writer	=> 'set_group_return_type',
 												default	=> 'instance',
 											},
+											datetime_dates =>{
+												isa		=> Bool,
+												reader	=> 'get_date_behavior',
+												writer	=> 'set_date_behavior',
+												default	=> 0,
+											},
 										},
 										styles_instance => $styles_instance,
 										shared_strings_instance => $shared_strings_instance,
@@ -358,7 +364,7 @@ explain									"Test get_cell";
 			INITIALRUN: for my $row ( $row_min .. ($row_max + 1) ) {
             for my $col ( $col_min .. $col_max ) {
 
-###LogSD	if( $row == 1 and $col == 0 ){
+###LogSD	if( $row == 5 and $col == 0 ){
 ###LogSD		$operator->add_name_space_bounds( {
 ###LogSD			main =>{
 ###LogSD				UNBLOCK =>{
@@ -372,7 +378,7 @@ explain									"Test get_cell";
 #~ ###LogSD			},
 ###LogSD		} );
 ###LogSD	}
-###LogSD	elsif( $row == 1 and $col == 1 ){
+###LogSD	elsif( $row == 5 and $col == 1 ){
 ###LogSD		exit 1;
 ###LogSD	}
 

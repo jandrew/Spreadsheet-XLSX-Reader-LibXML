@@ -26,8 +26,6 @@ pod_file_ok( $up . 	'lib/Spreadsheet/XLSX/Reader/LibXML/XMLReader/XMLToPerlData.
 						"The Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData file has good POD" );
 pod_file_ok( $up . 	'lib/Spreadsheet/XLSX/Reader/LibXML/XMLReader/Worksheet.pm',
 						"The Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet file has good POD" );
-pod_file_ok( $up . 	'lib/Spreadsheet/XLSX/Reader/LibXML/UtilFunctions.pm',
-						"The Spreadsheet::XLSX::Reader::LibXML::UtilFunctions file has good POD" );
 pod_file_ok( $up . 	'lib/Spreadsheet/XLSX/Reader/LibXML/FmtDefault.pm',
 						"The Spreadsheet::XLSX::Reader::LibXML::FmtDefault file has good POD" );
 pod_file_ok( $up . 	'lib/Spreadsheet/XLSX/Reader/LibXML/ParseExcelFormatStrings.pm',
