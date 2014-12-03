@@ -129,7 +129,7 @@ B<Returns:> an array ref of the built headers for review
 
 B<Definition:> This function is used to return a hashref representing the data in the 
 specified row.  If no $row value is passed it will return the 'next' row of data.  A call 
-to this function without L<setting|/set_headers( $header_row_list )> the headers first 
+to this function without L<setting|/set_headers( @header_row_list )> the headers first 
 will return undef and set the error instance.
 
 B<Accepts:> a target $row number for return values or undef meaning 'next'

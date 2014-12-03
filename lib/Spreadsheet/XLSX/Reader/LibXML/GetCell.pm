@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::GetCell;
-use version; our $VERSION = qv('v0.20.2');
+use version; our $VERSION = qv('v0.20.4');
 
 use	Moose::Role;
 requires qw(
@@ -515,7 +515,7 @@ methods, (Reader, DOM, and possibly SAX) can plug in outside of this role.
 
 This role is also where a layer of abstraction is maintained to manage user defined 
 count-from-one or count-from-zero mode.  The layer of abstraction is use with the Moose 
-L<around|Moose::Manual::MethodModifiers/AROUND-modifiers> modifier.  The behaviour is 
+L<around|Moose::Manual::MethodModifiers/AROUND modifiers> modifier.  The behaviour is 
 managed with the workbook attribute L<counting_from_zero
 |Spreadsheet::XLSX::Reader::LibXML/count_from_zero>.
 
@@ -530,7 +530,7 @@ I<Since this is the center of data coallation the list is long>.
 =over
 
 B<Definition:> Used to return the log space used by the code protected by ###LogSD.  See
-L<Log::Shiras||https://github.com/jandrew/Log-Shiras> for more information.
+L<Log::Shiras|https://github.com/jandrew/Log-Shiras> for more information.
 
 =back
 
@@ -683,8 +683,8 @@ wrap back to the beginning.
 
 =over
 
-B<Definition:> This method is used to access the shared error instance from the initial 
-parser in L<Spreadsheet::XLSX::Reader::LibXML/error_inst>
+B<Definition:> This method is used to access the shared 
+L<Spreadsheet::XLSX::Reader::LibXML/error_inst>
 
 =back
 
@@ -831,8 +831,7 @@ These are the various methods provided by this role.
 =over
 
 B<Definition:> Used to return the cell or information from the cell at the 
-specified $row and $column.  Both $row and $column are required.  (Note: this is reverse 
-order from the method L<get_col_row|/get_col_row( $column, $row)>
+specified $row and $column.  Both $row and $column are required.
 
 B<Accepts:> the list ( $row, $column ) both required
 
@@ -911,7 +910,7 @@ B<Returns:> an array ref of the built headers for review
 
 B<Definition:> This function is used to return a hashref representing the data in the 
 specified row.  If no $row value is passed it will return the 'next' row of data.  A call 
-to this function without L<setting|/set_headers( $header_row_list )> the headers first 
+to this function without L<setting|/( @header_row_list )> the headers first 
 will return undef and set the error instance.
 
 B<Accepts:> a target $row number for return values or undef meaning 'next'
@@ -934,7 +933,7 @@ level are the best way to manipulate the attribute settings.
 =over
 
 B<Definition:> This is generally set by the method L<set_headers
-|set_headers( @header_row_list )> and is the largest row number of the @header_row_list 
+|/set_headers( @header_row_list )> and is the largest row number of the @header_row_list 
 even if the list is out of sequence.
 
 B<Default:> undef
@@ -943,7 +942,7 @@ B<attribute methods> Methods provided to adjust this attribute
 		
 =over
 
-=B<get_last_header_row>
+B<get_last_header_row>
 
 =over
 
@@ -951,7 +950,7 @@ B<Definition:> returns the value of the attribute
 
 =back
 
-=B<has_last_header_row>
+B<has_last_header_row>
 
 =over
 
@@ -978,7 +977,7 @@ B<attribute methods> Methods provided to adjust this attribute
 		
 =over
 
-=B<set_min_header_col>
+B<set_min_header_col>
 
 =over
 
@@ -988,7 +987,7 @@ B<Definition:> returns the value of the attribute
 		
 =over
 
-=B<get_min_header_col>
+B<get_min_header_col>
 
 =over
 
@@ -996,7 +995,7 @@ B<Definition:> returns the value of the attribute
 
 =back
 
-=B<has_min_header_col>
+B<has_min_header_col>
 
 =over
 
@@ -1004,11 +1003,13 @@ B<Definition:> predicate for the attribute
 
 =back
 
-=B<clear_min_header_col>
+B<clear_min_header_col>
 
 =over
 
 B<Definition:> sets min_header_col to undef
+
+=back
 
 =back
 
@@ -1031,7 +1032,7 @@ B<attribute methods> Methods provided to adjust this attribute
 		
 =over
 
-=B<set_max_header_col>
+B<set_max_header_col>
 
 =over
 
@@ -1041,7 +1042,7 @@ B<Definition:> returns the value of the attribute
 		
 =over
 
-=B<get_max_header_col>
+B<get_max_header_col>
 
 =over
 
@@ -1049,7 +1050,7 @@ B<Definition:> returns the value of the attribute
 
 =back
 
-=B<has_max_header_col>
+B<has_max_header_col>
 
 =over
 
@@ -1057,11 +1058,13 @@ B<Definition:> predicate for the attribute
 
 =back
 
-=B<clear_max_header_col>
+B<clear_max_header_col>
 
 =over
 
 B<Definition:> sets min_header_col to undef
+
+=back
 
 =back
 
@@ -1087,7 +1090,7 @@ B<attribute methods> Methods provided to adjust this attribute
 		
 =over
 
-=B<set_custom_formats( { $key => $conversion } )>
+B<set_custom_formats( { $key => $conversion } )>
 
 =over
 
@@ -1099,7 +1102,7 @@ B<Accepts:> a hashref of $key => $conversion pairs
 		
 =over
 
-=B<has_custom_format( $key )>
+B<has_custom_format( $key )>
 
 =over
 
@@ -1107,7 +1110,7 @@ B<Definition:> checks if the specific $key for a format is registered
 
 =back
 
-=B<get_custom_format( $key )>
+B<get_custom_format( $key )>
 
 =over
 
@@ -1117,11 +1120,13 @@ B<Returns:> the $conversion registered to the $key
 
 =back
 
-=B<set_custom_format( $key => $conversion )>
+B<set_custom_format( $key => $conversion )>
 
 =over
 
 B<Definition:> set the custom format $conversion for the identified $key
+
+=back
 
 =back
 

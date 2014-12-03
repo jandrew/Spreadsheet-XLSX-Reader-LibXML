@@ -21,6 +21,8 @@ my	$args ={
 			#~ $up . '../Log-Shiras/lib',
 		],
 		test_args =>{
+			load_test					=>[],
+			pod_test					=>[],
 			error_test					=>[],
 			log_space_test				=>[],
 			cell_to_column_row_test		=>[],
@@ -40,6 +42,8 @@ my	$args ={
 		formatter => $formatter,
 	};
 my	@tests =(
+		[  '01-load.t', 'load_test' ],
+		[  '02-pod.t', 'pod_test' ],
 		[  $dir . $tests . 'LibXML/01-types.t', 'types_test' ],
 		[  $dir . $tests . 'LibXML/02-error.t', 'error_test' ],
 		[  $dir . $tests . 'LibXML/03-log_space.t', 'log_space_test' ],

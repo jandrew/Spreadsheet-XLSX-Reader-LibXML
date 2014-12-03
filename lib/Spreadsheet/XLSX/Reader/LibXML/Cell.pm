@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::Cell;
-use version; our $VERSION = qv('v0.20.2');
+use version; our $VERSION = qv('v0.20.4');
 
 use 5.010;
 use Moose;
@@ -271,7 +271,7 @@ These are methods used to transform data stored in the L<Attributes|/Attributes>
 =over
 
 B<Definition:> Returns the unformatted value of the cell transformed with the 
-L<change_output_encoding|/Spreadsheet::XLSX::Reader::LibXML::FmtDefault/change_output_encoding> 
+L<change_output_encoding|/Spreadsheet::XLSX::Reader::LibXML::FmtDefault/change_output_encoding( $string )> 
 method.
 
 B<Accepts:>Nothing
@@ -302,7 +302,7 @@ B<Returns:> True if the cell holds a value
 
 B<Definition:> Returns the formatted value of the cell transformed from the 
 L<unformatted|/unformatted> string. This method uses the conversion stored in the
-L<cell_conversion|/cell_conversion> attribute.  If there is no format/conversion set 
+L<cell_coercion|/cell_coercion> attribute.  If there is no format/conversion set 
 then this will return the unformatted value. Any failures to process this value can be 
 retrieved with L<$self-E<gt>error|/error>.
 
@@ -425,12 +425,12 @@ B<Definition:> a predicate method to determine if any value is in the cell
 =over
 
 B<Definition:> This attribute hold a rich text data structure like 
-L<Spreadsheet::ParseExcel::Cell> with the exception that it doesn't bless each 
-hashref into an object.  The hashref's are also organized per the Excel xlsx 
-information the the sharedStrings.xml file.  In general this is an arrayref of 
-arrayrefs where the second level contains two positions.  The first position is the 
-place (from zero) where the formatting is implemented.  The second position is a 
-hashref of the formatting values.
+L<Spreadsheet::ParseExcel::Cell/get_rich_text()> with the exception that it 
+doesn't bless each hashref into an object.  The hashref's are also organized 
+per the Excel xlsx information the the sharedStrings.xml file.  In general 
+this is an arrayref of arrayrefs where the second level contains two positions.  
+The first position is the place (from zero) where the formatting is implemented.  
+The second position is a hashref of the formatting values.
 
 B<note:> It is important to understand that Excel can store two formats for the 
 same cell and often they don't agree.  For example using the L<get_font|/get_font> 
@@ -875,8 +875,9 @@ B<Definition:> Indicates if the attribute has anything stored
 B<Definition:> This attribute holds the tranformation code to turn an 
 unformatted  value into a formatted value.
 
-B<Default:> a L<Type::Coercion> instance with details set for the specific 
-coersion for that cell
+B<Default:> a L<Type::Tiny> instance with sub types set to assign different 
+inbound data types to different coercions for the target outcome of formatted 
+data.
 
 B<Range:> If you wish to set this with your own code it must have two 
 methods.  First, 'assert_coerce' which will be applied when transforming 

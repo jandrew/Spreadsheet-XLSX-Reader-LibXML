@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::LogSpace;
-use version; our $VERSION = qv('v0.20.2');
+use version; our $VERSION = qv('v0.20.4');
 
 use Moose::Role;
 use Types::Standard qw(
@@ -73,7 +73,7 @@ pluggable role for sub unit testing.
 =head2 Attributes
 
 Data passed to new when creating an instance of the consuming class.  For modification of 
-these attributes see the listed L</Methods>.
+these attributes see the listed L<Methods|/Methods>.
 
 =head3 log_space
 
@@ -118,7 +118,7 @@ L<github Spreadsheet::XLSX::Reader::LibXML/issues
 =over
 
 B<1.> Make this not even load for the package if 
-L<Log::Shiras|https://github.com/jandrew/Log-Shiras> is not enabled
+L<Log::Shiras|https://github.com/jandrew/Log-Shiras> qw( :debug ) is not enabled
 
 =back
 

@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings;
-use version; our $VERSION = qv('v0.20.2');
+use version; our $VERSION = qv('v0.20.4');
 
 use 5.010;
 use Moose::Role;
@@ -1636,7 +1636,7 @@ L<Spreadsheet::XLSX::Reader::LibXML::Cell>>
 
 This is a general purpose L<Moose Role|Moose::Manual::Roles> that will convert Excel 
 L<format strings
-|office.microsoft.com/en-us/excel-help/create-or-delete-a-custom-number-format-HP005199500.aspx> 
+|https://support.office.com/en-us/article/Create-or-delete-a-custom-number-format-83657ca7-9dbe-4ee5-9c89-d8bf836e028e?ui=en-US&rs=en-US&ad=US> 
 into L<Type::Coercion> objects in order to implement the conversion defined by the format 
 string.  It does allow for the format string to have up to four parts separated by semi-colons.  
 The four parts are positive, zero, negative, and text.  In the Excel version the text is just a 
@@ -1672,7 +1672,7 @@ role will not build without first providing these methods prior to loading this 
 =over
 
 B<Definition:> Used to return the log space used by the code protected by ###LogSD.  See
-L<Log::Shiras||https://github.com/jandrew/Log-Shiras> for more information.
+L<Log::Shiras|https://github.com/jandrew/Log-Shiras> for more information.
 
 =back
 
@@ -1697,23 +1697,25 @@ see the L<Attributes|/Attributes> section.
 =over
 
 B<Definition:> This is the method to convert Excel L<format strings
-|office.microsoft.com/en-us/excel-help/create-or-delete-a-custom-number-format-HP005199500.aspx> 
-into L<Type::Coercion> objects.  The type coercion objects are then used to convert L<unformatted|
-Spreadsheet::XLSX::Reader::LibXML::Cell/unformatted> values into formatted values using the 
-L<assert_coerce|Type::Coercion/Coercion> method. Coercions built allow for the format string to 
-have up to four parts separated by semi-colons.  These four parts correlate to four different data 
-input ranges.  The four parts are positive, zero, negative, and text.  If three substrings are sent 
-then the data input is split to positive and zero, negative, and text.  If two input types are sent 
-the data input is split between numbers and text.  One input type is a take all comers with the 
-exception of dates.  Dates always add a possible from-text conversion to process Excel pre-1900ish 
-dates.  This is because excel does not record dates prior to 1900ish as numbers.  All dates are 
-processed into and then L<potentially|/datetime_dates> back out of L<DateTime> objects.  This 
-requires L<deep or stacked coercions|Type::Tiny::Manual::Coercions/Deep-Coercions>.
+|https://support.office.com/en-us/article/Create-or-delete-a-custom-number-format-83657ca7-9dbe-4ee5-9c89-d8bf836e028e?ui=en-US&rs=en-US&ad=US> 
+into L<Type::Tiny> objects with built in coercions.  The type coercion objects are then used to 
+convert L<unformatted|Spreadsheet::XLSX::Reader::LibXML::Cell/unformatted> values into formatted 
+values using the L<assert_coerce|Type::Coercion/Coercion> method. Coercions built allow for the 
+format string to have up to four parts separated by semi-colons.  These four parts correlate to 
+four different data input ranges.  The four parts are positive, zero, negative, and text.  If 
+three substrings are sent then the data input is split to positive and zero, negative, and text.  
+If two input types are sent the data input is split between numbers and text.  One input type is 
+a take all comers with the exception of dates.  Dates always add a possible from-text conversion 
+to process Excel pre-1900ish dates.  This is because excel does not record dates prior to 1900ish 
+as numbers.  All dates are processed into and then L<potentially|/datetime_dates> back out of 
+L<DateTime> objects.  This requires L<deep or stacked coercions
+|Type::Tiny::Manual::Coercions/"Deep" Coercions>.
 
-B<Accepts:> an Excel number L<format string
-|office.microsoft.com/en-us/excel-help/create-or-delete-a-custom-number-format-HP005199500.aspx>
+B<Accepts:> an Excel number L<format strings
+|https://support.office.com/en-us/article/Create-or-delete-a-custom-number-format-83657ca7-9dbe-4ee5-9c89-d8bf836e028e?ui=en-US&rs=en-US&ad=US> 
 
-B<Returns:> a L<Type::Coercion> object with type filters set for each input type from the string
+B<Returns:> a L<Type::Tiny> object with type coercions and pre-filters set for each input type 
+from the formatting string
 
 =back
 
@@ -1738,7 +1740,7 @@ B<attribute methods> Methods provided to adjust this attribute
 		
 =over
 
-=B<get_epoch_year>
+B<get_epoch_year>
 
 =over
 
@@ -1766,7 +1768,7 @@ B<attribute methods> Methods provided to adjust this attribute
 		
 =over
 
-=B<get_date_behavior>
+B<get_date_behavior>
 
 =over
 
@@ -1778,7 +1780,7 @@ B<Definition:> returns the value of the attribute
 		
 =over
 
-=B<set_date_behavior( $Bool )>
+B<set_date_behavior( $Bool )>
 
 =over
 
@@ -1806,7 +1808,7 @@ B<attribute methods> Methods provided to adjust this attribute
 		
 =over
 
-=B<get_cache_behavior>
+B<get_cache_behavior>
 
 =over
 
@@ -1831,7 +1833,7 @@ B<attribute methods> Methods provided to adjust this attribute
 		
 =over
 
-=B<has_cached_format( $format_string )>
+B<has_cached_format( $format_string )>
 
 =over
 
@@ -1847,7 +1849,7 @@ B<Definition:> sets the coersion object for $format_string key
 
 =back
 
-=B<get_cached_format( $format_string )>
+B<get_cached_format( $format_string )>
 
 =over
 

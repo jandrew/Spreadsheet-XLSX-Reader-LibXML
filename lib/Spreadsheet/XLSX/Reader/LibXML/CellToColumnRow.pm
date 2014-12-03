@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow;
-use version; our $VERSION = qv('v0.20.2');
+use version; our $VERSION = qv('v0.20.4');
 
 use	Moose::Role;
 requires qw(
@@ -253,7 +253,7 @@ role will not build unless it first provides these methods prior to loading this
 =over
 
 B<Definition:> Used to return the log space used by the code protected by ###LogSD.  See
-L<Log::Shiras||https://github.com/jandrew/Log-Shiras> for more information.
+L<Log::Shiras|https://github.com/jandrew/Log-Shiras> for more information.
 
 =back
 

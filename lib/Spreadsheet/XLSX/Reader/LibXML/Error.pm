@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::Error;
-use version; our $VERSION = qv('v0.20.2');
+use version; our $VERSION = qv('v0.20.4');
 
 use Moose;
 use Carp qw( cluck );
@@ -260,7 +260,7 @@ L<version>
 
 L<Moose>
 
-L<Carp> - cluck
+L<Carp>
 
 L<MooseX::StrictConstructor>
 

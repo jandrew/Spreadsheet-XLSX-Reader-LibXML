@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::FmtDefault;
-use version; our $VERSION = qv('v0.20.2');
+use version; our $VERSION = qv('v0.20.4');
 
 use	5.010;
 use	Moose::Role;
@@ -169,7 +169,7 @@ role will not build without first providing these methods prior to loading this 
 =over
 
 B<Definition:> Used to return the log space used by the code protected by ###LogSD.  See
-L<Log::Shiras||https://github.com/jandrew/Log-Shiras> for more information.
+L<Log::Shiras|https://github.com/jandrew/Log-Shiras> for more information.
 
 =back
 	
@@ -183,11 +183,12 @@ L<Attributes|/Attributes> section.
 =over
 
 B<Definition:> Currently this is a placeholder that is always called by the L<Worksheet
-|Spreadsheet::XLSX::Reader::Worksheet> when a cell value is retreived in order to allow 
-for I<future> encoding adjustments on the way out.  See L<XML::LibXML> for an explanation 
-of how the encoding in is handled.  This conversion is done prior to any number formatting.  
-If you are replacing this role you need to have the function and you can use it to mangle 
-your output string any way you want.
+|Spreadsheet::XLSX::Reader::LibXML::Worksheet> when a cell value is retreived in order to allow 
+for I<future> encoding adjustments on the way out.  See 
+L<XML::LibXML/ENCODINGS SUPPORT IN XML::LIBXML> for an explanation of how the input encoding 
+is handled.  This conversion out is done prior to any number formatting.  If you are replacing 
+this role you need to have the function and you can use it to mangle your output string any 
+way you want.
 
 B<Accepts:> a unicode string
 
@@ -243,9 +244,9 @@ B<Returns:> an array ref of all pre-defined format strings
 
 B<Definition:> If you don't want to re-write this role you can just set a new 
 array ref of format strings that you want excel to use.  The strings need to comply with 
-the capabilities of L<Spreadsheet::XLSX::Reader:LibXML::ParseExcelFormatStrings>.  With 
+the capabilities of L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings>.  With 
 any luck means they comply with the Excel L<format string definitions
-|http://office.microsoft.com/en-us/excel-help/create-or-delete-a-custom-number-format-HP005199500.aspx>.  
+|https://support.office.com/en-us/article/Create-or-delete-a-custom-number-format-83657ca7-9dbe-4ee5-9c89-d8bf836e028e?ui=en-US&rs=en-US&ad=US>.  
 This role is used in the L<Styles|Spreadsheet::XLSX::Reader::LibXML::Styles> class but 
 I<this method is actually exposed all the way up to the L<Workbook
 |Spreadsheet::XLSX::Reader::LibXML> class through L<Delegation|Moose::Manual::Delegation>.>
@@ -275,7 +276,7 @@ B<attribute methods> Methods provided to adjust this attribute
 		
 =over
 
-=B<get_excel_region>
+B<get_excel_region>
 
 =over
 
@@ -301,7 +302,7 @@ B<attribute methods> Methods provided to adjust this attribute
 		
 =over
 
-=B<set_target_encoding( $encoding )>
+B<set_target_encoding( $encoding )>
 
 =over
 
@@ -309,7 +310,7 @@ B<Definition:> Changing this won't affect anything
 
 =back
 
-=B<get_target_encoding>
+B<get_target_encoding>
 
 =over
 
@@ -372,7 +373,7 @@ L<perl 5.010|perl/5.10.0>
 
 L<Moose::Role>
 
-L<Types::Standard> - InstanceOf ArrayRef Str
+L<Types::Standard>
 
 L<lib>
 
