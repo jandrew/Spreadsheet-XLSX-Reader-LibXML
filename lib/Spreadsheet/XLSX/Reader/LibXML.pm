@@ -1,14 +1,17 @@
 package Spreadsheet::XLSX::Reader::LibXML;
-use version 0.77; our $VERSION = qv('v0.20.4');
+use version 0.77; our $VERSION = qv('v0.22.2');
 
 use 5.010;
 use	List::Util 1.33;
 use	Moose;
 use	MooseX::StrictConstructor;
 use	MooseX::HasDefaults::RO;
+use	Carp qw( confess );
 use	Archive::Zip;
 use	OLE::Storage_Lite;
 use	File::Temp;
+#~ $File::Temp::DEBUG = 1;
+#~ use	Data::Dumper;
 use Types::Standard qw(
  		InstanceOf			Str       		StrMatch
 		Enum				HashRef			ArrayRef
@@ -171,7 +174,8 @@ sub parse{
 	###LogSD	my	$phone = Log::Shiras::Telephone->new(
 	###LogSD					name_space 	=> $self->get_log_space .  '::Workbook::parse', );
 	###LogSD		$phone->talk( level => 'info', message =>[
-	###LogSD			'Arrived at parse for: ', $file_name, "with formatter: $formatter" ] );
+	###LogSD			"Arrived at parse for: $file_name",
+	###LogSD			(($formatter) ? "with formatter: $formatter" : '') ] );
 	$self->set_format_string_parser( $formatter ) if $formatter;
 	$self->set_file_name( $file_name );
 	return ( $self->has_file_name ) ? $self : undef;
@@ -188,6 +192,8 @@ sub worksheets{
 	while( my $worksheet_object = $self->worksheet ){
 	#~ for my $worksheet_name ( @worksheet_array ){
 		#~ my	$worksheet_object = $self->worksheet( $worksheet_name );
+		###LogSD	$phone->talk( level => 'info', message =>[
+		###LogSD		'Built worksheet: ' .  $worksheet_object->get_name ] );
 		push @worksheet_array, $worksheet_object;#$self->worksheet( $worksheet_name );
 	}
 	###LogSD	$phone->talk( level => 'trace', message =>[
@@ -203,12 +209,14 @@ sub worksheet{
 	###LogSD					name_space 	=> $self->get_log_space .  '::Workbook::worksheet', );
 	###LogSD		$phone->talk( level => 'info', message =>[
 	###LogSD			"Arrived at (build a) worksheet with: ", $worksheet_name ] );
-	
+	confess "No file loaded yet" if !$self->has_file_name;
 	# Handle an implied 'next sheet'
 	if( !$worksheet_name ){
+		my $worksheet_position = $self->_get_current_worksheet_position;
 		###LogSD	$phone->talk( level => 'info', message =>[
-		###LogSD		"No worksheet name passed" ] );
-		$next_position = ( !$self->in_the_list ) ? 0 : ($self->_current_worksheet_position + 1);
+		###LogSD		"No worksheet name passed", 
+		###LogSD		((defined $worksheet_position) ? "Starting after position: $worksheet_position" : '')] );
+		$next_position = ( !$self->in_the_list ) ? 0 : ($self->_get_current_worksheet_position + 1);
 		###LogSD	$phone->talk( level => 'info', message =>[
 		###LogSD		"No worksheet name passed", "Attempting position: $next_position" ] );
 		if( $next_position >= $self->number_of_sheets ){
@@ -225,11 +233,7 @@ sub worksheet{
 	my	$worksheet_info = $self->_get_worksheet_info( $worksheet_name );
 	###LogSD	$phone->talk( level => 'info', message =>[
 	###LogSD		'Returned worksheet info:', $worksheet_info, ] );
-	$next_position //= $worksheet_info->{position};
-	#~ $worksheet_info->{_sheet_rel_id} = $worksheet_info->{rel_id};
-	#~ delete $worksheet_info->{rel_id};
-	#~ $worksheet_info->{_sheet_position} = $worksheet_info->{position};
-	#~ delete $worksheet_info->{position};
+	confess "No worksheet info for: $worksheet_name" if !exists $worksheet_info->{sheet_position};
 	###LogSD	$phone->talk( level => 'info', message =>[
 	###LogSD		"Building the next worksheet with:",
 	###LogSD		{
@@ -251,22 +255,12 @@ sub worksheet{
 	if( $worksheet ){
 		###LogSD	$phone->talk( level => 'info', message =>[
 		###LogSD		"Successfully loaded: $worksheet_name",] );
-		$self->_set_current_worksheet_position( $next_position );
+		$self->_set_current_worksheet_position( $worksheet->position );
+		return $worksheet;
 	}else{
 		$self->set_error( "Failed to build the object for worksheet: $worksheet_name" );
 		return undef;
 	}
-	my $cleaner_ref = $self->_link_cleaner_array;
-	push @$cleaner_ref,
-		sub{
-			###LogSD	$phone->talk( level => 'info', message =>[
-			###LogSD		"Clearing the worksheet connection: $worksheet_name",
-			###LogSD		"For the file name: " . $worksheet_info->{file_name}, ] );
-			if( $worksheet ){ $worksheet->DEMOLISH };
-		};
-	$self->_set_link_cleaner_array( $cleaner_ref );
-	
-	return $worksheet;
 }
 
 #########1 Private Attributes 3#########4#########5#########6#########7#########8#########9
@@ -281,27 +275,41 @@ has _epoch_year =>(
 has _shared_strings_instance =>(
 		isa			=> HasMethods[ 'get_shared_string_position' ],
 		predicate	=> '_has_shared_strings_file',
-		writer		=>'_set_shared_strings_instance',
+		writer		=> '_set_shared_strings_instance',
+		reader		=> '_get_shared_strings_instance',
 		clearer		=> '_clear_shared_strings',
-		handles		=>[ 'get_shared_string_position' ],
+		handles		=>{
+			'get_shared_string_position' => 'get_shared_string_position',
+			_demolish_shared_strings => 'DEMOLISH',
+		},
 	);
 	
 has _styles_instance =>(
 		isa			=> HasMethods[qw( get_format_position )],
 		writer		=> '_set_styles_instance',
+		reader		=> '_get_styles_instance',
 		clearer		=> '_clear_styles',
 		predicate	=> '_has_styles_file',
-		handles		=>[qw(
-			get_format_position			set_defined_excel_format_list
-			change_output_encoding		get_date_behavior
-			set_date_behavior
-		) ],
+		handles		=>{
+			get_format_position	=> 'get_format_position',
+			set_defined_excel_format_list => 'set_defined_excel_format_list',
+			change_output_encoding => 'change_output_encoding',
+			get_date_behavior => 'get_date_behavior',
+			set_date_behavior => 'set_date_behavior',
+			parse_excel_format_string => 'parse_excel_format_string',
+			_demolish_styles => 'DEMOLISH',
+		},
 	);
 
 has _calc_chain_instance =>(
 	isa	=> 	HasMethods[qw( get_calc_chain_position )],
-	writer	=>'_set_calc_chain',
+	writer	=>'_set_calc_chain_instance',
+	reader	=>'_get_calc_chain_instance',
 	clearer	=> '_clear_calc_chain',
+	predicate => '_has_calc_chain_file',
+	handles =>{
+		_demolish_calc_chain => 'DEMOLISH',
+	},
 );
 
 has '_temp_dir' =>(
@@ -342,14 +350,9 @@ has _worksheet_lookup =>(
 has _current_worksheet_position =>(
 		isa			=> Int,
 		writer		=> '_set_current_worksheet_position',
+		reader		=> '_get_current_worksheet_position',
 		clearer		=> 'start_at_the_beginning',
 		predicate	=> 'in_the_list',
-	);
-	
-has _link_cleaner_array =>(
-		isa		=> ArrayRef[CodeRef],
-		clearer	=> '_clear_link_cleaner_array',
-		writer	=> '_set_link_cleaner_array',
 	);
 	
 has _worksheet_superclass =>(
@@ -641,11 +644,13 @@ sub _set_shared_worksheet_files{
 			###LogSD	$phone->talk( level => 'debug', message => [
 			###LogSD		"Final args for building the instance:", @args ], );
 			my $method = $object_ref->{$file}->{store};
+			#~ print "Running: $method\n" . Dumper( @args );
 			$self->$method( build_instance( @args ) );
 		}else{
 			$self->set_error( "No file to load into the object: $file" );
 		}
 	}
+	#~ $self->_set_current_worksheet_position( -1 );
 	return 1;
 }
 
@@ -653,19 +658,40 @@ sub DEMOLISH{
 	my ( $self ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new(
 	###LogSD					name_space 	=> $self->get_log_space .  '::Workbook::DEMOLISH', );
-	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"Clearing the open files calcChain, sharedStrings, and styles files" ] );
-	if( $self->_link_cleaner_array ){
+	if( $self->_has_calc_chain_file ){
+		#~ print "closing calcChain.xml\n";
 		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"Attempting to clean up passed worksheets" ] );
-		for my $sub ( @{$self->_link_cleaner_array} ){
-			eval{ $sub->(); };
-		}
+		###LogSD			"Clearing the calcChain.xml file" ] );
+		$self->_demolish_calc_chain;
 	}
-	$self->_clear_link_cleaner_array;
-	$self->_clear_calc_chain;
-	$self->_clear_shared_strings;
-	$self->_clear_styles;
+	if( $self->_has_shared_strings_file ){
+		my $instance = $self->_get_shared_strings_instance;
+		#~ print "closing sharedStrings.xml\n" . Dumper( $instance );
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD			"Clearing the sharedStrings.xml file" ] );
+		if( $instance ){
+			$self->_demolish_shared_strings;
+		}else{
+			$self->_clear_shared_strings;
+			$instance = undef;
+		}
+	}else{
+		confess "No shared strings instance found";
+	}
+	if( $self->_has_styles_file ){
+		my $instance = $self->_get_styles_instance;
+		#~ print "closing styles.xml\n" . Dumper( $instance );
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD			"Clearing the styles.xml file" ] );
+		if( $instance ){
+			$self->_demolish_styles;
+		}else{
+			$self->_clear_shared_strings;
+			$instance = undef;
+		}
+	}else{
+		confess "No styles instance found";
+	}
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		"Clearing the Temporary Directory" ] );
 	$self->_clear_temp_dir;
@@ -977,6 +1003,19 @@ B<Definition:> This returns the epoch year defined by the worsheet.
 B<Accepts:>nothing
 
 B<Returns:> 1900 (= windows) or 1904 (= 1904)
+
+=back
+
+=head3 parse_excel_format_string( $format_string )
+
+=over
+
+B<Definition:> This returns a L<Type::Tiny> object with built in chained coercions 
+to turn Excel Julian Dates into date strings.
+
+B<Accepts:> a custom $format_string complying with Excel definitions 
+
+B<Returns:> a L<Type::Tiny> object
 
 =back
 

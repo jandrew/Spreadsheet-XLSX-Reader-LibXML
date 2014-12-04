@@ -19,7 +19,7 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 101;
+use	Test::Most tests => 115;
 use	Test::Moose;
 use	lib	'../../../../../Log-Shiras/lib',
 		$lib,
@@ -64,7 +64,7 @@ my	$answer_ref = [
 		[undef,'69',undef,undef,undef,undef,],
 		[undef,'27',undef,undef,'12-Sep-05',undef,],
 		[undef,'42',,undef,undef,undef,undef,],
-		[undef,undef,undef,undef,'2/6/2011','2/6/2011',],
+		[undef,undef,undef,undef,'2/6/2011','6-Feb-11',],
 		['2.13',undef,undef,undef,undef,undef,],
 		[undef,undef,undef,'6-Feb-11',undef,undef,],
 		[undef,undef,undef,undef,undef,undef,],
@@ -95,11 +95,11 @@ my  		@class_methods = qw(
 			);
 ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space => 'main', );
 ###LogSD		$phone->talk( level => 'inf	o', message => [ "easy questions ..." ] );
-#~ map{ 
-#~ has_attribute_ok
-			#~ 'Spreadsheet::XLSX::Reader::LibXML', $_,
-										#~ "Check that Spreadsheet::XLSX::Reader::LibXML has the -$_- attribute"
-#~ } 			@class_attributes;
+map{ 
+has_attribute_ok
+			'Spreadsheet::XLSX::Reader::LibXML', $_,
+										"Check that Spreadsheet::XLSX::Reader::LibXML has the -$_- attribute"
+} 			@class_attributes;
 map{
 can_ok		'Spreadsheet::XLSX::Reader::LibXML', $_,
 } 			@class_methods;
@@ -138,12 +138,12 @@ ok			1,							"The file unzipped and the parser set up without issues";
 ###LogSD			},
 ###LogSD			Test =>{
 ###LogSD				UNBLOCK =>{
-###LogSD					log_file => 'debug',
+###LogSD					log_file => 'trace',
 ###LogSD				},
 ###LogSD				Workbook =>{
 ###LogSD					worksheet =>{
 ###LogSD						UNBLOCK =>{
-###LogSD							log_file => 'warn',
+###LogSD							log_file => 'trace',
 ###LogSD						},
 ###LogSD					},
 ###LogSD				},
@@ -168,7 +168,8 @@ ok			1,							"The file unzipped and the parser set up without issues";
 			my	$offset_ref = [ 0, 8, 15 ];
 			my	$y = 0;
 			for my $worksheet ( $workbook->worksheets() ) {
-explain		'testing worksheet: ' . $worksheet->name;
+###LogSD	exit 1;
+explain		'testing worksheet: ' . $worksheet->get_name;
 				$row_ref = undef;
 			my	$x = 0;
 			SHEETDATA: while( $x < 50 and !$row_ref or $row_ref ne 'EOF' ){

@@ -1,8 +1,8 @@
-#! perl
+#!/usr/bin/env perl
 
 use strict;
 use Spreadsheet::ParseExcel;
-use Data::Dumper;
+#~ use Data::Dumper;
 
 my $parser   = Spreadsheet::ParseExcel->new();
 my $workbook = $parser->parse('TestBook.xls');
@@ -14,7 +14,7 @@ if ( !defined $workbook ) {
 my $worksheet = $workbook->worksheet( 'Sheet1' );
 my $cell = $worksheet->get_cell( 4, 0 );
 print	$cell->value . "\n";
-print	Dumper( $cell->get_rich_text );
+#~ print	Dumper( $cell->get_rich_text );
 
 $workbook = $parser->parse('Rich.xls');
 

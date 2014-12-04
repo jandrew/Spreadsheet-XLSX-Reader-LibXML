@@ -62,14 +62,15 @@ my  		@instance_methods = qw(
 			);
 my			$answer_ref = [
 				{
-		          r => 'E14',
+		          r => 'D12',
 		          i => '1'
 		        },
 				{
-		          r => 'D12',
+		          r => 'D14',
+		          s => '1'
 		        },
 				{
-		          r => 'D14',
+		          r => 'E14',
 		          s => '1'
 		        },
 				{

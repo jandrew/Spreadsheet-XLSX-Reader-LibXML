@@ -28,6 +28,7 @@ my	$args ={
 			cell_to_column_row_test		=>[],
 			default_format_test			=>[],
 			excel_format_string_test	=>[],
+			open_by_worksheet_bug		=>[ $dir . 'test_files/' ],
 			workbook_test				=>[ $dir . 'test_files/' ],
 			types_test					=>[ $dir . 'test_files/' ],
 			generic_reader_test			=>[ $dir . 'test_files/xl/' ],
@@ -51,7 +52,6 @@ my	@tests =(
 		[  $dir . $tests . 'LibXML/05-cell_to_column_row.t', 'cell_to_column_row_test' ],
 		[  $dir . $tests . 'LibXML/XMLReader/01-xml_to_perl_data.t', 'xml_to_perl_test' ],
 		[  $dir . $tests . 'LibXML/XMLReader/02-worksheet.t', 'worksheet_test' ],
-		#~ [  $dir . $tests . 'LibXML/06-util_functions.t', 'util_function_test' ],
 		[  $dir . $tests . 'LibXML/07-fmt_default.t', 'default_format_test' ],
 		[  $dir . $tests . 'LibXML/08-parse_excel_fmt_string.t', 'excel_format_string_test' ],
 		[  $dir . $tests . 'LibXML/XMLReader/03-sharedstrings.t', 'shared_strings_reader_test' ],
@@ -59,6 +59,7 @@ my	@tests =(
 		[  $dir . $tests . 'LibXML/XMLReader/05-styles.t', 'styles_sheet_test' ],
 		[  $dir . $tests . 'LibXML/09-cell.t', 'cell_test' ],
 		[  $dir . $tests . 'LibXML/10-get_cell.t', 'get_cell_test' ],
+		[  $dir . $tests . '02-open_by_worksheet_bug.t', 'open_by_worksheet_bug' ],
 		[  $dir . $tests . '01-libxml.t', 'workbook_test' ],
 	);
 use	TAP::Harness;

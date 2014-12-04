@@ -1,5 +1,5 @@
 #########1 Test File for Spreadsheet::XLSX::Reader::XMLReader::Worksheet        8#########9
-#!env perl
+#!/usr/bin/env perl
 my ( $lib, $test_file );
 BEGIN{
 	$ENV{PERL_TYPE_TINY_XS} = 0;
@@ -81,7 +81,7 @@ my  		@instance_methods = qw(
 				rel_id
 				sheet_id
 				position
-				name
+				get_name
 				set_empty_is_end
 				is_empty_the_end
 				row_range
@@ -120,7 +120,7 @@ my			$answer_ref = [
 				{ r => 'B9', row => 9, col => 2, v =>{ raw_text => '42' }, f =>{ raw_text => 'B7-B8' }, },
 				{ r => 'D10', row => 10, col => 4, s => 1, },
 				{ r => 'E10', row => 10, col => 5, v =>{ raw_text => '14' }, t => 's', s => 6, },
-				{ r => 'F10', row => 10, col => 6, v =>{ raw_text => '14' }, s => 6, t => 's', },
+				{ r => 'F10', row => 10, col => 6, v =>{ raw_text => '14' }, s => 2, t => 's', },
 				{ r => 'A11', row => 11, col => 1, v =>{ raw_text => '2.1345678901' }, s => 8, },
 				{ r => 'D12', row => 12, col => 4, v =>{ raw_text => '39118' }, f =>{ raw_text => 'DATEVALUE(E10)' }, s => 10, cell_merge => 'D12:E12' },
 				{ r => 'E12', row => 12, col => 5, s => 10, cell_merge => 'D12:E12', },
@@ -155,7 +155,7 @@ my			$answer_ref = [
 				undef, undef, undef,
 				{ r => 'D10', row => 10, col => 4, s => 1, },
 				{ r => 'E10', row => 10, col => 5, v =>{ raw_text => '14' }, t => 's', s => 6, },
-				{ r => 'F10', row => 10, col => 6, v =>{ raw_text => '14' }, s => 6, t => 's', },
+				{ r => 'F10', row => 10, col => 6, v =>{ raw_text => '14' }, s => 2, t => 's', },
 				{ r => 'A11', row => 11, col => 1, v =>{ raw_text => '2.1345678901' }, s => 8, },
 				undef, undef, undef, undef, undef,
 				undef, undef, undef,
@@ -196,7 +196,7 @@ my			$answer_ref = [
 				undef, undef, undef,
 				{ r => 'D10', row => 10, col => 4, s => 1, },
 				{ r => 'E10', row => 10, col => 5, v =>{ raw_text => '14' }, t => 's', s => 6, },
-				{ r => 'F10', row => 10, col => 6, v =>{ raw_text => '14' }, s => 6, t => 's', },
+				{ r => 'F10', row => 10, col => 6, v =>{ raw_text => '14' }, s => 2, t => 's', },
 				'EOR',
 				{ r => 'A11', row => 11, col => 1, v =>{ raw_text => '2.1345678901' }, s => 8, },
 				undef, undef, undef, undef, undef,'EOR',
@@ -237,7 +237,7 @@ my			$answer_ref = [
 				[
 					undef, undef, undef,{ r => 'D10', row => 10, col => 4, s => 1, },
 					{ r => 'E10', row => 10, col => 5, v =>{ raw_text => '14' }, t => 's', s => 6, },
-					{ r => 'F10', row => 10, col => 6, v =>{ raw_text => '14' }, s => 6, t => 's', },
+					{ r => 'F10', row => 10, col => 6, v =>{ raw_text => '14' }, s => 2, t => 's', },
 				],
 				[
 					{ r => 'A11', row => 11, col => 1, v =>{ raw_text => '2.1345678901' }, s => 8, }, undef, undef, undef, undef, undef,
@@ -273,7 +273,7 @@ my			$answer_ref = [
 				undef, undef, undef,
 				{ r => 'D10', row => 10, col => 4, s => 1, },
 				{ r => 'E10', row => 10, col => 5, v =>{ raw_text => '14' }, t => 's', s => 6, },
-				{ r => 'F10', row => 10, col => 6, v =>{ raw_text => '14' }, s => 6, t => 's', },
+				{ r => 'F10', row => 10, col => 6, v =>{ raw_text => '14' }, s => 2, t => 's', },
 				{ r => 'A11', row => 11, col => 1, v =>{ raw_text => '2.1345678901' }, s => 8, },
 				undef, undef, undef,
 				{ r => 'D12', row => 12, col => 4, v =>{ raw_text => '39118' }, f =>{ raw_text => 'DATEVALUE(E10)' }, s => 10, cell_merge => 'D12:E12' },
@@ -311,7 +311,7 @@ my			$answer_ref = [
 				undef, undef, undef,
 				{ r => 'D10', row => 10, col => 4, s => 1, },
 				{ r => 'E10', row => 10, col => 5, v =>{ raw_text => '14' }, t => 's', s => 6, },
-				{ r => 'F10', row => 10, col => 6, v =>{ raw_text => '14' }, s => 6, t => 's', },
+				{ r => 'F10', row => 10, col => 6, v =>{ raw_text => '14' }, s => 2, t => 's', },
 				'EOR',
 				{ r => 'A11', row => 11, col => 1, v =>{ raw_text => '2.1345678901' }, s => 8, },
 				'EOR',
@@ -352,7 +352,7 @@ my			$answer_ref = [
 				[
 					undef, undef, undef,{ r => 'D10', row => 10, col => 4, s => 1, },
 					{ r => 'E10', row => 10, col => 5, v =>{ raw_text => '14' }, t => 's', s => 6, },
-					{ r => 'F10', row => 10, col => 6, v =>{ raw_text => '14' }, s => 6, t => 's', },
+					{ r => 'F10', row => 10, col => 6, v =>{ raw_text => '14' }, s => 2, t => 's', },
 				],
 				[
 					{ r => 'A11', row => 11, col => 1, v =>{ raw_text => '2.1345678901' }, s => 8, },
@@ -369,11 +369,6 @@ my			$answer_ref = [
 				],	
 				'EOF',
 			];
-
-###LogSD	$phone->talk( level => 'info', message => [ "Set up a count from 0 instance" ] );
-###LogSD	$phone->talk( level => 'trace', message => [
-###LogSD		"Check deep coercion:", $string_type->coerce( '2/6/2011' ) ] );
-
 ###LogSD	$phone->talk( level => 'info', message => [ "easy questions ..." ] );
 map{
 has_attribute_ok
@@ -423,11 +418,6 @@ lives_ok{
 				workbook_instance		=> $workbook_instance,
 			);
 			###LogSD	$phone->talk( level => 'info', message =>[ "Loaded test instance" ] );
-			#~ $test_instance->set_custom_formats( {
-				#~ E10	=> $date_time_type,
-				#~ 10	=> $string_type,
-				#~ D14	=> $string_type,
-			#~ } );
 }										"Prep a new Worksheet instance";
 ###LogSD		$phone->talk( level => 'debug', message => [ "Max row is:" . $test_instance->max_row ] );
 map{

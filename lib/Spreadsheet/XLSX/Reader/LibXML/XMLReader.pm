@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader;
-use version; our $VERSION = qv('v0.20.4');
+use version; our $VERSION = qv('v0.22.2');
 
 use 5.010;
 use Moose;
@@ -184,8 +184,12 @@ sub DEMOLISH{
 	###LogSD					name_space 	=> $self->get_log_space .  '::XMLReader::DEMOLISH', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			"clearing the reader for file_name:" . $self->get_file_name, ] );
-	$self->_clear_xml_parser,
-	$self->_clear_file_handle,
+	$self->_clear_xml_parser;
+	if( $self->_has_file_handle ){
+		#~ print "closing handle for file: " . $self->get_file_name . "\n";
+		close $self->_get_file_handle;
+		$self->_clear_file_handle;
+	}
 }
 
 #########1 Phinish            3#########4#########5#########6#########7#########8#########9

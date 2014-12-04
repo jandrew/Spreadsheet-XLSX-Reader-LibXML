@@ -299,6 +299,19 @@ B<Returns:> 1900 (= windows) or 1904 (= 1904)
 
 =back
 
+=head3 parse_excel_format_string( $format_string )
+
+=over
+
+B<Definition:> This returns a L<Type::Tiny> object with built in chained coercions 
+to turn Excel Julian Dates into date strings.
+
+B<Accepts:> a custom $format_string complying with Excel definitions 
+
+B<Returns:> a L<Type::Tiny> object
+
+=back
+
 =head2 Attributes
 
 Data passed to new when creating an instance (parser).  For modification of 

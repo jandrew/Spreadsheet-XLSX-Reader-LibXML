@@ -286,12 +286,12 @@ B<Default:> undef (which is equivalent to the minimum column of the sheet)
 
 B<Range:> The minimum column of the sheet to or less than the
 L<max_header_col|/max_header_col>
-		
-=back
 
 B<attribute methods> Methods provided to adjust this attribute
 
-=head4 get_min_header_col
+=over
+
+B<get_min_header_col>
 
 =over
 
@@ -299,7 +299,7 @@ B<Definition:> returns the value stored in the attribute
 
 =back
 
-=head4 set_min_header_col
+B<set_min_header_col>
 
 =over
 
@@ -307,11 +307,15 @@ B<Definition:> Sets a new value for the attribute
 
 =back
 
-=head4 has_min_header_col
+B<has_min_header_col>
 
 =over
 
 B<Definition:> Indicates if the attribute has a stored value
+
+=back
+
+=back
 
 =back
 
@@ -330,12 +334,12 @@ B<Default:> undef (equal to the maximum column of the sheet)
 
 B<Range:> The maximum column of the sheet to or less than the 
 L<min_header_col|/min_header_col>
-		
-=back
 
 B<attribute methods> Methods provided to adjust this attribute
 
-=head4 get_max_header_col
+=over
+
+B<get_max_header_col>
 
 =over
 
@@ -343,7 +347,7 @@ B<Definition:> returns the value stored in the attribute
 
 =back
 
-=head4 set_max_header_col
+B<set_max_header_col>
 
 =over
 
@@ -351,11 +355,15 @@ B<Definition:> Sets a new value for the attribute
 
 =back
 
-=head4 has_max_header_col
+B<has_max_header_col>
 
 =over
 
 B<Definition:> Indicates if the attribute has a stored value
+
+=back
+
+=back
 
 =back
 
@@ -433,12 +441,12 @@ Setting custom conversions to use for the worksheet
 		10	=> $string_type,
 		D14	=> $string_type,
 	} );
-		
-=back
 
 B<attribute methods> Methods provided to adjust this attribute
 
-=head4 set_custom_formats
+=over
+
+B<set_custom_formats>
 
 =over
 
@@ -446,7 +454,7 @@ B<Definition:> Sets a new (complete) hashref for the attribute
 
 =back
 
-=head4 has_custom_format( $key )
+B<has_custom_format( $key )>
 
 =over
 
@@ -454,7 +462,7 @@ B<Definition:> checks if the specific custom format $key is set
 
 =back
 
-=head4 set_custom_format( $key => $coercion, ... )
+B<set_custom_format( $key => $coercion, ... )>
 
 =over
 
@@ -462,11 +470,15 @@ B<Definition:> sets the specific custom format $key(s) with $coercion(s)
 
 =back
 
-=head4 get_custom_format( $key )
+B<get_custom_format( $key )>
 
 =over
 
 B<Definition:> returns the specific custom format for that $key (see has_custom_format )
+
+=back
+
+=back
 
 =back
 
@@ -476,16 +488,20 @@ B<Definition:> returns the specific custom format for that $key (see has_custom_
 
 B<Definition:> This is the relId of the sheet listed in the XML of the .xlsx file.  
 You probably don't care and you should never set this value.
-		
-=back
 
 B<attribute methods> Methods provided to adjust this attribute
 
-=head4 rel_id
+=over
+
+B<rel_id>
 
 =over
 
 B<Definition:> returns the value stored in the attribute
+
+=back
+
+=back
 
 =back
 
@@ -495,16 +511,20 @@ B<Definition:> returns the value stored in the attribute
 
 B<Definition:> This is the Id of the sheet listed in the XML of the .xlsx file.  
 You probably don't care and you should never set this value.
-		
-=back
 
 B<attribute methods> Methods provided to adjust this attribute
 
-=head4 sheet_id
+=over
+
+B<sheet_id>
 
 =over
 
 B<Definition:> returns the value stored in the attribute
+
+=back
+
+=back
 
 =back
 
@@ -514,16 +534,20 @@ B<Definition:> returns the value stored in the attribute
 
 B<Definition:> This is the visual sheet position in the .xlsx file.  
 You should never set this value.
-		
-=back
 
 B<attribute methods> Methods provided to adjust this attribute
 
-=head4 position
+=over
+
+B<position>
 
 =over
 
 B<Definition:> returns the value stored in the attribute
+
+=back
+
+=back
 
 =back
 
@@ -533,16 +557,20 @@ B<Definition:> returns the value stored in the attribute
 
 B<Definition:> This is the visual sheet name in the .xlsx file.  
 You should never set this value.
-		
-=back
 
 B<attribute methods> Methods provided to adjust this attribute
 
-=head4 name
+=over
+
+B<get_name>
 
 =over
 
 B<Definition:> returns the value stored in the attribute
+
+=back
+
+=back
 
 =back
 
@@ -559,14 +587,14 @@ affect other worksheets.>  If that doesn't make sence then don't use
 these methods.  (Nothing to see here! Move along.)
 
 B<Default:> a Spreadsheet::XLSX::Reader::LibXML instance
-		
-=back
 
 B<attribute methods> Methods of the workbook exposed here by the 
 L<delegation|Moose::Manual::Attributes/Delegation> of the instance to 
 this class through this attribute
 
-=head4 counting_from_zero
+=over
+
+B<counting_from_zero>
 
 =over
 
@@ -576,7 +604,7 @@ state
 
 =back
 
-=head4 boundary_flag_setting
+B<boundary_flag_setting>
 
 =over
 
@@ -586,7 +614,7 @@ state
 
 =back
 
-=head4 change_boundary_flag( $Bool )
+B<change_boundary_flag( $Bool )>
 
 =over
 
@@ -596,7 +624,7 @@ state (B<For the whole workbook!>)
 
 =back
 
-=head4 get_shared_string_position( $int )
+B<get_shared_string_position( $int )>
 
 =over
 
@@ -607,7 +635,7 @@ of a delegation!>
 
 =back
 
-=head4 get_format_position( $int, [$header] )
+B<get_format_position( $int, [$header] )>
 
 =over
 
@@ -620,7 +648,7 @@ of a delegation!>
 
 =back
 
-=head4 set_empty_is_end( $Bool )
+B<set_empty_is_end( $Bool )>
 
 =over
 
@@ -630,7 +658,7 @@ state (B<For the whole workbook!>)
 
 =back
 
-=head4 is_empty_the_end
+B<is_empty_the_end>
 
 =over
 
@@ -639,7 +667,7 @@ B<Definition:> returns the workbook state for the attribute
 
 =back
 
-=head4 get_group_return_type
+B<get_group_return_type>
 
 =over
 
@@ -648,7 +676,7 @@ B<Definition:> returns the workbook state for the attribute
 
 =back
 
-=head4 set_group_return_type( (instance|unformatted|value) )
+B<set_group_return_type( (instance|unformatted|value) )>
 
 =over
 
@@ -658,7 +686,7 @@ state (B<For the whole workbook!>)
 
 =back
 
-=head4 get_epoch_year
+B<get_epoch_year>
 
 =over
 
@@ -668,7 +696,7 @@ the L<Spreadsheet::XLSX::Reader::LibXML::Styles> class.
 
 =back
 
-=head4 change_output_encoding
+B<change_output_encoding>
 
 =over
 
@@ -681,7 +709,7 @@ L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault> role.  It (L<potentially
 
 =back
 
-=head4 get_date_behavior
+B<get_date_behavior>
 
 =over
 
@@ -695,7 +723,7 @@ is carried for date coercions.
 
 =back
 
-=head4 set_date_behavior
+B<set_date_behavior>
 
 =over
 
@@ -706,6 +734,10 @@ L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings> role.  It will
 set how far unformatted L<transformation
 |Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/datetime_dates> 
 is carried for date coercions. 
+
+=back
+
+=back
 
 =back
 

@@ -1,6 +1,7 @@
 package Spreadsheet::XLSX::Reader::LibXML::Cell;
-use version; our $VERSION = qv('v0.20.4');
-
+use version; our $VERSION = qv('v0.22.2');
+#~ use Data::Dumper;
+$| = 1;
 use 5.010;
 use Moose;
 use MooseX::StrictConstructor;
@@ -9,8 +10,9 @@ use Types::Standard qw(
 		Str					InstanceOf				HashRef
 		Enum				HasMethods				ArrayRef
 		Int					Maybe					CodeRef
+		is_Object
     );
-
+my	$message_type = HasMethods[ 'message' ];
 use lib	'../../../../../lib';
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
@@ -35,6 +37,7 @@ has cell_unformatted =>(
 		isa			=> Maybe[Str],
 		reader		=> '_unformatted',
 		predicate	=> 'has_unformatted',
+		#~ default		=> '',
 	);
 
 has rich_text =>(
@@ -175,7 +178,12 @@ sub value{
 		###LogSD		(($self->has_coercion) ? $self->coercion_name : 'No conversion available' ) ] );
 		eval '$formatted = $self->get_coercion->assert_coerce( $unformatted )';
 		if( $@ ){
-			$self->set_error( $@ );
+			if( is_Object( $@ ) and $message_type->check( $@ ) ){
+				print $@->message . "\n";
+				$self->set_error( $@->message );
+			}else{
+				$self->set_error( "$@" );
+			}
 		}
 	}
 	$formatted =~ s/\\//g if $formatted;
@@ -222,6 +230,18 @@ sub value{
 
 
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
+
+sub DEMOLISH{
+	my ( $self ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new(
+	###LogSD					name_space 	=> $self->get_log_space .  '::Cell::DEMOLISH', );
+	###LogSD		$phone->talk( level => 'debug', message => [
+	###LogSD			"clearing the cell for cell ID:" . $self->cell_id, ] );
+	#~ print "Clearing coercion\n";
+	$self->clear_coercion;
+	#~ print "Clearing error instance\n";
+	$self->_clear_error_inst;
+}
 
 
 
@@ -948,6 +968,8 @@ L<github Spreadsheet::XLSX::Reader::LibXML/issues
 B<1.> Return the merge range in array and hash formats
 
 B<2.> Add calc chain values
+
+B<3.> Have unformatted return '' (the empty string) rather than undef for null?
 
 =back
 

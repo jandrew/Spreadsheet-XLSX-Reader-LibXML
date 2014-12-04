@@ -1,5 +1,5 @@
 #########1 Test File for Spreadsheet::XLSX::Reader::LibXML::GetCell   7#########8#########9
-#!evn perl
+#!env perl
 my ( $lib, $test_file );
 BEGIN{
 	$ENV{PERL_TYPE_TINY_XS} = 0;
@@ -364,7 +364,7 @@ explain									"Test get_cell";
 			INITIALRUN: for my $row ( $row_min .. ($row_max + 1) ) {
             for my $col ( $col_min .. $col_max ) {
 
-###LogSD	if( $row == 5 and $col == 0 ){
+###LogSD	if( $row == 1 and $col == 0 ){
 ###LogSD		$operator->add_name_space_bounds( {
 ###LogSD			main =>{
 ###LogSD				UNBLOCK =>{
@@ -378,9 +378,9 @@ explain									"Test get_cell";
 #~ ###LogSD			},
 ###LogSD		} );
 ###LogSD	}
-###LogSD	elsif( $row == 5 and $col == 1 ){
-###LogSD		exit 1;
-###LogSD	}
+#~ ###LogSD	elsif( $row == 5 and $col == 1 ){
+#~ ###LogSD		exit 1;
+#~ ###LogSD	}
 
 lives_ok{	$cell = $test_instance->get_cell( $row, $col ) }
 										"Get anything at the cell for row -$row- and col -$col-";
