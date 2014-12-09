@@ -19,7 +19,7 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 1326;
+use	Test::Most tests => 1330;
 use	Test::Moose;
 use	MooseX::ShortCut::BuildInstance qw( build_instance );
 use Types::Standard qw( Bool );
@@ -122,6 +122,7 @@ my			$answer_ref = [
 				{ r => 'E10', row => 10, col => 5, v =>{ raw_text => '14' }, t => 's', s => 6, },
 				{ r => 'F10', row => 10, col => 6, v =>{ raw_text => '14' }, s => 2, t => 's', },
 				{ r => 'A11', row => 11, col => 1, v =>{ raw_text => '2.1345678901' }, s => 8, },
+				{ r => 'B12', row => 12, col => 2, v =>{ raw_text => '' }, f =>{ raw_text => 'IF(B11&gt;0,"Hello","")' }, },
 				{ r => 'D12', row => 12, col => 4, v =>{ raw_text => '39118' }, f =>{ raw_text => 'DATEVALUE(E10)' }, s => 10, cell_merge => 'D12:E12' },
 				{ r => 'E12', row => 12, col => 5, s => 10, cell_merge => 'D12:E12', },
 				{ r => 'C14', row => 14, col => 3, v =>{ raw_text => '3' }, t => 's', },
@@ -158,7 +159,9 @@ my			$answer_ref = [
 				{ r => 'F10', row => 10, col => 6, v =>{ raw_text => '14' }, s => 2, t => 's', },
 				{ r => 'A11', row => 11, col => 1, v =>{ raw_text => '2.1345678901' }, s => 8, },
 				undef, undef, undef, undef, undef,
-				undef, undef, undef,
+				undef,
+				{ r => 'B12', row => 12, col => 2, v =>{ raw_text => '' }, f =>{ raw_text => 'IF(B11&gt;0,"Hello","")' }, },
+				undef,
 				{ r => 'D12', row => 12, col => 4, v =>{ raw_text => '39118' }, f =>{ raw_text => 'DATEVALUE(E10)' }, s => 10, cell_merge => 'D12:E12' },
 				{ r => 'E12', row => 12, col => 5, s => 10, cell_merge => 'D12:E12', },
 				undef,
@@ -200,7 +203,9 @@ my			$answer_ref = [
 				'EOR',
 				{ r => 'A11', row => 11, col => 1, v =>{ raw_text => '2.1345678901' }, s => 8, },
 				undef, undef, undef, undef, undef,'EOR',
-				undef, undef, undef,
+				undef,
+				{ r => 'B12', row => 12, col => 2, v =>{ raw_text => '' }, f =>{ raw_text => 'IF(B11&gt;0,"Hello","")' }, },
+				undef,
 				{ r => 'D12', row => 12, col => 4, v =>{ raw_text => '39118' }, f =>{ raw_text => 'DATEVALUE(E10)' }, s => 10, cell_merge => 'D12:E12' },
 				{ r => 'E12', row => 12, col => 5, s => 10, cell_merge => 'D12:E12', },
 				undef,'EOR',
@@ -243,7 +248,9 @@ my			$answer_ref = [
 					{ r => 'A11', row => 11, col => 1, v =>{ raw_text => '2.1345678901' }, s => 8, }, undef, undef, undef, undef, undef,
 				],
 				[
-					undef, undef, undef,{ r => 'D12', row => 12, col => 4, v =>{ raw_text => '39118' }, f =>{ raw_text => 'DATEVALUE(E10)' }, s => 10, cell_merge => 'D12:E12' },
+					undef,
+					{ r => 'B12', row => 12, col => 2, v =>{ raw_text => '' }, f =>{ raw_text => 'IF(B11&gt;0,"Hello","")' }, }, undef,
+					{ r => 'D12', row => 12, col => 4, v =>{ raw_text => '39118' }, f =>{ raw_text => 'DATEVALUE(E10)' }, s => 10, cell_merge => 'D12:E12' },
 					{ r => 'E12', row => 12, col => 5, s => 10, cell_merge => 'D12:E12', }, undef,
 				],
 				[undef, undef, undef, undef, undef, undef,],
@@ -275,7 +282,8 @@ my			$answer_ref = [
 				{ r => 'E10', row => 10, col => 5, v =>{ raw_text => '14' }, t => 's', s => 6, },
 				{ r => 'F10', row => 10, col => 6, v =>{ raw_text => '14' }, s => 2, t => 's', },
 				{ r => 'A11', row => 11, col => 1, v =>{ raw_text => '2.1345678901' }, s => 8, },
-				undef, undef, undef,
+				undef,
+				{ r => 'B12', row => 12, col => 2, v =>{ raw_text => '' }, f =>{ raw_text => 'IF(B11&gt;0,"Hello","")' }, }, undef,
 				{ r => 'D12', row => 12, col => 4, v =>{ raw_text => '39118' }, f =>{ raw_text => 'DATEVALUE(E10)' }, s => 10, cell_merge => 'D12:E12' },
 				{ r => 'E12', row => 12, col => 5, s => 10, cell_merge => 'D12:E12', },
 				undef,
@@ -315,7 +323,8 @@ my			$answer_ref = [
 				'EOR',
 				{ r => 'A11', row => 11, col => 1, v =>{ raw_text => '2.1345678901' }, s => 8, },
 				'EOR',
-				undef, undef, undef,
+				undef,
+				{ r => 'B12', row => 12, col => 2, v =>{ raw_text => '' }, f =>{ raw_text => 'IF(B11&gt;0,"Hello","")' }, }, undef,
 				{ r => 'D12', row => 12, col => 4, v =>{ raw_text => '39118' }, f =>{ raw_text => 'DATEVALUE(E10)' }, s => 10, cell_merge => 'D12:E12' },
 				{ r => 'E12', row => 12, col => 5, s => 10, cell_merge => 'D12:E12', },
 				'EOR',
@@ -358,7 +367,9 @@ my			$answer_ref = [
 					{ r => 'A11', row => 11, col => 1, v =>{ raw_text => '2.1345678901' }, s => 8, },
 				],
 				[
-					undef, undef, undef,{ r => 'D12', row => 12, col => 4, v =>{ raw_text => '39118' }, f =>{ raw_text => 'DATEVALUE(E10)' }, s => 10, cell_merge => 'D12:E12' },
+					undef,
+					{ r => 'B12', row => 12, col => 2, v =>{ raw_text => '' }, f =>{ raw_text => 'IF(B11&gt;0,"Hello","")' }, }, undef,
+					{ r => 'D12', row => 12, col => 4, v =>{ raw_text => '39118' }, f =>{ raw_text => 'DATEVALUE(E10)' }, s => 10, cell_merge => 'D12:E12' },
 					{ r => 'E12', row => 12, col => 5, s => 10, cell_merge => 'D12:E12', },
 				],
 				[],
@@ -393,6 +404,7 @@ lives_ok{
 										change_output_encoding		=> sub{ $_[0] },
 										get_date_behavior			=> sub{},
 										set_date_behavior			=> sub{},
+										get_empty_return_type		=> sub{ return 'undef_string' },
 									},
 									add_attributes =>{
 										empty_is_end =>{
@@ -445,7 +457,7 @@ explain									"read through value cells ...";
 			my $result;
 explain									"Running cycle: $y";
 			my $x = 0;
-			while( !$result or $result ne 'EOF' ){
+			while( $x < 20 and (!$result or $result ne 'EOF') ){
 lives_ok{	$result = $test_instance->_get_next_value_cell }
 										"Collecting data from position: $x";
 ###LogSD	$phone->talk( level => 'debug', message => [ "result at position -$x- is:", $result,
@@ -458,9 +470,9 @@ explain									"read through all cells in sequence...";
 			for my $y (1..2){
 			my $result = undef;
 explain									"Running cycle: $y";
-			my $x = 19;
+			my $x = 20;
 			while( $x < 105 and (!$result or $result ne 'EOF') ){
-			my	$position = $x - 19;
+			my	$position = $x - 20;
 lives_ok{	$result = $test_instance->_get_next_cell }
 										"Collecting data from sheet position: $position";
 ###LogSD	$phone->talk( level => 'trace', message => [ "result at position -$position- is:", $result,
@@ -473,12 +485,12 @@ explain									"read row columns through cells in sequence...";
 			for my $y (1..2){
 explain									"Running cycle: $y";
 			my $y_dim = 1;
-			my $x = 104;
+			my $x = 105;
 			my	$result = undef;
-			while( $x < 202 and (!$result or $result ne 'EOF') ){
+			while( $x < 203 and (!$result or $result ne 'EOF') ){
 			my	$x_dim = 1;
 				$result = undef;
-			while( $x < 202 and (!$result or ($result ne 'EOR' and $result ne 'EOF')) ){
+			while( $x < 203 and (!$result or ($result ne 'EOR' and $result ne 'EOF')) ){
 lives_ok{	$result = $test_instance->_get_col_row( $x_dim, $y_dim ) }
 										"Collecting data for column -$x_dim- and row -$y_dim-";
 ###LogSD	$phone->talk( level => 'trace', message => [ "result for column -$x_dim- and row -$y_dim- is:", $result,
@@ -495,8 +507,8 @@ explain									"read rows through sheet in sequence...";
 explain									"Running cycle: $y";
 			my $result = undef;
 			my $y_dim = 1;
-			my $x = 202;
-			while( $x < 217 and (!$result or $result ne 'EOF') ){
+			my $x = 203;
+			while( $x < 218 and (!$result or $result ne 'EOF') ){
 lives_ok{	$result = $test_instance->_get_row_all( $y_dim ) }
 										"Collecting data for row -$y_dim-";
 ###LogSD	$phone->talk( level => 'trace', message => [ "result for row -$y_dim- is:", $result,
@@ -523,9 +535,9 @@ explain									"read through cells without edges in sequence...";
 			for my $y (1..2){
 			my $result = undef;
 explain									"Running cycle: $y";
-			my $x = 217;
-			while( $x < 258 and (!$result or $result ne 'EOF') ){
-			my	$position = $x - 217;
+			my $x = 218;
+			while( $x < 257 and (!$result or $result ne 'EOF') ){
+			my	$position = $x - 218;
 lives_ok{	$result = $test_instance->_get_next_cell }
 										"Collecting data from sheet position: $position";
 ###LogSD	$phone->talk( level => 'trace', message => [ "result at position -$position- is:", $result,
@@ -538,12 +550,12 @@ explain									"read row columns through cells without edges in sequence...";
 			for my $y (1..2){
 explain									"Running cycle: $y";
 			my $y_dim = 1;
-			my $x = 256;
+			my $x = 257;
 			my	$result = undef;
-			while( $x < 305 and (!$result or $result ne 'EOF') ){
+			while( $x < 306 and (!$result or $result ne 'EOF') ){
 			my	$x_dim = 1;
 				$result = undef;
-			while( $x < 305 and (!$result or ($result ne 'EOR' and $result ne 'EOF')) ){
+			while( $x < 306 and (!$result or ($result ne 'EOR' and $result ne 'EOF')) ){
 lives_ok{	$result = $test_instance->_get_col_row( $x_dim, $y_dim ) }
 										"Collecting data for column -$x_dim- and row -$y_dim-";
 ###LogSD	$phone->talk( level => 'trace', message => [ "result for column -$x_dim- and row -$y_dim- is:", $result,
@@ -560,8 +572,8 @@ explain									"read rows through sheet without edges in sequence...";
 explain									"Running cycle: $y";
 			my $result = undef;
 			my $y_dim = 1;
-			my $x = 305;
-			while( $x < 330 and (!$result or $result ne 'EOF') ){
+			my $x = 306;
+			while( $x < 321 and (!$result or $result ne 'EOF') ){
 lives_ok{	$result = $test_instance->_get_row_all( $y_dim ) }
 										"Collecting data for row -$y_dim-";
 ###LogSD	$phone->talk( level => 'trace', message => [ "result for row -$y_dim- is:", $result,
@@ -570,6 +582,7 @@ is_deeply	$result, $answer_ref->[$x++],"..and see if it has good info";
 			$y_dim++;
 			}
 			}
+
 explain 								"...Test Done";
 done_testing();
 

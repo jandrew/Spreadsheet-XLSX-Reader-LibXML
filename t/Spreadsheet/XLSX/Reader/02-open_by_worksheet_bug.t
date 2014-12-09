@@ -19,7 +19,7 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 22;
+use	Test::Most tests => 23;
 use	Test::Moose;
 use	lib	'../../../../../Log-Shiras/lib',
 		$lib,
@@ -44,17 +44,18 @@ my	$answer_ref = [
 		'my',
 		'World',
 		'Hello World',
-		'undef',
+		'',
 		69,
 		27,
 		37145,
 		42,
-		'undef',
+		'',
 		'2/6/2011',
 		'2/6/2011',
 		2.1345678901,
+		'',
 		39118,
-		'undef',
+		'',
 		' ',
 		39118,
 		39118,
@@ -66,7 +67,8 @@ lives_ok{
 			$parser =	Spreadsheet::XLSX::Reader::LibXML->new(
 							log_space => 'Test',
 							file_name => $test_file,
-							group_return_type	=> 'unformatted',
+							group_return_type => 'unformatted',
+							empty_return_type => 'empty_string',
 						);
 }										"Prep a test parser instance";
 is			$parser->error(), undef,	"Write any error messages from the file load";
@@ -74,7 +76,7 @@ ok			$worksheet = $parser->worksheet( 'Sheet1' ),
 										"Load 'Sheet1' ok";
 			$value_position = 0;
 			while( !$value or $value ne 'EOF' ){
-###LogSD	if( $value_position == 0 ){
+###LogSD	if( $value_position == 4 ){
 ###LogSD		$operator->add_name_space_bounds( {
 ###LogSD			main =>{
 ###LogSD				UNBLOCK =>{
@@ -88,9 +90,9 @@ ok			$worksheet = $parser->worksheet( 'Sheet1' ),
 ###LogSD			},
 ###LogSD		} );
 ###LogSD	}
-#~ ###LogSD	elsif( $value_position == 1 ){
-#~ ###LogSD		exit 1;
-#~ ###LogSD	}
+###LogSD	elsif( $value_position == 5 ){
+###LogSD		exit 1;
+###LogSD	}
 is			$value = ($worksheet->get_next_value//'undef'), $answer_ref->[$value_position],
 										"Get the next value position -$value_position- with answer: " . $answer_ref->[$value_position];
 			$value_position++;

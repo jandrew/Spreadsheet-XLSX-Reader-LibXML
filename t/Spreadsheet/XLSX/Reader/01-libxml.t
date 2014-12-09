@@ -19,7 +19,7 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 115;
+use	Test::Most tests => 118;
 use	Test::Moose;
 use	lib	'../../../../../Log-Shiras/lib',
 		$lib,
@@ -66,7 +66,7 @@ my	$answer_ref = [
 		[undef,'42',,undef,undef,undef,undef,],
 		[undef,undef,undef,undef,'2/6/2011','6-Feb-11',],
 		['2.13',undef,undef,undef,undef,undef,],
-		[undef,undef,undef,'6-Feb-11',undef,undef,],
+		[undef,'',undef,'6-Feb-11',undef,undef,],
 		[undef,undef,undef,undef,undef,undef,],
 		[undef,undef,' ','39118','6-Feb-11',undef,],
 		'EOF',
@@ -76,7 +76,7 @@ my 			@class_attributes = qw(
 				file_modified_by			file_date_created			file_date_modified
 				sheet_parser				count_from_zero				file_boundary_flags
 				empty_is_end				from_the_edge				default_format_list
-				format_string_parser		group_return_type
+				format_string_parser		group_return_type			empty_return_type
 			);
 my  		@class_methods = qw(
 				new							parse						worksheet
@@ -91,7 +91,8 @@ my  		@class_methods = qw(
 				set_format_string_parser	get_format_string_parser	get_group_return_type
 				set_group_return_type		get_epoch_year				get_shared_string_position
 				get_format_position			get_worksheet_names			number_of_sheets
-				start_at_the_beginning		in_the_list
+				start_at_the_beginning		in_the_list					get_empty_return_type
+				set_empty_return_type
 			);
 ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space => 'main', );
 ###LogSD		$phone->talk( level => 'inf	o', message => [ "easy questions ..." ] );
@@ -116,6 +117,7 @@ lives_ok{
 							log_space			=> 'Test',
 							error_inst			=> $error_instance,
 							group_return_type	=> 'value',
+							empty_return_type	=> 'undef_string',
 						);
 }										"Prep a test parser instance";
 ###LogSD	$phone->talk( level => 'info', message => [ "parser only loaded" ] );

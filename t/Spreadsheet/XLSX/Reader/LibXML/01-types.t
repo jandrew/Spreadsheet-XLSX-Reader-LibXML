@@ -64,7 +64,7 @@ my			$question_ref =[
 				[ $xlsx_file, $xml_file, 'badfile.not', ],# FileName	
 				[ $xlsx_file, $xml_file,],# XLSXFile
 				[ $xml_file, $xlsx_file,],#~ XMLFile
-				[ 'dom', 'reader' , 'badfile.not' ],#~ ParserType
+				[ 'reader', 'dom', 'badfile.not' ],#~ ParserType
 				[ 1900, 1904, 2000 ],#~ EpochYear
 				[ 'A1', 'CCC10000', 'A0' ],#~ CellID
 				[ 1, 2, 0.1234, -3 ], #~ PositiveNum
@@ -78,7 +78,7 @@ my			$answer_ref = [
 				[undef, undef, 'Could not find / read the file: badfile.not', ],
 				[undef, 'The string -badfile.not- does not have an xlsx file extension', ],
 				[undef, 'The string -badfile.not- does not have an xml file extension', ],
-				[undef, undef, 'The string -badfile.not- does not match ', ],
+				[undef, 'The string -dom- does not match ', 'The string -badfile.not- does not match ', ],
 				[undef, undef, '2000 is not an excel epoch', ],
 				[undef, undef, '0 is not a cell ID', ],
 				[undef, undef, undef, '\-3 is not a positive number', ],

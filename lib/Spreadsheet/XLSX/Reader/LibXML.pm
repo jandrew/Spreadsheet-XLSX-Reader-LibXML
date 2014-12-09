@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML;
-use version 0.77; our $VERSION = qv('v0.22.2');
+use version 0.77; our $VERSION = qv('v0.24.2');
 
 use 5.010;
 use	List::Util 1.33;
@@ -164,6 +164,13 @@ has group_return_type =>(
 		reader	=> 'get_group_return_type',
 		writer	=> 'set_group_return_type',
 		default	=> 'instance',
+	);
+
+has empty_return_type =>(
+		isa		=> Enum[qw( empty_string undef_string )],
+		reader	=> 'get_empty_return_type',
+		writer	=> 'set_empty_return_type',
+		default	=> 'empty_string',
 	);
 
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
@@ -444,8 +451,7 @@ sub _build_file{
 						);
 		return undef if !$result;
 	}else{
-		$self->_set_error( "No definitions for the sheet parser type: " .
-								$self->get_parser_type );
+		confess 'This package still under development - parser type |' . $self->get_parser_type . '| not yet supported - try the "reader" parser';
 		return undef;
 	}
 	return $self;
@@ -675,9 +681,10 @@ sub DEMOLISH{
 			$self->_clear_shared_strings;
 			$instance = undef;
 		}
-	}else{
-		confess "No shared strings instance found";
 	}
+	#~ else{
+		#~ confess "No shared strings instance found";
+	#~ }
 	if( $self->_has_styles_file ){
 		my $instance = $self->_get_styles_instance;
 		#~ print "closing styles.xml\n" . Dumper( $instance );
@@ -689,9 +696,10 @@ sub DEMOLISH{
 			$self->_clear_shared_strings;
 			$instance = undef;
 		}
-	}else{
-		confess "No styles instance found";
 	}
+	#~ else{
+		#~ confess "No styles instance found";
+	#~ }
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		"Clearing the Temporary Directory" ] );
 	$self->_clear_temp_dir;
@@ -1533,6 +1541,45 @@ B<Definition:> a way to check the current attribute setting
 =back
 
 B<set_group_return_type>
+
+=over
+
+B<Definition:> a way to set the current attribute setting
+
+=back
+
+=back
+
+=back
+
+=head3 empty_return_type
+
+=over
+
+B<Definition:> Traditionally L<Spreadsheet::ParseExcel> returns an empty string for cells 
+with unique formatting but no stored value.  It may be that the more accurate way of returning 
+undef works better for you.  This will turn that behaviour on.  L<If Excel stores an empty 
+string having this attribute set to 'undef_string' will still return the empty string!>
+
+B<Default> empty_string
+
+B<Range>
+	empty_string = populates the unformatted value with '' even if it is set to undef
+	undef_string = if excel stores undef for an unformatted value it will return undef
+
+B<attribute methods> Methods provided to adjust this attribute
+		
+=over
+
+B<get_empty_return_type>
+
+=over
+
+B<Definition:> a way to check the current attribute setting
+
+=back
+
+B<set_empty_return_type>
 
 =over
 

@@ -58,7 +58,7 @@ my	$string_type = Type::Tiny->new(
 			],
 		),
 );
- 
+
 for my $worksheet ( $workbook->worksheets() ) {
 	
 	print $worksheet->get_name . "\n";# Not in the SYNOPSIS ( ParseExcel uses get_name )

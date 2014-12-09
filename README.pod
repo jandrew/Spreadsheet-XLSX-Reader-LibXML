@@ -837,6 +837,45 @@ B<Definition:> a way to set the current attribute setting
 
 =back
 
+=head3 empty_return_type
+
+=over
+
+B<Definition:> Traditionally L<Spreadsheet::ParseExcel> returns an empty string for cells 
+with unique formatting but no stored value.  It may be that the more accurate way of returning 
+undef works better for you.  This will turn that behaviour on.  L<If Excel stores an empty 
+string having this attribute set to 'undef_string' will still return the empty string!>
+
+B<Default> empty_string
+
+B<Range>
+	empty_string = populates the unformatted value with '' even if it is set to undef
+	undef_string = if excel stores undef for an unformatted value it will return undef
+
+B<attribute methods> Methods provided to adjust this attribute
+		
+=over
+
+B<get_empty_return_type>
+
+=over
+
+B<Definition:> a way to check the current attribute setting
+
+=back
+
+B<set_empty_return_type>
+
+=over
+
+B<Definition:> a way to set the current attribute setting
+
+=back
+
+=back
+
+=back
+
 =head1 BUILD / INSTALL from Source
 
 B<1.> Ensure that you have the libxml2 B<and libxml2-devel> libraries installed using 

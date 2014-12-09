@@ -1,6 +1,6 @@
 #########1 Test File for Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData #####9
 #!env perl
-my ( $lib, $test_file );
+my ( $lib, $test_file, $test_fil2 );
 BEGIN{
 	$ENV{PERL_TYPE_TINY_XS} = 0;
 	my	$start_deeper = 1;
@@ -19,14 +19,16 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 24;
+use	Test::Most tests => 28;
 use	Test::Moose;
 use	MooseX::ShortCut::BuildInstance qw( build_instance );
+#~ use Data::Dumper;
 use	lib
 		'../../../../../../../Log-Shiras/lib',
 		$lib,
 	;
 #~ use Log::Shiras::Switchboard qw( :debug );#
+###LogSD	use Data::Dumper;
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(#
 ###LogSD						name_space_bounds =>{
 ###LogSD							UNBLOCK =>{
@@ -43,7 +45,9 @@ use	Spreadsheet::XLSX::Reader::LibXML::XMLReader;
 use	Spreadsheet::XLSX::Reader::LibXML::Error;
 use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData;
 $test_file = ( @ARGV ) ? $ARGV[0] : $test_file;
+$test_fil2 = $test_file . 'worksheets/sheet3_test.xml';
 $test_file .= 'sharedStrings.xml';
+#~ print "$lib\n$test_file\n$test_fil2\n";
 my  ( 
 			$test_instance, $capture, $x, @answer, $error_instance,
 	);
@@ -76,44 +80,57 @@ my  		@instance_methods = qw(
 			);
 my			$answer_ref = [
 				{
-		          'list' => [
-		                      {
-		                        't' => {
-		                               'raw_text' => 'He'
-		                             }
-		                      },
-		                      {
-		                        'rPr' => {
-		                                 'color' => {
-		                                            'rgb' => 'FFFF0000'
-		                                          },
-		                                 'sz' => '11',
-		                                 'b' => 1,
-		                                 'scheme' => 'minor',
-		                                 'rFont' => 'Calibri',
-		                                 'family' => '2'
-		                               },
-		                        't' => {
-		                               'raw_text' => 'llo '
-		                             }
-		                      },
-		                      {
-		                        'rPr' => {
-		                                 'color' => {
-		                                            'rgb' => 'FF0070C0'
-		                                          },
-		                                 'sz' => '20',
-		                                 'b' => 1,
-		                                 'scheme' => 'minor',
-		                                 'rFont' => 'Calibri',
-		                                 'family' => '2'
-		                               },
-		                        't' => {
-		                               'raw_text' => 'World'
-		                             }
-		                      }
-		                    ]
+					'list' => [
+						{
+							't' => {
+								'raw_text' => 'He'
+							}
+						},
+						{
+							'rPr' => {
+								'color' => {
+									'rgb' => 'FFFF0000'
+								},
+								'sz' => '11',
+								'b' => 1,
+								'scheme' => 'minor',
+								'rFont' => 'Calibri',
+								'family' => '2'
+							},
+							't' => {
+								'raw_text' => 'llo '
+							}
+						},
+						{
+							'rPr' => {
+								'color' => {
+									'rgb' => 'FF0070C0'
+								},
+								'sz' => '20',
+								'b' => 1,
+								'scheme' => 'minor',
+								'rFont' => 'Calibri',
+								'family' => '2'
+							},
+							't' => {
+								'raw_text' => 'World'
+							}
+						}
+					]
 		        },
+				{
+					'r' => 'A11',
+					'v' => {
+						'raw_text' => '1'
+					},
+					's' => '8'
+				},
+				{
+					'r' => 'B12',
+					'v' => {
+						'raw_text' => ''
+					}
+		        }
 			];
 ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space => 'main', );
 ###LogSD		$phone->talk( level => 'info', message => [ "easy questions ..." ] );
@@ -141,8 +158,28 @@ can_ok		$test_instance, $_,
 
 ###LogSD		$phone->talk( level => 'info', message => [ "hardest questions ..." ] );
 			map{ $test_instance->next_element( 'si' ) }( 0..15 );
+			#~ print Dumper( $test_instance->parse_element );
 is_deeply	$test_instance->parse_element, $answer_ref->[0],
 										"Check that the output matches expectations.";
+lives_ok{
+			$test_instance =	TestIntance->new(
+									file_name	=> $test_fil2,
+									log_space	=> 'Test',
+									error_inst	=> Spreadsheet::XLSX::Reader::LibXML::Error->new(
+										#~ should_warn => 1,
+										should_warn => 0,# to turn off cluck when the error is set
+									),
+								);
+}										"Prep another TestIntance to test XMLToPerlData";
+			map{ $test_instance->next_element( 'c' ) }( 0..12 );
+			#~ print Dumper( $test_instance->parse_element );
+			#~ exit 1;
+is_deeply	$test_instance->parse_element, $answer_ref->[1],
+										"Check that the next output matches expectations.";
+ok			$test_instance->next_element( 'c' ),
+										"Advance to the next cell";
+is_deeply	$test_instance->parse_element, $answer_ref->[2],
+										"Check that the next output matches expectations.";
 explain 								"...Test Done";
 done_testing();
 

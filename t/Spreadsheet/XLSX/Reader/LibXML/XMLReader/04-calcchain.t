@@ -19,7 +19,7 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 17;
+use	Test::Most tests => 18;
 use	Test::Moose;
 use	MooseX::ShortCut::BuildInstance qw( build_instance );
 use	lib
@@ -62,8 +62,11 @@ my  		@instance_methods = qw(
 			);
 my			$answer_ref = [
 				{
-		          r => 'D12',
+		          r => 'B12',
 		          i => '1'
+		        },
+				{
+		          r => 'D12',
 		        },
 				{
 		          r => 'D14',

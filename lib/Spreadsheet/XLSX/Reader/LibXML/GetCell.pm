@@ -1,17 +1,18 @@
 package Spreadsheet::XLSX::Reader::LibXML::GetCell;
-use version; our $VERSION = qv('v0.22.2');
+use version; our $VERSION = qv('v0.24.2');
 
 use	Moose::Role;
 requires qw(
 	get_log_space				set_error					min_row
 	max_row						min_col						max_col
-	row_range					col_range					_get_next_value_cell
-	_get_next_cell				_get_col_row				_get_row_all
-	_get_error_inst				counting_from_zero			boundary_flag_setting
-	_has_shared_strings_file	get_shared_string_position	_has_styles_file
-	get_format_position			change_output_encoding		get_group_return_type
-	set_group_return_type
+	row_range					col_range
 );
+	#~ _get_next_value_cell
+	#~ _get_next_cell				_get_col_row				_get_row_all
+	#~ _get_error_inst				counting_from_zero			boundary_flag_setting
+	#~ _has_shared_strings_file	get_shared_string_position	_has_styles_file
+	#~ get_format_position			change_output_encoding		get_group_return_type
+	#~ set_group_return_type		get_empty_return_type
 use Types::Standard qw(
 	Bool 						HasMethods					Enum
 	Int							is_Int						ArrayRef
@@ -69,6 +70,32 @@ has custom_formats =>(
 		writer	=> 'set_custom_formats',
 		default => sub{ {} },
 		clearer	=> '_clear_custom_formats',
+	);
+
+has workbook_instance =>(
+		isa		=> HasMethods[qw(
+						counting_from_zero			boundary_flag_setting
+						change_boundary_flag		_has_shared_strings_file
+						get_shared_string_position	_has_styles_file
+						get_format_position			set_empty_is_end
+						is_empty_the_end			_starts_at_the_edge
+						get_group_return_type		set_group_return_type
+						get_epoch_year				change_output_encoding
+						get_date_behavior			set_date_behavior
+						get_empty_return_type
+					)],
+		handles	=> [qw(
+						counting_from_zero			boundary_flag_setting
+						change_boundary_flag		_has_shared_strings_file
+						get_shared_string_position	_has_styles_file
+						get_format_position			set_empty_is_end
+						is_empty_the_end			_starts_at_the_edge
+						get_group_return_type		set_group_return_type
+						get_epoch_year				change_output_encoding
+						get_date_behavior			set_date_behavior
+						get_empty_return_type
+					)],
+		required => 1,
 	);
 
 
@@ -351,8 +378,12 @@ sub _build_out_the_cell{
 			delete $result->{rich_text} if !$result->{rich_text};
 		}else{
 			$result->{cell_unformatted} = $result->{v}->{raw_text};
-			$result->{cell_type} = 'Numeric' if $result->{cell_unformatted};
+			$result->{cell_type} = 'Numeric' if $result->{cell_unformatted} and $result->{cell_unformatted} ne '';
 			delete $result->{v};
+		}
+		if( !$result->{cell_unformatted} and $self->get_empty_return_type eq 'empty_string' ){
+			###LogSD	$phone->talk( level => 'debug', message =>[ "(Re)setting undef to ''"] );
+			$result->{cell_unformatted} = '';
 		}
 		###LogSD	$phone->talk( level => 'debug', message =>[
 		###LogSD		"Cell raw text is:", $result->{cell_unformatted}] );
@@ -386,6 +417,7 @@ sub _build_out_the_cell{
 				return $custom_format->assert_coerce( $reformatted );
 			}
 		}
+		# handle the formula
 		if( exists $result->{f} ){
 			$result->{cell_formula} = $result->{f}->{raw_text};
 			delete $result->{f};
@@ -393,9 +425,12 @@ sub _build_out_the_cell{
 		
 		if( exists $result->{s} ){
 			my $header = ($self->get_group_return_type eq 'value') ? 'numFmts' : undef;
-			my $format = $self->get_format_position( $result->{s}, $header );#############  Change here when allow a list rather than a string filter
-			###LogSD	$phone->talk( level => 'trace', message =>[
-			###LogSD		"format position is:", $format ] );
+			my $format;
+			if( $self->_has_styles_file ){
+				$format = $self->get_format_position( $result->{s}, $header );#############  Change here when allow a list rather than a string filter
+				###LogSD	$phone->talk( level => 'trace', message =>[
+				###LogSD		"format position is:", $format ] );
+			}
 			if( $self->get_group_return_type eq 'value' ){
 				###LogSD	$phone->talk( level => 'trace', message =>[
 				###LogSD		"Attempting to just return the cell value with:",
@@ -406,21 +441,22 @@ sub _build_out_the_cell{
 					return $result->{cell_unformatted};
 				}
 			}
-			
-			for my $header ( keys %$format_headers ){
-				if( exists $format->{$header} ){
-					###LogSD	$phone->talk( level => 'trace', message =>[
-					###LogSD		"Transferring styles header -$header- to cell attribute: $format_headers->{$header}", ] );
-					if( $header eq 'numFmts' ){
-						$result->{cell_coercion} = $format->{$header};
-						if(	$result->{cell_type} eq 'Numeric' and
-							$format->{$header}->name =~ /date/i ){
-							###LogSD	$phone->talk( level => 'trace', message =>[
-							###LogSD		"Found a -Date- cell", ] );
-							$result->{cell_type} = 'Date';
+			if( $self->_has_styles_file ){
+				for my $header ( keys %$format_headers ){
+					if( exists $format->{$header} ){
+						###LogSD	$phone->talk( level => 'trace', message =>[
+						###LogSD		"Transferring styles header -$header- to cell attribute: $format_headers->{$header}", ] );
+						if( $header eq 'numFmts' ){
+							$result->{cell_coercion} = $format->{$header};
+							if(	$result->{cell_type} eq 'Numeric' and
+								$format->{$header}->name =~ /date/i ){
+								###LogSD	$phone->talk( level => 'trace', message =>[
+								###LogSD		"Found a -Date- cell", ] );
+								$result->{cell_type} = 'Date';
+							}
+						}else{
+							$result->{$format_headers->{$header}} = $format->{$header};
 						}
-					}else{
-						$result->{$format_headers->{$header}} = $format->{$header};
 					}
 				}
 			}
@@ -463,7 +499,7 @@ sub _build_out_the_cell{
 		$result->{unformatted_converter} = sub{ 
 			my	$string = $_[0];
 			###LogSD	$phone->talk( level => 'debug', message =>[
-			###LogSD		"Sending stuff to converter: $string", @_ ] );
+			###LogSD		"Sending stuff to converter:", @_ ] );
 			$self->change_output_encoding( $string ) 
 		};
 		###LogSD	$phone->talk( level => 'debug', message =>[

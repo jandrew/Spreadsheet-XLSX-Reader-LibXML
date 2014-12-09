@@ -19,7 +19,7 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 729;
+use	Test::Most tests => 750;
 use	Test::Moose;
 use	DateTime::Format::Flexible;
 use	DateTimeX::Format::Excel;
@@ -35,6 +35,13 @@ use	lib
 	;
 #~ use Log::Shiras::Switchboard qw( :debug );
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(#
+###LogSD						name_space_bounds =>{
+###LogSD							main =>{
+###LogSD								UNBLOCK =>{
+###LogSD									log_file => 'debug',
+###LogSD								},
+###LogSD							},
+###LogSD						},
 ###LogSD						reports =>{
 ###LogSD							log_file =>[ Print::Log->new ],
 ###LogSD						},
@@ -101,7 +108,8 @@ my			$answer_list =[
 				{ cell_id => 'E10', row => 9, col => 4, type => 'Custom', unformatted => '2/6/2011', value => '2011-02-06T00:00:00', coercion_name => 'Custom_date_type' },
 				{ cell_id => 'F10', row => 9, col => 5, type => 'Custom', unformatted => '2/6/2011', value => '2011-02-06', coercion_name => 'YYYYMMDD' },
 				{ cell_id => 'A11', row => 10, col => 0, type => 'Numeric', unformatted => '2.1345678901', value => '2.13', coercion_name => 'Excel_number_2' },{},{},{},{},{},
-				{},{},{},{ cell_id => 'D12', row => 11, col => 3, type => 'Date', unformatted => '39118', value => '6-Feb-11', coercion_name => 'Excel_date_164', merge_range => 'D12:E12' },
+				{},{ cell_id => 'B12', row => 11, col => 1, type => 'Text', unformatted => '', value => '', formula => 'IF(B11&gt;0,"Hello","")', },
+				{},{ cell_id => 'D12', row => 11, col => 3, type => 'Date', unformatted => '39118', value => '6-Feb-11', coercion_name => 'Excel_date_164', merge_range => 'D12:E12' },
 				{ cell_id => 'E12', row => 11, col => 4, type => 'Text', unformatted => undef, value => undef, coercion_name => 'Excel_date_164', merge_range => 'D12:E12' },{},
 				{},{},{},{},{},{},
 				{},{},{ cell_id => 'C14', row => 13, col => 2, type => 'Text', unformatted => ' ', value => ' ', has_coercion => '', },
@@ -127,6 +135,7 @@ my			$answer_list =[
 				{ cell_id => 'E10', row => 9, col => 4, type => 'Custom', unformatted => '2/6/2011', value => '2011-02-06T00:00:00', coercion_name => 'Custom_date_type' },
 				{ cell_id => 'F10', row => 9, col => 5, type => 'Custom', unformatted => '2/6/2011', value => '2011-02-06', coercion_name => 'YYYYMMDD' },
 				{ cell_id => 'A11', row => 10, col => 0, type => 'Numeric', unformatted => '2.1345678901', value => '2.13', coercion_name => 'Excel_number_2' },
+				{ cell_id => 'B12', row => 11, col => 1, type => 'Text', unformatted => '', value => '', formula => 'IF(B11&gt;0,"Hello","")', },
 				{ cell_id => 'D12', row => 11, col => 3, type => 'Date', unformatted => '39118', value => '6-Feb-11', coercion_name => 'Excel_date_164', merge_range => 'D12:E12' },
 				{ cell_id => 'E12', row => 11, col => 4, type => 'Text', unformatted => undef, value => undef, coercion_name => 'Excel_date_164', merge_range => 'D12:E12' },
 				{ cell_id => 'C14', row => 13, col => 2, type => 'Text', unformatted => ' ', value => ' ', has_coercion => '', },
@@ -178,7 +187,8 @@ my			$answer_list =[
 					{ cell_id => 'A11', row => 10, col => 0, type => 'Numeric', unformatted => '2.1345678901', value => '2.13', coercion_name => 'Excel_number_2' },{},{},{},{},{},
 				],
 				[
-					{},{},{},{ cell_id => 'D12', row => 11, col => 3, type => 'Date', unformatted => '39118', value => '6-Feb-11', coercion_name => 'Excel_date_164', merge_range => 'D12:E12' },
+					{},{ cell_id => 'B12', row => 11, col => 1, type => 'Text', unformatted => '', value => '', formula => 'IF(B11&gt;0,"Hello","")', },
+					{},{ cell_id => 'D12', row => 11, col => 3, type => 'Date', unformatted => '39118', value => '6-Feb-11', coercion_name => 'Excel_date_164', merge_range => 'D12:E12' },
 					{ cell_id => 'E12', row => 11, col => 4, type => 'Text', unformatted => undef, value => undef, coercion_name => 'Excel_date_164', merge_range => 'D12:E12' },{},
 				],
 				[
@@ -201,7 +211,7 @@ my			$answer_list =[
 				[undef,'42',,undef,undef,undef,undef,],
 				[undef,undef,undef,undef,'2/6/2011','2/6/2011',],
 				['2.1345678901',undef,undef,undef,undef,undef,],
-				[undef,undef,undef,'39118',undef,undef,],
+				[undef,'',undef,'39118',undef,undef,],
 				[undef,undef,undef,undef,undef,undef,],
 				[undef,undef,' ','39118','39118',undef,],
 				'EOF',
@@ -326,6 +336,12 @@ lives_ok{
 												writer	=> 'set_date_behavior',
 												default	=> 0,
 											},
+											empty_return_type =>{
+												isa		=> Enum[qw( empty_string undef_string )],
+												reader	=> 'get_empty_return_type',
+												writer	=> 'set_empty_return_type',
+												default	=> 'undef_string',
+											},
 										},
 										styles_instance => $styles_instance,
 										shared_strings_instance => $shared_strings_instance,
@@ -364,21 +380,21 @@ explain									"Test get_cell";
 			INITIALRUN: for my $row ( $row_min .. ($row_max + 1) ) {
             for my $col ( $col_min .. $col_max ) {
 
-###LogSD	if( $row == 1 and $col == 0 ){
-###LogSD		$operator->add_name_space_bounds( {
-###LogSD			main =>{
-###LogSD				UNBLOCK =>{
-###LogSD					log_file => 'debug',
-###LogSD				},
-###LogSD			},
-#~ ###LogSD			Test =>{
-###LogSD				UNBLOCK =>{
-###LogSD					log_file => 'trace',
-###LogSD				},
+#~ ###LogSD	if( $row == 11 and $col == 1 ){
+#~ ###LogSD		$operator->add_name_space_bounds( {
+#~ ###LogSD			main =>{
+#~ ###LogSD				UNBLOCK =>{
+#~ ###LogSD					log_file => 'debug',
+#~ ###LogSD				},
 #~ ###LogSD			},
-###LogSD		} );
-###LogSD	}
-#~ ###LogSD	elsif( $row == 5 and $col == 1 ){
+#~ ###LogSD			Test =>{
+#~ ###LogSD				UNBLOCK =>{
+#~ ###LogSD					log_file => 'trace',
+#~ ###LogSD				},
+#~ ###LogSD			},
+#~ ###LogSD		} );
+#~ ###LogSD	}
+#~ ###LogSD	elsif( $row == 11 and $col == 2 ){
 #~ ###LogSD		exit 1;
 #~ ###LogSD	}
 
@@ -413,7 +429,7 @@ is			$test_instance->get_cell( 14, 0 ), undef,
 explain									"Test get_next_value";
 			$cell = undef;
 			$x = 0;
-			VALUERUN: while( $x < 103 and (!$cell or ref $cell eq 'Spreadsheet::XLSX::Reader::LibXML::Cell' ) ){
+			VALUERUN: while( $x < 105 and (!$cell or ref $cell eq 'Spreadsheet::XLSX::Reader::LibXML::Cell' ) ){
 				my $position = $x + 85;
 
 #~ ###LogSD	if( $position == 85 ){
@@ -450,8 +466,8 @@ is_deeply	$cell->$key, $answer_list->[$position]->{$key},
 explain									"Test fetchrow_arrayref";
 			$row_ref = undef;
 			$x = 0;
-			$offset = 104;
-			ROWREFRUN: while( $x < 119 and ( !$row_ref or ref $row_ref eq 'ARRAY' ) ){
+			$offset = 105;
+			ROWREFRUN: while( $x < 120 and ( !$row_ref or ref $row_ref eq 'ARRAY' ) ){
 				my $position = $x + $offset;
 
 #~ ###LogSD	if( $x == 1 ){
@@ -514,8 +530,8 @@ ok			$test_instance->change_boundary_flag( 1 ),
 ok			$workbook_instance->set_group_return_type( 'unformatted' ),
 										"Return just the cell coerced values rather than a Cell instance";
 			$x = 0;
-			$offset = 119;
-			ROWARRAYRUN: while( $x < 134 and ( !$row_ref or !$row_ref->[0] or $row_ref->[0] ne 'EOF' ) ){
+			$offset = 120;
+			ROWARRAYRUN: while( $x < 136 and ( !$row_ref or !$row_ref->[0] or $row_ref->[0] ne 'EOF' ) ){
 				my $position = $x + $offset;
 
 #~ ###LogSD	if( $x == 1 ){
@@ -581,14 +597,14 @@ is 			$test_instance->fetchrow_hashref( 1 ), undef,
 										"Check that a fetchrow_hashref call returns undef without a set header";
 is			$test_instance->error, "Headers must be set prior to calling fetchrow_hashref",
 										"..and check for the correct error message";
-is_deeply	$test_instance->set_headers( 1 ), $answer_list->[134],
+is_deeply	$test_instance->set_headers( 1 ), $answer_list->[135],
 										"Set the headers for building a hashref";
 ok			$test_instance->set_max_header_col( 3 ),,
 										"Set the maximum header column";
 			$row_ref = undef;
 			$x = 0;
-			$offset = 135;
-			HASHREFRUN: while( $x < 140 and ( !$row_ref or ref $row_ref eq 'HASH' ) ){
+			$offset = 136;
+			HASHREFRUN: while( $x < 141 and ( !$row_ref or ref $row_ref eq 'HASH' ) ){
 				my $position = $x + $offset;
 
 ###LogSD	if( $x == 0 ){

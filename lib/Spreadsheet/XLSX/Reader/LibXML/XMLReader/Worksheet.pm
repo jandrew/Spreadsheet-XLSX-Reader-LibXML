@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet;
-use version; our $VERSION = qv('v0.22.2');
+use version; our $VERSION = qv('v0.24.2');
 
 
 use	5.010;
@@ -16,7 +16,9 @@ use lib	'../../../../../../lib';
 extends	'Spreadsheet::XLSX::Reader::LibXML::XMLReader';
 with	'Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow',
 		'Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData',
-		;# See row 69 for an additional Role
+		;
+###LogSD	use Log::Shiras::UnhideDebug;
+with	'Spreadsheet::XLSX::Reader::LibXML::GetCell';
 
 #########1 Dispatch Tables & Package Variables    5#########6#########7#########8#########9
 
@@ -47,31 +49,29 @@ has sheet_name =>(
 		reader	=> 'get_name',
 	);
 
-has workbook_instance =>(
-		isa		=> HasMethods[qw(
-						counting_from_zero			boundary_flag_setting
-						change_boundary_flag		_has_shared_strings_file
-						get_shared_string_position	_has_styles_file
-						get_format_position			set_empty_is_end
-						is_empty_the_end			_starts_at_the_edge
-						get_group_return_type		set_group_return_type
-						get_epoch_year				change_output_encoding
-						get_date_behavior			set_date_behavior
-					)],
-		handles	=> [qw(
-						counting_from_zero			boundary_flag_setting
-						change_boundary_flag		_has_shared_strings_file
-						get_shared_string_position	_has_styles_file
-						get_format_position			set_empty_is_end
-						is_empty_the_end			_starts_at_the_edge
-						get_group_return_type		set_group_return_type
-						get_epoch_year				change_output_encoding
-						get_date_behavior			set_date_behavior
-					)],
-		required => 1,
-	);
-###LogSD	use Log::Shiras::UnhideDebug;
-with 'Spreadsheet::XLSX::Reader::LibXML::GetCell';
+#~ has workbook_instance =>(
+		#~ isa		=> HasMethods[qw(
+						#~ counting_from_zero			boundary_flag_setting
+						#~ change_boundary_flag		_has_shared_strings_file
+						#~ get_shared_string_position	_has_styles_file
+						#~ get_format_position			set_empty_is_end
+						#~ is_empty_the_end			_starts_at_the_edge
+						#~ get_group_return_type		set_group_return_type
+						#~ get_epoch_year				change_output_encoding
+						#~ get_date_behavior			set_date_behavior
+					#~ )],
+		#~ handles	=> [qw(
+						#~ counting_from_zero			boundary_flag_setting
+						#~ change_boundary_flag		_has_shared_strings_file
+						#~ get_shared_string_position	_has_styles_file
+						#~ get_format_position			set_empty_is_end
+						#~ is_empty_the_end			_starts_at_the_edge
+						#~ get_group_return_type		set_group_return_type
+						#~ get_epoch_year				change_output_encoding
+						#~ get_date_behavior			set_date_behavior
+					#~ )],
+		#~ required => 1,
+	#~ );
 
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
 

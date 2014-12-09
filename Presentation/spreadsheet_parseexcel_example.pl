@@ -1,16 +1,16 @@
 #!/usr/bin/env perl
- 
+
 use strict;
 use warnings;
 use Spreadsheet::ParseExcel;
- 
+
 my $parser   = Spreadsheet::ParseExcel->new();
 my $workbook = $parser->parse( '../t/test_files/TestBook.xls' );
- 
-if ( !defined $workbook ) {
+
+if ( !defined $workbook ){
     die $parser->error(), ".\n";
 }
- 
+
 for my $worksheet ( $workbook->worksheets() ) {
 	
 	print $worksheet->get_name . "\n";# Not in the SYNOPSIS
