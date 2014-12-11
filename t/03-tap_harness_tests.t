@@ -28,6 +28,7 @@ my	$args ={
 			cell_to_column_row_test		=>[],
 			default_format_test			=>[],
 			excel_format_string_test	=>[],
+			temp_dir_bug				=>[ $dir . 'test_files/' ],
 			open_by_worksheet_bug		=>[ $dir . 'test_files/' ],
 			workbook_test				=>[ $dir . 'test_files/' ],
 			types_test					=>[ $dir . 'test_files/' ],
@@ -59,6 +60,7 @@ my	@tests =(
 		[  $dir . $tests . 'LibXML/XMLReader/05-styles.t', 'styles_sheet_test' ],
 		[  $dir . $tests . 'LibXML/09-cell.t', 'cell_test' ],
 		[  $dir . $tests . 'LibXML/10-get_cell.t', 'get_cell_test' ],
+		[  $dir . $tests . '03-temp_dir_bug.t', 'temp_dir_bug' ],
 		[  $dir . $tests . '02-open_by_worksheet_bug.t', 'open_by_worksheet_bug' ],
 		[  $dir . $tests . '01-libxml.t', 'workbook_test' ],
 	);

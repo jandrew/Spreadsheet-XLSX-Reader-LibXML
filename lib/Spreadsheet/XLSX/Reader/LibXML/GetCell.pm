@@ -7,12 +7,6 @@ requires qw(
 	max_row						min_col						max_col
 	row_range					col_range
 );
-	#~ _get_next_value_cell
-	#~ _get_next_cell				_get_col_row				_get_row_all
-	#~ _get_error_inst				counting_from_zero			boundary_flag_setting
-	#~ _has_shared_strings_file	get_shared_string_position	_has_styles_file
-	#~ get_format_position			change_output_encoding		get_group_return_type
-	#~ set_group_return_type		get_empty_return_type
 use Types::Standard qw(
 	Bool 						HasMethods					Enum
 	Int							is_Int						ArrayRef

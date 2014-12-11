@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader;
-use version; our $VERSION = qv('v0.24.2');
+use version; our $VERSION = qv('v0.26.2');
 
 use 5.010;
 use Moose;
@@ -184,11 +184,24 @@ sub DEMOLISH{
 	###LogSD					name_space 	=> $self->get_log_space .  '::XMLReader::DEMOLISH', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			"clearing the reader for file_name:" . $self->get_file_name, ] );
-	$self->_clear_xml_parser;
-	if( $self->_has_file_handle ){
-		#~ print "closing handle for file: " . $self->get_file_name . "\n";
+	if( $self->_get_xml_parser ){
+		#~ print "Disconnecting the sheet from the parser\n";
+		###LogSD	$phone->talk( level => 'debug', message =>[ "Closing the sheet", $self->dump ] );
+		$self->_go_to_the_end;
+		$self->_close_the_sheet;
+	}
+	if( $self->_get_xml_parser ){
+		#~ print "Closing the parser\n";
+		###LogSD	$phone->talk( level => 'debug', message =>[ "Closing the xml parser", $self->dump ] );
+		$self->_clear_xml_parser;
+	}
+	if( $self->_get_file_handle ){
+		#~ print "Clearing file handle for: " . $self->get_file_name . "\n";
+		###LogSD	$phone->talk( level => 'debug', message =>[ "Closing the system file handle", $self->dump(2) ] );
 		close $self->_get_file_handle;
+		###LogSD	$phone->talk( level => 'debug', message =>[ "Clearing the system file handle", $self->dump(2) ] );
 		$self->_clear_file_handle;
+		###LogSD	$phone->talk( level => 'debug', message =>[ "Final self", $self->dump(2) ] );
 	}
 }
 

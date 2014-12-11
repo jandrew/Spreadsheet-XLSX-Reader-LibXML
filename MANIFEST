@@ -28,6 +28,7 @@ lib/Spreadsheet/XLSX/Reader/LibXML/XMLReader/Worksheet.pm
 lib/Spreadsheet/XLSX/Reader/LibXML/XMLReader/XMLToPerlData.pm
 t/Spreadsheet/XLSX/Reader/01-libxml.t
 t/Spreadsheet/XLSX/Reader/02-open_by_worksheet_bug.t
+t/Spreadsheet/XLSX/Reader/03-temp_dir_bug.t
 t/Spreadsheet/XLSX/Reader/LibXML/01-types.t
 t/Spreadsheet/XLSX/Reader/LibXML/02-error.t
 t/Spreadsheet/XLSX/Reader/LibXML/03-log_space.t

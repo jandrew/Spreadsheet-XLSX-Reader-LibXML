@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::Types;
-use version; our $VERSION = qv('v0.24.2');
+use version; our $VERSION = qv('v0.26.2');
 		
 use strict;
 use warnings;
@@ -14,6 +14,7 @@ use Type::Library 0.046
 						
 	);
 BEGIN{ extends "Types::Standard" };
+#~ use Types::Standard  qw( Str InstanceOf Enum Num Any Maybe StrMatch );
 my $try_xs =
 		exists($ENV{PERL_TYPE_TINY_XS}) ? !!$ENV{PERL_TYPE_TINY_XS} :
 		exists($ENV{PERL_ONLY})         ?  !$ENV{PERL_ONLY} :
@@ -44,24 +45,42 @@ declare FileName,
 	
 declare XMLFile,
 	as Str,
-	where{ $_ =~ /\.xml$/ and -r $_  },
+	where{ $_ =~ /\.xml$/ and -r $_},
 	message{
-        ( $_ !~ /\.xml$/ ) ?
-            "The string -$_- does not have an xml file extension" :
+		( $_ !~ /\.xml$/ ) ?
+			"The string -$_- does not have an xml file extension" :
 		( !-r $_ ) ?
-			"Could not find / read the file: $_" : 
-            'No value passed to the xml_file test' ;
+			"Could not find / read the file: $_" :
+			'No value passed to the XMLFile test';
     };
-	
+
+my	$io_file_instance = InstanceOf[ 'IO::File' ];
 declare XLSXFile,
-	as Str,
-	where{ $_ =~ /\.xlsx$/ and -r $_ },
+	as Str|GlobRef|$io_file_instance,
+	where{
+		if( is_Str( $_ ) ){
+			return $_ =~ /\.xlsx$/ and -r $_;
+		}elsif( is_GlobRef( $_ ) ){
+			return 1;
+		}elsif( $io_file_instance->check( $_ ) ){
+			return 1;
+		}else{
+			return 0;
+		}
+	},
 	message{
-        ( $_ !~ /\.xlsx$/ ) ?
-            "The string -$_- does not have an xlsx file extension" :
-		( !-r $_ ) ?
-			"Could not find / read the file: $_" : 
-            'No value passed to the xlsx_file test' 
+		my $return;
+		my $test = $_;
+		if( !$test){
+			$return = 'No value passed to the XMLFile test';
+		}elsif( is_Str( $test ) ){
+			$return = ( $test !~ /\.xml$/ ) ?
+				"The string -$test- does not have an xml file extension" :
+				"Could not find / read the file: $test" ;
+		}else{
+			$return = "|$test| is not a file handle I recognize";
+		}
+		return $return;
     };
 
 declare ParserType, 

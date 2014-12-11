@@ -34,7 +34,6 @@
             "MooseX::ShortCut::BuildInstance" : "1.028",
             "MooseX::StrictConstructor" : "0",
             "OLE::Storage_Lite" : "0",
-            "Spreadsheet::XLSX::Reader::LibXML::UtilFunctions" : "0",
             "Type::Coercion" : "0",
             "Type::Library" : "0.046",
             "Type::Tiny" : "0.046",
@@ -59,9 +58,11 @@
             "DateTime::Format::Flexible" : "0",
             "DateTimeX::Format::Excel" : "0.012",
             "File::Temp" : "0",
+            "IO::File" : "0",
             "List::Util" : "1.33",
             "Moose" : "2.1213",
             "Moose::Role" : "0",
+            "Moose::Util" : "0",
             "MooseX::HasDefaults::RO" : "0",
             "MooseX::ShortCut::BuildInstance" : "1.028",
             "MooseX::StrictConstructor" : "0",
@@ -84,63 +85,63 @@
    "provides" : {
       "Spreadsheet::XLSX::Reader::LibXML" : {
          "file" : "lib/Spreadsheet/XLSX/Reader/LibXML.pm",
-         "version" : "v0.24.2"
+         "version" : "v0.26.2"
       },
       "Spreadsheet::XLSX::Reader::LibXML::Cell" : {
          "file" : "lib/Spreadsheet/XLSX/Reader/LibXML/Cell.pm",
-         "version" : "v0.24.2"
+         "version" : "v0.26.2"
       },
       "Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow" : {
          "file" : "lib/Spreadsheet/XLSX/Reader/LibXML/CellToColumnRow.pm",
-         "version" : "v0.24.2"
+         "version" : "v0.26.2"
       },
       "Spreadsheet::XLSX::Reader::LibXML::Error" : {
          "file" : "lib/Spreadsheet/XLSX/Reader/LibXML/Error.pm",
-         "version" : "v0.24.2"
+         "version" : "v0.26.2"
       },
       "Spreadsheet::XLSX::Reader::LibXML::FmtDefault" : {
          "file" : "lib/Spreadsheet/XLSX/Reader/LibXML/FmtDefault.pm",
-         "version" : "v0.24.2"
+         "version" : "v0.26.2"
       },
       "Spreadsheet::XLSX::Reader::LibXML::GetCell" : {
          "file" : "lib/Spreadsheet/XLSX/Reader/LibXML/GetCell.pm",
-         "version" : "v0.24.2"
+         "version" : "v0.26.2"
       },
       "Spreadsheet::XLSX::Reader::LibXML::LogSpace" : {
          "file" : "lib/Spreadsheet/XLSX/Reader/LibXML/LogSpace.pm",
-         "version" : "v0.24.2"
+         "version" : "v0.26.2"
       },
       "Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings" : {
          "file" : "lib/Spreadsheet/XLSX/Reader/LibXML/ParseExcelFormatStrings.pm",
-         "version" : "v0.24.2"
+         "version" : "v0.26.2"
       },
       "Spreadsheet::XLSX::Reader::LibXML::Types" : {
          "file" : "lib/Spreadsheet/XLSX/Reader/LibXML/Types.pm",
-         "version" : "v0.24.2"
+         "version" : "v0.26.2"
       },
       "Spreadsheet::XLSX::Reader::LibXML::XMLReader" : {
          "file" : "lib/Spreadsheet/XLSX/Reader/LibXML/XMLReader.pm",
-         "version" : "v0.24.2"
+         "version" : "v0.26.2"
       },
       "Spreadsheet::XLSX::Reader::LibXML::XMLReader::CalcChain" : {
          "file" : "lib/Spreadsheet/XLSX/Reader/LibXML/XMLReader/CalcChain.pm",
-         "version" : "v0.24.2"
+         "version" : "v0.26.2"
       },
       "Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings" : {
          "file" : "lib/Spreadsheet/XLSX/Reader/LibXML/XMLReader/SharedStrings.pm",
-         "version" : "v0.24.2"
+         "version" : "v0.26.2"
       },
       "Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles" : {
          "file" : "lib/Spreadsheet/XLSX/Reader/LibXML/XMLReader/Styles.pm",
-         "version" : "v0.24.2"
+         "version" : "v0.26.2"
       },
       "Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet" : {
          "file" : "lib/Spreadsheet/XLSX/Reader/LibXML/XMLReader/Worksheet.pm",
-         "version" : "v0.24.2"
+         "version" : "v0.26.2"
       },
       "Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData" : {
          "file" : "lib/Spreadsheet/XLSX/Reader/LibXML/XMLReader/XMLToPerlData.pm",
-         "version" : "v0.24.2"
+         "version" : "v0.26.2"
       }
    },
    "release_status" : "stable",
@@ -155,7 +156,7 @@
          "web" : "https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML"
       }
    },
-   "version" : "v0.24.2",
+   "version" : "v0.26.2",
    "x_authority" : "cpan:JANDREW"
 }
 

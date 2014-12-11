@@ -19,10 +19,11 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 39;
+use	Test::Most tests => 41;
 use	Test::TypeTiny;
 #~ use	Test::Moose;
 use Data::Dumper;
+use IO::File;
 use Capture::Tiny qw( capture_stderr );
 use	lib 
 		'../../../../../../Log-Shiras/lib',
@@ -56,13 +57,15 @@ my	$test_dir	= ( @ARGV ) ? $ARGV[0] : $test_file;
 my	$xlsx_file	= $test_dir . 'TestBook.xlsx';
 my	$xml_file	= $test_dir . '[Content_Types].xml';
 my  ( 
-			$position, $counter, $exception,
+			$position, $counter, $exception, $fh,
 	);
+my			$file_handle = IO::File->new( $xlsx_file );
+			open( $fh, '<', $xlsx_file );
 my 			$row = 0;
 my			$question_ref =[
 				[ 1, 2, 'Help', 0x234, undef ],# PassThroughType
 				[ $xlsx_file, $xml_file, 'badfile.not', ],# FileName	
-				[ $xlsx_file, $xml_file,],# XLSXFile
+				[ $xlsx_file, $file_handle, $fh, $xml_file,],# XLSXFile
 				[ $xml_file, $xlsx_file,],#~ XMLFile
 				[ 'reader', 'dom', 'badfile.not' ],#~ ParserType
 				[ 1900, 1904, 2000 ],#~ EpochYear
@@ -76,7 +79,7 @@ my			$question_ref =[
 my			$answer_ref = [
 				[],
 				[undef, undef, 'Could not find / read the file: badfile.not', ],
-				[undef, 'The string -badfile.not- does not have an xlsx file extension', ],
+				[undef, undef, undef, 'The string -badfile.not- does not have an xlsx file extension', ],
 				[undef, 'The string -badfile.not- does not have an xml file extension', ],
 				[undef, 'The string -dom- does not match ', 'The string -badfile.not- does not match ', ],
 				[undef, undef, '2000 is not an excel epoch', ],

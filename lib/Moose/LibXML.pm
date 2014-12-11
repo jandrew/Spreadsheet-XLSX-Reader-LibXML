@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML;
-use version 0.77; our $VERSION = qv('v0.26.2');
+use version 0.77; our $VERSION = qv('v0.24.4');
 
 use 5.010;
 use	List::Util 1.33;
@@ -7,9 +7,14 @@ use	Moose;
 use	MooseX::StrictConstructor;
 use	MooseX::HasDefaults::RO;
 use	Carp qw( confess );
-use	Archive::Zip;
-use	OLE::Storage_Lite;
-use	File::Temp;
+use Scalar::Util qw( openhandle );
+use IO::File;
+use	Archive::Zip qw( :ERROR_CODES );
+#~ use	Scalar::Util qw( openhandle );
+#~ use	OLE::Storage_Lite;
+#~ use	File::Temp;
+#~ $File::Temp::DEBUG = 1;
+#~ use	Data::Dumper;
 use Types::Standard qw(
  		InstanceOf			Str       		StrMatch
 		Enum				HashRef			ArrayRef
@@ -70,12 +75,12 @@ has	error_inst =>(
 		default => sub{ Spreadsheet::XLSX::Reader::LibXML::Error->new( should_warn => 0 ) },
 	);
 
-has file_name =>(
+has file =>(
 		isa			=> XLSXFile,
-		writer		=> 'set_file_name',
-		clearer		=> '_clear_file_name',
-		predicate	=> 'has_file_name',
-		trigger		=> \&_build_file,
+		writer		=> 'set_file',
+		clearer		=> '_clear_file',
+		predicate	=> 'has_file',
+		trigger		=> \&_build_workbook,
 	);
 	
 has file_creator =>(
@@ -175,11 +180,11 @@ has empty_return_type =>(
 
 sub parse{
 
-    my ( $self, $file_name, $formatter ) = @_;
+    my ( $self, $file, $formatter ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new(
 	###LogSD					name_space 	=> $self->get_log_space .  '::Workbook::parse', );
 	###LogSD		$phone->talk( level => 'info', message =>[
-	###LogSD			"Arrived at parse for: $file_name",
+	###LogSD			"Arrived at parse for: $file",
 	###LogSD			(($formatter) ? "with formatter: $formatter" : '') ] );
 	$self->set_format_string_parser( $formatter ) if $formatter;
 	$self->set_file_name( $file_name );
@@ -239,6 +244,7 @@ sub worksheet{
 	###LogSD	$phone->talk( level => 'info', message =>[
 	###LogSD		'Returned worksheet info:', $worksheet_info, ] );
 	confess "No worksheet info for: $worksheet_name" if !exists $worksheet_info->{sheet_position};
+	confess "Build the worksheet file handle here so that it can stay in scope with the workbook rather than just the sheet";
 	###LogSD	$phone->talk( level => 'info', message =>[
 	###LogSD		"Building the next worksheet with:",
 	###LogSD		{
@@ -257,10 +263,18 @@ sub worksheet{
 							error_inst			=> $self->get_error_inst,
 							%{$worksheet_info}, 
 						);
+	print "Built worksheet: $worksheet_name\nFile: $worksheet_info->{file_name}\n";
 	if( $worksheet ){
 		###LogSD	$phone->talk( level => 'info', message =>[
 		###LogSD		"Successfully loaded: $worksheet_name",] );
 		$self->_set_current_worksheet_position( $worksheet->position );
+		$self->_add_worksheet_cleanup( sub{
+			print "Cleaning worksheet ($_[0]): $worksheet_name\n";
+			if( $worksheet ){
+				print "Cleaning worksheet (do): $worksheet_name\n";
+				$worksheet->DEMOLISH;
+			}				
+		} );
 		return $worksheet;
 	}else{
 		$self->set_error( "Failed to build the object for worksheet: $worksheet_name" );
@@ -367,15 +381,37 @@ has _worksheet_superclass =>(
 		reader	=> '_get_worksheet_superclass',
 	);
 
+has _demolish_worksheets =>(
+		isa		=> ArrayRef[CodeRef],
+		traits	=> ['Array'],
+		reader	=> '_get_worksheet_cleaning_actions',
+		clearer	=> '_clear_worksheet_cleaning_actions',
+		predicate => '_has_worksheet_cleaning_actions',
+		handles	=>{
+			_add_worksheet_cleanup => 'push',
+		}
+	);
+
+has _stored_file_handles =>(
+		isa		=> ArrayRef,
+		traits	=> ['Array'],
+		reader	=> '_get_saved_file_handles',
+		clearer	=> '_clear_saved_file_handles',
+		predicate => '_has_saved_file_handles',
+		handles	=>{
+			_add_file_handle => 'push',
+		}
+	);
+
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
 
-sub _build_file{
+sub _build_workbook{
 
-    my ( $self, $file_name ) = @_;
+    my ( $self, $file ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new(
 	###LogSD					name_space 	=> $self->get_log_space .  '::Workbook::_build_file', );
 	###LogSD		$phone->talk( level => 'info', message =>[
-	###LogSD			'Arrived at _build_file for: ', $file_name ] );
+	###LogSD			'Arrived at _build_file for: ', $file ] );
 	$self->_clear_shared_strings;
 	$self->_clear_calc_chain;
 	$self->_clear_styles;
@@ -389,20 +425,34 @@ sub _build_file{
 	$self->clear_error;
 	$self->start_at_the_beginning;
 	my	$message;
-    if ( !-e $file_name ){
-		$message = "Can't locate -$file_name-";
-	}elsif( -z $file_name ) {
-		$message = "There is nothing in the file -$file_name-";
+	
+	# resolve a passed file handle to an IO::File handle
+	my ( $xlsx_file_handle, );
+    if( openhandle($file) ){
+		###LogSD	$phone->talk( level	=> 'trace', message =>[
+		###LogSD		"User did pass a filehandle" ] );
+        bless $file, 'IO::File' if ref($file) eq 'GLOB';
+		$xlsx_file_handle = $file;
+    }else{
+		###LogSD	$phone->talk( level	=> 'trace', message =>[
+		###LogSD		"Attempting to open -$file- as an IO::File handle" ] );
+		$xlsx_file_handle = IO::File->new( $file, 'r' );# IO:File->new_tmpfile( $file );
 	}
-	if( $message ){
-		$self->set_error( $message );
-		$self->_clear_file_name;
-		return;
+	if( !$xlsx_file_handle ){
+		$self->_clear_file;
+		confess "Unable to certify, coerce, or open -$file- as an 'IO::File' file handle";
 	}
-
-    # Check for xls or encrypted OLE files.
-    my $ole_file = $self->_check_if_ole_file( $file_name );
-    return( undef ) if $ole_file;
+	
+	# Try to open a zip archive for the file handle
+    my $zip = Archive::Zip->new;
+    if(	$zip->readFromFileHandle($file) != AZ_OK ){
+		$self->_clear_file;
+		confess "|$file| won't open as a zip file";#  Fix this when adding all-in-one single file Excel Workbooks!!!!
+	}
+	exit 1;
+    #~ # Check for xls or encrypted OLE files.
+    #~ my $ole_file = $self->_check_if_ole_file( $file_name );
+    #~ return( undef ) if $ole_file;
 
     # Create a, locally scoped, temp dir to unzip the XLSX file into.
 	my	$temp_dir = File::Temp->newdir( DIR => undef );
@@ -410,11 +460,12 @@ sub _build_file{
 	
     # Create an Archive::Zip object to unzip the XLSX file.
     my $zip_file = Archive::Zip->new();
-
+	
+	confess "Do better ZIP Error checking here to avoid OLE::Storage_Lite";
     # Read the XLSX zip file and catch any errors.
     eval { $zip_file->read( $file_name ) };
     if ( $@ ) {
-		$self->set_error( "File has zip error(s): " . join( ' ~|~ ', $@ ) );
+		$self->_set_error( "File has zip error(s): " . join( ' ~|~ ', $@ ) );
 		return undef;
 	}
 
@@ -425,6 +476,7 @@ sub _build_file{
 	###LogSD	$phone->talk( level	=> 'trace', message =>[
 	###LogSD		"Temp dir: $intermediate", "Temp Dir contains: ", <$intermediate/*> ] );
 	
+	confess "Go back and see how XML::Twig handles this";
 	# Load general workbook information to this instance
 	my	$workbook_file = $self->_get_temp_dir . '/xl/workbook.xml';
 	###LogSD	$phone->talk( level => 'debug', message =>[ "Loading workbook file: $workbook_file"	] );
@@ -455,45 +507,45 @@ sub _build_file{
 	return $self;
 }
 
-sub _check_if_ole_file {
+#~ sub _check_if_ole_file {
 
-    my ( $self, $file_name ) = @_;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	###LogSD					name_space 	=> $self->get_log_space .  '::Workbook::_check_if_ole_file', );
-	###LogSD		$phone->talk( level => 'info', message =>[
-	###LogSD			'Arrived at _check_if_ole_file for: ', $file_name, ], );
-    my	$ole = OLE::Storage_Lite->new( $file_name );
-    my	$pps = $ole->getPpsTree();
+    #~ my ( $self, $file_name ) = @_;
+	#~ ###LogSD	my	$phone = Log::Shiras::Telephone->new(
+	#~ ###LogSD					name_space 	=> $self->get_log_space .  '::Workbook::_check_if_ole_file', );
+	#~ ###LogSD		$phone->talk( level => 'info', message =>[
+	#~ ###LogSD			'Arrived at _check_if_ole_file for: ', $file_name, ], );
+    #~ my	$ole = OLE::Storage_Lite->new( $file_name );
+    #~ my	$pps = $ole->getPpsTree();
 
-    # If getPpsTree() failed then this isn't an OLE file.
-    return if !$pps;
+    #~ # If getPpsTree() failed then this isn't an OLE file.
+    #~ return if !$pps;
 
-    # Loop through the PPS children below the root.
-	my	$message;
-    for my $child_pps ( @{ $pps->{Child} } ) {
+    #~ # Loop through the PPS children below the root.
+	#~ my	$message;
+    #~ for my $child_pps ( @{ $pps->{Child} } ) {
 
-        my 	$pps_name = OLE::Storage_Lite::Ucs2Asc( $child_pps->{Name} );
+        #~ my 	$pps_name = OLE::Storage_Lite::Ucs2Asc( $child_pps->{Name} );
 		
-        # Match an Excel xls file.
-        if ( $pps_name eq 'Workbook' || $pps_name eq 'Book' ) {
-			$message = "File is xls not an xlsx file: $file_name";
-			last;
-        }elsif( $pps_name eq 'EncryptedPackage' ) {
-			$message = "File is encrypted an encrypted xlsx file: $file_name";
-			last;
-        }
-    }
+        #~ # Match an Excel xls file.
+        #~ if ( $pps_name eq 'Workbook' || $pps_name eq 'Book' ) {
+			#~ $message = "File is xls not an xlsx file: $file_name";
+			#~ last;
+        #~ }elsif( $pps_name eq 'EncryptedPackage' ) {
+			#~ $message = "File is encrypted an encrypted xlsx file: $file_name";
+			#~ last;
+        #~ }
+    #~ }
 	
-	#Handle result
-	if( $message ){
-		$self->set_error( $message );
-	}else{
-		###LogSD	$phone->talk( level => 'warn', message =>[
-		###LogSD		'The OLE test passed (negative) for: ', $file_name, ], );
-		return undef;
-	}
-	return 1;
-}
+	#~ #Handle result
+	#~ if( $message ){
+		#~ $self->_set_error( $message );
+	#~ }else{
+		#~ ###LogSD	$phone->talk( level => 'warn', message =>[
+		#~ ###LogSD		'The OLE test passed (negative) for: ', $file_name, ], );
+		#~ return undef;
+	#~ }
+	#~ return 1;
+#~ }
 
 sub _load_workbook_file{
 	my( $self, $new_file ) = @_;
@@ -531,7 +583,7 @@ sub _load_workbook_file{
 	###LogSD		"rel lookup:", $rel_lookup,
 	###LogSD		"id lookup:", $id_lookup,		] );
 	if( !$list ){
-		$self->set_error( "No worksheets identified in this workbook" );
+		$self->_set_error( "No worksheets identified in this workbook" );
 		return undef;
 	}
 	$self->_set_worksheet_list( $list );
@@ -567,7 +619,7 @@ sub _load_rels_workbook_file{
 	###LogSD		"Worksheet lookup:", $sheet_ref,
 	###LogSD		"Pivot lookup:", $pivot_lookup	] );
 	if( !$found_file_names ){
-		$self->set_error( "Couldn't find any file names for the sheets" );
+		$self->_set_error( "Couldn't find any file names for the sheets" );
 		return undef;
 	}
 	$self->_set_worksheet_lookup( $sheet_ref );
@@ -662,45 +714,57 @@ sub DEMOLISH{
 	my ( $self ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new(
 	###LogSD					name_space 	=> $self->get_log_space .  '::Workbook::DEMOLISH', );
+	
+	# Clear the saved worksheet list
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD			"Clearing the worksheets" ] );
+	if( $self->_has_worksheet_cleaning_actions ){
+		my $x = 0;
+		for my $cleanup ( @{$self->_get_worksheet_cleaning_actions} ){
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD			"Clearing worksheet: $x" ] );
+			$cleanup->('hello');
+			$x++;
+		}
+		$self->_clear_worksheet_cleaning_actions;
+	}
+	
+	# Clear open calcChain.xml file as needed
 	if( $self->_has_calc_chain_file ){
-		#~ print "closing calcChain.xml\n";
+		print "closing calcChain.xml\n";
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD			"Clearing the calcChain.xml file" ] );
 		$self->_demolish_calc_chain;
 	}
+	
+	# Clear open sharedStrings.xml file as needed
 	if( $self->_has_shared_strings_file ){
-		my $instance = $self->_get_shared_strings_instance;
-		#~ print "closing sharedStrings.xml\n" . Dumper( $instance );
+		print "closing sharedStrings.xml\n";
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD			"Clearing the sharedStrings.xml file" ] );
-		if( $instance ){
+		if( $self->_get_shared_strings_instance){
 			$self->_demolish_shared_strings;
-		}else{
-			$self->_clear_shared_strings;
-			$instance = undef;
 		}
+		$self->_clear_shared_strings;
 	}
-	#~ else{
-		#~ confess "No shared strings instance found";
-	#~ }
+	
+	#Clear open styles.xml file as needed
 	if( $self->_has_styles_file ){
+		print "closing styles.xml\n";
 		my $instance = $self->_get_styles_instance;
-		#~ print "closing styles.xml\n" . Dumper( $instance );
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD			"Clearing the styles.xml file" ] );
 		if( $instance ){
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD			"Demolishing  styles instance", $instance->dump(3) ] );
 			$self->_demolish_styles;
-		}else{
-			$self->_clear_shared_strings;
-			$instance = undef;
 		}
+		$self->_clear_styles;
 	}
-	#~ else{
-		#~ confess "No styles instance found";
-	#~ }
 	###LogSD	$phone->talk( level => 'debug', message => [
-	###LogSD		"Clearing the Temporary Directory" ] );
+	###LogSD		"Clearing the Temporary Directory and file name or handle" ] );
 	$self->_clear_temp_dir;
+	$self->_clear_file;
 }
 
 #########1 Phinish            3#########4#########5#########6#########7#########8#########9
@@ -790,30 +854,30 @@ The following uses the 'TestBook.xlsx' file found in the t/test_files/ folder
 
 This is another module for parsing Excel 2007+ workbooks.  The goal of this package is 
 three fold.  First, as close as possible produce the same output as is visible in an 
-excel spreadsheet with exposure to underlying settings from Excel.  Second, adhere as 
+Excel spreadsheet. I will also expose the underlying format settings from the Excel 
+spreadsheet but the goal is not to provide a GUI replacement.  Second, adhere as 
 close as is reasonable to the L<Spreadsheet::ParseExcel> API (where it doesn't conflict 
 with the first objective) so that less work would be needed to integrate ParseExcel and 
 this package.  Third, to provide an XLSX sheet parser that is built on L<XML::LibXML>.  
 The other two primary options for XLSX parsing on CPAN use either a one-off XML parser 
 (L<Spreadsheet::XLSX>) or L<XML::Twig> (L<Spreadsheet::ParseXLSX>).  In general if 
-either of them already work for you without issue then there is no reason to change to 
-this package.  I personally found some bugs and functionality boundaries in both that I 
-wanted to improve and by the time I had educated myself enough to make improvement 
-suggestions including root causing the bugs to either the XML parser or the reader logic 
-I had written this.
+either of these pacakges already work without issue for you then there is no reason to 
+change to this package.  I personally found some bugs and functionality boundaries in 
+both that I wanted to improve and by the time I had educated myself enough to make improvement 
+suggestions I had written this.
 
 In the process of learning and building I also wrote some additional features for 
 this parser that are not found in the L<Spreadsheet::ParseExcel> package.  For instance 
 in the L<SYNOPSIS|/SYNOPSIS> the '$parser' and the '$workbook' are actually the same class.  
 You could combine both steps by calling new with the 'file_name' attribute called out.  
-Afterward it is still possible to call ->error on the instance.  Another improvement 
+Afterward it is still possible to call ->error on the instance, you just need to use the 
+L<has_file_name|/has_file_name> method to test if the file loaded.  Another improvement 
 (From my perspective) is date handling.  This package allows for a simple pluggable custom 
 output format that is more flexible than other options as well as handling dates older than 
 1-January-1900.  I leveraged coercions from L<Type::Tiny> to do this but anything that 
 follows that general format will work here.  Additionally, this is a L<Moose> based package.  
-As such it is designed to be (fairly) extensible by writing roles and adding them to this 
-package rather than requiring that you extend the package to some new branch.  Read the full 
-documentation for all opportunities!
+As such it is designed to be (fairly) extensible.  Read the full documentation for all 
+opportunities!
 
 In the realm of extensibility, L<XML::LibXML> has multiple ways to read an XML file but this 
 release only has an L<XML::LibXML::Reader> parser option.  Future iterations could include a 
@@ -821,8 +885,9 @@ DOM parser option.  Additionally this package does not (yet) provide the same ac
 formatting elements provided in L<Spreadsheet::ParseExcel>.  That is on the longish and 
 incomplete TODO list.
 
-The package operates on the workbook with three primary tiers of classes.  All other classes 
-in this package are for architectual extensibility.
+This package operates on the workbook with three primary tiers of classes.  All other classes 
+and roles in this package are separated for architectual extensibility.  In order to use this 
+package as an Excel spreadsheet reader you just need to read the following documentation.
 
 =over
 
@@ -1655,6 +1720,9 @@ B<3.> Add calc chain methods
 B<4.> Add more exposure to workbook formatting methods
 
 B<5.> Build a DOM parser alternative for the sheets
+
+B<6.> Remove the dependancy on L<OLE::Storage_Lite> 
+(good work but this package is heavy enough already)
 
 =over
 

@@ -139,7 +139,6 @@ lives_ok{
 										'Spreadsheet::XLSX::Reader::LibXML::LogSpace'
 									],
 									add_roles_in_sequence =>[
-										'Spreadsheet::XLSX::Reader::LibXML::UtilFunctions',
 										'Spreadsheet::XLSX::Reader::LibXML::FmtDefault',
 										'Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings'
 									],

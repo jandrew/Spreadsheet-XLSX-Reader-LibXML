@@ -34,8 +34,8 @@ pod_file_ok( $up . 	'lib/Spreadsheet/XLSX/Reader/LibXML/XMLReader/SharedStrings.
 						"The Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings file has good POD" );
 pod_file_ok( $up . 	'lib/Spreadsheet/XLSX/Reader/LibXML/XMLReader/CalcChain.pm',
 						"The Spreadsheet::XLSX::Reader::LibXML::XMLReader::CalcChain file has good POD" );
-pod_file_ok( $up . 	'lib/Spreadsheet/XLSX/Reader/LibXML/XMLDOM/Styles.pm',
-						"The Spreadsheet::XLSX::Reader::LibXML::XMLDOM::Styles file has good POD" );
+pod_file_ok( $up . 	'lib/Spreadsheet/XLSX/Reader/LibXML/XMLReader/Styles.pm',
+						"The Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles file has good POD" );
 pod_file_ok( $up . 	'lib/Spreadsheet/XLSX/Reader/LibXML/GetCell.pm',
 						"The Spreadsheet::XLSX::Reader::LibXML::GetCell file has good POD" );
 pod_file_ok( $up . 	'lib/Spreadsheet/XLSX/Reader/LibXML/Cell.pm',
