@@ -19,12 +19,13 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 41;
+use	Test::Most tests => 45;
 use	Test::TypeTiny;
 #~ use	Test::Moose;
 use Data::Dumper;
 use IO::File;
-use Capture::Tiny qw( capture_stderr );
+use Clone 'clone';
+#~ use Capture::Tiny qw( capture_stderr );
 use	lib 
 		'../../../../../../Log-Shiras/lib',
 		$lib,
@@ -46,12 +47,13 @@ use Spreadsheet::XLSX::Reader::LibXML::Types v0.1 qw(
 		XMLFile						ParserType					EpochYear
 		Excel_number_0				CellID						PositiveNum
 		NegativeNum					ZeroOrUndef					NotNegativeNum
+		IOFileType
 	);
 my	@types_list = (
 		PassThroughType,			FileName,					XLSXFile,
 		XMLFile	,					ParserType,					EpochYear,
 		CellID,						PositiveNum,				NegativeNum,
-		ZeroOrUndef,				NotNegativeNum,				Excel_number_0,				
+		ZeroOrUndef,				NotNegativeNum,				IOFileType,
 	);
 my	$test_dir	= ( @ARGV ) ? $ARGV[0] : $test_file;
 my	$xlsx_file	= $test_dir . 'TestBook.xlsx';
@@ -65,8 +67,8 @@ my 			$row = 0;
 my			$question_ref =[
 				[ 1, 2, 'Help', 0x234, undef ],# PassThroughType
 				[ $xlsx_file, $xml_file, 'badfile.not', ],# FileName	
-				[ $xlsx_file, $file_handle, $fh, $xml_file,],# XLSXFile
-				[ $xml_file, $xlsx_file,],#~ XMLFile
+				[ $xlsx_file, $file_handle, $fh, 'badfile.not',],# XLSXFile
+				[ $xml_file, 'badfile.not',],#~ XMLFile
 				[ 'reader', 'dom', 'badfile.not' ],#~ ParserType
 				[ 1900, 1904, 2000 ],#~ EpochYear
 				[ 'A1', 'CCC10000', 'A0' ],#~ CellID
@@ -74,26 +76,35 @@ my			$question_ref =[
 				[ -1, -2, -0.1234, 0 ],#~ NegativeNum
 				[ 0, undef, 's', 2 ],#~ ZeroOrUndef
 				[ 1, 2, 0.1234, 0, -1],#~ NotNegativeNum
-				#~ Excel_number_0
+				[ $fh, $file_handle, $xlsx_file, $xml_file],#~ IOFileType
+				#~ Excel_number_0?
 			];
 my			$answer_ref = [
 				[],
-				[undef, undef, 'Could not find / read the file: badfile.not', ],
-				[undef, undef, undef, 'The string -badfile.not- does not have an xlsx file extension', ],
-				[undef, 'The string -badfile.not- does not have an xml file extension', ],
-				[undef, 'The string -dom- does not match ', 'The string -badfile.not- does not match ', ],
-				[undef, undef, '2000 is not an excel epoch', ],
-				[undef, undef, '0 is not a cell ID', ],
-				[undef, undef, undef, '\-3 is not a positive number', ],
-				[undef, undef, undef, '0 is not a negative number', ],
-				[undef, undef, 's is not zero (or undef)', '2 is not zero (or undef)', ],
-				[undef, undef, undef, undef, '-1 is not a negative number', ],
+				[undef, undef, qr/Could not find \/ read the file: badfile.not/, ],
+				[	undef,
+					qr/IO::File=GLOB\(.{6,10}\)'\s+is not a string value/,#IO::
+					qr/GLOB\(.{6,10}\)'\s+is not a string value/,
+					qr/The string -badfile.not- does not have an xlsx file extension/, ],
+				[undef, qr/The string -badfile.not- does not have an xml file extension/, ],
+				[	undef,
+					qr/Value "dom" did not pass type constraint "ParserType"/,
+					qr/Value "badfile.not" did not pass type constraint "ParserType"/, ],
+				[undef, undef, qr/Value "2000" did not pass type constraint "EpochYear"/, ],
+				[undef, undef, qr/Value "A0" did not pass type constraint "CellID"/, ],
+				[undef, undef, undef, qr/Value "-3" did not pass type constraint "PositiveNum"/, ],
+				[undef, undef, undef, qr/Value "0" did not pass type constraint "NegativeNum"/, ],
+				[	undef, undef,
+					qr/Value "s" did not pass type constraint "ZeroOrUndef"/,
+					qr/Value "2" did not pass type constraint "ZeroOrUndef"/, ],
+				[undef, undef, undef, undef, qr/Value "-1" did not pass type constraint "NotNegativeNum"/, ],
+				[undef, undef, undef, qr/\[Content_Types\]\.xml" did not pass type constraint "IOFileType"/, ],
 			];
 ###LogSD my $phone = Log::Shiras::Telephone->new;
 ###LogSD	$phone->talk( level => 'debug', message =>[ 'Start your engines ...' ] );
 			#~ no strict 'refs';
 			my $x = 0;
-			for my $x ( 0..($#types_list - 1) ){
+			for my $x ( 0..$#types_list ){
 			my $type = $types_list[$x];
 ###LogSD	$phone->talk( level => 'debug', message =>[ "Testing type: $type" ] );
 			for my $y ( 0..$#{$question_ref->[$x]} ){
@@ -106,10 +117,24 @@ my			$answer_ref = [
 ###LogSD	}
 ###LogSD	$phone->talk( level => 'debug', message =>[
 ###LogSD		'Testing value: ' . (($question_ref->[$x]->[$y]) ? $question_ref->[$x]->[$y] : '') ] );
+			my $type_error = undef;
+			my $test_value = clone( $question_ref->[$x]->[$y] );
+			$type_error = $type->validate( $test_value );
+			if( $type_error and $type->has_coercion ){
+				eval '$type->assert_coerce( $test_value )';
+				$type_error = $@;
+				$type_error = undef if $type_error eq '';
+			}
+###LogSD	$phone->talk( level => 'debug', message =>[ 'Current error string:', $type_error ] );
 			if( $answer_ref->[$x]->[$y] ){
-should_fail $question_ref->[$x]->[$y], $type;
+like		$type_error, $answer_ref->[$x]->[$y],
+							"Check that |$question_ref->[$x]->[$y]| gives the error |" .
+							"$answer_ref->[$x]->[$y]| for type: " . $type->display_name;
 			}else{
-should_pass	$question_ref->[$x]->[$y], $type;
+is			$type_error, undef,
+							'Check that |' . ($question_ref->[$x]->[$y]//'') . 
+							'| passes (or coerces to) type: ' . 
+							$type->display_name;
 			}
 			}
 			}

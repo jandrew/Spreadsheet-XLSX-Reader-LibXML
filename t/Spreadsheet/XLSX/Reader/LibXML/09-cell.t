@@ -3,7 +3,7 @@
 BEGIN{ $ENV{PERL_TYPE_TINY_XS} = 0; }
 $| = 1;
 
-use	Test::Most tests => 59;
+use	Test::Most tests => 56;
 use	Test::Moose;
 use	Data::Dumper;
 use	MooseX::ShortCut::BuildInstance v1.8 qw( build_instance );
@@ -36,7 +36,6 @@ my  (
 my 			$row = 0;
 my 			@class_attributes = qw(
 				error_inst
-				log_space
 				cell_unformatted
 				rich_text
 				cell_font
@@ -55,8 +54,6 @@ my 			@class_attributes = qw(
 			);
 my  		@class_methods = qw(
 				new
-				get_log_space
-				set_log_space
 				error
 				set_error
 				clear_error

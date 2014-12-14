@@ -19,7 +19,7 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 750;
+use	Test::Most tests => 749;
 use	Test::Moose;
 use	DateTime::Format::Flexible;
 use	DateTimeX::Format::Excel;
@@ -73,9 +73,9 @@ my  (
 	);
 my 			$row = 0;
 my 			@class_attributes = qw(
-				file_name					error_inst					log_space
-				sheet_rel_id				sheet_id					sheet_position
-				sheet_name					custom_formats
+				file_name					error_inst					sheet_rel_id
+				sheet_id					sheet_position				sheet_name
+				custom_formats
 			);
 my  		@class_methods = qw(
 				new							counting_from_zero			boundary_flag_setting
@@ -274,7 +274,7 @@ lives_ok{
 										Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings
 									)],
 									file_name	=> $styles_file,
-									log_space	=> 'Test::Styles',
+			###LogSD				log_space	=> 'Test::Styles',
 									error_inst	=> $error_instance,
 									epoch_year	=> 1904,
 								);
@@ -350,7 +350,7 @@ lives_ok{
 									package	=> 'GetCellTest',
 									superclasses =>[ 'Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet' ],
 									file_name			=> $test_file,
-									log_space			=> 'Test',
+			###LogSD				log_space			=> 'Test',
 									error_inst			=> $error_instance,
 									custom_formats		=> {
 																E10	=> $date_time_type,
@@ -584,7 +584,7 @@ ok			$workbook_instance->set_group_return_type( 'value' ),
 										"Set the group_return_type to: value";
 ok			$test_instance = GetCellTest->new(
 								file_name			=> $test_file_2,
-								log_space			=> 'Test',
+			###LogSD			log_space			=> 'Test',
 								error_inst			=> $error_instance,
 								custom_formats		=> {
 															E10	=> $date_time_type,

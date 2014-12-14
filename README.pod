@@ -153,20 +153,22 @@ B<Returns:> An instance of this class
 
 =back
 
-=head3 parse( $file_name, $formatter )
+=head3 parse( $file, $formatter )
 
 =over
 
 B<Definition:> This is a convenience method to match the L<Spreadsheet::ParseExcel> equivalent.  
-It only works if the L<file_name|/file_name> attribute was not set with ->new.  It 
-is one way to set the L<file_name|/file_name> and L<default_format_list|/default_format_list>
+It only works if the L<file|/file_name> attribute was not set with ->new.  It 
+is one way to set the L<file|/file_name> attribute [and the L<default_format_list|/default_format_list>] 
+attribute.  It will accept either a file name or a L<file handle|/file_handle>
 
 B<Accepts:>
 
-	$file_name = of a valid xlsx file (required)
-	$formatter = see the 'default_format_list' attribute for valid options (optional)
+	$file = a valid xlsx file [or a valid xlsx file handle] (required)
+	[$formatter] = see the L<default_format_list|/default_format_list> attribute for valid options (optional)
 
-B<Returns:> itself when passing with the xlsx file loaded or undef for failure
+B<Returns:> itself when passing with the xlsx file loaded to the workbook level or 
+undef for failure.
 
 =back
 
@@ -339,7 +341,7 @@ B<attribute methods> Methods provided to adjust this attribute
 
 =over
 
-=B<get_error_inst>
+B<get_error_inst>
 
 =over
 
@@ -399,7 +401,8 @@ should be emitted.
 B<Definition:> This attribute holds the full file name and path for the 
 xlsx file to be parsed.
 
-B<Default> no default - this must be provided to read a file
+B<Default> no default - either this or a L<file handle|/file_handle> must be 
+provided to read a file
 
 B<Range> any unincrypted xlsx file that can be opened in Microsoft Excel
 
@@ -416,6 +419,42 @@ B<Definition:> change the set file name (this will reboot the workbook instance)
 =back
 
 B<has_file_name>
+
+=over
+
+B<Definition:> this is fundamentally a way to see if the workbook loaded correctly
+
+=back
+
+=back
+
+=back
+
+=head3 file_handle
+
+=over
+
+B<Definition:> This attribute holds a copy of the passed file handle reference.  
+If it is not a valid file handle then undef will be returned when this is set.
+
+B<Default> no default - either this or a L<file name|/file_name> must be 
+provided to read a file
+
+B<Range> any unincrypted xlsx file handle that can be opened in Microsoft Excel
+
+B<attribute methods> Methods provided to adjust this attribute
+		
+=over
+
+B<set_file_handle>
+
+=over
+
+B<Definition:> change the set file handle (this will reboot the workbook instance)
+
+=back
+
+B<has_file_handle>
 
 =over
 

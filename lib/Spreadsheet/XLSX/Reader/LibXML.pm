@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML;
-use version 0.77; our $VERSION = qv('v0.26.2');
+use version 0.77; our $VERSION = qv('v0.28.2');
 
 use 5.010;
 use	List::Util 1.33;
@@ -7,8 +7,7 @@ use	Moose;
 use	MooseX::StrictConstructor;
 use	MooseX::HasDefaults::RO;
 use	Carp qw( confess );
-use	Archive::Zip;
-use	OLE::Storage_Lite;
+use	Archive::Zip qw( AZ_OK );
 use	File::Temp;
 use Types::Standard qw(
  		InstanceOf			Str       		StrMatch
@@ -21,7 +20,7 @@ should_re_use_classes( 1 );
 use lib	'../../../../lib',;
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
-with 	'Spreadsheet::XLSX::Reader::LibXML::LogSpace';
+with 'Spreadsheet::XLSX::Reader::LibXML::LogSpace';###LogSD	
 ###LogSD	use Log::Shiras::UnhideDebug;
 use	Spreadsheet::XLSX::Reader::LibXML::Error;
 use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles;
@@ -29,7 +28,7 @@ use	Spreadsheet::XLSX::Reader::LibXML::FmtDefault;
 use	Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings;
 use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings;
 use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet;
-use	Spreadsheet::XLSX::Reader::LibXML::Types qw( XLSXFile ParserType );
+use	Spreadsheet::XLSX::Reader::LibXML::Types qw( XLSXFile ParserType IOFileType );
 
 #########1 Dispatch Tables    3#########4#########5#########6#########7#########8#########9
 
@@ -75,7 +74,16 @@ has file_name =>(
 		writer		=> 'set_file_name',
 		clearer		=> '_clear_file_name',
 		predicate	=> 'has_file_name',
-		trigger		=> \&_build_file,
+		trigger		=> \&_build_workbook,
+	);
+
+has file_handle =>(
+		isa			=> IOFileType,
+		writer		=> 'set_file_handle',
+		clearer		=> '_clear_file_handle',
+		predicate	=> 'has_file_handle',
+		coerce		=> 1,
+		trigger		=> \&_build_workbook,
 	);
 	
 has file_creator =>(
@@ -175,15 +183,25 @@ has empty_return_type =>(
 
 sub parse{
 
-    my ( $self, $file_name, $formatter ) = @_;
+    my ( $self, $file, $formatter ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new(
 	###LogSD					name_space 	=> $self->get_log_space .  '::Workbook::parse', );
 	###LogSD		$phone->talk( level => 'info', message =>[
-	###LogSD			"Arrived at parse for: $file_name",
+	###LogSD			"Arrived at parse for:", $file,
 	###LogSD			(($formatter) ? "with formatter: $formatter" : '') ] );
 	$self->set_format_string_parser( $formatter ) if $formatter;
-	$self->set_file_name( $file_name );
-	return ( $self->has_file_name ) ? $self : undef;
+	if( IOFileType->check( $file ) ){
+		eval '$self->set_file_handle( $file )';
+	}else{
+		eval '$self->set_file_name( $file )';
+	}
+	if( $@ ){
+		###LogSD	$phone->talk( level => 'info', message =>[ 'saving error:', $@->message, ] );
+		$self->set_error( $@->message );
+		return undef;
+	}else{
+		return $self;
+	}
 }
 
 sub worksheets{
@@ -214,7 +232,7 @@ sub worksheet{
 	###LogSD					name_space 	=> $self->get_log_space .  '::Workbook::worksheet', );
 	###LogSD		$phone->talk( level => 'info', message =>[
 	###LogSD			"Arrived at (build a) worksheet with: ", $worksheet_name ] );
-	confess "No file loaded yet" if !$self->has_file_name;
+	confess "No file loaded yet" if !$self->has_file_name and !$self->has_file_handle;
 	# Handle an implied 'next sheet'
 	if( !$worksheet_name ){
 		my $worksheet_position = $self->_get_current_worksheet_position;
@@ -369,13 +387,13 @@ has _worksheet_superclass =>(
 
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
 
-sub _build_file{
+sub _build_workbook{
 
-    my ( $self, $file_name ) = @_;
+    my ( $self, $file ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new(
 	###LogSD					name_space 	=> $self->get_log_space .  '::Workbook::_build_file', );
 	###LogSD		$phone->talk( level => 'info', message =>[
-	###LogSD			'Arrived at _build_file for: ', $file_name ] );
+	###LogSD			'Arrived at _build_file for: ', $file ] );
 	$self->_clear_shared_strings;
 	$self->_clear_calc_chain;
 	$self->_clear_styles;
@@ -388,45 +406,42 @@ sub _build_file{
 	$self->_clear_date_modified;
 	$self->clear_error;
 	$self->start_at_the_beginning;
-	my	$message;
-    if ( !-e $file_name ){
-		$message = "Can't locate -$file_name-";
-	}elsif( -z $file_name ) {
-		$message = "There is nothing in the file -$file_name-";
-	}
-	if( $message ){
-		$self->set_error( $message );
+	
+	# Ensure we have a file handle
+	my $file_handle;
+	eval '$file_handle = IOFileType->assert_coerce( $file )';
+	if( $@ ){
+		###LogSD	$phone->talk( level	=> 'warn', message =>[
+		###LogSD		"Unable to create a valid file instance with: $file" ] );
+		$self->_clear_file_handle;
 		$self->_clear_file_name;
-		return;
+		$self->set_error( "Unable to create a valid file instance with: $file" );
 	}
-
-    # Check for xls or encrypted OLE files.
-    my $ole_file = $self->_check_if_ole_file( $file_name );
-    return( undef ) if $ole_file;
+	###LogSD	$phone->talk( level	=> 'warn', message =>[
+	###LogSD		"Current file handle: $file_handle" ] );
+		
 
     # Create a, locally scoped, temp dir to unzip the XLSX file into.
 	my	$temp_dir = File::Temp->newdir( DIR => undef );
     $self->_set_temp_dir( $temp_dir );
-	
-    # Create an Archive::Zip object to unzip the XLSX file.
-    my $zip_file = Archive::Zip->new();
 
-    # Read the XLSX zip file and catch any errors.
-    eval { $zip_file->read( $file_name ) };
-    if ( $@ ) {
-		$self->set_error( "File has zip error(s): " . join( ' ~|~ ', $@ ) );
-		return undef;
+    # Read the XLSX zip file and catch any errors
+	my $zip_file = Archive::Zip->new();
+    if(	$zip_file->readFromFileHandle($file_handle) != AZ_OK ){
+		$self->_clear_file_handle;
+		$self->_clear_file_name;
+		confess "|$file| won't open as a zip file";#  Change this when adding all-in-one single file Excel Workbooks!!!!
 	}
 
     # Extract the XML files from the XLSX zip.
-    $zip_file->extractTree( '', $self->_get_temp_dir . '/' );
-	###LogSD	$phone->talk( level => 'trace', message =>[ "Zip file: ", $zip_file ] );
 	my	$intermediate = $self->_get_temp_dir;
 	###LogSD	$phone->talk( level	=> 'trace', message =>[
 	###LogSD		"Temp dir: $intermediate", "Temp Dir contains: ", <$intermediate/*> ] );
+    $zip_file->extractTree( '', $intermediate . '/' );
+	###LogSD	$phone->talk( level => 'trace', message =>[ "Zip file: ", $zip_file ] );
 	
 	# Load general workbook information to this instance
-	my	$workbook_file = $self->_get_temp_dir . '/xl/workbook.xml';
+	my	$workbook_file = "$intermediate/xl/workbook\.xml";
 	###LogSD	$phone->talk( level => 'debug', message =>[ "Loading workbook file: $workbook_file"	] );
 	my ( $rel_lookup, $id_lookup ) = $self->_load_workbook_file( $workbook_file );
 	return undef if !$rel_lookup;
@@ -453,46 +468,6 @@ sub _build_file{
 		return undef;
 	}
 	return $self;
-}
-
-sub _check_if_ole_file {
-
-    my ( $self, $file_name ) = @_;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	###LogSD					name_space 	=> $self->get_log_space .  '::Workbook::_check_if_ole_file', );
-	###LogSD		$phone->talk( level => 'info', message =>[
-	###LogSD			'Arrived at _check_if_ole_file for: ', $file_name, ], );
-    my	$ole = OLE::Storage_Lite->new( $file_name );
-    my	$pps = $ole->getPpsTree();
-
-    # If getPpsTree() failed then this isn't an OLE file.
-    return if !$pps;
-
-    # Loop through the PPS children below the root.
-	my	$message;
-    for my $child_pps ( @{ $pps->{Child} } ) {
-
-        my 	$pps_name = OLE::Storage_Lite::Ucs2Asc( $child_pps->{Name} );
-		
-        # Match an Excel xls file.
-        if ( $pps_name eq 'Workbook' || $pps_name eq 'Book' ) {
-			$message = "File is xls not an xlsx file: $file_name";
-			last;
-        }elsif( $pps_name eq 'EncryptedPackage' ) {
-			$message = "File is encrypted an encrypted xlsx file: $file_name";
-			last;
-        }
-    }
-	
-	#Handle result
-	if( $message ){
-		$self->set_error( $message );
-	}else{
-		###LogSD	$phone->talk( level => 'warn', message =>[
-		###LogSD		'The OLE test passed (negative) for: ', $file_name, ], );
-		return undef;
-	}
-	return 1;
 }
 
 sub _load_workbook_file{
@@ -680,9 +655,7 @@ sub DEMOLISH{
 			$instance = undef;
 		}
 	}
-	#~ else{
-		#~ confess "No shared strings instance found";
-	#~ }
+	
 	if( $self->_has_styles_file ){
 		my $instance = $self->_get_styles_instance;
 		#~ print "closing styles.xml\n" . Dumper( $instance );
@@ -695,9 +668,7 @@ sub DEMOLISH{
 			$instance = undef;
 		}
 	}
-	#~ else{
-		#~ confess "No styles instance found";
-	#~ }
+	
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		"Clearing the Temporary Directory" ] );
 	$self->_clear_temp_dir;
@@ -866,20 +837,22 @@ B<Returns:> An instance of this class
 
 =back
 
-=head3 parse( $file_name, $formatter )
+=head3 parse( $file, $formatter )
 
 =over
 
 B<Definition:> This is a convenience method to match the L<Spreadsheet::ParseExcel> equivalent.  
-It only works if the L<file_name|/file_name> attribute was not set with ->new.  It 
-is one way to set the L<file_name|/file_name> and L<default_format_list|/default_format_list>
+It only works if the L<file|/file_name> attribute was not set with ->new.  It 
+is one way to set the L<file|/file_name> attribute [and the L<default_format_list|/default_format_list>] 
+attribute.  It will accept either a file name or a L<file handle|/file_handle>
 
 B<Accepts:>
 
-	$file_name = of a valid xlsx file (required)
-	$formatter = see the 'default_format_list' attribute for valid options (optional)
+	$file = a valid xlsx file [or a valid xlsx file handle] (required)
+	[$formatter] = see the L<default_format_list|/default_format_list> attribute for valid options (optional)
 
-B<Returns:> itself when passing with the xlsx file loaded or undef for failure
+B<Returns:> itself when passing with the xlsx file loaded to the workbook level or 
+undef for failure.
 
 =back
 
@@ -1052,7 +1025,7 @@ B<attribute methods> Methods provided to adjust this attribute
 
 =over
 
-=B<get_error_inst>
+B<get_error_inst>
 
 =over
 
@@ -1112,7 +1085,8 @@ should be emitted.
 B<Definition:> This attribute holds the full file name and path for the 
 xlsx file to be parsed.
 
-B<Default> no default - this must be provided to read a file
+B<Default> no default - either this or a L<file handle|/file_handle> must be 
+provided to read a file
 
 B<Range> any unincrypted xlsx file that can be opened in Microsoft Excel
 
@@ -1129,6 +1103,42 @@ B<Definition:> change the set file name (this will reboot the workbook instance)
 =back
 
 B<has_file_name>
+
+=over
+
+B<Definition:> this is fundamentally a way to see if the workbook loaded correctly
+
+=back
+
+=back
+
+=back
+
+=head3 file_handle
+
+=over
+
+B<Definition:> This attribute holds a copy of the passed file handle reference.  
+If it is not a valid file handle then undef will be returned when this is set.
+
+B<Default> no default - either this or a L<file name|/file_name> must be 
+provided to read a file
+
+B<Range> any unincrypted xlsx file handle that can be opened in Microsoft Excel
+
+B<attribute methods> Methods provided to adjust this attribute
+		
+=over
+
+B<set_file_handle>
+
+=over
+
+B<Definition:> change the set file handle (this will reboot the workbook instance)
+
+=back
+
+B<has_file_handle>
 
 =over
 

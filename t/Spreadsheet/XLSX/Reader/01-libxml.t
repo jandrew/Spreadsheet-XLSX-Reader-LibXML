@@ -19,13 +19,18 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 118;
+use	Test::Most tests => 123;
 use	Test::Moose;
 use	lib	'../../../../../Log-Shiras/lib',
 		$lib,
 	;
 #~ use Log::Shiras::Switchboard v0.21 qw( :debug );#
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(
+###LogSD						name_space_bounds =>{
+###LogSD							UNBLOCK =>{
+###LogSD								log_file => 'trace',
+###LogSD							},
+###LogSD						},
 ###LogSD						reports =>{
 ###LogSD							log_file =>[ Print::Log->new ],
 ###LogSD						},
@@ -72,27 +77,28 @@ my	$answer_ref = [
 		'EOF',
 	];
 my 			@class_attributes = qw(
-				error_inst					file_name					file_creator
-				file_modified_by			file_date_created			file_date_modified
-				sheet_parser				count_from_zero				file_boundary_flags
-				empty_is_end				from_the_edge				default_format_list
-				format_string_parser		group_return_type			empty_return_type
+				error_inst					file_name					file_handle
+				file_creator				file_modified_by			file_date_created
+				file_date_modified			sheet_parser				count_from_zero
+				file_boundary_flags			empty_is_end				from_the_edge
+				default_format_list			format_string_parser		group_return_type
+				empty_return_type
 			);
 my  		@class_methods = qw(
 				new							parse						worksheet
 				worksheets					get_error_inst				error
 				set_error					clear_error					set_warnings
 				if_warn						set_file_name				has_file_name
-				creator						modified_by					date_created
-				date_modified				set_parser_type				get_parser_type
-				counting_from_zero			set_count_from_zero			boundary_flag_setting
-				change_boundary_flag		set_empty_is_end			is_empty_the_end
-				set_from_the_edge			set_default_format_list		get_default_format_list
-				set_format_string_parser	get_format_string_parser	get_group_return_type
-				set_group_return_type		get_epoch_year				get_shared_string_position
-				get_format_position			get_worksheet_names			number_of_sheets
-				start_at_the_beginning		in_the_list					get_empty_return_type
-				set_empty_return_type
+				set_file_name				has_file_name				creator
+				modified_by					date_created				date_modified
+				set_parser_type				get_parser_type				counting_from_zero
+				set_count_from_zero			boundary_flag_setting		change_boundary_flag
+				set_empty_is_end			is_empty_the_end			set_from_the_edge
+				set_default_format_list		get_default_format_list		set_format_string_parser
+				get_format_string_parser	get_group_return_type		set_group_return_type
+				get_epoch_year				get_shared_string_position	get_format_position
+				get_worksheet_names			number_of_sheets			start_at_the_beginning
+				in_the_list					get_empty_return_type		set_empty_return_type
 			);
 ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space => 'main', );
 ###LogSD		$phone->talk( level => 'inf	o', message => [ "easy questions ..." ] );
@@ -131,42 +137,42 @@ is			$parser->error(), undef,	"Write any error messages from the file load";
 ok			1,							"The file unzipped and the parser set up without issues";
 			}
 
-###LogSD	if( 1 ){#$s == 0
-###LogSD		$operator->add_name_space_bounds( {
-###LogSD			main =>{
-###LogSD				UNBLOCK =>{
-###LogSD					log_file => 'debug',
-###LogSD				},
-###LogSD			},
-###LogSD			Test =>{
-###LogSD				UNBLOCK =>{
-###LogSD					log_file => 'trace',
-###LogSD				},
-###LogSD				Workbook =>{
-###LogSD					worksheet =>{
-###LogSD						UNBLOCK =>{
-###LogSD							log_file => 'trace',
-###LogSD						},
-###LogSD					},
-###LogSD				},
-###LogSD				Worksheet =>{
-###LogSD					UNBLOCK =>{
-###LogSD						log_file => 'trace',
-###LogSD					},
-###LogSD					_set_file_name =>{
-###LogSD						UNBLOCK =>{
-###LogSD							log_file => 'warn',
-###LogSD						},
-###LogSD					},
-###LogSD					Types =>{
-###LogSD						UNBLOCK =>{
-###LogSD							log_file => 'warn',
-###LogSD						},
-###LogSD					},
-###LogSD				},
-###LogSD			},
-###LogSD		} );
-###LogSD	}
+#~ ###LogSD	if( 1 ){#$s == 0
+#~ ###LogSD		$operator->add_name_space_bounds( {
+#~ ###LogSD			main =>{
+#~ ###LogSD				UNBLOCK =>{
+#~ ###LogSD					log_file => 'debug',
+#~ ###LogSD				},
+#~ ###LogSD			},
+#~ ###LogSD			Test =>{
+#~ ###LogSD				UNBLOCK =>{
+#~ ###LogSD					log_file => 'trace',
+#~ ###LogSD				},
+#~ ###LogSD				Workbook =>{
+#~ ###LogSD					worksheet =>{
+#~ ###LogSD						UNBLOCK =>{
+#~ ###LogSD							log_file => 'trace',
+#~ ###LogSD						},
+#~ ###LogSD					},
+#~ ###LogSD				},
+#~ ###LogSD				Worksheet =>{
+#~ ###LogSD					UNBLOCK =>{
+#~ ###LogSD						log_file => 'trace',
+#~ ###LogSD					},
+#~ ###LogSD					_set_file_name =>{
+#~ ###LogSD						UNBLOCK =>{
+#~ ###LogSD							log_file => 'warn',
+#~ ###LogSD						},
+#~ ###LogSD					},
+#~ ###LogSD					Types =>{
+#~ ###LogSD						UNBLOCK =>{
+#~ ###LogSD							log_file => 'warn',
+#~ ###LogSD						},
+#~ ###LogSD					},
+#~ ###LogSD				},
+#~ ###LogSD			},
+#~ ###LogSD		} );
+#~ ###LogSD	}
 			my	$offset_ref = [ 0, 8, 15 ];
 			my	$y = 0;
 			for my $worksheet ( $workbook->worksheets() ) {
@@ -192,6 +198,10 @@ is_deeply	$row_ref, $answer_ref->[$offset_ref->[$y] + $x],
 			}
 			$y++;
 			}
+is			$workbook->parse( 'badfile.not' ), undef,
+										"Check that a bad file will not load";
+is			$workbook->error, 'Attribute (file_name) does not pass the type constraint because: The string -badfile.not- does not have an xlsx file extension',
+										"Confirm that the correct error is passed";
 explain 								"...Test Done";
 done_testing();
 

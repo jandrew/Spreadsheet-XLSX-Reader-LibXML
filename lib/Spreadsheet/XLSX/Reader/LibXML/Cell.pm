@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::Cell;
-use version; our $VERSION = qv('v0.26.2');
+use version; our $VERSION = qv('v0.28.2');
 #~ use Data::Dumper;
 $| = 1;
 use 5.010;
@@ -16,7 +16,7 @@ my	$message_type = HasMethods[ 'message' ];
 use lib	'../../../../../lib';
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
-with	'Spreadsheet::XLSX::Reader::LibXML::LogSpace';
+###LogSD	with 'Spreadsheet::XLSX::Reader::LibXML::LogSpace';
 use	Spreadsheet::XLSX::Reader::LibXML::Types qw(
 		CellID
 	);
@@ -271,16 +271,6 @@ background of this class.  All data has been pre-coalated/built from the L<Works
 |Spreadsheet::XLSX::Reader::LibXML::Worksheet> class.  In general the Worksheet class 
 will populate the attributes of this class when it is generated.  If you want to use it 
 as a standalone class just fill in the L<Attributes|/Attributes> below.
-
-This class uses a role for full functional implementation.  Read the documentation 
-for each of the role as well as this documentation to gain a complete picture of this 
-class.
-
-=head2 with
-
-These are attached role(s) for additional (re-used) functionality
-
-=head3 L<Spreadsheet::XLSX::Reader::LibXML::LogSpace>
 
 =head2 Primary Methods
 
@@ -1011,8 +1001,6 @@ L<MooseX::HasDefaults::RO>
 L<Types::Standard>
 
 L<lib>
-
-L<Spreadsheet::XLSX::Reader::LibXML::LogSpace>
 
 L<Spreadsheet::XLSX::Reader::LibXML::Types>
 
