@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::Error;
-use version; our $VERSION = qv('v0.28.2');
+use version; our $VERSION = qv('v0.30.0');
 
 use Moose;
 use Carp qw( cluck );
@@ -14,7 +14,7 @@ use Types::Standard qw(
 		Bool
     );
 use lib	'../../../../../lib',;
-with 'Spreadsheet::XLSX::Reader::LibXML::LogSpace';
+###LogSD	with 'Log::Shiras::LogSpace';
 ###LogSD	use Log::Shiras::TapWarn qw( re_route_warn restore_warn );
 ###LogSD	use Log::Shiras::Telephone;
 

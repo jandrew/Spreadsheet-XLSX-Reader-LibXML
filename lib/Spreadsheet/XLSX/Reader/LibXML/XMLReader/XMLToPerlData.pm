@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData;
-use version; our $VERSION = qv('v0.28.2');
+use version; our $VERSION = qv('v0.30.0');
 
 use	Moose::Role;
 use 5.010;
@@ -7,6 +7,7 @@ requires qw(
 	node_name	byte_consumed	move_to_first_att	move_to_next_att
 	inner_xml	next_element	node_depth			node_value
 );
+###LogSD	requires 'get_log_space';
 ###LogSD	use Log::Shiras::Telephone;
 
 #########1 Dispatch Tables    3#########4#########5#########6#########7#########8#########9
@@ -100,7 +101,6 @@ sub parse_element{
 			###LogSD		"Bytes consumed: $byte_count"] );
 			
 			# Go down as possible
-			#~ my $not_indexed = 1;
 			while( (( $self->node_depth - 1 ) > $current_level) ){
 					#~ or ($not_indexed and !ref $sub_ref)				){figure this out!!!
 				###LogSD	$phone->talk( level => 'debug', message => [
@@ -110,7 +110,6 @@ sub parse_element{
 				###LogSD		"Node index result: $result",
 				###LogSD		(($self->node_name) ? ('libxml2 current node name: ' . $self->node_name) : undef),
 				###LogSD		'libxml2 current node depth: ' . $self->node_depth ] );
-				#~ $not_indexed = 0;
 			}
 			
 			# Go up when finished

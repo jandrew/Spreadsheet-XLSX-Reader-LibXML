@@ -1,5 +1,5 @@
 #########1 Test File for Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings    ###9
-#!evn perl
+#!/usr/bin/env perl
 BEGIN{ $ENV{PERL_TYPE_TINY_XS} = 0; }
 $| = 1;
 
@@ -79,14 +79,14 @@ my			$answer_list =[
 lives_ok{
 			$test_instance	=	build_instance(
 									package	=> 'ParseExcelFormatStringsTest',
-									roles	=>[ 
-										'Spreadsheet::XLSX::Reader::LibXML::LogSpace'
-									],
+###LogSD							roles	=>[ 
+###LogSD								'Log::Shiras::LogSpace'
+###LogSD							],
 									add_roles_in_sequence =>[
 										'Spreadsheet::XLSX::Reader::LibXML::FmtDefault',
 										'Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings'
 									],
-									log_space	=> 'Test',
+###LogSD							log_space	=> 'Test',
 									epoch_year 	=> 1904,
 								);
 }										"Prep a test ParseExcelFormatStrings instance";

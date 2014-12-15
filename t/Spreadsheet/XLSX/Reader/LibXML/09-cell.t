@@ -1,5 +1,5 @@
 #########1 Test File for Spreadsheet::XLSX::Reader::LibXML::Cell      7#########8#########9
-#!env perl
+#!/usr/bin/env perl
 BEGIN{ $ENV{PERL_TYPE_TINY_XS} = 0; }
 $| = 1;
 

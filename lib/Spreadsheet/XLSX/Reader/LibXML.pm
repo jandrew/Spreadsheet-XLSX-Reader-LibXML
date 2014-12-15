@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML;
-use version 0.77; our $VERSION = qv('v0.28.2');
+use version 0.77; our $VERSION = qv('v0.30.0');
 
 use 5.010;
 use	List::Util 1.33;
@@ -18,10 +18,9 @@ use Types::Standard qw(
 use	MooseX::ShortCut::BuildInstance 1.028 qw( build_instance should_re_use_classes );
 should_re_use_classes( 1 );
 use lib	'../../../../lib',;
-###LogSD	use Log::Shiras::Telephone;
-###LogSD	use Log::Shiras::UnhideDebug;
-with 'Spreadsheet::XLSX::Reader::LibXML::LogSpace';###LogSD	
-###LogSD	use Log::Shiras::UnhideDebug;
+###LogSD with 'Log::Shiras::LogSpace';
+###LogSD use Log::Shiras::Telephone;
+###LogSD use Log::Shiras::UnhideDebug;
 use	Spreadsheet::XLSX::Reader::LibXML::Error;
 use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles;
 use	Spreadsheet::XLSX::Reader::LibXML::FmtDefault;
@@ -213,8 +212,6 @@ sub worksheets{
 	###LogSD			'Attempting to build all worksheets: ', $self->get_worksheet_names ] );
 	my	@worksheet_array;
 	while( my $worksheet_object = $self->worksheet ){
-	#~ for my $worksheet_name ( @worksheet_array ){
-		#~ my	$worksheet_object = $self->worksheet( $worksheet_name );
 		###LogSD	$phone->talk( level => 'info', message =>[
 		###LogSD		'Built worksheet: ' .  $worksheet_object->get_name ] );
 		push @worksheet_array, $worksheet_object;#$self->worksheet( $worksheet_name );
@@ -269,7 +266,7 @@ sub worksheet{
 	my	$worksheet = 	build_instance(
 							superclasses		=> $self->_get_worksheet_superclass,
 							package				=> 'WorksheetInstance',
-							log_space 			=> $self->get_log_space . "::Worksheet",
+					###LogSD	log_space 		=> $self->get_log_space . "::Worksheet",
 							sheet_name			=> $worksheet_name,
 							workbook_instance	=> $self,
 							error_inst			=> $self->get_error_inst,
@@ -591,7 +588,6 @@ sub _set_shared_worksheet_files{
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		"File lookup list: ", $file_lookup], );
 	
-	my	$name_space = $self->get_log_space;
 	for my $file ( keys %$object_ref ){
 			###LogSD	$phone->talk( level => 'debug', message => [
 			###LogSD		"checking the file class: $file",], );

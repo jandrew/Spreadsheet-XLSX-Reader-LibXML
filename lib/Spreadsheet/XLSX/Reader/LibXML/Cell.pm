@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::Cell;
-use version; our $VERSION = qv('v0.28.2');
+use version; our $VERSION = qv('v0.30.0');
 #~ use Data::Dumper;
 $| = 1;
 use 5.010;
@@ -16,7 +16,7 @@ my	$message_type = HasMethods[ 'message' ];
 use lib	'../../../../../lib';
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
-###LogSD	with 'Spreadsheet::XLSX::Reader::LibXML::LogSpace';
+###LogSD	with 'Log::Shiras::LogSpace';
 use	Spreadsheet::XLSX::Reader::LibXML::Types qw(
 		CellID
 	);

@@ -4,8 +4,7 @@ use Moose;
 use lib '../../../../../lib';
 with 'Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow';
 
-sub set_error{}
-sub get_log_space{}
+sub set_error{};
 	
 sub my_method{
     my ( $self, $cell ) = @_;

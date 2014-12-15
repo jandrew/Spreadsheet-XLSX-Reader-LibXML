@@ -19,7 +19,7 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 28;
+use	Test::Most tests => 26;
 use	Test::Moose;
 use	MooseX::ShortCut::BuildInstance qw( build_instance );
 #~ use Data::Dumper;
@@ -61,8 +61,6 @@ my  		@instance_methods = qw(
 				get_file_name
 				where_am_i
 				has_position
-				get_log_space
-				set_log_space
 				parse_element
 				error
 				set_error
@@ -140,7 +138,7 @@ lives_ok{
 									superclasses =>[ 'Spreadsheet::XLSX::Reader::LibXML::XMLReader', ],
 									add_roles_in_sequence =>[ 'Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData', ],
 									file_name	=> $test_file,
-									log_space	=> 'Test',
+			###LogSD				log_space	=> 'Test',
 									error_inst	=> Spreadsheet::XLSX::Reader::LibXML::Error->new(
 										#~ should_warn => 1,
 										should_warn => 0,# to turn off cluck when the error is set
@@ -164,7 +162,7 @@ is_deeply	$test_instance->parse_element, $answer_ref->[0],
 lives_ok{
 			$test_instance =	TestIntance->new(
 									file_name	=> $test_fil2,
-									log_space	=> 'Test',
+			###LogSD				log_space	=> 'Test',
 									error_inst	=> Spreadsheet::XLSX::Reader::LibXML::Error->new(
 										#~ should_warn => 1,
 										should_warn => 0,# to turn off cluck when the error is set

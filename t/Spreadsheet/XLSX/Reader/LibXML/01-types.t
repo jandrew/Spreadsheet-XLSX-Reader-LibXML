@@ -83,8 +83,8 @@ my			$answer_ref = [
 				[],
 				[undef, undef, qr/Could not find \/ read the file: badfile.not/, ],
 				[	undef,
-					qr/IO::File=GLOB\(.{6,10}\)'\s+is not a string value/,#IO::
-					qr/GLOB\(.{6,10}\)'\s+is not a string value/,
+					qr/IO::File=GLOB\(.{6,20}\)'\s+is not a string value/,#IO::
+					qr/GLOB\(.{6,20}\)'\s+is not a string value/,
 					qr/The string -badfile.not- does not have an xlsx file extension/, ],
 				[undef, qr/The string -badfile.not- does not have an xml file extension/, ],
 				[	undef,

@@ -25,7 +25,7 @@ use	lib
 ###LogSD	use Log::Shiras::UnhideDebug;
 use	Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow;
 use	Spreadsheet::XLSX::Reader::LibXML::Error;
-use	Spreadsheet::XLSX::Reader::LibXML::LogSpace;
+###LogSD	use	Log::Shiras::LogSpace;
 my  ( 
 			$test_instance,
 	);
@@ -91,7 +91,7 @@ lives_ok{
 			$test_instance = build_instance(
 				package => 'Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow::TestClass',
 				add_roles_in_sequence =>[ 
-					'Spreadsheet::XLSX::Reader::LibXML::LogSpace',
+			###LogSD	'Log::Shiras::LogSpace',
 					'Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow',
 				],
 				add_attributes =>{ 
@@ -134,33 +134,6 @@ is			$test_instance->build_cell_label( @{$answer_ref->[ $_]} ), $question_ref->[
 										', ' . $answer_ref->[ $_]->[1] . ') - to Excel cell ID -' . $question_ref->[$_] . '-'
 										;
 }(0 .. 31);
-#~ lives_ok{
-			#~ $test_instance = build_instance(
-				#~ package => 'Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow::TestClass',# Just call the class since it is already built
-				#~ error_inst => Spreadsheet::XLSX::Reader::LibXML::Error->new(
-					# should_warn => 1,
-					#~ should_warn => 0,# to turn off cluck when the error is set
-				#~ ),
-				#~ name_space		=> 'Test',
-				#~ should_warn		=> 0,
-				#~ count_from_zero	=> 1,
-			#~ );
-#~ }										"Build a new test instance to count rows and columns from zero";
-#~ map{
-#~ is_deeply	[ $test_instance->parse_column_row( $question_ref->[$_] ) ], $answer_ref->[38 + $_],
-										#~ "Convert the Excel cell ID -" . $question_ref->[$_] . "- to column, row: (" .
-										#~ $answer_ref->[38 + $_]->[0] . ', ' . $answer_ref->[38 + $_]->[1] . ')';
-#~ if( $error_ref->[38 + $_] ){
-#~ like		$test_instance->error, $error_ref->[38 + $_],
-										#~ "... and check for the correct error message";
-#~ }
-#~ }(0 .. 37);
-#~ map{
-#~ is			$test_instance->build_cell_label( @{$answer_ref->[38 + $_]} ), $question_ref->[$_],#Reverse the polarity flow through the gate
-										#~ "Convert the column, row: (" . $answer_ref->[38 + $_]->[0] . 
-										#~ ', ' . $answer_ref->[38 + $_]->[1] . ') - to Excel cell ID -' . $question_ref->[$_] . '-'
-										#~ ;
-#~ }(0 .. 31);
 			use warnings 'uninitialized';
 explain 								"...Test Done";
 done_testing();
@@ -180,12 +153,13 @@ done_testing();
 ###LogSD			push @initial_list, (( ref $value ) ? Dumper( $value ) : $value );
 ###LogSD		}
 ###LogSD		for my $line ( @initial_list ){
+###LogSD			$line =~ s/\n$//;
 ###LogSD			$line =~ s/\n/\n\t\t/g;
 ###LogSD			push @print_list, $line;
 ###LogSD		}
-###LogSD		printf( "name_space - %-50s | level - %-6s |\nfile_name  - %-50s | line  - %04d   |\n\t:(\t%s ):\n", 
-###LogSD					$_[0]->{name_space}, $_[0]->{level},
-###LogSD					$_[0]->{filename}, $_[0]->{line},
+###LogSD		printf( "| level - %-6s | name_space - %-s\n| line  - %04d   | file_name  - %-s\n\t:(\t%s ):\n", 
+###LogSD					$_[0]->{level}, $_[0]->{name_space},
+###LogSD					$_[0]->{line}, $_[0]->{filename},
 ###LogSD					join( "\n\t\t", @print_list ) 	);
 ###LogSD		use warnings 'uninitialized';
 ###LogSD	}

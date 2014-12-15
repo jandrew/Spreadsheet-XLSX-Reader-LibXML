@@ -29,7 +29,7 @@ use	lib	'../../../../../Log-Shiras/lib',
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(
 ###LogSD						name_space_bounds => {
 ###LogSD							UNBLOCK =>{
-###LogSD								log_file => 'trace',
+###LogSD								log_file => 'debug',
 ###LogSD							},
 ###LogSD						},
 ###LogSD						reports =>{
@@ -49,7 +49,7 @@ my  (
 ###LogSD		$phone->talk( level => 'info', message => [ "harder questions ..." ] );
 lives_ok{
 			$parser =	Spreadsheet::XLSX::Reader::LibXML->new(
-							log_space => 'Test',
+			###LogSD		log_space => 'Test',
 							file_name => $test_file,
 						);
 }										"Prep a test parser instance";

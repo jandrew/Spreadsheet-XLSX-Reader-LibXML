@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader;
-use version; our $VERSION = qv('v0.26.2');
+use version; our $VERSION = qv('v0.30.0');
 
 use 5.010;
 use Moose;
@@ -11,7 +11,7 @@ use Types::Standard qw(
     );
 use XML::LibXML::Reader;
 use lib	'../../../../../lib',;
-with 'Spreadsheet::XLSX::Reader::LibXML::LogSpace';
+###LogSD	with 'Log::Shiras::LogSpace';
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
 use Spreadsheet::XLSX::Reader::LibXML::Types qw(

@@ -19,7 +19,7 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 28;
+use	Test::Most tests => 26;
 use	Test::Moose;
 use Data::Dumper;
 #~ use Capture::Tiny 0.12 qw( 	capture_stderr );
@@ -57,8 +57,6 @@ my  		@class_methods = qw(
 				get_file_name
 				where_am_i
 				has_position
-				get_log_space
-				set_log_space
 			);
 my			$answer_ref = [
 				16,
@@ -142,8 +140,8 @@ can_ok		'Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings', $_,
 lives_ok{
 			$test_instance =	Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings->new(
 									file_name	=> $test_file,
-									log_space	=> 'Test',
-									error_inst => Spreadsheet::XLSX::Reader::LibXML::Error->new(
+			###LogSD				log_space	=> 'Test',
+									error_inst	=> Spreadsheet::XLSX::Reader::LibXML::Error->new(
 										#~ should_warn => 1,
 										should_warn => 0,# to turn off cluck when the error is set
 									),

@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::Types;
-use version; our $VERSION = qv('v0.28.2');
+use version; our $VERSION = qv('v0.30.0');
 		
 use strict;
 use warnings;
@@ -15,7 +15,6 @@ use Type::Library 0.046
 	);
 use IO::File;
 BEGIN{ extends "Types::Standard" };
-#~ use Types::Standard  qw( Str InstanceOf Enum Num Any Maybe StrMatch );
 my $try_xs =
 		exists($ENV{PERL_TYPE_TINY_XS}) ? !!$ENV{PERL_TYPE_TINY_XS} :
 		exists($ENV{PERL_ONLY})         ?  !$ENV{PERL_ONLY} :

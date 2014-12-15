@@ -19,7 +19,7 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 38;
+use	Test::Most tests => 35;
 use	Test::Moose;
 use	MooseX::ShortCut::BuildInstance v1.8 qw( build_instance );
 use Data::Dumper;
@@ -101,7 +101,6 @@ my  (
 my 			$row = 0;
 my 			@class_attributes = qw(
 				file_name
-				log_space
 				excel_region
 				target_encoding
 				cache_formats
@@ -120,8 +119,6 @@ my  		@class_methods = qw(
 				set_warnings
 				if_warn
 				parse_element
-				get_log_space
-				set_log_space
 				get_epoch_year
 				get_cache_behavior
 				get_date_behavior
@@ -144,7 +141,7 @@ lives_ok{
 										Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings
 									)],
 									file_name	=> $test_file,
-									log_space	=> 'Test',
+			###LogSD				log_space	=> 'Test',
 									error_inst	=> Spreadsheet::XLSX::Reader::LibXML::Error->new(
 										should_warn => 1,
 										#~ should_warn => 0,# to turn off cluck when the error is set

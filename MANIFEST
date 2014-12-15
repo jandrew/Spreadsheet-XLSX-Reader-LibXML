@@ -14,7 +14,6 @@ lib/Spreadsheet/XLSX/Reader/LibXML/CellToColumnRow.pm
 lib/Spreadsheet/XLSX/Reader/LibXML/Error.pm
 lib/Spreadsheet/XLSX/Reader/LibXML/FmtDefault.pm
 lib/Spreadsheet/XLSX/Reader/LibXML/GetCell.pm
-lib/Spreadsheet/XLSX/Reader/LibXML/LogSpace.pm
 lib/Spreadsheet/XLSX/Reader/LibXML/ParseExcelFormatStrings.pm
 lib/Spreadsheet/XLSX/Reader/LibXML/SharedStrings.pod
 lib/Spreadsheet/XLSX/Reader/LibXML/Styles.pod
@@ -31,7 +30,6 @@ t/Spreadsheet/XLSX/Reader/02-open_by_worksheet_bug.t
 t/Spreadsheet/XLSX/Reader/03-temp_dir_bug.t
 t/Spreadsheet/XLSX/Reader/LibXML/01-types.t
 t/Spreadsheet/XLSX/Reader/LibXML/02-error.t
-t/Spreadsheet/XLSX/Reader/LibXML/03-log_space.t
 t/Spreadsheet/XLSX/Reader/LibXML/04-xml_reader.t
 t/Spreadsheet/XLSX/Reader/LibXML/05-cell_to_column_row.t
 t/Spreadsheet/XLSX/Reader/LibXML/07-fmt_default.t

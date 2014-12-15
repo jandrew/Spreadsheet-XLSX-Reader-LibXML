@@ -1,12 +1,9 @@
 #!/usr/bin/env perl
 package MyPackage;
 use Moose;
-
-sub get_log_space{};
 	
 use lib '../../../../../lib';
-with 	'Spreadsheet::XLSX::Reader::LibXML::UtilFunctions',
-		'Spreadsheet::XLSX::Reader::LibXML::FmtDefault';
+with	'Spreadsheet::XLSX::Reader::LibXML::FmtDefault';
 # call 'with' a second time to ensure that the prior methods are recorded
 with	'Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings';
 

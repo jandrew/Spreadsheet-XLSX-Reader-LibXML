@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles;
-use version; our $VERSION = qv('v0.28.2');
+use version; our $VERSION = qv('v0.30.0');
 
 use 5.010;
 use Moose;
@@ -14,8 +14,8 @@ use lib	'../../../../../../lib',;
 ###LogSD	use Log::Shiras::UnhideDebug;
 extends	'Spreadsheet::XLSX::Reader::LibXML::XMLReader';
 with	'Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData',
-		'Spreadsheet::XLSX::Reader::LibXML::LogSpace',
 		;
+###LogSD	with 'Log::Shiras::LogSpace';
 
 #########1 Dispatch Tables & Package Variables    5#########6#########7#########8#########9
 
@@ -316,10 +316,8 @@ sub _get_header_and_position{
 	if( $target_position > $sub_position ){
 		$sub_position++ if $self->_get_last_recorded == 1;
 		$self->_set_last_recorded( 0 );
-		#~ my $ref = $self->parse_element;
 		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"Sub position now: $sub_position",] );# $ref 
-		#~ $changed_position = 1;
+		###LogSD		"Sub position now: $sub_position",] );
 		while( $target_position > $sub_position ){
 			my $result = $self->next_element( $element_name );
 			$sub_position++;

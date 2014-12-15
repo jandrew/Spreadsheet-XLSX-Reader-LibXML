@@ -1,5 +1,5 @@
 #########1 Test File for Spreadsheet::XLSX::Reader::LibXML::GetCell   7#########8#########9
-#!env perl
+#!/usr/bin/env perl
 my ( $lib, $test_file );
 BEGIN{
 	$ENV{PERL_TYPE_TINY_XS} = 0;
@@ -281,7 +281,7 @@ lives_ok{
 			$shared_strings_instance =	Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings->new(
 											error_inst	=> $error_instance,
 											file_name	=> $shared_strings_file,
-											log_space	=> 'Test::SharedStrings',
+			###LogSD						log_space	=> 'Test::SharedStrings',
 										);
 			$workbook_instance =	build_instance(
 										package	=> 'WorkbookInstance',

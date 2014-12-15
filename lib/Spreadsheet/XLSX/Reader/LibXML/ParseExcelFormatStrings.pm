@@ -1,11 +1,12 @@
 package Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings;
-use version; our $VERSION = qv('v0.28.2');
+use version; our $VERSION = qv('v0.30.0');
 
 use 5.010;
 use Moose::Role;
-requires qw(
-	get_log_space					get_excel_region
-);
+requires 
+			'get_excel_region',
+###LogSD	'get_log_space',
+;
 use Types::Standard qw(
 		Int							Str						Maybe
 		Num							HashRef					ArrayRef
@@ -1599,8 +1600,6 @@ Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings - Parser of XLSX form
 	#!/usr/bin/env perl
 	package MyPackage;
 	use Moose;
-
-	sub get_log_space{};
 	
 	with 	'Spreadsheet::XLSX::Reader::LibXML::FmtDefault';
 	# call 'with' a second time to ensure that the prior methods are recorded
@@ -1665,15 +1664,6 @@ Excel exactly.
 
 These are method(s) used by this Role but not provided by the role.  Any class consuming this 
 role will not build without first providing these methods prior to loading this role.
-
-=head3 get_log_space
-
-=over
-
-B<Definition:> Used to return the log space used by the code protected by ###LogSD.  See
-L<Log::Shiras|https://github.com/jandrew/Log-Shiras> for more information.
-
-=back
 
 =head3 get_excel_region
 

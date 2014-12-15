@@ -1,11 +1,11 @@
 package Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow;
-use version; our $VERSION = qv('v0.28.2');
+use version; our $VERSION = qv('v0.30.0');
 
 use	Moose::Role;
-requires qw(
-	get_log_space
-	set_error
-);
+requires
+			'set_error',
+###LogSD	'get_log_space',
+;
 use Types::Standard qw( Bool );
 ###LogSD	use Log::Shiras::Telephone;
 
@@ -32,7 +32,7 @@ sub parse_column_row{
 	###LogSD			"Parsing file row number and file column number from: $cell" ] );
 	my ( $column, $row ) = $self->_parse_column_row( $cell );
 	###LogSD	$phone->talk( level => 'debug', message =>[
-	###LogSD		"File Column: $column", "File Row: $row" ] );
+	###LogSD		'File Column: ' . ($column//''), 'File Row: ' . ($row//'') ] );
 	###LogSD	use warnings 'uninitialized';
 	return( $column, $row );
 }
@@ -201,7 +201,6 @@ Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow - Translate Excel cell IDs to
 	with 'Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow';
 
 	sub set_error{} #Required method of this role
-	sub get_log_space{} #Required method of this role
 		
 	sub my_method{
 		my ( $self, $cell ) = @_;
@@ -247,15 +246,6 @@ ID 'A1' is equal to (1, 1) and column row (3, 2) is equal to the cell ID 'C2'.
 
 These are methods used by this Role but not provided by the role.  Any class consuming this 
 role will not build unless it first provides these methods prior to loading this role.
-
-=head3 get_log_space
-
-=over
-
-B<Definition:> Used to return the log space used by the code protected by ###LogSD.  See
-L<Log::Shiras|https://github.com/jandrew/Log-Shiras> for more information.
-
-=back
 
 =head3 set_error( $error_string )
 

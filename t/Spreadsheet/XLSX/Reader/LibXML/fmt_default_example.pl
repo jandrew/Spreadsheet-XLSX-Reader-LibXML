@@ -4,8 +4,6 @@ use Moose;
 use lib '../../../../../lib';
 with 'Spreadsheet::XLSX::Reader::LibXML::FmtDefault';
 
-sub get_log_space{}
-
 package main;
 
 my $parser = MyPackage->new;

@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::GetCell;
-use version; our $VERSION = qv('v0.28.2');
+use version; our $VERSION = qv('v0.30.0');
 
 use	Moose::Role;
 requires qw(
@@ -13,8 +13,8 @@ use Types::Standard qw(
 	Int							is_Int						ArrayRef
 	is_ArrayRef					HashRef						is_HashRef
 );# Int
-###LogSD	use Log::Shiras::Telephone;
 use lib	'../../../../../lib',;
+###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
 use	Spreadsheet::XLSX::Reader::LibXML::Cell;
 

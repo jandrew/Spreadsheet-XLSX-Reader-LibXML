@@ -16,8 +16,6 @@ pod_file_ok( $up . 	'lib/Spreadsheet/XLSX/Reader/LibXML/Types.pm',
 						"The Spreadsheet::XLSX::Reader::LibXML::Types file has good POD" );
 pod_file_ok( $up . 	'lib/Spreadsheet/XLSX/Reader/LibXML/Error.pm',
 						"The Spreadsheet::XLSX::Reader::LibXML::Error file has good POD" );
-pod_file_ok( $up . 	'lib/Spreadsheet/XLSX/Reader/LibXML/LogSpace.pm',
-						"The Spreadsheet::XLSX::Reader::LibXML::LogSpace file has good POD" );
 pod_file_ok( $up . 	'lib/Spreadsheet/XLSX/Reader/LibXML/XMLReader.pm',
 						"The Spreadsheet::XLSX::Reader::LibXML::XMLReader file has good POD" );
 pod_file_ok( $up . 	'lib/Spreadsheet/XLSX/Reader/LibXML/CellToColumnRow.pm',

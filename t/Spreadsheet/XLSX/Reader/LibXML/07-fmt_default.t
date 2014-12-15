@@ -135,15 +135,15 @@ my			$answer_list =[
 lives_ok{
 			$test_instance	=	build_instance(
 									package	=> 'FmtDefaultTest',
-									roles	=>[ 
-										'Spreadsheet::XLSX::Reader::LibXML::LogSpace'
-									],
+			###LogSD				roles	=>[ 
+			###LogSD					'Log::Shiras::LogSpace'
+			###LogSD				],
 									add_roles_in_sequence =>[
 										'Spreadsheet::XLSX::Reader::LibXML::FmtDefault',
 										'Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings'
 									],
-									log_space				=> 'Test',
-									epoch_year				=> 1904,
+			###LogSD				log_space	=> 'Test',
+									epoch_year	=> 1904,
 								);
 }										"Prep a test ParseExcelFormatStrings instance";
 map{ 

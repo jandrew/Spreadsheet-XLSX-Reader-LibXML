@@ -114,13 +114,13 @@ can_ok		'Spreadsheet::XLSX::Reader::LibXML', $_,
 ###LogSD		$phone->talk( level => 'info', message => [ "harder questions ..." ] );
 lives_ok{
 			$error_instance	= 	Spreadsheet::XLSX::Reader::LibXML::Error->new(
-									log_space	=> 'ErrorInstance',
+			###LogSD				log_space	=> 'ErrorInstance',
 									should_warn => 0,
 								);
 			$parser =	Spreadsheet::XLSX::Reader::LibXML->new(
 							#~ file_name 	=> $test_file,
 							count_from_zero		=> 0,
-							log_space			=> 'Test',
+			###LogSD		log_space			=> 'Test',
 							error_inst			=> $error_instance,
 							group_return_type	=> 'value',
 							empty_return_type	=> 'undef_string',
@@ -176,7 +176,6 @@ ok			1,							"The file unzipped and the parser set up without issues";
 			my	$offset_ref = [ 0, 8, 15 ];
 			my	$y = 0;
 			for my $worksheet ( $workbook->worksheets() ) {
-###LogSD	exit 1;
 explain		'testing worksheet: ' . $worksheet->get_name;
 				$row_ref = undef;
 			my	$x = 0;

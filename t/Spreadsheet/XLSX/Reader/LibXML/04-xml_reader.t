@@ -19,7 +19,7 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 47;
+use	Test::Most tests => 45;
 use	Test::Moose;
 use	MooseX::ShortCut::BuildInstance qw( build_instance );
 use	lib
@@ -70,8 +70,6 @@ my  		@class_methods = qw(
 				where_am_i
 				has_position
 				start_the_file_over
-				get_log_space
-				set_log_space
 				
 			);
 my			$answer_ref = [
@@ -139,8 +137,8 @@ has_attribute_ok
 ###LogSD		$phone->talk( level => 'info', message => [ "harder questions ..." ] );
 lives_ok{
 			$test_instance =	Spreadsheet::XLSX::Reader::LibXML::XMLReader->new(
-									file_name		=> $test_file,
-									log_space	=> 'Test',
+									file_name	=> $test_file,
+			###LogSD				log_space	=> 'Test',
 									error_inst => Spreadsheet::XLSX::Reader::LibXML::Error->new(
 										#~ should_warn => 1,
 										should_warn => 0,# to turn off cluck when the error is set

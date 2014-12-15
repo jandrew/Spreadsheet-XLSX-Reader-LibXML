@@ -19,7 +19,7 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 1330;
+use	Test::Most tests => 1327;
 use	Test::Moose;
 use	MooseX::ShortCut::BuildInstance qw( build_instance );
 use Types::Standard qw( Bool );
@@ -62,7 +62,7 @@ use	Type::Tiny;
 
 	$test_file	= ( @ARGV ) ? $ARGV[0] : $test_file;
 	$test_file .= 'sheet3.xml';
-my	$log_space	= 'Test';
+###LogSD	my	$log_space	= 'Test';
 ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space => 'main', );
 ###LogSD		$phone->talk( level => 'trace', message => [ "Test file is: $test_file" ] );
 my  ( 
@@ -71,7 +71,6 @@ my  (
 my 			@class_attributes = qw(
 				file_name
 				error_inst
-				log_space
 				sheet_rel_id
 				sheet_id
 				sheet_position
@@ -99,7 +98,6 @@ my  		@instance_methods = qw(
 				clear_error
 				set_warnings
 				if_warn
-				get_log_space
 				parse_column_row
 				build_cell_label
 				parse_element
@@ -423,11 +421,11 @@ lives_ok{
 								);
 			$error_instance = Spreadsheet::XLSX::Reader::LibXML::Error->new( should_warn => 0 );
 			$test_instance	= Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet->new(
-				file_name				=> $test_file,
-				log_space				=> 'Test',
-				error_inst				=> $error_instance,
-				sheet_name				=> 'Sheet3',
-				workbook_instance		=> $workbook_instance,
+				file_name			=> $test_file,
+				error_inst			=> $error_instance,
+				sheet_name			=> 'Sheet3',
+				workbook_instance	=> $workbook_instance,
+			###LogSD	log_space	=> 'Test',
 			);
 			###LogSD	$phone->talk( level => 'info', message =>[ "Loaded test instance" ] );
 }										"Prep a new Worksheet instance";
@@ -437,8 +435,6 @@ can_ok		$test_instance, $_,
 } 			@instance_methods;
 is			$test_instance->get_file_name, $test_file,
 										"check that it knows the file name";
-is			$test_instance->get_log_space, $log_space,
-										"check that it knows the log_space";
 is			$test_instance->min_row, 1,
 										"check that it knows what the lowest row number is";
 is			$test_instance->min_col, 1,
@@ -522,11 +518,11 @@ lives_ok{
 			$workbook_instance->set_empty_is_end( 1 );
 			$workbook_instance->set_from_the_edge( 0 );
 			$test_instance	= Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet->new(
-				file_name				=> $test_file,
-				log_space				=> 'Test',
-				error_inst				=> $error_instance,
-				sheet_name				=> 'Sheet3',
-				workbook_instance		=> $workbook_instance,
+				file_name			=> $test_file,
+			###LogSD	log_space	=> 'Test',
+				error_inst			=> $error_instance,
+				sheet_name			=> 'Sheet3',
+				workbook_instance	=> $workbook_instance,
 			);
 ###LogSD	$phone->talk( level => 'trace', message =>[ "Loaded new test instance - without the edges" ] );
 }										"Build a Worksheet instance with the edges cut off";

@@ -1,11 +1,11 @@
 package Spreadsheet::XLSX::Reader::LibXML::FmtDefault;
-use version; our $VERSION = qv('v0.28.2');
+use version; our $VERSION = qv('v0.30.0');
 
 use	5.010;
 use	Moose::Role;
-requires qw(
-	get_log_space
-);
+###LogSD	requires qw(
+###LogSD		get_log_space
+###LogSD	);
 
 use Types::Standard qw( InstanceOf ArrayRef Str );
 use lib	'../../../../../lib',;
@@ -118,8 +118,6 @@ Spreadsheet::XLSX::Reader::LibXML::FmtDefault - Default xlsx number formats and 
     package MyPackage;
     use Moose;
     with 'Spreadsheet::XLSX::Reader::LibXML::FmtDefault';
-    
-    sub get_log_space{}
     
     package main;
     
