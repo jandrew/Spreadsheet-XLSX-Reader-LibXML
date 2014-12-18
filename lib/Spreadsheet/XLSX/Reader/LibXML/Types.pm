@@ -58,8 +58,10 @@ declare XLSXFile,
 	message{
 		my $test = $_;
 		my $return =
+			( !defined $test ) ?
+				"Empty filename" :
 			( ref $test ) ?
-				"'" . ($test ? $test : '' ) . "' is not a string value" :
+				"'" . $test . "' is not a string value" :
 			( $test !~ /\.xlsx$/ ) ?
 				"The string -$test- does not have an xlsx file extension" :
 			( -r $test) ?
