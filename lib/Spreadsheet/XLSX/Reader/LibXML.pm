@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML;
-use version 0.77; our $VERSION = qv('v0.30.0');
+use version 0.77; our $VERSION = qv('v0.30.2');
 
 use 5.010;
 use	List::Util 1.33;
@@ -8,19 +8,21 @@ use	MooseX::StrictConstructor;
 use	MooseX::HasDefaults::RO;
 use	Carp qw( confess );
 use	Archive::Zip qw( AZ_OK );
-use	File::Temp;
+use	XML::LibXML;
+use	XML::LibXML::Reader;
+use	IO::File;
 use Types::Standard qw(
  		InstanceOf			Str       		StrMatch
 		Enum				HashRef			ArrayRef
 		CodeRef				Int				HasMethods
 		Bool
     );
-use	MooseX::ShortCut::BuildInstance 1.028 qw( build_instance should_re_use_classes );
-should_re_use_classes( 1 );
+use	MooseX::ShortCut::BuildInstance 1.032 qw( build_instance should_re_use_classes );
 use lib	'../../../../lib',;
 ###LogSD with 'Log::Shiras::LogSpace';
 ###LogSD use Log::Shiras::Telephone;
 ###LogSD use Log::Shiras::UnhideDebug;
+should_re_use_classes( 1 );
 use	Spreadsheet::XLSX::Reader::LibXML::Error;
 use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles;
 use	Spreadsheet::XLSX::Reader::LibXML::FmtDefault;
@@ -33,6 +35,7 @@ use	Spreadsheet::XLSX::Reader::LibXML::Types qw( XLSXFile ParserType IOFileType 
 
 my	$parser_modules ={
 		reader =>{
+			build_method => '_build_reader',
 			sharedStrings =>{
 				superclasses	=> ['Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings'],
 				attributes		=> [qw( error_inst )],
@@ -48,8 +51,29 @@ my	$parser_modules ={
 			},
 			worksheet =>{
 				superclasses	=> ['Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet'],
-				store			=> '_set_worksheet_superclass',
+				#~ store			=> '_set_worksheet_superclass',
 			},
+		},
+	};
+my	$xml_parser = XML::LibXML->new();
+my	$build_ref	= {
+		top_level_workbook =>{
+			zip	=> 'xl/workbook.xml',
+		},
+		workbook_rels =>{
+			zip	=> 'xl/_rels/workbook.xml.rels',
+		},
+		doc_props =>{
+			zip	=> 'docProps/core.xml',
+		},
+		sharedStrings =>{
+			zip	=> 'xl/sharedStrings.xml',
+		},
+		styles =>{
+			zip	=> 'xl/styles.xml',
+		},
+		calcChain =>{
+			zip	=> 'xl/calcChain.xml',
 		},
 	};
 
@@ -190,13 +214,17 @@ sub parse{
 	###LogSD			(($formatter) ? "with formatter: $formatter" : '') ] );
 	$self->set_format_string_parser( $formatter ) if $formatter;
 	if( IOFileType->check( $file ) ){
+		###LogSD	$phone->talk( level => 'info', message =>[ 'passed a file handle:', $file, ] );
 		eval '$self->set_file_handle( $file )';
 	}else{
+		###LogSD	$phone->talk( level => 'info', message =>[ 'passed a file name: ' . $file, ] );
 		eval '$self->set_file_name( $file )';
 	}
 	if( $@ ){
-		###LogSD	$phone->talk( level => 'info', message =>[ 'saving error:', $@->message, ] );
-		$self->set_error( $@->message );
+		my $error_message = $@;
+		$error_message =~ s/\)\n;/\);/g;
+		###LogSD	$phone->talk( level => 'info', message =>[ "saving error:\n$error_message", ] );
+		$self->set_error( $error_message );
 		return undef;
 	}else{
 		return $self;
@@ -229,7 +257,20 @@ sub worksheet{
 	###LogSD					name_space 	=> $self->get_log_space .  '::Workbook::worksheet', );
 	###LogSD		$phone->talk( level => 'info', message =>[
 	###LogSD			"Arrived at (build a) worksheet with: ", $worksheet_name ] );
+	
+	# Check for a file and an available parser type
 	confess "No file loaded yet" if !$self->has_file_name and !$self->has_file_handle;
+	my ( $translation_method, $parser_type );
+	if( exists $parser_modules->{ $self->get_parser_type } ){
+		$translation_method	= $parser_modules->{ $self->get_parser_type }->{build_method};
+		$parser_type		= $parser_modules->{ $self->get_parser_type }->{worksheet};
+	}else{
+		confess 'This package still under development - parser type |' . $self->get_parser_type . '| not yet supported - try the "reader" parser';
+		return undef;
+	}
+	###LogSD		$phone->talk( level => 'info', message =>[
+	###LogSD			"Using translation: $translation_method", "With parser: ", $parser_type, ] );
+	
 	# Handle an implied 'next sheet'
 	if( !$worksheet_name ){
 		my $worksheet_position = $self->_get_current_worksheet_position;
@@ -253,25 +294,25 @@ sub worksheet{
 	my	$worksheet_info = $self->_get_worksheet_info( $worksheet_name );
 	###LogSD	$phone->talk( level => 'info', message =>[
 	###LogSD		'Returned worksheet info:', $worksheet_info, ] );
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		"Attempting to build the worsheet: $worksheet_name\.xml",
+	###LogSD		"With translation method: $translation_method" ], );
+	my %args = $self->$translation_method( $worksheet_info, $self->_get_zip_file_handle );
+	if( !$args{xml_reader} and !$args{dom} ){
+		$self->set_error( "Unable to load XML::LibXML with the element: $worksheet_name" );
+		return undef;
+	}
+	
 	confess "No worksheet info for: $worksheet_name" if !exists $worksheet_info->{sheet_position};
-	###LogSD	$phone->talk( level => 'info', message =>[
-	###LogSD		"Building the next worksheet with:",
-	###LogSD		{
-	###LogSD			superclasses	=> $self->_get_worksheet_superclass,
-	###LogSD			log_space 		=> $self->get_log_space . "::Worksheet",
-	###LogSD			sheet_name		=> $worksheet_name,
-	###LogSD			workbook_instance => '(self)',
-	###LogSD			%$worksheet_info,
-	###LogSD		}										] );
-	my	$worksheet = 	build_instance(
-							superclasses		=> $self->_get_worksheet_superclass,
-							package				=> 'WorksheetInstance',
-					###LogSD	log_space 		=> $self->get_log_space . "::Worksheet",
-							sheet_name			=> $worksheet_name,
-							workbook_instance	=> $self,
-							error_inst			=> $self->get_error_inst,
-							%{$worksheet_info}, 
-						);
+	$args{superclasses}			= $parser_type->{superclasses};
+	$args{sheet_name}			= $worksheet_name;
+	$args{workbook_instance}	= $self;
+	$args{error_inst}			= $self->get_error_inst;
+	$args{package}				= 'WorksheetInstance';
+	###LogSD $args{log_space} = $self->get_log_space . "::Worksheet";
+	###LogSD	$phone->talk( level => 'trace', message =>[
+	###LogSD		'Built an xml object with final worksheet build info:', %args, ] );
+	my	$worksheet = build_instance( %args );
 	if( $worksheet ){
 		###LogSD	$phone->talk( level => 'info', message =>[
 		###LogSD		"Successfully loaded: $worksheet_name",] );
@@ -332,16 +373,6 @@ has _calc_chain_instance =>(
 	},
 );
 
-has '_temp_dir' =>(
-	isa		=> 'File::Temp::Dir',
-	writer	=> '_set_temp_dir',
-	reader	=> '_get_temp_dir_object',
-	clearer	=> '_clear_temp_dir',
-	handles	=>{
-		_get_temp_dir => 'dirname',
-	},
-);
-
 has _worksheet_list =>(
 		isa		=> ArrayRef,
 		traits	=> ['Array'],
@@ -375,11 +406,18 @@ has _current_worksheet_position =>(
 		predicate	=> 'in_the_list',
 	);
 	
-has _worksheet_superclass =>(
-		isa		=> ArrayRef,
-		clearer	=> '_clear_worksheet_superclass',
-		writer	=> '_set_worksheet_superclass',
-		reader	=> '_get_worksheet_superclass',
+has _file_type =>(
+		isa		=> Enum[qw( zip xml )],
+		clearer	=> '_clear_file_type',
+		writer	=> '_set_file_type',
+		reader	=> '_get_file_type',
+	);
+	
+has _zip_file_handle =>(
+		isa => InstanceOf[ 'Archive::Zip' ],
+		clearer	=> '_clear_zip_file_handle',
+		writer	=> '_set_zip_file_handle',
+		reader	=> '_get_zip_file_handle',
 	);
 
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
@@ -394,7 +432,6 @@ sub _build_workbook{
 	$self->_clear_shared_strings;
 	$self->_clear_calc_chain;
 	$self->_clear_styles;
-	$self->_clear_temp_dir;
 	$self->_clear_worksheet_list;
 	$self->_clear_worksheet_lookup;
 	$self->_clear_creator;
@@ -403,63 +440,69 @@ sub _build_workbook{
 	$self->_clear_date_modified;
 	$self->clear_error;
 	$self->start_at_the_beginning;
+	$self->_clear_file_type;
 	
 	# Ensure we have a file handle
 	my $file_handle;
 	eval '$file_handle = IOFileType->assert_coerce( $file )';
+	###LogSD	$phone->talk( level	=> 'trace', message =>[
+	###LogSD		"Passed the file type coercion" ] );
 	if( $@ ){
 		###LogSD	$phone->talk( level	=> 'warn', message =>[
 		###LogSD		"Unable to create a valid file instance with: $file" ] );
 		$self->_clear_file_handle;
 		$self->_clear_file_name;
 		$self->set_error( "Unable to create a valid file instance with: $file" );
+		return undef;
 	}
-	###LogSD	$phone->talk( level	=> 'warn', message =>[
+	###LogSD	$phone->talk( level	=> 'trace', message =>[
 	###LogSD		"Current file handle: $file_handle" ] );
-		
-
-    # Create a, locally scoped, temp dir to unzip the XLSX file into.
-	my	$temp_dir = File::Temp->newdir( DIR => undef );
-    $self->_set_temp_dir( $temp_dir );
-
-    # Read the XLSX zip file and catch any errors
-	my $zip_file = Archive::Zip->new();
-    if(	$zip_file->readFromFileHandle($file_handle) != AZ_OK ){
+	
+    # Read the XLSX zip file and catch any errors (other zip file sanity tests go here)
+	my $workbook_file = Archive::Zip->new();
+    if(	$workbook_file->readFromFileHandle($file_handle) != AZ_OK ){
+		###LogSD	$phone->talk( level	=> 'warn', message =>[
+		###LogSD		"Failed to open a zip file" ] );
 		$self->_clear_file_handle;
 		$self->_clear_file_name;
-		confess "|$file| won't open as a zip file";#  Change this when adding all-in-one single file Excel Workbooks!!!!
+		$self->_set_file_type( 'xml' );#  Build from this when adding all-in-one single file Excel Workbooks!!!!
+		confess "|$file| won't open as a zip file";
+	}else{
+		###LogSD	$phone->talk( level	=> 'debug', message =>[
+		###LogSD		"Certified this as a zip file" ] );
+		$self->_set_file_type( 'zip' );
 	}
-
-    # Extract the XML files from the XLSX zip.
-	my	$intermediate = $self->_get_temp_dir;
-	###LogSD	$phone->talk( level	=> 'trace', message =>[
-	###LogSD		"Temp dir: $intermediate", "Temp Dir contains: ", <$intermediate/*> ] );
-    $zip_file->extractTree( '', $intermediate . '/' );
-	###LogSD	$phone->talk( level => 'trace', message =>[ "Zip file: ", $zip_file ] );
+	###LogSD	$phone->talk( level	=> 'debug', message =>[
+	###LogSD		'Zip file test passed with: ' . $self->_get_file_type ] );
 	
-	# Load general workbook information to this instance
-	my	$workbook_file = "$intermediate/xl/workbook\.xml";
-	###LogSD	$phone->talk( level => 'debug', message =>[ "Loading workbook file: $workbook_file"	] );
-	my ( $rel_lookup, $id_lookup ) = $self->_load_workbook_file( $workbook_file );
+	# Extract the workbook top level info
+	my %answer = $self->_build_dom( $build_ref->{top_level_workbook}, $workbook_file );
+	###LogSD	$phone->talk( level	=> 'debug', message =>[ "DOM built for method: _load_top_level_workbook" ] );
+	my ( $rel_lookup, $id_lookup ) = $self->_load_top_level_workbook( $answer{dom} );
 	return undef if !$rel_lookup;
+	###LogSD	$phone->talk( level => 'debug', message =>[ 'Rel lookup:', $rel_lookup, 'ID lookukp:', $id_lookup	] );
 	
-	# Load the workbook rels file
-	$workbook_file = $self->_get_temp_dir . '/xl/_rels/workbook.xml.rels';
-	###LogSD	$phone->talk( level => 'debug', message =>[ "Loading _rels file: $workbook_file"	] );
-	my ( $pivot_lookup ) = $self->_load_rels_workbook_file( $rel_lookup, $workbook_file );
+	# Load the workbook rels info
+	%answer = $self->_build_dom( $build_ref->{workbook_rels}, $workbook_file );
+	###LogSD	$phone->talk( level	=> 'debug', message =>[ "DOM built for method: _load_workbook_rels" ] );
+	my ( $pivot_lookup ) = $self->_load_workbook_rels( $rel_lookup, $answer{dom} );
 	return undef if !$pivot_lookup;
+	###LogSD	$phone->talk( level => 'debug', message =>[ 'pivot lookup:', $pivot_lookup,	] );
 	
-	# Load the docProps file
-	$workbook_file = $self->_get_temp_dir . '/docProps/core.xml';
-	###LogSD	$phone->talk( level => 'debug', message =>[ "Loading _doc_props file: $workbook_file"	] );
-	$self->_load_doc_props_file( $workbook_file );
-	#~ my $wait = <>;
+	# Load the docProps info
+	%answer = $self->_build_dom( $build_ref->{doc_props}, $workbook_file );
+	###LogSD	$phone->talk( level	=> 'debug', message =>[ "DOM built for method: _load_doc_props" ] );
+	$self->_load_doc_props( $answer{dom} );
+	###LogSD	$phone->talk( level => 'debug', message =>[ 'docProps loaded', ] );
+	
 	# Build the instances for all the shared files (data for sheets shared across worksheets)
 	if( exists $parser_modules->{ $self->get_parser_type } ){
 		my	$result = 	$self->_set_shared_worksheet_files(
-							$parser_modules->{ $self->get_parser_type }
+							$parser_modules->{ $self->get_parser_type },
+							$workbook_file,
 						);
 		return undef if !$result;
+		$self->_set_zip_file_handle( $workbook_file );
 	}else{
 		confess 'This package still under development - parser type |' . $self->get_parser_type . '| not yet supported - try the "reader" parser';
 		return undef;
@@ -467,13 +510,67 @@ sub _build_workbook{
 	return $self;
 }
 
-sub _load_workbook_file{
-	my( $self, $new_file ) = @_;
+sub _build_dom{
+	my( $self, $build_target, $workbook_file ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new(
+	###LogSD					name_space 	=> $self->get_log_space .  '::Workbook::_build_dom', );
+	###LogSD		$phone->talk( level => 'debug', message => [
+	###LogSD			'Building DOM object for the target:', $build_target,
+	###LogSD			"With file:", $workbook_file	] );
+	my ( $dom, $encoding );
+	if( $self->_get_file_type eq 'zip' ){
+		###LogSD		$phone->talk( level => 'debug', message => [
+		###LogSD			"Working on a zip file targeting: $build_target->{zip}",] );
+		my $zip_workbook = $workbook_file->memberNamed( $build_target->{zip} );
+		delete $build_target->{zip};
+		###LogSD	$phone->talk( level => 'debug', message =>[ 'zip member: ' . $zip_workbook	] );
+		my	$workbook_fh = IO::File->new_tmpfile;
+			$workbook_fh->binmode();
+		$zip_workbook->extractToFileHandle( $workbook_fh );
+		$workbook_fh->seek( 0, 0 );
+		$dom = $xml_parser->load_xml( { IO => $workbook_fh } );
+	}else{
+		confess "I don't know how to handle file type: " . $self->_get_file_type;
+	}
+	my %return_args = ( dom => $dom, %$build_target );
+	###LogSD	$phone->talk( level => 'debug', message =>[ "Returning: ", %return_args ] );
+	return %return_args;
+}
+
+sub _build_reader{
+	my( $self, $build_target, $workbook_file ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new(
+	###LogSD					name_space 	=> $self->get_log_space .  '::Workbook::_build_reader', );
+	###LogSD		$phone->talk( level => 'debug', message => [
+	###LogSD			'Building Reader object for the target:', $build_target,
+	###LogSD			"With file:", $workbook_file	] );
+	my ( $workbook_fh, $xml_reader, $encoding );
+	if( $self->_get_file_type eq 'zip' ){
+		###LogSD		$phone->talk( level => 'debug', message => [
+		###LogSD			"Working on a zip file targeting: $build_target->{zip}",] );
+		my $zip_member = $workbook_file->memberNamed( $build_target->{zip} );
+		delete $build_target->{zip};
+		###LogSD	$phone->talk( level => 'debug', message =>[ 'zip member:', $zip_member	] );
+		$workbook_fh = IO::File->new_tmpfile;
+		$workbook_fh->binmode();
+		$zip_member->extractToFileHandle( $workbook_fh );
+		$workbook_fh->seek( 0, 0 );
+		$xml_reader = XML::LibXML::Reader->new( IO => $workbook_fh );
+		$xml_reader->read;
+	}else{
+		confess "I don't know how to handle file type: " . $self->_get_file_type;
+	}
+	my %return_args = ( xml_reader => $xml_reader, file_handle => $workbook_fh, %$build_target );
+	###LogSD	$phone->talk( level => 'debug', message =>[ "Returning: ", %return_args ] );
+	return %return_args;
+}
+
+sub _load_top_level_workbook{
+	my( $self, $dom ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new(
 	###LogSD					name_space 	=> $self->get_log_space .  '::Workbook::_load_workbook_file', );
 	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"Building the DOM for the workbook file: $new_file" ] );
-	my	$dom = XML::LibXML->load_xml( location => $new_file );
+	###LogSD			"Building the top level data for the workbook", ] );
 	my ( $list, $sheet_ref, $rel_lookup, $id_lookup );
 	my	$position = 0;
 	my ( $setting_node ) = $dom->getElementsByTagName( 'workbookPr' );
@@ -502,6 +599,7 @@ sub _load_workbook_file{
 	###LogSD		"Worksheet lookup:", $sheet_ref,
 	###LogSD		"rel lookup:", $rel_lookup,
 	###LogSD		"id lookup:", $id_lookup,		] );
+	$dom = undef;
 	if( !$list ){
 		$self->set_error( "No worksheets identified in this workbook" );
 		return undef;
@@ -511,84 +609,68 @@ sub _load_workbook_file{
 	return( $rel_lookup, $id_lookup );
 }
 
-sub _load_rels_workbook_file{
-	my( $self, $rel_lookup, $new_file ) = @_;
+sub _load_workbook_rels{
+	my( $self, $rel_lookup, $dom ) = @_;
 	my ( $pivot_lookup, );
 	###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	###LogSD					name_space 	=> $self->get_log_space .  '::Workbook::_load_rels_workbook_file', );
+	###LogSD					name_space 	=> $self->get_log_space .  '::Workbook::_load_workbook_rels', );
 	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"Building the DOM for the rels/workbook file: $new_file",
-	###LogSD			"With rel_lookup:", $rel_lookup								] );
-	my	$dom = XML::LibXML->load_xml( location => $new_file );
+	###LogSD			"Adding the rels file data for the workbook with:", $rel_lookup ] );
 	my	$sheet_ref = $self->_get_worksheet_lookup;
-	my	$found_file_names = 0;
+	my	$found_member_names = 0;
 	for my $sheet ( $dom->getElementsByTagName( 'Relationship' ) ){
 		my	$rel_ID = $sheet->getAttribute( 'Id' );
 		if( exists $rel_lookup->{$rel_ID} ){
-			my	$file_name = $self->_get_temp_dir . '/xl/' . $sheet->getAttribute( 'Target' );
-				$file_name =~ s/\\/\//g;
-			if( $file_name =~ /worksheets/ ){
-				$sheet_ref->{$rel_lookup->{$rel_ID}}->{file_name} = $file_name;
-				$found_file_names = 1;
+			my	$target = 'xl/';
+				$target .= $sheet->getAttribute( 'Target' );
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"Building relationship for: $rel_ID", "With target: $target" ] );
+			$target =~ s/\\/\//g;
+			if( $target =~ /worksheets/ ){
+				$sheet_ref->{$rel_lookup->{$rel_ID}}->{zip} = $target;
+				$found_member_names = 1;
 			}else{
-				$pivot_lookup->{$rel_ID} = $file_name;
+				$pivot_lookup->{$rel_ID} = $target;
 			}
 		}
 	}
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		"Worksheet lookup:", $sheet_ref,
 	###LogSD		"Pivot lookup:", $pivot_lookup	] );
-	if( !$found_file_names ){
-		$self->set_error( "Couldn't find any file names for the sheets" );
+	if( !$found_member_names ){
+		$self->set_error( "Couldn't find any zip member (file) names for the sheets" );
 		return undef;
 	}
 	$self->_set_worksheet_lookup( $sheet_ref );
 	return $pivot_lookup;
 }
 
-sub _load_doc_props_file{
-	my( $self, $new_file ) = @_;
+sub _load_doc_props{
+	my( $self, $dom ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	###LogSD					name_space 	=> $self->get_log_space .  '::Workbook::_load_doc_props_file', );
+	###LogSD					name_space 	=> $self->get_log_space .  '::Workbook::_load_doc_props', );
 	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"Building the DOM for the doc props file: $new_file", ] );
-	my	$dom = XML::LibXML->load_xml( location => $new_file );
+	###LogSD			"Collecting data from the doc props file", ] );
 	$self->_set_creator( ($dom->getElementsByTagName( 'dc:creator' ))[0]->textContent() );
 	$self->_set_modified_by( ($dom->getElementsByTagName( 'cp:lastModifiedBy' ))[0]->textContent() );
 	$self->_set_date_created(
-		#~ DateTime::Format::Flexible->parse_datetime(
-			($dom->getElementsByTagName( 'dcterms:created' ))[0]->textContent(),
-			#~ time_zone => 'floating'
-		#~ )
+			($dom->getElementsByTagName( 'dcterms:created' ))[0]->textContent()
 	);
 	$self->_set_date_modified(
-		#~ DateTime::Format::Flexible->parse_datetime(
-			($dom->getElementsByTagName( 'dcterms:modified' ))[0]->textContent(),
-			#~ time_zone => 'floating'
-		#~ )
+			($dom->getElementsByTagName( 'dcterms:modified' ))[0]->textContent()
 	);
 	###LogSD	$phone->talk( level => 'trace', message => [ "Current object:", $self ] );
 }
 
 sub _set_shared_worksheet_files{
-	my( $self, $object_ref ) = @_;
+	my( $self, $object_ref, $zip_workbook ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new(
 	###LogSD					name_space 	=> $self->get_log_space .  '::Workbook::_set_shared_worksheet_files', );
-	my	$temp_dir =$self->_get_temp_dir;
-	my	@file_list = <$temp_dir/xl/*>;#/
 	###LogSD	$phone->talk( level => 'debug', message => [
-	###LogSD		"Building the shared worksheet files with the lookup ref:", $object_ref,
-	###LogSD		"Reviewing files:", @file_list ] );
-	my $file_lookup;
-	for my $file ( @file_list ){
-		if( $file =~ /xl\/([^\.]*)\.xml$/ ){
-			$file_lookup->{$1} = $file;
-		}
-	}
-	###LogSD	$phone->talk( level => 'debug', message => [
-	###LogSD		"File lookup list: ", $file_lookup], );
-	
+	###LogSD		"Building the shared worksheet files with the lookup ref:", $object_ref, ] );
+	my $translation_method = $object_ref->{build_method};
 	for my $file ( keys %$object_ref ){
+		next if $file eq 'build_method' or $file eq 'worksheet';
 			###LogSD	$phone->talk( level => 'debug', message => [
 			###LogSD		"checking the file class: $file",], );
 		if( $file eq 'worksheet' ){
@@ -596,17 +678,23 @@ sub _set_shared_worksheet_files{
 			###LogSD		"Storing the worksheet superclass: ", $object_ref->{worksheet}->{superclasses}], );
 			my $method = $object_ref->{$file}->{store};
 			$self->$method( $object_ref->{$file}->{superclasses} );
-		}elsif( exists $file_lookup->{$file} ){
+		}else{
 			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"Attempting to load the file: ${file}\.xml", ], );
-			my @args = ( file_name => $file_lookup->{$file} );
-			push @args, ( package => $object_ref->{$file}->{package} ) if exists $object_ref->{$file}->{package};
-			push @args, ( superclasses => $object_ref->{$file}->{superclasses} ) if exists $object_ref->{$file}->{superclasses};
+			###LogSD		"Attempting to load the file: ${file}\.xml",
+			###LogSD		"With translation method: $translation_method" ], );
+			my %args = $self->$translation_method( $build_ref->{$file}, $zip_workbook );
+			if( !$args{xml_reader} and !$args{dom} ){
+				$self->set_error( "Unable to load XML::LibXML with the element: $file" );
+				next;
+			}
+			###LogSD	$phone->talk( level => 'debug', message =>[ "Built an xml_object", ], );
+			$args{package} = $object_ref->{$file}->{package} if exists $object_ref->{$file}->{package};
+			$args{superclasses} = $object_ref->{$file}->{superclasses} if exists $object_ref->{$file}->{superclasses};
 			for my $attribute ( @{$object_ref->{$file}->{attributes}} ){
 				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		"Building attribute: $attribute", ], );
+				###LogSD		"Loading attribute: $attribute", ], );
 				my $method = 'get_' . $attribute;
-				push @args, $attribute, $self->$method;
+				$args{$attribute} = $self->$method;
 			}
 			my $role_ref;
 			for my $role ( @{$object_ref->{$file}->{add_roles_in_sequence}} ){
@@ -615,17 +703,26 @@ sub _set_shared_worksheet_files{
 				my $method = 'get_' . $role;
 				push @$role_ref, $self->$method;
 			}
-			push @args, ( add_roles_in_sequence => $role_ref ) if $role_ref;
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"Final args for building the instance:", @args ], );
+			$args{add_roles_in_sequence} = $role_ref if $role_ref;
+			###LogSD	$args{log_space} = $self->get_log_space . "::$args{package}";
 			my $method = $object_ref->{$file}->{store};
-			#~ print "Running: $method\n" . Dumper( @args );
-			$self->$method( build_instance( @args ) );
-		}else{
-			$self->set_error( "No file to load into the object: $file" );
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD		"Final args for building the instance:", %args,
+			###LogSD		"Loading -$method- with build_instance( 'args' )"	], );
+			my $object = build_instance( %args );
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD		"Finished building instance for: $file",
+			###LogSD		"Loading to the worbook with method: $method", # $object	
+			###LogSD		], );
+			$self->$method( $object );
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD		"Finished building and installing: $file", ], );
 		}
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Finished the attempt at: $file"	], );
 	}
-	#~ $self->_set_current_worksheet_position( -1 );
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		"All shared files that can be built are built!"	], );
 	return 1;
 }
 
@@ -666,8 +763,11 @@ sub DEMOLISH{
 	}
 	
 	###LogSD	$phone->talk( level => 'debug', message => [
-	###LogSD		"Clearing the Temporary Directory" ] );
-	$self->_clear_temp_dir;
+	###LogSD		"Clearing the Zip file handle" ] );
+	$self->_clear_zip_file_handle;
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		"Clearing the top level file handle" ] );
+	$self->_clear_file_handle;
 }
 
 #########1 Phinish            3#########4#########5#########6#########7#########8#########9
@@ -809,6 +909,15 @@ L<optional|/group_return_type>
 =back
 
 =back
+
+=head2 Warnings
+
+B<1.> Archive-Zip-1.39 appears to be broken.  This package requires it so I reccomend Archive-Zip-1.30
+
+B<2.> Earlier versions would extract the .xlsx file to a temp directory and then release the file lock 
+on the file even while reading the file.  Due to some unresolved the temp dir cleanup issues this 
+package no longer releases the lock on the file during reading.  (It will release the file lock and 
+clean up any temp directories on exit)
 
 =head2 Primary Methods
 
@@ -1604,9 +1713,15 @@ L<http://xmlsoft.org/>
 	
 B<2.> Download a compressed file with the code from your favorite source
 	
-B<3.> Extract the code from the compressed file.  If you are using tar this should work:
+B<3.> Extract the code from the compressed file.
 
-        tar -zxvf Spreadsheet-XLSX-Reader-LibXML-v0.xx.tar.gz
+=over
+
+If you are using tar this should work:
+
+	tar -zxvf Spreadsheet-XLSX-Reader-LibXML-v0.xx.tar.gz
+	
+=back
 
 B<4.> Change (cd) into the extracted directory
 

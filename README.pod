@@ -130,6 +130,15 @@ L<optional|/group_return_type>
 
 =back
 
+=head2 Warnings
+
+B<1.> Archive-Zip-1.39 appears to be broken.  This package requires it so I reccomend Archive-Zip-1.30
+
+B<2.> Earlier versions would extract the .xlsx file to a temp directory and then release the file lock 
+on the file even while reading the file.  Due to some unresolved the temp dir cleanup issues this 
+package no longer releases the lock on the file during reading.  (It will release the file lock and 
+clean up any temp directories on exit)
+
 =head2 Primary Methods
 
 These are the primary ways to use this class.  They can be used to open an .xlsx 
@@ -924,9 +933,15 @@ L<http://xmlsoft.org/>
 	
 B<2.> Download a compressed file with the code from your favorite source
 	
-B<3.> Extract the code from the compressed file.  If you are using tar this should work:
+B<3.> Extract the code from the compressed file.
 
-        tar -zxvf Spreadsheet-XLSX-Reader-LibXML-v0.xx.tar.gz
+=over
+
+If you are using tar this should work:
+
+	tar -zxvf Spreadsheet-XLSX-Reader-LibXML-v0.xx.tar.gz
+	
+=back
 
 B<4.> Change (cd) into the extracted directory
 

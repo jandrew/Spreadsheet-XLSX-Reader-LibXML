@@ -1,6 +1,6 @@
 package Spreadsheet::XLSX::Reader::LibXML::Cell;
-use version; our $VERSION = qv('v0.30.0');
-#~ use Data::Dumper;
+use version; our $VERSION = qv('v0.30.2');
+
 $| = 1;
 use 5.010;
 use Moose;

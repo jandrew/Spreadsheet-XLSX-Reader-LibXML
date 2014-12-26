@@ -1,5 +1,5 @@
 #########1 Test File for Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings #####9
-#!env perl
+#!/usr/bin/env perl
 my ( $lib, $test_file );
 BEGIN{
 	$ENV{PERL_TYPE_TINY_XS} = 0;
@@ -19,10 +19,11 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 26;
+use	Test::Most tests => 29;
 use	Test::Moose;
+use IO::File;
+use XML::LibXML::Reader;
 use Data::Dumper;
-#~ use Capture::Tiny 0.12 qw( 	capture_stderr );
 use	MooseX::ShortCut::BuildInstance qw( build_instance );
 use	lib
 		'../../../../../../../Log-Shiras/lib',
@@ -46,15 +47,18 @@ use	Spreadsheet::XLSX::Reader::LibXML::Error;
 $test_file = ( @ARGV ) ? $ARGV[0] : $test_file;
 $test_file .= 'sharedStrings.xml';
 my  ( 
-			$test_instance, $capture, $x, @answer, $error_instance,
+			$test_instance, $capture, $x, @answer, $error_instance, $file_handle,
 	);
 my 			@class_attributes = qw(
-				file_name
+				file_handle
 				error_inst
 			);
 my  		@class_methods = qw(
 				get_shared_string_position
-				get_file_name
+				get_file_handle
+				set_file_handle
+				has_file_handle
+				clear_file_handle
 				where_am_i
 				has_position
 			);
@@ -138,13 +142,15 @@ can_ok		'Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings', $_,
 
 ###LogSD		$phone->talk( level => 'info', message => [ "harder questions ..." ] );
 lives_ok{
-			$test_instance =	Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings->new(
-									file_name	=> $test_file,
-			###LogSD				log_space	=> 'Test',
+			$file_handle	=	IO::File->new( $test_file, "<");
+			$test_instance	=	Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings->new(
+									file_handle	=> $file_handle,
+									xml_reader 	=> XML::LibXML::Reader->new( IO => $file_handle ),
 									error_inst	=> Spreadsheet::XLSX::Reader::LibXML::Error->new(
 										#~ should_warn => 1,
 										should_warn => 0,# to turn off cluck when the error is set
 									),
+			###LogSD				log_space	=> 'Test',
 								);
 }										"Prep a new SharedStrings instance";
 

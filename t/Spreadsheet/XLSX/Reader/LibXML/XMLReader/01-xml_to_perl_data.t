@@ -1,5 +1,5 @@
 #########1 Test File for Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData #####9
-#!env perl
+#!/usr/bin/env perl
 my ( $lib, $test_file, $test_fil2 );
 BEGIN{
 	$ENV{PERL_TYPE_TINY_XS} = 0;
@@ -19,10 +19,11 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 26;
+use	Test::Most tests => 30;
 use	Test::Moose;
+use IO::File;
+use XML::LibXML::Reader;
 use	MooseX::ShortCut::BuildInstance qw( build_instance );
-#~ use Data::Dumper;
 use	lib
 		'../../../../../../../Log-Shiras/lib',
 		$lib,
@@ -49,16 +50,20 @@ $test_fil2 = $test_file . 'worksheets/sheet3_test.xml';
 $test_file .= 'sharedStrings.xml';
 #~ print "$lib\n$test_file\n$test_fil2\n";
 my  ( 
-			$test_instance, $capture, $x, @answer, $error_instance,
+			$test_instance, $capture, $x, @answer, $error_instance, $file_handle,
 	);
 my 			$row = 0;
 my 			@class_attributes = qw(
-				file_name
+				file_handle
+				xml_reader
 				error_inst
 			);
 my  		@instance_methods = qw(
 				parse_element
-				get_file_name
+				get_file_handle
+				set_file_handle
+				has_file_handle
+				clear_file_handle
 				where_am_i
 				has_position
 				parse_element
@@ -133,16 +138,18 @@ my			$answer_ref = [
 ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space => 'main', );
 ###LogSD		$phone->talk( level => 'info', message => [ "easy questions ..." ] );
 lives_ok{
-			$test_instance =	build_instance(
+			$file_handle	=	IO::File->new( $test_file, "<");
+			$test_instance	=	build_instance(
 									package => 'TestIntance',
 									superclasses =>[ 'Spreadsheet::XLSX::Reader::LibXML::XMLReader', ],
 									add_roles_in_sequence =>[ 'Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData', ],
-									file_name	=> $test_file,
-			###LogSD				log_space	=> 'Test',
+									file_handle	=> $file_handle,
+									xml_reader 	=> XML::LibXML::Reader->new( IO => $file_handle ),
 									error_inst	=> Spreadsheet::XLSX::Reader::LibXML::Error->new(
 										#~ should_warn => 1,
 										should_warn => 0,# to turn off cluck when the error is set
 									),
+			###LogSD				log_space	=> 'Test',
 								);
 }										"Prep a new TestIntance to test XMLToPerlData";
 map{ 
@@ -160,13 +167,15 @@ can_ok		$test_instance, $_,
 is_deeply	$test_instance->parse_element, $answer_ref->[0],
 										"Check that the output matches expectations.";
 lives_ok{
-			$test_instance =	TestIntance->new(
-									file_name	=> $test_fil2,
-			###LogSD				log_space	=> 'Test',
+			$file_handle	=	IO::File->new( $test_fil2, "<");
+			$test_instance	=	TestIntance->new(
+									file_handle	=> $file_handle,
+									xml_reader 	=> XML::LibXML::Reader->new( IO => $file_handle ),
 									error_inst	=> Spreadsheet::XLSX::Reader::LibXML::Error->new(
 										#~ should_warn => 1,
 										should_warn => 0,# to turn off cluck when the error is set
 									),
+			###LogSD				log_space	=> 'Test',
 								);
 }										"Prep another TestIntance to test XMLToPerlData";
 			map{ $test_instance->next_element( 'c' ) }( 0..12 );

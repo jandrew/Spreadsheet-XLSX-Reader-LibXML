@@ -5,8 +5,7 @@ use lib 	'../../../../lib',
 			'../../../../../Log-Shiras/lib';
 $| = 1;
 use Moose::Util;
-our @CARP_NOT = ();
-#~ use Log::Shiras::Switchboard v0.21 qw( :debug );#
+#~ use Log::Shiras::Switchboard qw( :debug );#
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(
 ###LogSD						name_space_bounds => {
 ###LogSD							UNBLOCK =>{

@@ -1,12 +1,8 @@
 package Spreadsheet::XLSX::Reader::LibXML::Error;
-use version; our $VERSION = qv('v0.30.0');
+use version; our $VERSION = qv('v0.30.2');
 
 use Moose;
 use Carp qw( cluck );
-no warnings 'once';
-@Spreadsheet::XLSX::Reader::LibXML::Error::CARP_NOT = qw(
-	Capture::Tiny
-);
 use MooseX::StrictConstructor;
 use MooseX::HasDefaults::RO;
 use Types::Standard qw(
@@ -26,18 +22,19 @@ has error_string =>(
 		reader	=> 'error',
 		writer	=> 'set_error',
 		trigger	=> sub{
-			my ( $self ) = @_;
+			my ( $self, @error_list ) = @_;
+			###LogSD	my	$phone = Log::Shiras::Telephone->new(
+			###LogSD			name_space => $self->get_log_space . '::error', );
 			if( $self->if_warn ){
+				###LogSD	$phone->talk( level => 'debug', message => [ join( "\n", @error_list ) ] );
 				###LogSD	re_route_warn();
-				cluck "$_[1] line " .
-					(((caller(2))[2])? ((caller(2))[2]) : ((caller(1))[2]) ). "\n";
+				cluck join( "\n", @error_list );# . " line " .
+						#~ (((caller(2))[2])? ((caller(2))[2]) : ((caller(1))[2]) );
 				###LogSD	restore_warn;
 			}else{
-				###LogSD	my	$phone = Log::Shiras::Telephone->new(
-				###LogSD			name_space => $self->get_log_space . '::error', );
-				###LogSD		$phone->talk( level => 'debug', message => [
-				###LogSD			"$_[1] line " .
-				###LogSD			(((caller(2))[2])? ((caller(2))[2]) : ((caller(1))[2]) ) ] );
+				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD		join( "\n", @error_list ) . " line " .
+				###LogSD		(((caller(2))[2])? ((caller(2))[2]) : ((caller(1))[2]) ) ] );
 			}
 		},
 		init_arg => undef,

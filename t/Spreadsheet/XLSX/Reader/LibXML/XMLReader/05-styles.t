@@ -1,5 +1,5 @@
 #########1 Test File for Spreadsheet::XLSX::Reader::LibXML::XMLDOM::Styles      8#########9
-#!perl
+#!/usr/bin/env perl
 my ( $lib, $test_file );
 BEGIN{
 	$ENV{PERL_TYPE_TINY_XS} = 0;
@@ -19,8 +19,10 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 35;
+use	Test::Most tests => 38;
 use	Test::Moose;
+use IO::File;
+use XML::LibXML::Reader;
 use	MooseX::ShortCut::BuildInstance v1.8 qw( build_instance );
 use Data::Dumper;
 use	lib
@@ -31,55 +33,55 @@ use	lib
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(#
 ###LogSD						name_space_bounds =>{
 ###LogSD							UNBLOCK =>{
-###LogSD								log_file => 'debug',
+###LogSD								log_file => 'trace',
 ###LogSD							},
-###LogSD							Test =>{
-###LogSD								_parse_the_file =>{
-###LogSD									UNBLOCK =>{
-###LogSD										log_file => 'warn',
-###LogSD									},
-###LogSD								},
-###LogSD								_set_file_name =>{
-###LogSD									UNBLOCK =>{
-###LogSD										log_file => 'warn',
-###LogSD									},
-###LogSD								},
-###LogSD								_load_unique_bits =>{
-###LogSD									UNBLOCK =>{
-###LogSD										log_file => 'warn',
-###LogSD									},
-###LogSD								},
-###LogSD								_load_data_to_format =>{
-###LogSD									UNBLOCK =>{
-###LogSD										log_file => 'warn',
-###LogSD									},
-###LogSD								},
-###LogSD								parse_element =>{
-###LogSD									UNBLOCK =>{
-###LogSD										log_file => 'trace',
-###LogSD									},
-###LogSD								},
-###LogSD								_build_date =>{
-###LogSD									UNBLOCK =>{
-###LogSD										log_file => 'warn',
-###LogSD									},
-###LogSD								},
-###LogSD								get_format_position =>{
-###LogSD									UNBLOCK =>{
-###LogSD										log_file => 'trace',
-###LogSD									},
-###LogSD								},
-###LogSD								_get_header_and_position =>{
-###LogSD									UNBLOCK =>{
-###LogSD										log_file => 'trace',
-###LogSD									},
-###LogSD								},
-###LogSD								parse_excel_format_string =>{
-###LogSD									UNBLOCK =>{
-###LogSD										log_file => 'warn',
-###LogSD									},
-###LogSD								},
-###LogSD							},
+#~ ###LogSD							Test =>{
+#~ ###LogSD								_parse_the_file =>{
+#~ ###LogSD									UNBLOCK =>{
+#~ ###LogSD										log_file => 'warn',
+#~ ###LogSD									},
+#~ ###LogSD								},
+#~ ###LogSD								_set_file_name =>{
+#~ ###LogSD									UNBLOCK =>{
+#~ ###LogSD										log_file => 'warn',
+#~ ###LogSD									},
+#~ ###LogSD								},
+#~ ###LogSD								_load_unique_bits =>{
+#~ ###LogSD									UNBLOCK =>{
+#~ ###LogSD										log_file => 'warn',
+#~ ###LogSD									},
+#~ ###LogSD								},
+#~ ###LogSD								_load_data_to_format =>{
+#~ ###LogSD									UNBLOCK =>{
+#~ ###LogSD										log_file => 'warn',
+#~ ###LogSD									},
+#~ ###LogSD								},
+#~ ###LogSD								parse_element =>{
+#~ ###LogSD									UNBLOCK =>{
+#~ ###LogSD										log_file => 'trace',
+#~ ###LogSD									},
+#~ ###LogSD								},
+#~ ###LogSD								_build_date =>{
+#~ ###LogSD									UNBLOCK =>{
+#~ ###LogSD										log_file => 'warn',
+#~ ###LogSD									},
+#~ ###LogSD								},
+#~ ###LogSD								get_format_position =>{
+#~ ###LogSD									UNBLOCK =>{
+#~ ###LogSD										log_file => 'trace',
+#~ ###LogSD									},
+#~ ###LogSD								},
+#~ ###LogSD								_get_header_and_position =>{
+#~ ###LogSD									UNBLOCK =>{
+#~ ###LogSD										log_file => 'trace',
+#~ ###LogSD									},
+#~ ###LogSD								},
+#~ ###LogSD								parse_excel_format_string =>{
+#~ ###LogSD									UNBLOCK =>{
+#~ ###LogSD										log_file => 'warn',
+#~ ###LogSD									},
+#~ ###LogSD								},
+#~ ###LogSD							},
 ###LogSD						},
 ###LogSD						reports =>{
 ###LogSD							log_file =>[ Print::Log->new ],
@@ -96,11 +98,11 @@ $test_file .= 'styles.xml';
 ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space => 'main', );
 ###LogSD		$phone->talk( level => 'trace', message => [ "Test file is: $test_file" ] );
 my  ( 
-			$test_instance, $capture, $x, @answer, $error_instance, $format_instance,
+			$test_instance, $capture, $x, @answer, $error_instance, $format_instance, $file_handle,
 	);
 my 			$row = 0;
 my 			@class_attributes = qw(
-				file_name
+				file_handle
 				excel_region
 				target_encoding
 				cache_formats
@@ -112,7 +114,10 @@ my  		@class_methods = qw(
 				get_format_position
 				get_default_format_position
 				get_sub_format_position
-				get_file_name
+				get_file_handle
+				set_file_handle
+				has_file_handle
+				clear_file_handle
 				error
 				set_error
 				clear_error
@@ -133,6 +138,7 @@ my  		@class_methods = qw(
 				#~ get_number_format
 ###LogSD		$phone->talk( level => 'info', message => [ "easy questions ..." ] );
 lives_ok{
+			$file_handle	=	IO::File->new( $test_file, "<");
 			$test_instance	=	build_instance(
 									package => 'TestInstance',
 									superclasses	=> [ 'Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles' ],
@@ -140,13 +146,14 @@ lives_ok{
 										Spreadsheet::XLSX::Reader::LibXML::FmtDefault
 										Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings
 									)],
-									file_name	=> $test_file,
-			###LogSD				log_space	=> 'Test',
+									file_handle	=> $file_handle,
+									xml_reader 	=> XML::LibXML::Reader->new( IO => $file_handle ),
 									error_inst	=> Spreadsheet::XLSX::Reader::LibXML::Error->new(
 										should_warn => 1,
 										#~ should_warn => 0,# to turn off cluck when the error is set
 									),
 									epoch_year	=> 1904,
+			###LogSD				log_space	=> 'Test',
 								);
 }										"Prep a new Styles instance";
 map{ 

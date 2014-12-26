@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader;
-use version; our $VERSION = qv('v0.30.0');
+use version; our $VERSION = qv('v0.30.2');
 
 use 5.010;
 use Moose;
@@ -7,7 +7,7 @@ use MooseX::StrictConstructor;
 use MooseX::HasDefaults::RO;
 use Types::Standard qw(
 		Int				Str				HasMethods
-		FileHandle
+		Bool
     );
 use XML::LibXML::Reader;
 use lib	'../../../../../lib',;
@@ -15,16 +15,17 @@ use lib	'../../../../../lib',;
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
 use Spreadsheet::XLSX::Reader::LibXML::Types qw(
-		XMLFile
+		IOFileType
 	);
 
 #########1 Public Attributes  3#########4#########5#########6#########7#########8#########9
 
-has file_name =>(
-		isa			=> XMLFile,
-		reader		=> 'get_file_name',
-		trigger		=> \&_set_file_name,
-		required	=> 1,
+has file_handle =>(
+		isa			=> IOFileType,
+		reader		=> 'get_file_handle',
+		writer		=> 'set_file_handle',
+		predicate	=> 'has_file_handle',
+		clearer		=> 'clear_file_handle',
 	);
 
 has	error_inst =>(
@@ -39,26 +40,7 @@ has	error_inst =>(
 		) ],
 	);
 
-#########1 Public Methods     3#########4#########5#########6#########7#########8#########9
-
-
-sub start_the_file_over{
-	my( $self, ) = @_;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	###LogSD					name_space => $self->get_log_space . '::start_the_file_over', );
-	###LogSD		$phone->talk( level => 'debug', message =>[ "Resetting the XML file" ] );
-	$self->_go_to_the_end;
-	$self->_close_the_sheet;
-	$self->_clear_xml_parser;
-	$self->_clear_location;
-	my $fh = $self->_get_file_handle;
-	seek( $fh, 0, 0 );
-	$self->_set_xml_parser( XML::LibXML::Reader->new( IO => $fh ) );
-}
-
-#########1 Private Attributes 3#########4#########5#########6#########7#########8#########9
-
-has _xml_reader =>(
+has xml_reader =>(
 	isa			=> 'XML::LibXML::Reader',
 	reader		=> '_get_xml_parser',
 	writer		=> '_set_xml_parser',
@@ -85,26 +67,33 @@ has _xml_reader =>(
 		constant_value		=> 'ConstValue',
 		move_to_first_att	=> 'moveToFirstAttribute',
 		move_to_next_att	=> 'moveToNextAttribute',
-		_encoding			=> 'encoding',
+		encoding			=> 'encoding',
 		_go_to_the_end		=> 'finish',
 		_close_the_sheet	=> 'close',
 		next_sibling_element	=> 'nextSiblingElement',
-	}
+	},
+	trigger => \&_reader_init,
 );
 
-has _file_handle =>(
-		isa			=> FileHandle,
-		reader		=> '_get_file_handle',
-		writer		=> '_set_file_handle',
-		predicate	=> '_has_file_handle',
-		clearer		=> '_clear_file_handle',
-	);
+#########1 Public Methods     3#########4#########5#########6#########7#########8#########9
 
-has _file_encoding =>(
-		isa		=> Str,
-		reader	=> 'encoding',
-		writer	=> '_set_encoding',
-	);
+
+sub start_the_file_over{
+	my( $self, ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new(
+	###LogSD					name_space => $self->get_log_space . '::start_the_file_over', );
+	###LogSD		$phone->talk( level => 'debug', message =>[ "Resetting the XML file" ] );
+	$self->_go_to_the_end;
+	$self->_close_the_sheet;
+	#~ $self->_clear_xml_parser;
+	$self->_clear_location;
+	my $fh = $self->get_file_handle;
+	$fh->seek( 0, 0 );
+	$self->_set_xml_parser( XML::LibXML::Reader->new( IO => $fh ) );
+	$self->start_reading;
+}
+
+#########1 Private Attributes 3#########4#########5#########6#########7#########8#########9
 
 has _position_index =>(
 		isa			=> Int,
@@ -114,68 +103,40 @@ has _position_index =>(
 		predicate	=> 'has_position',
 	);
 
+has _read_unique_bits =>(
+		isa		=> Bool,
+		reader	=> '_get_unique_bits',
+		writer	=> '_need_unique_bits',
+		clearer	=> '_clear_read_unique_bits',
+		default	=> 1,
+	);
+
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
 
-sub _set_file_name{
-	my( $self, $new_file, $old_file, $mapped ) = @_;
+sub _reader_init{
+	my( $self, $reader ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	###LogSD					name_space 	=> $self->get_log_space .  '::_set_file_name', );
-	###LogSD	no warnings 'uninitialized';
+	###LogSD					name_space 	=> $self->get_log_space .  '::_reader_init', );
 	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"(Re)setting the file to: $new_file",
-	###LogSD			"From the file: $old_file",
-	###LogSD			"With mapped setting: $mapped", ] );
-	###LogSD	use warnings 'uninitialized';
-	
-	if( $self->_has_xml_parser ){
-		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"Pre-existing reader in place - clearing it" ] );
-		$self->_go_to_the_end;
-		$self->_close_the_sheet;
-		$self->_clear_xml_parser;
-		$self->_clear_location;
-		$self->_close_file_handle if $self->_has_file_handle;
-	}
-	
-	# Set the reader file
-	open my $fh, '<', $new_file;
-	binmode( $fh );
-	###LogSD	$phone->talk( level => 'debug', message => [
-	###LogSD		"File handle open;", $fh ] );
-	my	$reader		= XML::LibXML::Reader->new( IO => $fh );#'XMLFILElocation => $new_file )', );#recover => 2, 
-	###LogSD	$phone->talk( level => 'debug', message => [
-	###LogSD		"XML parser open;", $reader,
-	###LogSD		'Read state: ' . $reader->readState ] );
-	if( !$reader ){
-		$self->_clear_xml_parser;
-		return undef;
-	}else{
-		###LogSD	$phone->talk( level => 'debug', message =>[ 'Success - Loading file handle: ' . $fh ], );
-		$self->_set_file_handle( $fh );
-		###LogSD	$phone->talk( level => 'debug', message =>[ 'Loading XML reader: ' . $reader ], );
-		$self->_set_xml_parser( $reader );
-		if( $self->byte_consumed == 0 ){
-			###LogSD	$phone->talk( level => 'debug', message =>[ 'Starting the read' ], );
-			$self->start_reading;
-		}
-		###LogSD	$phone->talk( level => 'debug', message =>[
-		###LogSD		"Good reader built", "Byte position: " . $self->byte_consumed ], );#$reader->byteConsumed
-		return 1 if $mapped;
-	}
-	
-	# Get file encoding
-	my	$encoding	= $self->_encoding;
-	###LogSD	$phone->talk( level => 'debug', message => [
-	###LogSD		"Encoding of file is: $encoding" ], );
-	$self->_set_encoding( $encoding );
+	###LogSD			"loading any file specific settings", ] );
 	
 	# Set the file unique bits
-	if( $self->can( '_load_unique_bits' ) ){
-		###LogSD	$phone->talk( level => 'debug', message => [ "Loading unique bits" ], );
-		$self->_load_unique_bits;
-		###LogSD	$phone->talk( level => 'debug', message => [ "Finished loading unique bits" ], );
+	if( $self->_get_unique_bits ){
+		###LogSD	$phone->talk( level => 'debug', message =>[
+		###LogSD		"Opening the file for the first time" ], );
+		$self->_need_unique_bits( 0 );
+		if( $self->can( '_load_unique_bits' ) ){
+			###LogSD	$phone->talk( level => 'debug', message =>[ "Loading unique bits" ], );
+			$self->_load_unique_bits;
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD		"Finished loading unique bits" 			], );
+		}
+		$self->start_the_file_over;
+	}else{
+		###LogSD	$phone->talk( level => 'debug', message =>[ 
+		###LogSD		"This is not the first time the file has been opened - don't seek unique" ], );
 	}
-	return 1;#$reader;
+	###LogSD	$phone->talk( level => 'debug', message => [ "Finished loading unique bits BLOCK" ], );
 }
 
 sub DEMOLISH{
@@ -183,24 +144,19 @@ sub DEMOLISH{
 	###LogSD	my	$phone = Log::Shiras::Telephone->new(
 	###LogSD					name_space 	=> $self->get_log_space .  '::XMLReader::DEMOLISH', );
 	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"clearing the reader for file_name:" . $self->get_file_name, ] );
+	###LogSD			"clearing the reader for log space:" . $self->get_log_space, ] );
 	if( $self->_get_xml_parser ){
-		#~ print "Disconnecting the sheet from the parser\n";
-		###LogSD	$phone->talk( level => 'debug', message =>[ "Closing the sheet", $self->dump ] );
-		$self->_go_to_the_end;
+		#~ print "Disconnecting the sheet file handle from the parser\n";
+		###LogSD	$phone->talk( level => 'debug', message =>[ "Disconnecting the file handle from the xml parser", ] );
 		$self->_close_the_sheet;
-	}
-	if( $self->_get_xml_parser ){
-		#~ print "Closing the parser\n";
-		###LogSD	$phone->talk( level => 'debug', message =>[ "Closing the xml parser", $self->dump ] );
 		$self->_clear_xml_parser;
 	}
-	if( $self->_get_file_handle ){
-		#~ print "Clearing file handle for: " . $self->get_file_name . "\n";
+	if( my $fh = $self->get_file_handle ){
+		#~ print "Clearing file handle\n";
 		###LogSD	$phone->talk( level => 'debug', message =>[ "Closing the system file handle", $self->dump(2) ] );
-		close $self->_get_file_handle;
+		$fh->close;
 		###LogSD	$phone->talk( level => 'debug', message =>[ "Clearing the system file handle", $self->dump(2) ] );
-		$self->_clear_file_handle;
+		$self->clear_file_handle;
 		###LogSD	$phone->talk( level => 'debug', message =>[ "Final self", $self->dump(2) ] );
 	}
 }
@@ -232,6 +188,11 @@ extraction of Excel workbooks, worksheets, and cells please review the documenta
 L<Spreadsheet::XLSX::Reader::LibXML>,
 L<Spreadsheet::XLSX::Reader::LibXML::Worksheet>, and 
 L<Spreadsheet::XLSX::Reader::LibXML::Cell>>
+
+When setting worksheet file handles you can't reuse them again to re-open the same sheet 
+since the last act of this package is to close the file handle before returning it.  You 
+must also set both the file handle and the xml reader when building an instance of this 
+class.
 
 POD not written yet!
 
