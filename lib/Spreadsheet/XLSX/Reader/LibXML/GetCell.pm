@@ -1,11 +1,10 @@
 package Spreadsheet::XLSX::Reader::LibXML::GetCell;
-use version; our $VERSION = qv('v0.30.2');
+use version; our $VERSION = qv('v0.32.2');
 
 use	Moose::Role;
 requires qw(
-	set_error					min_row						max_row
-	min_col						max_col						row_range
-	col_range
+	min_row						max_row						min_col
+	max_col						row_range					col_range
 );
 ###LogSD	requires 'get_log_space';
 use Types::Standard qw(
@@ -77,7 +76,7 @@ has workbook_instance =>(
 						get_group_return_type		set_group_return_type
 						get_epoch_year				change_output_encoding
 						get_date_behavior			set_date_behavior
-						get_empty_return_type
+						get_empty_return_type		set_error
 					)],
 		handles	=> [qw(
 						counting_from_zero			boundary_flag_setting
@@ -88,7 +87,7 @@ has workbook_instance =>(
 						get_group_return_type		set_group_return_type
 						get_epoch_year				change_output_encoding
 						get_date_behavior			set_date_behavior
-						get_empty_return_type
+						get_empty_return_type		set_error
 					)],
 		required => 1,
 	);
@@ -555,15 +554,6 @@ managed with the workbook attribute L<counting_from_zero
 These are method(s) used by this Role but not provided by the role.  Any class consuming this 
 role will not build without first providing these methods prior to loading this role.  
 I<Since this is the center of data coallation the list is long>.
-
-=head3 set_error( $error_string )
-
-=over
-
-B<Definition:> Used to set errors that occur in code from this role.  See
-L<Spreadsheet::XLSX::Reader::LibXML::Error> for the default implementation of this functionality.
-
-=back
 
 =head3 min_row
 
@@ -1162,6 +1152,8 @@ B<Definition:> set the custom format $conversion for the identified $key
 
 L<github Spreadsheet::XLSX::Reader::LibXML/issues
 |https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML/issues>
+
+B<1.> Add the workbook attributute to the documentation
 
 =back
 

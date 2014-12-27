@@ -24,7 +24,7 @@ use	Test::Moose;
 use	IO::File;
 use	XML::LibXML::Reader;
 use	MooseX::ShortCut::BuildInstance qw( build_instance );
-use Types::Standard qw( Bool );
+use Types::Standard qw( Bool HasMethods );
 use	lib
 		'../../../../../../../Log-Shiras/lib',
 		$lib,
@@ -393,8 +393,9 @@ has_attribute_ok
 } 			@class_attributes;
 
 lives_ok{
-			$workbook_instance = build_instance(
-									package	=> 'WorkbookInstance',
+			$error_instance		= Spreadsheet::XLSX::Reader::LibXML::Error->new( should_warn => 0 );
+			$workbook_instance	= build_instance(
+									package		=> 'WorkbookInstance',
 									add_methods =>{
 										counting_from_zero			=> sub{ return 0 },
 										boundary_flag_setting		=> sub{},
@@ -412,6 +413,17 @@ lives_ok{
 										get_empty_return_type		=> sub{ return 'undef_string' },
 									},
 									add_attributes =>{
+										error_inst =>{
+											isa			=> 	HasMethods[qw(
+																error set_error clear_error set_warnings if_warn
+															) ],
+											clearer		=> '_clear_error_inst',
+											reader		=> 'get_error_inst',
+											required	=> 1,
+											handles =>[ qw(
+												error set_error clear_error set_warnings if_warn
+											) ],
+										},
 										empty_is_end =>{
 											isa		=> Bool,
 											writer	=> 'set_empty_is_end',
@@ -425,8 +437,8 @@ lives_ok{
 											default	=> 1,
 										},
 									},
+									error_inst => $error_instance,
 								);
-			$error_instance = Spreadsheet::XLSX::Reader::LibXML::Error->new( should_warn => 0 );
 			$file_handle	= IO::File->new( $test_file, "<");
 			$test_instance	= Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet->new(
 				file_handle			=> $file_handle,

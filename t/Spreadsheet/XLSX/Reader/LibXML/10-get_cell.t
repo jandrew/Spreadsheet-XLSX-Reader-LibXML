@@ -296,6 +296,17 @@ lives_ok{
 											get_epoch_year => sub{ return '1904' },
 										},
 										add_attributes =>{
+											error_inst =>{
+												isa			=> 	HasMethods[qw(
+																	error set_error clear_error set_warnings if_warn
+																) ],
+												clearer		=> '_clear_error_inst',
+												reader		=> 'get_error_inst',
+												required	=> 1,
+												handles =>[ qw(
+													error set_error clear_error set_warnings if_warn
+												) ],
+											},
 											empty_is_end =>{
 												isa		=> Bool,
 												writer	=> 'set_empty_is_end',
@@ -352,6 +363,7 @@ lives_ok{
 										},
 										styles_instance => $styles_instance,
 										shared_strings_instance => $shared_strings_instance,
+										error_inst => $error_instance,
 									);
 			$file_handle	=	IO::File->new( $test_file, "<");
 			$test_instance	=	build_instance(

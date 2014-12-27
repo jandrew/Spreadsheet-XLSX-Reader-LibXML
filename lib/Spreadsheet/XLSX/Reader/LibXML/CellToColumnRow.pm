@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow;
-use version; our $VERSION = qv('v0.30.2');
+use version; our $VERSION = qv('v0.32.2');
 
 use	Moose::Role;
 requires

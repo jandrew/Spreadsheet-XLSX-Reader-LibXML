@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::Error;
-use version; our $VERSION = qv('v0.30.2');
+use version; our $VERSION = qv('v0.32.2');
 
 use Moose;
 use Carp qw( cluck );
@@ -10,6 +10,7 @@ use Types::Standard qw(
 		Bool
     );
 use lib	'../../../../../lib',;
+use Spreadsheet::XLSX::Reader::LibXML::Types qw( ErrorString );
 ###LogSD	with 'Log::Shiras::LogSpace';
 ###LogSD	use Log::Shiras::TapWarn qw( re_route_warn restore_warn );
 ###LogSD	use Log::Shiras::Telephone;
@@ -17,27 +18,27 @@ use lib	'../../../../../lib',;
 #########1 Public Attributes  3#########4#########5#########6#########7#########8#########9
 
 has error_string =>(
-		isa		=> Str,
-		clearer	=> 'clear_error',
-		reader	=> 'error',
-		writer	=> 'set_error',
+		isa			=> ErrorString,
+		clearer		=> 'clear_error',
+		reader		=> 'error',
+		writer		=> 'set_error',
+		init_arg 	=> undef,
+		coerce		=> 1,
 		trigger	=> sub{
-			my ( $self, @error_list ) = @_;
+			my ( $self, $error ) = @_;
 			###LogSD	my	$phone = Log::Shiras::Telephone->new(
 			###LogSD			name_space => $self->get_log_space . '::error', );
 			if( $self->if_warn ){
-				###LogSD	$phone->talk( level => 'debug', message => [ join( "\n", @error_list ) ] );
+				###LogSD	$phone->talk( level => 'debug', message => [ $error ] );
 				###LogSD	re_route_warn();
-				cluck join( "\n", @error_list );# . " line " .
-						#~ (((caller(2))[2])? ((caller(2))[2]) : ((caller(1))[2]) );
+				cluck $error;
 				###LogSD	restore_warn;
 			}else{
 				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		join( "\n", @error_list ) . " line " .
+				###LogSD		$error . " line " .
 				###LogSD		(((caller(2))[2])? ((caller(2))[2]) : ((caller(1))[2]) ) ] );
 			}
 		},
-		init_arg => undef,
 	);
 
 has should_warn =>(
@@ -80,9 +81,8 @@ Spreadsheet::XLSX::Reader::LibXML::Error - Moose class for remembering the last 
                 },
             },
 			error_inst => Spreadsheet::XLSX::Reader::LibXML::Error->new(
-                should_warn => 1,
-                # should_warn => 0,# to turn off cluck when the error is set
-            ),
+				should_warn => 1,# 0 to turn off cluck when the error is set
+			),
         );
     print $action->dump;
           $action->set_error( "You did something wrong" );
@@ -97,11 +97,10 @@ Spreadsheet::XLSX::Reader::LibXML::Error - Moose class for remembering the last 
     # 04:                                 'log_space' => 'Spreadsheet::XLSX::Reader::LogSpace'
     # 04:                             }, 'Spreadsheet::XLSX::Reader::Error' )
     # 05:         }, 'ANONYMOUS_SHIRAS_MOOSE_CLASS_1' );
-    # 06: You did something wrong line 19
-    # 07: at ../lib/Spreadsheet/XLSX/Reader/Error.pm line 28.
-    # 08:    Spreadsheet::XLSX::Reader::Error::__ANON__('Spreadsheet::XLSX::Reader::Error=HASH(0x45e818)', 'You did something wrong') called at writer Spreadsheet::XLSX::Reader::Error::set_error of attribute error_string (defined at ../lib/Spreadsheet/XLSX/Reader/Error.pm line 28) line 9
+    # 06: You did something wrong at ~~lib/Spreadsheet/XLSX/Reader/LibXML/Error.pm line 31.
+    # 08:    Spreadsheet::XLSX::Reader::Error::__ANON__('Spreadsheet::XLSX::Reader::Error=HASH(0x45e818)', 'You did something wrong') called at writer Spreadsheet::XLSX::Reader::Error::set_error of attribute error_string (defined at ../lib/Spreadsheet/XLSX/Reader/Error.pm line 42) line 13
     # 09:    Spreadsheet::XLSX::Reader::Error::set_error('Spreadsheet::XLSX::Reader::Error'=HASH(0x45e818)', 'You did something wrong') called at C:/strawberry/perl/site/lib/Moose/Meta/Method/Delegation.pm line 110
-    # 10:    ANONYMOUS_SHIRAS_MOOSE_CLASS_1::set_error('ANONYMOUS_SHIRAS_MOOSE_CLASS_1=HASH(0x45e890)', 'You did something wrong') called at error_example.pl line 19
+    # 10:    ANONYMOUS_SHIRAS_MOOSE_CLASS_1::set_error('ANONYMOUS_SHIRAS_MOOSE_CLASS_1=HASH(0x45e890)', 'You did something wrong') called at error_example.pl line 18
     # 11: $VAR1 = bless( {
     # 12:             'error_inst' => bless( {
     # 13:                                 'should_warn' => 1,
