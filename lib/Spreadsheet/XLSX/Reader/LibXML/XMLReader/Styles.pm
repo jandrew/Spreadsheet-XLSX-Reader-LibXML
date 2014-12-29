@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles;
-use version; our $VERSION = qv('v0.32.2');
+use version; our $VERSION = qv('v0.34.0');
 
 use 5.010;
 use Moose;
@@ -410,7 +410,7 @@ __END__
 
 =head1 NAME
 
-Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles - LibXML::Reader parser of Styles
+Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles - A LibXML::Reader styles base class
     
 =head1 DESCRIPTION
 

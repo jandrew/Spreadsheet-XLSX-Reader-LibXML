@@ -1,10 +1,10 @@
 package Spreadsheet::XLSX::Reader::LibXML::Types;
-use version; our $VERSION = qv('v0.32.2');
+use version; our $VERSION = qv('v0.34.0');
 		
 use strict;
 use warnings;
 use Type::Utils -all;
-use Type::Library 0.046
+use Type::Library 1.000
 	-base,
 	-declare => qw(
 		FileName					XMLFile						XLSXFile

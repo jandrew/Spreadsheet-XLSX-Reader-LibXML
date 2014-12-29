@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData;
-use version; our $VERSION = qv('v0.32.2');
+use version; our $VERSION = qv('v0.34.0');
 
 use	Moose::Role;
 use 5.010;
@@ -174,7 +174,7 @@ __END__
 =head1 NAME
 
 Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData - 
-Helper to turn xlsx XML to perl hashs
+XMLReader to turn xlsx XML to perl hashes
     
 =head1 DESCRIPTION
 

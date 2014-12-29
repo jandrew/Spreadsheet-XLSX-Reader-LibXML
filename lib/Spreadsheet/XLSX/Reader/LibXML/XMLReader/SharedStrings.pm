@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings;
-use version; our $VERSION = qv('v0.32.2');
+use version; our $VERSION = qv('v0.34.0');
 
 use 5.010;
 use Moose;
@@ -163,7 +163,7 @@ __END__
 
 =head1 NAME
 
-Spreadsheet::XLSX::Reader::XMLReader::SharedStrings - sharedStrings parsing with XML::LibXML::Reader
+Spreadsheet::XLSX::Reader::XMLReader::SharedStrings - A LibXML::Reader sharedStrings base class
     
 =head1 DESCRIPTION
 

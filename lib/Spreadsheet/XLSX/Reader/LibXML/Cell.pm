@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::Cell;
-use version; our $VERSION = qv('v0.32.2');
+use version; our $VERSION = qv('v0.34.0');
 
 $| = 1;
 use 5.010;
@@ -250,7 +250,7 @@ __END__
 
 =head1 NAME
 
-Spreadsheet::XLSX::Reader::LibXML::Cell - XLSX Cell data and formatting source
+Spreadsheet::XLSX::Reader::LibXML::Cell - XLSX Cell data class
 
 =head1 SYNOPSIS
 
