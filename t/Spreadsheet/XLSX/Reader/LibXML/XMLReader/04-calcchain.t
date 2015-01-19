@@ -50,15 +50,15 @@ my  (
 	);
 my 			$row = 0;
 my 			@class_attributes = qw(
-				file_handle
+				file
 				error_inst
 			);
 my  		@instance_methods = qw(
 				get_calc_chain_position
-				get_file_handle
-				set_file_handle
-				has_file_handle
-				clear_file_handle
+				get_file
+				set_file
+				has_file
+				clear_file
 				where_am_i
 				has_position
 				parse_element
@@ -93,10 +93,8 @@ has_attribute_ok
 
 ###LogSD		$phone->talk( level => 'info', message => [ "harder questions ..." ] );
 lives_ok{
-			$file_handle	=	IO::File->new( $test_file, "<");
 			$test_instance	=	Spreadsheet::XLSX::Reader::LibXML::XMLReader::CalcChain->new(
-									file_handle	=> $file_handle,
-									xml_reader 	=> XML::LibXML::Reader->new( IO => $file_handle ),
+									file		=> $test_file,
 									error_inst	=> Spreadsheet::XLSX::Reader::LibXML::Error->new(
 										#~ should_warn => 1,
 										should_warn => 0,# to turn off cluck when the error is set

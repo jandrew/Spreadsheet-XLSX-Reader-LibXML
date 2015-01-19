@@ -102,7 +102,7 @@ my  (
 	);
 my 			$row = 0;
 my 			@class_attributes = qw(
-				file_handle
+				file
 				excel_region
 				target_encoding
 				cache_formats
@@ -114,10 +114,10 @@ my  		@class_methods = qw(
 				get_format_position
 				get_default_format_position
 				get_sub_format_position
-				get_file_handle
-				set_file_handle
-				has_file_handle
-				clear_file_handle
+				get_file
+				set_file
+				has_file
+				clear_file
 				error
 				set_error
 				clear_error
@@ -138,7 +138,6 @@ my  		@class_methods = qw(
 				#~ get_number_format
 ###LogSD		$phone->talk( level => 'info', message => [ "easy questions ..." ] );
 lives_ok{
-			$file_handle	=	IO::File->new( $test_file, "<");
 			$test_instance	=	build_instance(
 									package => 'TestInstance',
 									superclasses	=> [ 'Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles' ],
@@ -146,8 +145,7 @@ lives_ok{
 										Spreadsheet::XLSX::Reader::LibXML::FmtDefault
 										Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings
 									)],
-									file_handle	=> $file_handle,
-									xml_reader 	=> XML::LibXML::Reader->new( IO => $file_handle ),
+									file		=> $test_file,
 									error_inst	=> Spreadsheet::XLSX::Reader::LibXML::Error->new(
 										should_warn => 1,
 										#~ should_warn => 0,# to turn off cluck when the error is set

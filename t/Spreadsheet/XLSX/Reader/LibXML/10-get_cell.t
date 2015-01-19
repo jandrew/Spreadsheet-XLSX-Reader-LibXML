@@ -19,7 +19,7 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 750;
+use	Test::Most tests => 749;
 use	Test::Moose;
 use IO::File;
 use XML::LibXML::Reader;
@@ -76,7 +76,7 @@ my  (
 	);
 my 			$row = 0;
 my 			@class_attributes = qw(
-				file_handle					error_inst					sheet_rel_id
+				file						error_inst					sheet_rel_id
 				sheet_id					sheet_position				sheet_name
 				custom_formats
 			);
@@ -269,7 +269,6 @@ lives_ok{
 									superclasses =>[ 'Spreadsheet::XLSX::Reader::LibXML::Error' ],
 									should_warn => 0,
 								);
-			$styles_handle		=	IO::File->new( $styles_file, "<");
 			$styles_instance	=	build_instance(
 									package => 'StylesInstance',
 									superclasses	=> [ 'Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles' ],
@@ -277,17 +276,14 @@ lives_ok{
 										Spreadsheet::XLSX::Reader::LibXML::FmtDefault
 										Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings
 									)],
-									file_handle	=> $styles_handle,
-									xml_reader 	=> XML::LibXML::Reader->new( IO => $styles_handle ),
+									file		=> $styles_file,
 									error_inst	=> $error_instance,
 									epoch_year	=> 1904,
 			###LogSD				log_space	=> 'Test::Styles',
 								);
-			$shared_strings_handle		=	IO::File->new( $shared_strings_file, "<");
 			$shared_strings_instance	=	Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings->new(
 											error_inst	=> $error_instance,
-											xml_reader 	=> XML::LibXML::Reader->new( IO => $shared_strings_handle ),
-											file_handle	=> $shared_strings_handle,
+											file		=> $shared_strings_file,
 			###LogSD						log_space	=> 'Test::SharedStrings',
 										);
 			$workbook_instance =	build_instance(
@@ -365,12 +361,10 @@ lives_ok{
 										shared_strings_instance => $shared_strings_instance,
 										error_inst => $error_instance,
 									);
-			$file_handle	=	IO::File->new( $test_file, "<");
 			$test_instance	=	build_instance(
 									package	=> 'GetCellTest',
 									superclasses 		=>[ 'Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet' ],
-									file_handle			=> $file_handle,
-									xml_reader 			=> XML::LibXML::Reader->new( IO => $file_handle ),
+									file				=> $test_file,
 									error_inst			=> $error_instance,
 									custom_formats		=> {
 																E10	=> $date_time_type,
@@ -603,18 +597,15 @@ is_deeply	$row_ref, $answer_list->[$position],
 explain									"Test fetchrow_hashref";
 ok			$workbook_instance->set_group_return_type( 'value' ),
 										"Set the group_return_type to: value";
-ok			$file_handle	=	IO::File->new( $test_file_2, "<"),
-										"Reset the file handle";
 ok			$test_instance = GetCellTest->new(
-								file_handle			=> $file_handle,
-								xml_reader 			=> XML::LibXML::Reader->new( IO => $file_handle ),
-								error_inst			=> $error_instance,
-								custom_formats		=> {
-															E10	=> $date_time_type,
-															10	=> $string_type,
-															D14	=> $string_type,
-														},
-								workbook_instance	=> $workbook_instance,
+								file			=> $test_file_2,
+								error_inst		=> $error_instance,
+								custom_formats	=> {
+									E10	=> $date_time_type,
+									10	=> $string_type,
+									D14	=> $string_type,
+								},
+								workbook_instance => $workbook_instance,
 			###LogSD			log_space			=> 'Test',
 							),			'Build another connection to a different worksheet';
 is 			$test_instance->fetchrow_hashref( 1 ), undef,

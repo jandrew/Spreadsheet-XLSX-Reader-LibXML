@@ -19,7 +19,7 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 45;
+use	Test::Most tests => 46;
 use	Test::TypeTiny;
 #~ use	Test::Moose;
 use Data::Dumper;
@@ -58,6 +58,7 @@ my	@types_list = (
 my	$test_dir	= ( @ARGV ) ? $ARGV[0] : $test_file;
 my	$xlsx_file	= $test_dir . 'TestBook.xlsx';
 my	$xml_file	= $test_dir . '[Content_Types].xml';
+my	$real_file	= $test_dir . 'badfile.is';
 my  ( 
 			$position, $counter, $exception, $fh,
 	);
@@ -76,7 +77,7 @@ my			$question_ref =[
 				[ -1, -2, -0.1234, 0 ],#~ NegativeNum
 				[ 0, undef, 's', 2 ],#~ ZeroOrUndef
 				[ 1, 2, 0.1234, 0, -1],#~ NotNegativeNum
-				[ $fh, $file_handle, $xlsx_file, $xml_file],#~ IOFileType
+				[ $fh, $file_handle, $xlsx_file, $xml_file, $real_file],#~ IOFileType
 				#~ Excel_number_0?
 			];
 my			$answer_ref = [
@@ -98,7 +99,7 @@ my			$answer_ref = [
 					qr/Value "s" did not pass type constraint "ZeroOrUndef"/,
 					qr/Value "2" did not pass type constraint "ZeroOrUndef"/, ],
 				[undef, undef, undef, undef, qr/Value "-1" did not pass type constraint "NotNegativeNum"/, ],
-				[undef, undef, undef, qr/\[Content_Types\]\.xml" did not pass type constraint "IOFileType"/, ],
+				[undef, undef, undef, undef, qr/badfile\.is" did not pass type constraint "IOFileType"/, ],
 			];
 ###LogSD my $phone = Log::Shiras::Telephone->new;
 ###LogSD	$phone->talk( level => 'debug', message =>[ 'Start your engines ...' ] );

@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData;
-use version; our $VERSION = qv('v0.34.0');
+use version; our $VERSION = qv('v0.34.1');
 
 use	Moose::Role;
 use 5.010;
@@ -159,7 +159,7 @@ sub parse_element{
 	return $current_ref;
 }
 
-#########1 Private Attributes 3#########4#########5#########6#########7#########8#########9
+#########1 Private Attributes 3#########4#########5#########6#########7#########8#########9	
 
 
 

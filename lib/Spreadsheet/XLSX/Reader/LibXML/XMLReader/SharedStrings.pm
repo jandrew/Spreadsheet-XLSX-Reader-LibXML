@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings;
-use version; our $VERSION = qv('v0.34.0');
+use version; our $VERSION = qv('v0.34.1');
 
 use 5.010;
 use Moose;
@@ -196,9 +196,9 @@ B<1.> Nothing L<yet|/SUPPORT>
 
 =over
 
-=item Jed Lund
+Jed Lund
 
-=item jandrew@cpan.org
+jandrew@cpan.org
 
 =back
 

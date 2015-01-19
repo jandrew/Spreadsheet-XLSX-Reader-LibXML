@@ -19,7 +19,7 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 1331;
+use	Test::Most tests => 1330;
 use	Test::Moose;
 use	IO::File;
 use	XML::LibXML::Reader;
@@ -71,8 +71,7 @@ my  (
 			$test_instance, $error_instance, $workbook_instance, $file_handle,
 	);
 my 			@class_attributes = qw(
-				file_handle
-				xml_reader
+				file
 				error_inst
 				sheet_rel_id
 				sheet_id
@@ -96,10 +95,10 @@ my  		@instance_methods = qw(
 				has_max_col
 				max_row
 				has_max_row
-				get_file_handle
-				set_file_handle
-				has_file_handle
-				clear_file_handle
+				get_file
+				set_file
+				has_file
+				clear_file
 				start_reading
 				error
 				clear_error
@@ -439,10 +438,8 @@ lives_ok{
 									},
 									error_inst => $error_instance,
 								);
-			$file_handle	= IO::File->new( $test_file, "<");
 			$test_instance	= Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet->new(
-				file_handle			=> $file_handle,
-				xml_reader 			=> XML::LibXML::Reader->new( IO => $file_handle ),
+				file				=> $test_file,
 				error_inst			=> $error_instance,
 				sheet_name			=> 'Sheet3',
 				workbook_instance	=> $workbook_instance,
@@ -534,16 +531,14 @@ is_deeply	$result, $answer_ref->[$x++],"..and see if it has good info";
 			}
 
 lives_ok{
-			$file_handle	= IO::File->new( $test_file, "<");
 			$workbook_instance->set_empty_is_end( 1 );
 			$workbook_instance->set_from_the_edge( 0 );
 			$test_instance	= Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet->new(
-				file_handle			=> $file_handle,
-				xml_reader 			=> XML::LibXML::Reader->new( IO => $file_handle ),
-			###LogSD	log_space	=> 'Test',
+				file				=> $test_file,
 				error_inst			=> $error_instance,
 				sheet_name			=> 'Sheet3',
 				workbook_instance	=> $workbook_instance,
+			###LogSD	log_space	=> 'Test',
 			);
 ###LogSD	$phone->talk( level => 'trace', message =>[ "Loaded new test instance - without the edges" ] );
 }										"Build a Worksheet instance with the edges cut off";

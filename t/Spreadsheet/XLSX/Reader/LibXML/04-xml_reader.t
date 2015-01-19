@@ -22,7 +22,7 @@ $| = 1;
 use	Test::Most tests => 53;
 use	Test::Moose;
 use IO::File;
-use XML::LibXML::Reader;
+#~ use XML::LibXML::Reader;
 use	MooseX::ShortCut::BuildInstance qw( build_instance );
 use	lib
 		'../../../../../../Log-Shiras/lib',
@@ -54,14 +54,14 @@ my  (
 			$test_instance, $capture, @answer, $error_instance, $file_handle,
 	);
 my 			@class_attributes = qw(
-				file_handle
+				file
 				error_inst
 			);
 my  		@class_methods = qw(
-				get_file_handle
-				set_file_handle
-				clear_file_handle
-				has_file_handle
+				get_file
+				set_file
+				clear_file
+				has_file
 				error
 				set_error
 				clear_error
@@ -148,8 +148,8 @@ has_attribute_ok
 lives_ok{
 			$file_handle	=	IO::File->new( $test_file, "<");
 			$test_instance	=	Spreadsheet::XLSX::Reader::LibXML::XMLReader->new(
-									file_handle	=> $file_handle,
-									xml_reader 	=> XML::LibXML::Reader->new( IO => $file_handle ),
+									file	=> $file_handle,
+									#~ xml_reader 	=> XML::LibXML::Reader->new( IO => $file_handle ),
 									error_inst	=> Spreadsheet::XLSX::Reader::LibXML::Error->new(
 										#~ should_warn => 1,
 										should_warn => 0,# to turn off cluck when the error is set
@@ -201,12 +201,13 @@ done_testing();
 ###LogSD			push @initial_list, (( ref $value ) ? Dumper( $value ) : $value );
 ###LogSD		}
 ###LogSD		for my $line ( @initial_list ){
+###LogSD			$line =~ s/\n$//;
 ###LogSD			$line =~ s/\n/\n\t\t/g;
 ###LogSD			push @print_list, $line;
 ###LogSD		}
-###LogSD		printf( "name_space - %-50s | level - %-6s |\nfile_name  - %-50s | line  - %04d   |\n\t:(\t%s ):\n", 
-###LogSD					$_[0]->{name_space}, $_[0]->{level},
-###LogSD					$_[0]->{filename}, $_[0]->{line},
+###LogSD		printf( "| level - %-6s | name_space - %-s\n| line  - %04d   | file_name  - %-s\n\t:(\t%s ):\n", 
+###LogSD					$_[0]->{level}, $_[0]->{name_space},
+###LogSD					$_[0]->{line}, $_[0]->{filename},
 ###LogSD					join( "\n\t\t", @print_list ) 	);
 ###LogSD		use warnings 'uninitialized';
 ###LogSD	}

@@ -76,6 +76,7 @@ lives_ok{
 							group_return_type => 'unformatted',
 							empty_return_type => 'empty_string',
 						);
+			#~ $parser->set_warnings( 1 );
 }										"Prep a test parser instance";
 is			$parser->error(), undef,	"Write any error messages from the file load";
 ok			$worksheet = $parser->worksheet( 'Sheet1' ),

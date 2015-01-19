@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::Types;
-use version; our $VERSION = qv('v0.34.0');
+use version; our $VERSION = qv('v0.34.1');
 		
 use strict;
 use warnings;
@@ -79,6 +79,10 @@ coerce IOFileType,
 	
 coerce IOFileType,
 	from XLSXFile,
+	via{  IO::File->new( $_, 'r' ); };
+	
+coerce IOFileType,
+	from XMLFile,
 	via{  IO::File->new( $_, 'r' ); };
 
 declare ParserType, 

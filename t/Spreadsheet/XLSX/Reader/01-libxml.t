@@ -20,7 +20,7 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 123;
+use	Test::Most tests => 119;
 use	Test::Moose;
 use Data::Dumper;
 use	lib	'../../../../../Log-Shiras/lib',
@@ -109,10 +109,9 @@ my	$answer_ref = [
 	];
 my 			@class_attributes = qw(
 				error_inst					file_name					file_handle
-				file_creator				file_modified_by			file_date_created
-				file_date_modified			sheet_parser				count_from_zero
-				file_boundary_flags			empty_is_end				from_the_edge
-				default_format_list			format_string_parser		group_return_type
+				sheet_parser				count_from_zero				file_boundary_flags
+				empty_is_end				from_the_edge				default_format_list
+				format_string_parser		group_return_type
 				empty_return_type
 			);
 my  		@class_methods = qw(

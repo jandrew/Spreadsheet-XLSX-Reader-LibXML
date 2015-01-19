@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader;
-use version; our $VERSION = qv('v0.34.0');
+use version; our $VERSION = qv('v0.34.1');
 
 use 5.010;
 use Moose;
@@ -20,12 +20,14 @@ use Spreadsheet::XLSX::Reader::LibXML::Types qw(
 
 #########1 Public Attributes  3#########4#########5#########6#########7#########8#########9
 
-has file_handle =>(
+has file =>(
 		isa			=> IOFileType,
-		reader		=> 'get_file_handle',
-		writer		=> 'set_file_handle',
-		predicate	=> 'has_file_handle',
-		clearer		=> 'clear_file_handle',
+		reader		=> 'get_file',
+		writer		=> 'set_file',
+		predicate	=> 'has_file',
+		clearer		=> 'clear_file',
+		coerce		=> 1,
+		trigger		=> \&_build_xml_reader,
 	);
 
 has	error_inst =>(
@@ -40,7 +42,27 @@ has	error_inst =>(
 		) ],
 	);
 
-has xml_reader =>(
+#########1 Public Methods     3#########4#########5#########6#########7#########8#########9
+
+
+sub start_the_file_over{
+	my( $self, ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new(
+	###LogSD					name_space => $self->get_log_space . '::start_the_file_over', );
+	###LogSD		$phone->talk( level => 'debug', message =>[ "Resetting the XML file" ] );
+	$self->_go_to_the_end;
+	$self->_close_the_sheet;
+	#~ $self->_clear_xml_parser;
+	$self->_clear_location;
+	my $fh = $self->get_file;
+	$fh->seek( 0, 0 );
+	$self->_set_xml_parser( XML::LibXML::Reader->new( IO => $fh ) );
+	$self->start_reading;
+}
+
+#########1 Private Attributes 3#########4#########5#########6#########7#########8#########9
+
+has _xml_reader =>(
 	isa			=> 'XML::LibXML::Reader',
 	reader		=> '_get_xml_parser',
 	writer		=> '_set_xml_parser',
@@ -75,26 +97,6 @@ has xml_reader =>(
 	trigger => \&_reader_init,
 );
 
-#########1 Public Methods     3#########4#########5#########6#########7#########8#########9
-
-
-sub start_the_file_over{
-	my( $self, ) = @_;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	###LogSD					name_space => $self->get_log_space . '::start_the_file_over', );
-	###LogSD		$phone->talk( level => 'debug', message =>[ "Resetting the XML file" ] );
-	$self->_go_to_the_end;
-	$self->_close_the_sheet;
-	#~ $self->_clear_xml_parser;
-	$self->_clear_location;
-	my $fh = $self->get_file_handle;
-	$fh->seek( 0, 0 );
-	$self->_set_xml_parser( XML::LibXML::Reader->new( IO => $fh ) );
-	$self->start_reading;
-}
-
-#########1 Private Attributes 3#########4#########5#########6#########7#########8#########9
-
 has _position_index =>(
 		isa			=> Int,
 		reader		=> 'where_am_i',
@@ -112,6 +114,22 @@ has _read_unique_bits =>(
 	);
 
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
+
+sub _build_xml_reader{
+	my( $self, $file_handle ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new(
+	###LogSD					name_space 	=> $self->get_log_space .  '::_build_xml_reader', );
+	###LogSD		$phone->talk( level => 'debug', message => [
+	###LogSD			"turning a file handle into an xml reader", ] );
+	
+	# Build the reader
+	$file_handle->seek( 0, 0 );
+	my	$xml_reader = XML::LibXML::Reader->new( IO => $file_handle );
+		$xml_reader->read;
+	###LogSD	$phone->talk( level => 'debug', message =>[ 'Loading reader:', $xml_reader ], );
+	$self->_set_xml_parser( $xml_reader );
+	###LogSD	$phone->talk( level => 'debug', message => [ "Finished loading XML reader" ], );
+}
 
 sub _reader_init{
 	my( $self, $reader ) = @_;
@@ -151,12 +169,12 @@ sub DEMOLISH{
 		$self->_close_the_sheet;
 		$self->_clear_xml_parser;
 	}
-	if( my $fh = $self->get_file_handle ){
+	if( my $fh = $self->get_file ){
 		#~ print "Clearing file handle\n";
 		###LogSD	$phone->talk( level => 'debug', message =>[ "Closing the system file handle", $self->dump(2) ] );
 		$fh->close;
 		###LogSD	$phone->talk( level => 'debug', message =>[ "Clearing the system file handle", $self->dump(2) ] );
-		$self->clear_file_handle;
+		$self->clear_file;
 		###LogSD	$phone->talk( level => 'debug', message =>[ "Final self", $self->dump(2) ] );
 	}
 }
