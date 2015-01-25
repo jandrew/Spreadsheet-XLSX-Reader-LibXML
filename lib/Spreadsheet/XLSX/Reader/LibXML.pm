@@ -485,8 +485,9 @@ sub _build_workbook{
 	# Load the workbook rels info
 	%answer = $self->_build_dom( $build_ref->{workbook_rels}, $workbook_file );
 	###LogSD	$phone->talk( level	=> 'debug', message =>[ "DOM built for method: _load_workbook_rels" ] );
-	my ( $pivot_lookup ) = $self->_load_workbook_rels( $rel_lookup, $answer{dom} );
-	return undef if !$pivot_lookup;
+	my ( $load_result, $pivot_lookup ) = 
+	   $self->_load_rels_workbook_file( $rel_lookup, $workbook_file );
+	return undef if !$load_result;
 	###LogSD	$phone->talk( level => 'debug', message =>[ 'pivot lookup:', $pivot_lookup,	] );
 	
 	# Load the docProps info
@@ -640,7 +641,7 @@ sub _load_workbook_rels{
 		return undef;
 	}
 	$self->_set_worksheet_lookup( $sheet_ref );
-	return $pivot_lookup;
+	return ( 1, $pivot_lookup );
 }
 
 sub _load_doc_props{
