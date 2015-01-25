@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet;
-use version; our $VERSION = qv('v0.30.0');
+use version; our $VERSION = qv('v0.34.1');
 
 
 use	5.010;
@@ -490,10 +490,15 @@ sub _get_row_all{
 	###LogSD					name_space 	=> ($self->get_log_space . '::_get_row_all' ), );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			'Getting row: ' . (($row) ? $row : undef) ] );
-	# Validate
+	
+	# Get next row as needed
 	if( !$row ){
-		$self->set_error( "Need to pass a row number - non passed" );
-		return undef;
+		my $last_col = $self->_get_reported_col;
+		###LogSD	$phone->talk( level => 'info', message =>[
+		###LogSD		"No row requested - Determining what it should be with the last column: $last_col", ] );
+		$row = $self->_get_reported_row + !!$last_col;
+		###LogSD	$phone->talk( level => 'info', message =>[
+		###LogSD		"Now requesting Excel row: $row", ] );
 	}
 	
 	# See if you went too far

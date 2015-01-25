@@ -1,5 +1,5 @@
 #########1 Test File for Spreadsheet::XLSX::Reader::LibXML::XMLReader::CalcChain8#########9
-#!env perl
+#!/usr/bin/env perl
 my ( $lib, $test_file );
 BEGIN{
 	$ENV{PERL_TYPE_TINY_XS} = 0;
@@ -19,8 +19,10 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 16;
+use	Test::Most tests => 19;
 use	Test::Moose;
+use IO::File;
+use XML::LibXML::Reader;
 use	MooseX::ShortCut::BuildInstance qw( build_instance );
 use	lib
 		'../../../../../../../Log-Shiras/lib',
@@ -44,16 +46,19 @@ use	Spreadsheet::XLSX::Reader::LibXML::Error;
 $test_file = ( @ARGV ) ? $ARGV[0] : $test_file;
 $test_file .= 'calcChain.xml';
 my  ( 
-			$test_instance, $capture, $x, @answer, $error_instance,
+			$test_instance, $capture, $x, @answer, $error_instance, $file_handle,
 	);
 my 			$row = 0;
 my 			@class_attributes = qw(
-				file_name
+				file
 				error_inst
 			);
 my  		@instance_methods = qw(
 				get_calc_chain_position
-				get_file_name
+				get_file
+				set_file
+				has_file
+				clear_file
 				where_am_i
 				has_position
 				parse_element
@@ -88,13 +93,13 @@ has_attribute_ok
 
 ###LogSD		$phone->talk( level => 'info', message => [ "harder questions ..." ] );
 lives_ok{
-			$test_instance =	Spreadsheet::XLSX::Reader::LibXML::XMLReader::CalcChain->new(
-									file_name	=> $test_file,
-			###LogSD				log_space	=> 'Test',
+			$test_instance	=	Spreadsheet::XLSX::Reader::LibXML::XMLReader::CalcChain->new(
+									file		=> $test_file,
 									error_inst	=> Spreadsheet::XLSX::Reader::LibXML::Error->new(
 										#~ should_warn => 1,
 										should_warn => 0,# to turn off cluck when the error is set
 									),
+			###LogSD				log_space	=> 'Test',
 								);
 }										"Prep a new CalcChain instance";
 map{

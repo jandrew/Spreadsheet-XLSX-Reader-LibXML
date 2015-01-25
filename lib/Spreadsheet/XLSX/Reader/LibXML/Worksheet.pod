@@ -12,38 +12,51 @@ See the SYNOPSIS in the L<Workbook class|Spreadsheet::XLSX::Reader::LibXML/SYNOP
 
 =head1 DESCRIPTION
 
-If you want just learn the key elements of how to use the Worksheet instances returned 
-from L<Spreadsheet::XLSX::Reader::LibXML> this POD is for you.  I<You will also want to 
-skip the next paragraph.>  First, it is best to generate a worksheet instance with the 
-main class.  Once you have done that there are several ways to step through the data and 
-return information from the identified location.
+The worksheet class provided by this package is an amalgam of a class, a few roles, 
+and a few traits aggregated at run time based on attribute settings from the workbook 
+level class.  This documentation shows the ways to use the resulting instance.  First, 
+it is best to generate a worksheet instance from the workbook class using one of the 
+various L<worksheet|Spreadsheet::XLSX::Reader::LibXML/worksheet( $name )> methods.  
+Once you have done that there are several ways to step through the data inside of each 
+worksheet and access information from the identified location in the sheet of the .xlsx 
+file.
 
-As you may have noticed this is only the pod explaining the Worksheet class not the file 
-containing the actual class.  In fact worksheets are built somwhat on the fly with an 
-amalgam of classes, roles, and traits each with their own code and POD.  Since this is a 
-L<Moose> package I tried to architect it as extensibly as possible.  For protips to 
-manipulate each element of the package look at the pod for that element and then review the 
-tests for that element.  Every .pm file has it's own test.  I<I use 
-L<MooseX::ShortCut::BuildInstance> in order to test just the role or class functionality>.  
-The file t/Spreadsheet/XLSX/Reader/LibXML/10-get_cell.t represents a good 'under the hood' 
-look at the way each is integrated into this larger package since it doesn't use the top 
-level class for the test.  The one exception to full extensibility is the worksheet class 
-itself.  Because worksheet reading is central to the functionality of this package the core 
-worksheet build is hard coded.
+
+=head2 Extending the worksheet class
+
+In general since this is a L<Moose> package I tried to architect it as extensibly as 
+possible.  One advantage of that is the ability to delay the building of the final 
+worksheet class until  runtime to allow for the needed roles and traits to be aggregated 
+into different base classes so that different file types can be read and different parsing 
+methods can be implemented based on runtime decisions.  On the other hand since the 
+worksheet class is built at runtime and the eventual class guts are based on logic from 
+runtime inputs it is difficult to extend this class at runtime.  With that said, the 
+architecture should allow you to L<fork|https://help.github.com/articles/fork-a-repo/> 
+the L<package on github|https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML> and 
+build a module for just the behaviour that you wish to change rather that doing a full 
+rewrite.  The file t/Spreadsheet/XLSX/Reader/LibXML/10-get_cell.t represents a good 
+'under the hood' example of the way all the elements are integrated into the larger 
+worksheet class as a whole.    If you are feeling extra generous and the update you 
+create can co-exist with this package please send a pull request on github. 
 
 =head2 The way to set what type of information is returned
 
-There is a an attribute set in the primary instance called 
-L<group_return_type|Spreadsheet::XLSX::Reader::LibXML/group_return_type>.  Setting 
-this attribute will return either a full L<Spreadsheet::XLSX::Reader::LibXML::Cell> instance, 
-just the unformatted value, or the formatted value.  For more details on the data available 
-in the Cell instance read the documentation for the 
-L<Cell|Spreadsheet::XLSX::Reader::LibXML::Cell> instance.
+There is a an attribute set in the workbook instance called L<group_return_type
+|Spreadsheet::XLSX::Reader::LibXML/group_return_type>.  Setting this attribute will return 
+either a full L<Spreadsheet::XLSX::Reader::LibXML::Cell> instance, just the unformatted 
+value, or the formatted value.  For more details on the data available in the Cell instance 
+read the documentation for the L<Cell|Spreadsheet::XLSX::Reader::LibXML::Cell> instance.
 
 =head2 Methods to access data from the sheet
 
 These are the various functions that are available (independent of sheet parser type) to 
-select which cells to read.
+select which cell(s) to read.  When allowed the requested row and column numbers are 
+interpreted using the attribute L<Spreadsheet::XLSX::Reader::LibXML/count_from_zero>.  
+all the methods are object methods performed on the worksheet.
+
+B<Example:>
+
+	my $cell_data = $worksheet->get_cell( $row, $column );
 
 =head3 get_cell( $row, $column )
 
@@ -54,8 +67,8 @@ that position will be returned.  Both $row and $column are required
 
 B<Accepts:> the list ( $row, $column ) both required
 
-B<Returns:> see L<returns|/The way to set what type of information is returned> for details 
-on what is returned
+B<Returns:> see the attribute L<Spreadsheet::XLSX::Reader::LibXML/group_return_type> for 
+details on what is returned
 
 =back
 
@@ -69,8 +82,8 @@ cells that have been merged with other cells.
 
 B<Accepts:> nothing
 
-B<Returns:> see L<returns|/The way to set what type of information is returned> for details 
-on what is returned
+B<Returns:> see the attribute L<Spreadsheet::XLSX::Reader::LibXML/group_return_type> for 
+details on what is returned
 
 =back
 
@@ -85,7 +98,7 @@ row.  In the array ref any empty and non unique cell will show as 'undef'.
 B<Accepts:> undef = next|$row = a row integer indicating the desired row
 
 B<Returns:> an array ref of all possible column positions in that row with data filled in 
-as appropriate.
+per the attribute L<Spreadsheet::XLSX::Reader::LibXML/group_return_type>.
 
 =back
 
@@ -98,8 +111,8 @@ except it returns an array instead of an array ref
 
 B<Accepts:> undef = next|$row = a row integer indicating the desired row
 
-B<Returns:> an array of all possible column positions in that row with data filled in 
-as appropriate.
+B<Returns:> an array ref of all possible column positions in that row with data filled in 
+per the attribute L<Spreadsheet::XLSX::Reader::LibXML/group_return_type>.
 
 =back
 
@@ -110,12 +123,16 @@ as appropriate.
 B<Definition:> This function is used to set headers used in the function 
 L<fetchrow_hashref|/fetchrow_hashref( $row )>.  It accepts a list of row numbers that 
 will be collated into a set of headers used to build the hashref for each row.
-The header rows are coallated in sequence with the first number taking precedence.  
-The list is also used to set the lowest row of the headers in the table.  All rows 
-at that level and higher will be considered out of the table and will return undef 
-while setting the error instance.  If some of the columns do not have values then 
-the instance will auto generate unique headers for each empty header column to fill 
-out the header ref.
+The header rows are coallated in sequence with the first number in the list taking 
+precedence.  The list is also used to set the lowest row of the headers in the table.  
+All rows at that level and higher will be considered out of the table and will return 
+'undef' while setting the error instance.  If some of the columns do not have values 
+then the instance will auto generate unique headers for each empty header column to 
+fill out the header ref.  Please pay attention to the fact that this method is also 
+affected by the attribute L<Spreadsheet::XLSX::Reader::LibXML/group_return_type> with 
+one exception.  If that attribute is set to 'instance' the headers will be composed of 
+the converted 'value's of each cell rather than either the instance pointer string or 
+the 'unformatted' value.
 
 B<Accepts:> a list of row numbers
 
@@ -130,11 +147,15 @@ B<Returns:> an array ref of the built headers for review
 B<Definition:> This function is used to return a hashref representing the data in the 
 specified row.  If no $row value is passed it will return the 'next' row of data.  A call 
 to this function without L<setting|/set_headers( @header_row_list )> the headers first 
-will return undef and set the error instance.
+will return 'undef' and set the error instance.
 
 B<Accepts:> a target $row number for return values or undef meaning 'next'
 
-B<Returns:> a hash ref of the values for that row
+B<Returns:> a hash ref of the values for that row.  This function ignores the attribute 
+L<group_return_type|Spreadsheet::XLSX::Reader::LibXML/group_return_type> when it is 
+set to 'instance' and returns 'value's instead.  See also the attributes 
+L<min_header_col|/min_header_col> and L<max_header_col|/max_header_col> to pare the 
+start and end columns of the returned hash ref.
 
 =back
 
@@ -142,8 +163,8 @@ B<Returns:> a hash ref of the values for that row
 
 =over
 
-B<Definition:> This is the minimum row with data listed in the sheet.  This value 
-is affected by the workbook attributes 
+B<Definition:> This is the minimum row determined when the sheet is opened.  This 
+value is affected by the workbook attributes 
 L<from_the_edge|Spreadsheet::XLSX::Reader::LibXML/from_the_edge>, and 
 L<count_from_zero|Spreadsheet::XLSX::Reader::LibXML/count_from_zero>
 
@@ -236,14 +257,14 @@ of max_col
 
 =over
 
-B<Definition:> This returns a list with the minimum row followed by the 
-maximum row.  This list is affected by the workbook attributes 
+B<Definition:> This returns a list containing the minimum row number followed 
+by the maximum row number.  This list is affected by the workbook attributes 
 L<from_the_edge|Spreadsheet::XLSX::Reader::LibXML/from_the_edge>, and 
 L<count_from_zero|Spreadsheet::XLSX::Reader::LibXML/count_from_zero>
 
 B<Accepts:> nothing
 
-B<Returns:> ( $minimum_row, $maximum_row ) - integers
+B<Returns:> ( $minimum_row, $maximum_row )
 
 =back
 
@@ -251,14 +272,14 @@ B<Returns:> ( $minimum_row, $maximum_row ) - integers
 
 =over
 
-B<Definition:> This returns a list with the minimum column followed by the 
-maximum column.  This list is affected by the workbook attributes 
+B<Definition:> This returns a list containing the minimum column number followed 
+by the maximum column number.  This list is affected by the workbook attributes 
 L<from_the_edge|Spreadsheet::XLSX::Reader::LibXML/from_the_edge>, and 
 L<count_from_zero|Spreadsheet::XLSX::Reader::LibXML/count_from_zero>
 
 B<Accepts:> nothing
 
-B<Returns:> ( $minimum_column, $maximum_column ) - integers
+B<Returns:> ( $minimum_column, $maximum_column )
 
 =back
 
@@ -268,8 +289,9 @@ These are attributes that affect the behaviour of the returned data in the works
 instance.  In general you would not set these on instance generation, I<Because the primary 
 class will generate this instance for you>.  Rather you would use the attribue methods 
 listed with each attribute to change the attribute after the worksheet instance has been 
-generated.  Additionally at the end of this list you will see a link to the workbook 
-instance itself for access to all those settings as well.
+generated.  Additionally at the end of this list that a reference to the workbook is stored 
+in one of the attributes as well so many workbook settings can be adjusted from the worksheet 
+instance..
 
 =head3 min_header_col
 
@@ -371,75 +393,81 @@ B<Definition:> Indicates if the attribute has a stored value
 
 =over
 
-B<Definition:> This package will generate value conversions that generally 
-match the numerical conversions set in the Excel spreadsheet.  However, it 
-may be that you want to convert the unformatted values for certain cells, 
-rows, or columns in some user defined way.  Build an object instance that 
-has the two following methods; 'assert_coerce' and 'display_name'.  Then 
-place it here in this attribute as a value to a hash key that is keyed on 
-the target Cell ID, or the row number, or the Column letter callout and 
-this package will assign that conversion when calling 'value' on the cell 
-rather than the conversion stored in the Excel spreadsheet.
+B<Definition:> This package will generate value conversions that generally match the 
+numerical conversions set in the Excel spreadsheet.  However, it may be that you want 
+to convert the unformatted values for certain cells, rows, or columns in some user 
+defined way.  Build an object instance that has the two following methods; 
+'assert_coerce' and 'display_name'.  Then place it here in this attribute as a value 
+to a hash key that is keyed on the target Cell ID, or the row number, or the Column 
+letter callout and this package will assign that conversion when calling 'value' on 
+the cell rather than the conversion stored in the Excel spreadsheet.
 
 B<Default:> {} = no custom conversions
 
-B<Range:> keys representing cell ID's, row numbers, or column letter callouts
-
+B<Range:> keys representing cell ID's, row numbers, or column letter callouts 
+followed by values that are instance references for specific conversions.
 
 B<Example:>
 
-Building a converter on the fly (or use L<Type::Library> or L<MooseX::Types>)
+Building a converter on the fly (or use L<Type::Tiny|Type::Tiny::Manual::Libraries> 
+or L<MooseX::Types>)
 
 	use DateTimeX::Format::Excel;
 	use DateTime::Format::Flexible;
 	use Type::Coercion;
 	use Type::Tiny;
-	my	@args_list	= ( system_type => 'apple_excel' );
-	my	$converter	= DateTimeX::Format::Excel->new( @args_list );
-	my	$string_via	= sub{ 
-							my	$str = $_[0];
-							return DateTime::Format::Flexible->parse_datetime( $str );#my	$dt	= 
-							#~ return $dt->format_cldr( 'yyyy-M-d' );
-						};
-	my	$num_via	= sub{
-							my	$num = $_[0];
-							return $converter->parse_datetime( $num );#my	$dt = 
-							#~ return $dt->format_cldr( 'yyyy-M-d' );
-						};
+	my @args_list  = ( system_type => 'apple_excel' );
+	my $num_converter  = DateTimeX::Format::Excel->new( @args_list );
 	
-	# Turn date strings or Excel date numbers to DateTime objects!
-	my	$date_time_from_value = Type::Coercion->new( 
+	# build conversion subroutines (number and strings to DateTime objects)
+	my $string_via = sub{ 
+	      my $str = $_[0];
+	      return DateTime::Format::Flexible->parse_datetime( $str );
+	};
+	my $num_via	= sub{
+	      my $num = $_[0];
+	      return $num_converter->parse_datetime( $num );
+	};
+	
+	# Combine conversion subroutines into a coercion object! 
+	#  (Note numbers are attempted first)
+	my $date_time_from_value = Type::Coercion->new( 
 		type_coercion_map => [ Num, $num_via, Str, $string_via, ],
 	);
-	$date_time_type = Type::Tiny->new(
-			name		=> 'Custom_date_type',
-			constraint	=> sub{ ref($_) eq 'DateTime' },
-			coercion	=> $date_time_from_value,
-		);
 	
-	# Deep coercion! to handle first the $date_time_from_value coercion and then 
-	#    build a specific date string output
-	$string_type = Type::Tiny->new(
-			name		=> 'YYYYMMDD',
-			constraint	=> sub{
-				!$_ or (
-				$_ =~ /^\d{4}\-(\d{2})-(\d{2})$/ and
-				$1 > 0 and $1 < 13 and $2 > 0 and $2 < 32 )
-			},
-			coercion	=> Type::Coercion->new(
-				type_coercion_map =>[
-					$date_time_type->coercibles, sub{ my $tmp = $date_time_type->coerce( $_ ); $tmp->format_cldr( 'yyyy-MM-dd' ) },
-				],
-			),
+	# Install the coercion in a type that ensures it passes through a DateTime check
+	$date_time_type = Type::Tiny->new(
+	   name       => 'Custom_date_type',
+	   constraint => sub{ ref($_) eq 'DateTime' },
+	   coercion   => $date_time_from_value,
 	);
+	
+	# Chained coercions! to handle first the $date_time_from_value coercion 
+	#    and then build a specific date string output
+	$string_type = Type::Tiny->new(
+	   name       => 'YYYYMMDD',
+	   constraint => sub{
+	      !$_ or (
+	         $_ =~ /^\d{4}\-(\d{2})-(\d{2})$/ and
+	         $1 > 0 and $1 < 13 and $2 > 0 and $2 < 32 
+	      )
+	   },
+	   coercion => Type::Coercion->new(
+	   type_coercion_map =>[
+	      $date_time_type->coercibles, sub{ 
+	         my $tmp = $date_time_type->coerce( $_ );
+	         $tmp->format_cldr( 'yyyy-MM-dd' )
+	      },
+	   ],
+	), );
 
 Setting custom conversions to use for the worksheet
 
 	my $worksheet = $workbook->worksheet( 'TargetWorksheetName' );
 	$worksheet->set_custom_formats( {
-		E10	=> $date_time_type,
-		10	=> $string_type,
-		D14	=> $string_type,
+	    E10 => $date_time_type,
+	    10  => $string_type,
+	    D14 => $string_type,
 	} );
 
 B<attribute methods> Methods provided to adjust this attribute
@@ -462,7 +490,7 @@ B<Definition:> checks if the specific custom format $key is set
 
 =back
 
-B<set_custom_format( $key => $coercion, ... )>
+B<set_custom_format( $key =E<gt> $coercion, ... )>
 
 =over
 
@@ -510,7 +538,8 @@ B<Definition:> returns the value stored in the attribute
 =over
 
 B<Definition:> This is the Id of the sheet listed in the XML of the .xlsx file.  
-You probably don't care and you should never set this value.
+I beleive this to be the number used in vbscript to reference the sheet.  You 
+should never set this value.
 
 B<attribute methods> Methods provided to adjust this attribute
 
@@ -578,19 +607,19 @@ B<Definition:> returns the value stored in the attribute
 
 =over
 
-B<Definition:> This attribute holds a reference back to the workbook instance 
-so that the worksheet has access to the global settings managed there.  
-As a consequence some of the same methods available to the workbook are 
-available here in the worksheet.  I<Beware that setting or adjusting 
-the workbook level attributes with methods here will be universal and 
-affect other worksheets.>  If that doesn't make sence then don't use 
-these methods.  (Nothing to see here! Move along.)
+B<Definition:> This attribute holds a reference back to the workbook instance so that 
+the worksheet has access to the global settings managed there.  As a consequence many 
+of the workbook methods are be exposed here.  This includes some setter methods for 
+workbook attributes. I<Beware that setting or adjusting the workbook level attributes 
+with methods here will be universal and affect other worksheets.  So don't forget to 
+return the old value if you want the old behavour after you are done.>  If that 
+doesn't make sense then don't use these methods.  (Nothing to see here! Move along.)
 
 B<Default:> a Spreadsheet::XLSX::Reader::LibXML instance
 
-B<attribute methods> Methods of the workbook exposed here by the 
-L<delegation|Moose::Manual::Attributes/Delegation> of the instance to 
-this class through this attribute
+B<attribute methods> Methods of the workbook exposed here by the L<delegation
+|Moose::Manual::Attributes/Delegation> of the instance to this class through this 
+attribute
 
 =over
 
@@ -598,9 +627,8 @@ B<counting_from_zero>
 
 =over
 
-B<Definition:> returns the 
-<count_from_zero|Spreadsheet::XLSX::Reader::LibXML/count_from_zero> 
-state
+B<Definition:> returns the L<Spreadsheet::XLSX::Reader::LibXML/count_from_zero> 
+instance state
 
 =back
 
@@ -608,9 +636,8 @@ B<boundary_flag_setting>
 
 =over
 
-B<Definition:> returns the 
-<file_boundary_flags|Spreadsheet::XLSX::Reader::LibXML/file_boundary_flags> 
-state
+B<Definition:> returns the L<Spreadsheet::XLSX::Reader::LibXML/file_boundary_flags> 
+instance state
 
 =back
 
@@ -618,9 +645,8 @@ B<change_boundary_flag( $Bool )>
 
 =over
 
-B<Definition:> sets the 
-<file_boundary_flags|Spreadsheet::XLSX::Reader::LibXML/file_boundary_flags> 
-state (B<For the whole workbook!>)
+B<Definition:> sets the L<Spreadsheet::XLSX::Reader::LibXML/file_boundary_flags> 
+instance state (B<For the whole workbook!>)
 
 =back
 
@@ -652,9 +678,8 @@ B<set_empty_is_end( $Bool )>
 
 =over
 
-B<Definition:> sets the 
-<empty_is_end|Spreadsheet::XLSX::Reader::LibXML/empty_is_end> 
-state (B<For the whole workbook!>)
+B<Definition:> sets the L<Spreadsheet::XLSX::Reader::LibXML/empty_is_end> 
+instance state (B<For the whole workbook!>)
 
 =back
 
@@ -662,8 +687,8 @@ B<is_empty_the_end>
 
 =over
 
-B<Definition:> returns the workbook state for the attribute
-<empty_is_end|Spreadsheet::XLSX::Reader::LibXML/empty_is_end> 
+B<Definition:> returns the L<Spreadsheet::XLSX::Reader::LibXML/empty_is_end> 
+instance state.
 
 =back
 
@@ -671,8 +696,8 @@ B<get_group_return_type>
 
 =over
 
-B<Definition:> returns the workbook state for the attribute
-<group_return_type|Spreadsheet::XLSX::Reader::LibXML/group_return_type> 
+B<Definition:> returns the L<Spreadsheet::XLSX::Reader::LibXML/group_return_type> 
+instance state.
 
 =back
 
@@ -680,9 +705,8 @@ B<set_group_return_type( (instance|unformatted|value) )>
 
 =over
 
-B<Definition:> sets the 
-<group_return_type|Spreadsheet::XLSX::Reader::LibXML/group_return_type> 
-state (B<For the whole workbook!>)
+B<Definition:> sets the L<Spreadsheet::XLSX::Reader::LibXML/group_return_type> 
+instance state (B<For the whole workbook!>)
 
 =back
 
@@ -690,22 +714,7 @@ B<get_epoch_year>
 
 =over
 
-B<Definition:> returns the workbook state for the attribute
-<epoch_year|Spreadsheet::XLSX::Reader::LibXML/epoch_year> collected from 
-the L<Spreadsheet::XLSX::Reader::LibXML::Styles> class.
-
-=back
-
-B<change_output_encoding>
-
-=over
-
-B<Definition:> This is a L<delegated|Moose::Manual::Delegation> method from 
-the L<styles|Spreadsheet::XLSX::Reader::LibXML::Styles> class (stored as a 
-private instance in the workbook).  It is held (and documented) in the 
-L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault> role.  It (L<potentially
-|Spreadsheet::XLSX::Reader::LibXML::FmtDefault/change_output_encoding( $string )>
-) can process a string to a new output encoding.
+B<Definition:> uses the L<Spreadsheet::XLSX::Reader::LibXML/get_epoch_year> method.
 
 =back
 
@@ -713,13 +722,13 @@ B<get_date_behavior>
 
 =over
 
-B<Definition:> This is a L<delegated|Moose::Manual::Delegation> method from 
-the L<styles|Spreadsheet::XLSX::Reader::LibXML::Styles> class (stored as a 
-private instance in the workbook).  It is held (and documented) in the 
+B<Definition:> This is a L<delegated|Moose::Manual::Delegation> method from the 
+L<styles|Spreadsheet::XLSX::Reader::LibXML::Styles> class (stored as a private 
+instance in the workbook).  It is held (and documented) in the 
 L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings> role.  It will 
 indicate how far unformatted L<transformation
 |Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/datetime_dates> 
-is carried for date coercions. 
+is carried for date coercions when returning formatted values. 
 
 =back
 
@@ -728,12 +737,12 @@ B<set_date_behavior>
 =over
 
 B<Definition:> This is a L<delegated|Moose::Manual::Delegation> method from 
-the L<styles|Spreadsheet::XLSX::Reader::LibXML::Styles> class (stored as a 
-private instance in the workbook).  It is held (and documented) in the 
-L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings> role.  It will 
-set how far unformatted L<transformation
+the L<styles|Spreadsheet::XLSX::Reader::LibXML::Styles> class (stored as a private 
+instance in the workbook).  It is held (and documented) in the 
+L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings> role.  It will set how 
+far unformatted L<transformation
 |Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/datetime_dates> 
-is carried for date coercions. 
+is carried for date coercions when returning formatted values. 
 
 =back
 
@@ -781,7 +790,7 @@ it and/or modify it under the same terms as Perl itself.
 The full text of the license can be found in the
 LICENSE file included with this module.
 
-This software is copyrighted (c) 2014 by Jed Lund
+This software is copyrighted (c) 2014, 2015 by Jed Lund
 
 =head1 DEPENDENCIES
 

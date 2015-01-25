@@ -19,10 +19,12 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 1327;
+use	Test::Most tests => 1330;
 use	Test::Moose;
+use	IO::File;
+use	XML::LibXML::Reader;
 use	MooseX::ShortCut::BuildInstance qw( build_instance );
-use Types::Standard qw( Bool );
+use Types::Standard qw( Bool HasMethods );
 use	lib
 		'../../../../../../../Log-Shiras/lib',
 		$lib,
@@ -66,10 +68,10 @@ use	Type::Tiny;
 ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space => 'main', );
 ###LogSD		$phone->talk( level => 'trace', message => [ "Test file is: $test_file" ] );
 my  ( 
-			$test_instance, $error_instance, $workbook_instance,
+			$test_instance, $error_instance, $workbook_instance, $file_handle,
 	);
 my 			@class_attributes = qw(
-				file_name
+				file
 				error_inst
 				sheet_rel_id
 				sheet_id
@@ -93,7 +95,11 @@ my  		@instance_methods = qw(
 				has_max_col
 				max_row
 				has_max_row
-				get_file_name
+				get_file
+				set_file
+				has_file
+				clear_file
+				start_reading
 				error
 				clear_error
 				set_warnings
@@ -386,8 +392,9 @@ has_attribute_ok
 } 			@class_attributes;
 
 lives_ok{
-			$workbook_instance = build_instance(
-									package	=> 'WorkbookInstance',
+			$error_instance		= Spreadsheet::XLSX::Reader::LibXML::Error->new( should_warn => 0 );
+			$workbook_instance	= build_instance(
+									package		=> 'WorkbookInstance',
 									add_methods =>{
 										counting_from_zero			=> sub{ return 0 },
 										boundary_flag_setting		=> sub{},
@@ -405,6 +412,17 @@ lives_ok{
 										get_empty_return_type		=> sub{ return 'undef_string' },
 									},
 									add_attributes =>{
+										error_inst =>{
+											isa			=> 	HasMethods[qw(
+																error set_error clear_error set_warnings if_warn
+															) ],
+											clearer		=> '_clear_error_inst',
+											reader		=> 'get_error_inst',
+											required	=> 1,
+											handles =>[ qw(
+												error set_error clear_error set_warnings if_warn
+											) ],
+										},
 										empty_is_end =>{
 											isa		=> Bool,
 											writer	=> 'set_empty_is_end',
@@ -418,10 +436,10 @@ lives_ok{
 											default	=> 1,
 										},
 									},
+									error_inst => $error_instance,
 								);
-			$error_instance = Spreadsheet::XLSX::Reader::LibXML::Error->new( should_warn => 0 );
 			$test_instance	= Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet->new(
-				file_name			=> $test_file,
+				file				=> $test_file,
 				error_inst			=> $error_instance,
 				sheet_name			=> 'Sheet3',
 				workbook_instance	=> $workbook_instance,
@@ -433,8 +451,6 @@ lives_ok{
 map{
 can_ok		$test_instance, $_,
 } 			@instance_methods;
-is			$test_instance->get_file_name, $test_file,
-										"check that it knows the file name";
 is			$test_instance->min_row, 1,
 										"check that it knows what the lowest row number is";
 is			$test_instance->min_col, 1,
@@ -518,11 +534,11 @@ lives_ok{
 			$workbook_instance->set_empty_is_end( 1 );
 			$workbook_instance->set_from_the_edge( 0 );
 			$test_instance	= Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet->new(
-				file_name			=> $test_file,
-			###LogSD	log_space	=> 'Test',
+				file				=> $test_file,
 				error_inst			=> $error_instance,
 				sheet_name			=> 'Sheet3',
 				workbook_instance	=> $workbook_instance,
+			###LogSD	log_space	=> 'Test',
 			);
 ###LogSD	$phone->talk( level => 'trace', message =>[ "Loaded new test instance - without the edges" ] );
 }										"Build a Worksheet instance with the edges cut off";

@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings;
-use version; our $VERSION = qv('v0.30.0');
+use version; our $VERSION = qv('v0.34.1');
 
 use 5.010;
 use Moose;
@@ -135,7 +135,7 @@ sub _load_unique_bits{
 	###LogSD			"Setting the sharedStrings unique bits" ] );
 	my	$node_name	= $self->node_name;
 	my	$found_it	= 1;
-	if( $node_name ne 'sst' ){
+	if( !$node_name or $node_name ne 'sst' ){
 		$found_it = $self->next_element( 'sst' );
 	}
 	if( $found_it ){
@@ -163,7 +163,7 @@ __END__
 
 =head1 NAME
 
-Spreadsheet::XLSX::Reader::XMLReader::SharedStrings - sharedStrings parsing with XML::LibXML::Reader
+Spreadsheet::XLSX::Reader::XMLReader::SharedStrings - A LibXML::Reader sharedStrings base class
     
 =head1 DESCRIPTION
 
@@ -196,9 +196,9 @@ B<1.> Nothing L<yet|/SUPPORT>
 
 =over
 
-=item Jed Lund
+Jed Lund
 
-=item jandrew@cpan.org
+jandrew@cpan.org
 
 =back
 

@@ -4,7 +4,8 @@ use Moose;
 use lib '../../../../../lib';
 with 'Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow';
 
-sub set_error{};
+sub set_error{}
+sub error{ print "Missing the column or row\n" }
 	
 sub my_method{
     my ( $self, $cell ) = @_;

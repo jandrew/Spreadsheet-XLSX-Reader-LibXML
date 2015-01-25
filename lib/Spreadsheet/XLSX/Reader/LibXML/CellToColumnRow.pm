@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow;
-use version; our $VERSION = qv('v0.30.0');
+use version 0.77; our $VERSION = qv('v0.34.1');
 
 use	Moose::Role;
 requires
@@ -201,6 +201,7 @@ Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow - Translate Excel cell IDs to
 	with 'Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow';
 
 	sub set_error{} #Required method of this role
+	sub error{ print "Missing the column or row\n" }
 		
 	sub my_method{
 		my ( $self, $cell ) = @_;
@@ -221,30 +222,31 @@ Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow - Translate Excel cell IDs to
     
 =head1 DESCRIPTION
 
-B<This documentation is written to explain ways to extend this package.  To use the data 
-extraction of Excel workbooks, worksheets, and cells please review the documentation for  
-L<Spreadsheet::XLSX::Reader::LibXML>,
-L<Spreadsheet::XLSX::Reader::LibXML::Worksheet>, and 
-L<Spreadsheet::XLSX::Reader::LibXML::Cell>>
+This documentation is written to explain ways to use this module when writing your 
+own excel parser.  To use the general package for excel parsing out of the box please 
+review the documentation for L<Workbooks|Spreadsheet::XLSX::Reader::LibXML>,
+L<Worksheets|Spreadsheet::XLSX::Reader::LibXML::Worksheet>, and 
+L<Cells|Spreadsheet::XLSX::Reader::LibXML::Cell>
 
 This is a L<Moose Role|Moose::Manual::Roles>. The role provides methods to convert back 
-and forth betwee Excel Cell ID and column row numbers.  The role also provides a layer 
+and forth betwee Excel Cell ID and ($column $row) lists.  This role also provides a layer 
 of abstraction so that it is possible to implement 
-L<around|Moose::Manual::MethodModifiers/AROUND modifiers> on these methods so that the 
-data provided by the user can be in the user context and the method implementation will 
-still be in the Excel context.  For example this package uses this abstraction to allow 
+L<around|Moose::Manual::MethodModifiers/Around modifiers> mofifiers on these methods so 
+that the data provided by the user can be in the user context and the method implementation 
+will still be in the Excel context.  For example this package uses this abstraction to allow 
 the user to call or receive row column numbers in either the 
-L<count from zero|Spreadsheet::XLSX::Reader::LibXML/count_from_zero> context used by 
-L<Spreadsheet::ParseExcel> or the count from one context used by Excel.  It is important 
+L<count-from-zero|Spreadsheet::XLSX::Reader::LibXML/count_from_zero> context used by 
+L<Spreadsheet::ParseExcel> or the count-from-one context used by Excel.  It is important 
 to note that column letters do not equal digits in a modern 26 position numeral system 
 since the excel implementation is effectivly zeroless.
 
-The default for this module is to count from 1 (the excel convention).  Meaning that cell 
-ID 'A1' is equal to (1, 1) and column row (3, 2) is equal to the cell ID 'C2'.
+The module counts from 1 (the excel convention) without implementation of around modifiers.  
+Meaning that cell ID 'A1' is equal to (1, 1) and column row (3, 2) is equal to the cell ID 
+'C2'.
 
 =head2 requires
 
-These are methods used by this Role but not provided by the role.  Any class consuming this 
+These are methods used by this role but not provided by the role.  Any class consuming this 
 role will not build unless it first provides these methods prior to loading this role.
 
 =head3 set_error( $error_string )
@@ -267,7 +269,7 @@ Methods are object methods (not functional methods)
 B<Definition:> This is the way to turn an alpha numeric Excel cell ID into column and row 
 integers.  This method uses a count from 1 methodology.  Since this method is actually just 
 a layer of abstraction above the real method for the calculation you can wrap it in an 
-L<around|Moose::Manual::MethodModifiers/AROUND modifiers> block to modify the output to 
+L<around|Moose::Manual::MethodModifiers/Around modifiers> block to modify the output to 
 the desired user format without affecting other parts of the package that need the 
 unfiltered conversion.  If you want both then use the following call when unfiltered results 
 are required;
@@ -276,7 +278,7 @@ are required;
 
 B<Accepts:> $excel_cell_id
 
-B<Returns:> ( $column_number, $row_number ) - integers
+B<Returns:> ( $column_number, $row_number )
 
 =back
 
@@ -287,7 +289,7 @@ B<Returns:> ( $column_number, $row_number ) - integers
 B<Definition:> This is the way to turn a (column, row) pair into an Excel Cell ID.  The  
 underlying method uses a count from 1 methodology.  Since this method is actually just 
 a layer of abstraction above the real method for the calculation you can wrap it in an 
-L<around|Moose::Manual::MethodModifiers/AROUND modifiers> block to modify the input from 
+L<around|Moose::Manual::MethodModifiers/Around modifiers> block to modify the input from 
 the implemented user format to the count from one methodology without affecting other parts 
 of the package that need the unfiltered conversion.  If you want both then use the following 
 call when unfiltered results are required;
@@ -296,9 +298,9 @@ call when unfiltered results are required;
 	
 The column and the row must be provided in that order for both public and private methods.
 
-B<Accepts:> $column, $row, $count_from_one (in that order and position)
+B<Accepts:> ($column, $row) I<in that order>
 
-B<Returns:> ( $excel_cell_id ) - qr/[A-Z]{1,3}\d+/
+B<Returns:> ( $excel_cell_id ) I<qr/[A-Z]{1,3}\d+/>
 
 =back
 
@@ -323,9 +325,9 @@ B<1.> Nothing L<yet|/SUPPORT>
 
 =over
 
-=item Jed Lund
+Jed Lund
 
-=item jandrew@cpan.org
+jandrew@cpan.org
 
 =back
 
@@ -337,13 +339,13 @@ it and/or modify it under the same terms as Perl itself.
 The full text of the license can be found in the
 LICENSE file included with this module.
 
-This software is copyrighted (c) 2014 by Jed Lund
+This software is copyrighted (c) 2014, 2015 by Jed Lund
 
 =head1 DEPENDENCIES
 
 =over
 
-L<version>
+L<version> - 0.77
 
 L<Moose::Role>
 

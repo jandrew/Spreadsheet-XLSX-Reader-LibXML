@@ -1,0 +1,13 @@
+#gitignore file
+.build/*
+lib/Moose*
+Spreadsheet-XLSX-Reader-LibXML*
+*.tar.gz
+*.zip
+MANIFEST.SKIP
+DevelopmentNotes.txt
+Changes
+Makefile.old
+Supporting_Documentation/*
+lib/Spreadsheet/XLSX/Reader/LibXML/XMLDOM/*
+t/Spreadsheet/XLSX/Reader/LibXML/XMLDOM/*

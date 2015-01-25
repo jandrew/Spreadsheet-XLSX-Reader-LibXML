@@ -1,5 +1,5 @@
 #########1 Test File for Spreadsheet::XLSX::Reader::LibXML  6#########7#########8#########9
-#!/usr/bin/env perl
+
 my ( $lib, $test_file );
 BEGIN{
 	$ENV{PERL_TYPE_TINY_XS} = 0;
@@ -76,6 +76,7 @@ lives_ok{
 							group_return_type => 'unformatted',
 							empty_return_type => 'empty_string',
 						);
+			#~ $parser->set_warnings( 1 );
 }										"Prep a test parser instance";
 is			$parser->error(), undef,	"Write any error messages from the file load";
 ok			$worksheet = $parser->worksheet( 'Sheet1' ),

@@ -1,17 +1,17 @@
 package Spreadsheet::XLSX::Reader::LibXML::Types;
-use version; our $VERSION = qv('v0.30.0');
+use version; our $VERSION = qv('v0.34.1');
 		
 use strict;
 use warnings;
 use Type::Utils -all;
-use Type::Library 0.046
+use Type::Library 1.000
 	-base,
 	-declare => qw(
 		FileName					XMLFile						XLSXFile
 		ParserType					Excel_number_0				EpochYear
 		PassThroughType				CellID						PositiveNum
 		NegativeNum					ZeroOrUndef					NotNegativeNum
-		IOFileType
+		IOFileType					ErrorString					SubString
 	);
 use IO::File;
 BEGIN{ extends "Types::Standard" };
@@ -58,8 +58,10 @@ declare XLSXFile,
 	message{
 		my $test = $_;
 		my $return =
+			( !defined $test ) ?
+				"Empty filename" :
 			( ref $test ) ?
-				"'" . ($test ? $test : '' ) . "' is not a string value" :
+				"'" . $test . "' is not a string value" :
 			( $test !~ /\.xlsx$/ ) ?
 				"The string -$test- does not have an xlsx file extension" :
 			( -r $test) ?
@@ -77,6 +79,10 @@ coerce IOFileType,
 	
 coerce IOFileType,
 	from XLSXFile,
+	via{  IO::File->new( $_, 'r' ); };
+	
+coerce IOFileType,
+	from XMLFile,
 	via{  IO::File->new( $_, 'r' ); };
 
 declare ParserType, 
@@ -112,6 +118,33 @@ declare NotNegativeNum,
 	as Num,
 	where{ $_ > -1 };
 
+declare SubString,
+	as Str;
+
+declare ErrorString,
+	as SubString,
+	where{ $_ !~ /\)\n;/ };
+	
+coerce SubString,
+	from Object,
+	via{ 
+	my	$object = $_;
+		if( $object->can( 'as_string' ) ){
+			return $object->as_string;
+		}elsif( $object->can( 'message' ) ){
+			return $object->message;
+		}
+		return $object;
+	};
+	
+coerce ErrorString,
+	from SubString->coercibles,
+	via{
+	my	$tmp = to_SubString($_);
+		$tmp =~ s/\)\n;/\);/g;
+		return $tmp;
+	};
+
 
 #########1 Excel Defined Converions     4#########5#########6#########7#########8#########9
 
@@ -127,7 +160,8 @@ declare_coercion Excel_number_0,
 	
 
 #########1 Phinish            3#########4#########5#########6#########7#########8#########9
-	
+
+__PACKAGE__->meta->make_immutable;
 1;
 
 #########1 Documentation      3#########4#########5#########6#########7#########8#########9
@@ -160,7 +194,7 @@ L<github Spreadsheet::XLSX::Reader::LibXML/issues
 
 =over
 
-B<1.> Nothing L<yet|/SUPPORT>
+B<1.> Add ErrorString type tests to the test suit
 
 =back
 

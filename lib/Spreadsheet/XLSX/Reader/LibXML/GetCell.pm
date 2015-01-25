@@ -1,11 +1,12 @@
 package Spreadsheet::XLSX::Reader::LibXML::GetCell;
-use version; our $VERSION = qv('v0.30.0');
+use version 0.77; our $VERSION = qv('v0.34.1');
 
 use	Moose::Role;
 requires qw(
-	set_error					min_row						max_row
-	min_col						max_col						row_range
-	col_range
+	min_row						max_row						min_col
+	max_col						row_range					col_range
+	_get_col_row				_get_next_value_cell		_get_row_all
+	
 );
 ###LogSD	requires 'get_log_space';
 use Types::Standard qw(
@@ -77,7 +78,7 @@ has workbook_instance =>(
 						get_group_return_type		set_group_return_type
 						get_epoch_year				change_output_encoding
 						get_date_behavior			set_date_behavior
-						get_empty_return_type
+						get_empty_return_type		set_error
 					)],
 		handles	=> [qw(
 						counting_from_zero			boundary_flag_setting
@@ -88,7 +89,7 @@ has workbook_instance =>(
 						get_group_return_type		set_group_return_type
 						get_epoch_year				change_output_encoding
 						get_date_behavior			set_date_behavior
-						get_empty_return_type
+						get_empty_return_type		set_error
 					)],
 		required => 1,
 	);
@@ -155,17 +156,6 @@ sub fetchrow_arrayref{
 	###LogSD					name_space 	=> $self->get_log_space .  '::fetchrow_arrayref', );
 	###LogSD		$phone->talk( level => 'info', message =>[
 	###LogSD			"Arrived at fetchrow_arrayref for row: " . ((defined $row) ? $row : ''), ] );
-	if( !defined $row ){
-		my $last_col = $self->_get_reported_col;
-		###LogSD	$phone->talk( level => 'info', message =>[
-		###LogSD		"No row requested - Determining what it should be with the last column: $last_col", ] );
-		$row = $self->_get_reported_row + !!$last_col;
-		###LogSD	$phone->talk( level => 'info', message =>[
-		###LogSD		"Now requesting Excel row: $row", ] );
-		$row = $self->_get_used_position( $row );
-		###LogSD	$phone->talk( level => 'info', message =>[
-		###LogSD		"Which is used row: $row", ] );
-	}
 	
 	my $result = $self->get_row_all( $row );
 	###LogSD	$phone->talk( level => 'debug', message =>[ 'Returned row ref;', $result ] );
@@ -365,7 +355,7 @@ sub _build_out_the_cell{
 		###LogSD	$phone->talk( level => 'debug', message =>[
 		###LogSD		"Initial result is:", $result ] );
 		$result->{cell_type} = 'Text';
-		if( exists $result->{t} and $result->{t} eq 's' ){
+		if( exists $result->{t} and $result->{t} eq 's' ){# Test for all in one sheet here!
 			@$result{qw( cell_unformatted rich_text )} =
 				@{$self->get_shared_string_position( $result->{v}->{raw_text} )}{qw( raw_text rich_text )};
 			delete $result->{t};
@@ -490,7 +480,7 @@ sub _build_out_the_cell{
 		$result->{cell_col} = $self->_get_used_position( $result->{col} );
 		delete $result->{col};
 		$result->{error_inst} = $self->_get_error_inst;
-###LogSD	$result->{log_space} = $self->get_log_space . '::Cell';
+		###LogSD	$result->{log_space} = $self->get_log_space . '::Cell';
 		$result->{unformatted_converter} = sub{ 
 			my	$string = $_[0];
 			###LogSD	$phone->talk( level => 'debug', message =>[
@@ -526,14 +516,21 @@ __END__
 =head1 NAME
 
 Spreadsheet::XLSX::Reader::LibXML::GetCell - Top level xlsx Worksheet interface
+
+=head1 SYNOPSIS
+
+If you are looking for the synopsis for the package see 
+L<Spreadsheet::XLSX::Reader::LibXML/SYNOPSIS>.  Otherwise the best example for use of 
+this module alone is the test file in this package 
+t/Spreadsheet/XLSX/Reader/LibXML/10-get_cell.t
     
 =head1 DESCRIPTION
 
-B<This documentation is written to explain ways to extend this package.  To use the data 
-extraction of Excel workbooks, worksheets, and cells please review the documentation for  
-L<Spreadsheet::XLSX::Reader::LibXML>,
-L<Spreadsheet::XLSX::Reader::LibXML::Worksheet>, and 
-L<Spreadsheet::XLSX::Reader::LibXML::Cell>>
+This documentation is written to explain ways to use this module when writing your 
+own excel parser.  To use the general package for excel parsing out of the box please 
+review the documentation for L<Workbooks|Spreadsheet::XLSX::Reader::LibXML>,
+L<Worksheets|Spreadsheet::XLSX::Reader::LibXML::Worksheet>, and 
+L<Cells|Spreadsheet::XLSX::Reader::LibXML::Cell>
 
 This is the extracted L<Role|Moose::Manual::Roles> to be used as a top level worksheet 
 interface.  This is the place where all the various details in each sub XML sheet are 
@@ -542,34 +539,25 @@ cell.  Since this is the center of data coallation all elements that may be cust
 should reside outside of this role.  This includes any specific elements that would be 
 different between each of the sheet parser types and any element of Excel data presentation 
 that may lend itself to customization.  For instance all the XML parser 
-methods, (Reader, DOM, and possibly SAX) can plug in outside of this role.
+methods, (Reader, DOM, and possibly SAX) should exist outside and preferebly below this 
+role.
 
-This role is also where a layer of abstraction is maintained to manage user defined 
-count-from-one or count-from-zero mode.  The layer of abstraction is use with the Moose 
-L<around|Moose::Manual::MethodModifiers/AROUND modifiers> modifier.  The behaviour is 
-managed with the workbook attribute L<counting_from_zero
-|Spreadsheet::XLSX::Reader::LibXML/count_from_zero>.
+This role is L<also|Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow/DESCRIPTION> 
+contains a layer of abstraction to allow for run time setting of count-from-one or 
+count-from-zero mode.  The layer of abstraction is use with the Moose 
+L<around|Moose::Manual::MethodModifiers/AROUND modifiers> modifier.
 
 =head2 requires
 
 These are method(s) used by this Role but not provided by the role.  Any class consuming this 
 role will not build without first providing these methods prior to loading this role.  
-I<Since this is the center of data coallation the list is long>.
-
-=head3 set_error( $error_string )
-
-=over
-
-B<Definition:> Used to set errors that occur in code from this role.  See
-L<Spreadsheet::XLSX::Reader::LibXML::Error> for the default implementation of this functionality.
-
-=back
+I<Since this is the center of data collation the list is long>.
 
 =head3 min_row
 
 =over
 
-B<Definition:> Used to get the minimum data row set for the worksheet.
+B<Definition:> Used to get the minimum row with data in the worksheet.
 
 =back
 
@@ -577,7 +565,7 @@ B<Definition:> Used to get the minimum data row set for the worksheet.
 
 =over
 
-B<Definition:> Used to get the maximum data row set for the worksheet.
+B<Definition:> Used to get the maximum row with data in the worksheet.
 
 =back
 
@@ -585,7 +573,7 @@ B<Definition:> Used to get the maximum data row set for the worksheet.
 
 =over
 
-B<Definition:> Used to get the minimum data column set for the worksheet.
+B<Definition:> Used to get the minimum column with data in the worksheet.
 
 =back
 
@@ -593,7 +581,7 @@ B<Definition:> Used to get the minimum data column set for the worksheet.
 
 =over
 
-B<Definition:> Used to get the maximum data column set for the worksheet.
+B<Definition:> Used to get the maximum column with data in the worksheet.
 
 =back
 
@@ -601,7 +589,8 @@ B<Definition:> Used to get the maximum data column set for the worksheet.
 
 =over
 
-B<Definition:> Used to return a list of the $minimum_row and $maximum_row
+B<Definition:> Used to return a list of the L<$minimum_row|/min_row> and 
+L<$maximum_row|/max_row> values
 
 =back
 
@@ -609,41 +598,8 @@ B<Definition:> Used to return a list of the $minimum_row and $maximum_row
 
 =over
 
-B<Definition:> Used to return a list of the $minimum_column and $maximum_column
-
-=back
-
-=head3 change_output_encoding
-
-=over
-
-B<Definition:> This should be using the L<localization
-|Spreadsheet::XLSX::Reader::LibXML::FmtDefault/change_output_encoding> 
-role.  The role should be reachable by delegation through a workbook 
-parser attribute (trait) in the class consuming this role.
-
-=back
-
-=head3 get_group_return_type
-
-=over
-
-B<Definition:> This is where the L<group_return_type
-|Spreadsheet::XLSX::Reader::LibXML/group_return_type> attribute is used 
-as a consequence this role needs to understand the current setting.  It 
-should be reachable by delegation through a workbook parser attribute 
-(trait) in the class consuming this role.
-
-=back
-
-=head3 set_group_return_type
-
-=over
-
-B<Definition:> In order to speed up header reading and L<setting
-|/set_headers( @header_row_list )> the full cell is not needed, just the 
-value.  As a consequence this role changes the group_return_type attribute 
-as needed for header retrieval.
+B<Definition:> Used to return a list of the L<$minimum_column|/min_col> and 
+L<$maximum_column|/max_col> values.
 
 =back
 
@@ -655,23 +611,23 @@ B<Definition:> This should return the next cell data from the worksheet file
 that contains unique formatting or information.  The data is expected in a 
 perl hash ref.  This method should collect data left to right and top to 
 bottom.  I<The styles.xml, sharedStrings.xml, and calcChain.xml etc. sheet data 
-are coallated into the cell later in this role>.  An 'EOF' string should be 
+are coallated into the cell information at this point>.  An 'EOF' string should be 
 returned when the file has reached the end and then the method should wrap 
 back to the beginning.
 
-B<Example>
+B<Example of expected return data set>
 
-	{
-		'r' => 'A6',				# The cell ID
-		'cell_merge' => 'A6:B6',	# The merge range
-		'row' => 6,					# Already converted to count by 1
-		'col' => 1,					# Already converted to count by 1
-		't' => 's'					# Cell data type (string)
-		'v' => {					# Cell data (since this cell is string 
-			'raw_text' => '15'		# 	data this actually points to position 
-		}							# 	15 in the sharedStrings.xml file )
-		's' => '11',				# Styles type (position 11 in the styles sheet)
-	}
+   {
+      'r'          => 'A6',    # The cell ID
+      'cell_merge' => 'A6:B6', # The merge range
+      'row'        => 6,       # count by 1 (no 'around' performed on leading '_' methods)
+      'col'        => 1,       # count by 1 (no 'around' performed on leading '_' methods)
+      's'          => '11',    # Styles type (position 11 in the styles sheet)
+      't'          => 's'      # Cell data type (string)
+      'v' =>{                  # Cell data (since this cell is string 
+         'raw_text' => '15'    # data this actually points to position 
+      }                        #    15 in the sharedStrings.xml file )
+   }
 
 =back
 
@@ -680,11 +636,12 @@ B<Example>
 =over
 
 B<Definition:> Like L<_get_next_value_cell|/_get_next_value_cell> this method should 
-return the next cell.  The difference is it should return undef for empty cells rather 
-than skipping them.  This method should collect data left to right and top to bottom.  
-I<The styles.xml, sharedStrings.xml, and calcChain.xml etc. sheet data are coallated 
-into the cell later in this role>.  An 'EOF' string should be returned when the file 
-has reached the end and then the method should wrap back to the beginning.
+return the next cell.  The difference is it should return undef for empty cells 
+rather than skipping them.  This method should collect data left to right and top 
+to bottom.  I<The styles.xml, sharedStrings.xml, and calcChain.xml etc. sheet data 
+are coallated into the cell information at this point>.  An 'EOF' string should be 
+returned when the file has reached the end and then the method should wrap back to 
+the beginning.
 
 =back
 
@@ -692,173 +649,35 @@ has reached the end and then the method should wrap back to the beginning.
 
 =over
 
-B<Definition:> This method should provide a targeted way to return the worksheet file 
-information on a cell.  It should only accept count-from-one column and row numbers 
-and the column should be required before the row.  If the request is made for an out 
-of row bounds position the method should provide an 'EOR' string.  An 'EOF' string 
-should be returned when the file has reached the end and then the method should 
-wrap back to the beginning.
+B<Definition:> This method should provide a targeted way to return the worksheet 
+file information on a cell.  It should only accept count-from-one column and row 
+numbers and the column should be required before the row.  If the request is made 
+for an out of row bounds position the method should provide an 'EOR' string.  An 
+'EOF' string should be returned when the file has reached the end and then the 
+method should wrap back to the beginning.
 
 =back
 
-=head3 _get_error_inst
-
-=over
-
-B<Definition:> This method is used to access the shared 
-L<Spreadsheet::XLSX::Reader::LibXML/error_inst>
-
-=back
-
-=head3 counting_from_zero
-
-=over
-
-B<Definition:> This role implements some of the L<count_from_zero
-|Spreadsheet::XLSX::Reader::LibXML/count_from_zero> attribute behaviors so it needs to 
-be able to read the current state.
-
-=back
-
-=head3 boundary_flag_setting
-
-=over
-
-B<Definition:> This role implements some of the L<file_boundary_flags
-|Spreadsheet::XLSX::Reader::LibXML/file_boundary_flags> attribute behaviors so it needs to 
-be able to read the current state.
-
-=back
-
-=head3 _has_shared_strings_file
-
-=over
-
-B<Definition:> This should indicate if the sharedStrings.xml file is available
-
-=back
-
-=head3 get_shared_string_position( $position )
-
-=over
-
-B<Definition:> This should return a hashref of data for the indicated $position
-
-B<Example:>  from the example shared strings position 15
-
-	{
-		'rich_text' => [				# Rich text definition
-			2,							# Position from 0 to start this element
-			{							# Element definition
-				'color' => {
-					'rgb' => 'FFFF0000'
-				},
-				'sz' => '11',
-				'b' => 1,
-				'scheme' => 'minor',
-				'rFont' => 'Calibri',
-				'family' => '2'
-			},
-			6,							# Position from 0 to start this element
-			{							# Element definition
-				'color' => {
-					'rgb' => 'FF0070C0'
-				},
-				'sz' => '20',
-				'b' => 1,
-				'scheme' => 'minor',
-				'rFont' => 'Calibri',
-				'family' => '2'
-			}
-			],
-		'raw_text' => 'Hello World',	# The raw text the format is applied to
-	}
-
-=back
-
-=head3 _has_styles_file
-
-=over
-
-B<Definition:> This should indicate if the styles.xml file is available
-
-=back
-
-=head3 get_format_position( $position )
-
-=over
-
-B<Definition:> This should return a hashref of data for the indicated $position 
-in the styles.xml file.  This will include any general cell formatting as well as 
-any references to the subroutines for number conversions either defined by Excel or
-any custom (user defined) conversion subroutines
-
-B<Example:>  from the example styles position 11
-
-	{
-		'fontId' => '0',
-		'fonts' => {
-			'color' => {
-				'theme' => '1'
-			},
-			'sz' => '11',
-			'name' => 'Calibri',
-			'scheme' => 'minor',
-			'family' => '2'
-		},
-		'numFmtId' => '0',
-		'fillId' => '0',
-		'xfId' => '0',
-		'applyAlignment' => '1',
-		'borders' => {
-			'left' => 1,
-			'right' => 1,
-			'top' => 1,
-			'diagonal' => 1,
-			'bottom' => 1
-		},
-		'borderId' => '0',
-		'alignment' => {
-			'horizontal' => 'left'
-		},
-		'cellStyleXfs' => {
-			'fillId' => '0',
-			'fontId' => '0',
-			'borderId' => '0',
-			'numFmtId' => '0'
-		},
-		'fills' => {
-			'patternFill' => {
-				'patternType' => 'none'
-			}
-		},
-		'numFmts' => bless( {						# This is the package build Type::Tiny object
-			'name' => 'Excel_number_0',				#  to be use for coercion
-			'coercion' => bless( { 
-				~~ Type::Coercion instance here ~~
-			 }, 'Type::Coercion' ),
-		'display_name' => 'Excel_number_0',
-		'uniq' => 94
-		}, 'Type::Tiny' )
-	}
-
-=back
+I<The attribute L<workbook_instance|/workbook_instance> must also be filled 
+correctly since it exports all of the the workbook level functionality to this class.> 
 
 =head2 Primary Methods
 
-These are the various methods provided by this role.
+These are the various methods provided by this role.  Each of them calls a sub method 
+to get the base cell data and then coallates that information into the proper return 
+value(s) defined by L<Spreadsheet::XLSX::Reader::LibXML/group_return_type>.
 
 =head3 get_cell( $row, $column )
 
 =over
 
-B<Definition:> Used to return the cell or information from the cell at the 
-specified $row and $column.  Both $row and $column are required.
+B<Definition:> This calls the supplied method L<_get_col_row|/_get_col_row>.
 
-B<Accepts:> the list ( $row, $column ) both required
+B<Accepts:> the list ( $row, $column ) both required (and modified as needed by the 
+attribute state of L<Spreadsheet::XLSX::Reader::LibXML/count_from_zero>)
 
-B<Returns:> see L<group_return_type|Spreadsheet::XLSX::Reader::LibXML/group_return_type> 
-for details on what is returned
+B<Returns:> if data to build a cell instance is provided then the instance is collated, 
+built, and returned.  Otherwise the value from '_get_col_row' is returned unfiltered.
 
 =back
 
@@ -866,14 +685,13 @@ for details on what is returned
 
 =over
 
-B<Definition:> Reading left to right and top to bottom this will return the next cell with 
-a value.  This actually includes cells with no value but some unique formatting such as 
-cells that have been merged with other cells.
+B<Definition:> This calls the supplied method L<_get_next_value_cell|/_get_next_value_cell>
 
 B<Accepts:> nothing
 
-B<Returns:> see L<group_return_type|Spreadsheet::XLSX::Reader::LibXML/group_return_type> 
-for details on what is returned
+B<Returns:> if data to build a cell instance is provided then the instance is collated, 
+built, and returned.  Otherwise the value from '_get_next_value_cell' is returned 
+unfiltered.
 
 =back
 
@@ -881,14 +699,15 @@ for details on what is returned
 
 =over
 
-B<Definition:> In an homage to L<DBI> I included this function to return an array ref of 
-the cells or values in the requested $row.  If no row is requested this returns the 'next' 
-row.  In the array ref any empty and non unique cell will show as 'undef'.
+B<Definition:>  This calls the supplied method L<_get_row_all|/_get_row_all>.  It will 
+return 'EOF' once instead of an array reference for the end of the file before resetting 
+to the first row..
 
-B<Accepts:> undef = next|$row = a row integer indicating the desired row
+B<Accepts:> undef = next|$row = a row integer indicating the desired row (modified as 
+needed by the attribute state of L<Spreadsheet::XLSX::Reader::LibXML/count_from_zero>)
 
 B<Returns:> an array ref of all possible column positions in that row with data filled in 
-as appropriate.
+as appropriate. (or 'EOF')
 
 =back
 
@@ -896,7 +715,7 @@ as appropriate.
 
 =over
 
-B<Definition:> This function is just like L<fetchrow_arrayref|/fetchrow_arrayref( $row )> 
+B<Definition:> This function calls L<fetchrow_arrayref|/fetchrow_arrayref( $row )> 
 except it returns an array instead of an array ref
 
 B<Accepts:> undef = next|$row = a row integer indicating the desired row
@@ -920,7 +739,8 @@ while setting the error instance.  If some of the columns do not have values the
 the instance will auto generate unique headers for each empty header column to fill 
 out the header ref.
 
-B<Accepts:> a list of row numbers
+B<Accepts:> a list of row numbers (modified as needed by the attribute state of 
+L<Spreadsheet::XLSX::Reader::LibXML/count_from_zero>)
 
 B<Returns:> an array ref of the built headers for review
 
@@ -932,8 +752,9 @@ B<Returns:> an array ref of the built headers for review
 
 B<Definition:> This function is used to return a hashref representing the data in the 
 specified row.  If no $row value is passed it will return the 'next' row of data.  A call 
-to this function without L<setting|/( @header_row_list )> the headers first 
-will return undef and set the error instance.
+to this function without L<setting|/set_headers( @header_row_list )> the headers first 
+will return undef and set the error instance.  This function calls 
+L<_get_row_all|/_get_row_all>.
 
 B<Accepts:> a target $row number for return values or undef meaning 'next'
 
@@ -943,20 +764,20 @@ B<Returns:> a hash ref of the values for that row
 
 =head2 Attributes
 
-Data passed to new when creating the L<Styles|Spreadsheet::XLSX::Reader::LibXML::Worksheet> 
-instance.   For modification of these attributes see the listed 'attribute methods'.
-For more information on attributes see L<Moose::Manual::Attributes>.  Most of these are 
-not exposed to the top level of the workbook L<parser|Spreadsheet::XLSX::Reader::LibXML>.  
-As a consequence these attribute methods which are available at the worksheet instance 
-level are the best way to manipulate the attribute settings.
+Arguments that can be passed to new when creating a class instance or changed using 
+one of the 'attribute methods'.   Where an attribute is delegating the 'attribute 
+method' from a method in the instance stored in the attribute the documentation will 
+indicate that the 'attribute method' is 'delegated'.  I<All 'delegated' methods are 
+required for the instance to be accepted by the attribute.>  For more information on 
+attributes see L<Moose::Manual::Attributes> and L<Moose::Manual::Delegation>.
 
 =head3 last_header_row
 
 =over
 
-B<Definition:> This is generally set by the method L<set_headers
-|/set_headers( @header_row_list )> and is the largest row number of the @header_row_list 
-even if the list is out of sequence.
+B<Definition:> This is generally set by the method L<set_headers( @header_row_list )
+|/set_headers( @header_row_list )> method I<not during -E<gt>new> and is the largest row number 
+of the @header_row_list I<not necessarily the last number in the sequence>.
 
 B<Default:> undef
 
@@ -988,10 +809,9 @@ B<Definition:> predicate for the attribute
 
 =over
 
-B<Definition:> When the method L<fetchrow_array(ref)|/fetchrow_arrayref( $row )> 
-or L<fetchrow_hashref|/fetchrow_hashref( $row )> are called it is possible to 
-only collect a set of information between two defined columns.  This is the 
-attribute that defines the start point.
+B<Definition:> When the method L<fetchrow_hashref|/fetchrow_hashref( $row )> is 
+called it is possible to only return a set of information between two defined 
+columns.  This is the attribute that defines the start column.
 
 B<Default:> undef
 
@@ -1003,7 +823,10 @@ B<set_min_header_col>
 
 =over
 
-B<Definition:> returns the value of the attribute
+B<Definition:> sets the value of the attribute
+
+B<Range:> integer values I<Integers less than L<min_col|/min_col> will 
+be ignored>
 
 =back
 		
@@ -1029,7 +852,7 @@ B<clear_min_header_col>
 
 =over
 
-B<Definition:> sets min_header_col to undef
+B<Definition:> sets min_header_col to 'undef'
 
 =back
 
@@ -1043,10 +866,9 @@ B<Definition:> sets min_header_col to undef
 
 =over
 
-B<Definition:> When the method L<fetchrow_array(ref)|/fetchrow_arrayref( $row )> 
-or L<fetchrow_hashref|/fetchrow_hashref( $row )> are called it is possible to 
-only collect a set of information between two defined columns.  This is the 
-attribute that defines the end point.
+B<Definition:> When the method L<fetchrow_hashref|/fetchrow_hashref( $row )> 
+is called it is possible to only collect a set of information between two defined 
+columns.  This is the attribute that defines the end column.
 
 B<Default:> undef
 
@@ -1058,7 +880,10 @@ B<set_max_header_col>
 
 =over
 
-B<Definition:> returns the value of the attribute
+B<Definition:> sets the value of the attribute
+
+B<Range:> integer values I<Integers larger than L<max_col|/max_col> will 
+be ignored>
 
 =back
 		
@@ -1084,7 +909,7 @@ B<clear_max_header_col>
 
 =over
 
-B<Definition:> sets min_header_col to undef
+B<Definition:> sets min_header_col to 'undef'
 
 =back
 
@@ -1102,9 +927,13 @@ B<Definition:> When this role is coallating data about a cell it will check this
 attribute before it checks the styles sheet to see if there is a format defined 
 by the user for converting the L<unformatted
 |Spreadsheet::XLSX::Reader::LibXML::Cell/unformatted> data.  The formats stored 
-must have two methods 'assert_coerce' and 'display_name'.  The collater first 
-checks the cellID as a key, then it checks for just the column letter(s) as a key, 
-and finally it checks the row number as a key.
+must have two methods 'assert_coerce' and 'display_name'.  The cell instance 
+builder will consult this attribute by first checking the cellID as a key, then 
+it checks for just the column letter(s) as a key, and finally it checks the row 
+number as a key.  For an easy way to build custom conversion review the 
+documentation for L<Type::Tiny|Type::Tiny::Manual::Libraries> and 
+L<Type::Coercions|Type::Tiny::Manual::Coercions>. I<the Chained Coercions are 
+very cool!.>
 
 B<Default:> undef
 
@@ -1112,7 +941,7 @@ B<attribute methods> Methods provided to adjust this attribute
 		
 =over
 
-B<set_custom_formats( { $key => $conversion } )>
+B<set_custom_formats( { $key =E<gt> $conversion } )>
 
 =over
 
@@ -1142,7 +971,7 @@ B<Returns:> the $conversion registered to the $key
 
 =back
 
-B<set_custom_format( $key => $conversion )>
+B<set_custom_format( $key =E<gt> $conversion )>
 
 =over
 
@@ -1156,12 +985,74 @@ B<Definition:> set the custom format $conversion for the identified $key
 
 =back
 
+=head3 workbook_instance
+
+=over
+
+B<Definition:> This is where the workbook level methods are accessed by 
+the worksheet.  Because the workbook class is complex and I don't wan't to 
+maintain duplicate documentation I request that you review the 
+L<documentation|Spreadsheet::XLSX::Reader::LibXML> for that class 
+there.  This attribute can/should only be set at ->new, however, it 
+delegates to this class a number of methods that will update the workbook 
+instance and therefore have universal effect when the other sheets are read.
+
+B<Default:> none
+
+B<Required:> yes
+
+B<attribute methods> Methods provided to adjust this attribute
+		
+=over
+
+B<counting_from_zero> - delegated
+
+B<boundary_flag_setting> - delegated
+
+B<change_boundary_flag> - delegated
+
+B<_has_shared_strings_file> - delegated
+
+B<get_shared_string_position> - delegated
+
+B<_has_styles_file> - delegated
+
+B<get_format_position> - delegated
+
+B<set_empty_is_end> - delegated
+
+B<is_empty_the_end> - delegated
+
+B<_starts_at_the_edge> - delegated
+
+B<get_group_return_type> - delegated
+
+B<set_group_return_type> - delegated
+
+B<get_epoch_year> - delegated
+
+B<change_output_encoding> - delegated
+
+B<get_date_behavior> - delegated
+
+B<set_date_behavior> - delegated
+
+B<get_empty_return_type> - delegated
+
+B<set_error> - delegated
+
+=back
+
+=back
+
 =head1 SUPPORT
 
 =over
 
 L<github Spreadsheet::XLSX::Reader::LibXML/issues
 |https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML/issues>
+
+B<1.> Add the workbook attributute to the documentation
 
 =back
 
@@ -1192,13 +1083,47 @@ it and/or modify it under the same terms as Perl itself.
 The full text of the license can be found in the
 LICENSE file included with this module.
 
-This software is copyrighted (c) 2014 by Jed Lund
+This software is copyrighted (c) 2014, 2015 by Jed Lund
 
 =head1 DEPENDENCIES
 
 =over
 
-L<Spreadsheet::XLSX::Reader::LibXML>
+L<version> - 0.77
+
+L<Type::Tiny> - 1.000
+
+L<Spreadsheet::XLSX::Reader::LibXML::Cell>
+
+L<Moose::Role>
+
+=over
+
+B<requires>
+
+=over
+
+min_row
+
+max_row
+
+min_col
+
+max_col
+
+row_range
+
+col_range
+
+_get_col_row
+
+_get_next_value_cell
+
+_get_row_all
+
+=back
+
+=back
 
 =back
 

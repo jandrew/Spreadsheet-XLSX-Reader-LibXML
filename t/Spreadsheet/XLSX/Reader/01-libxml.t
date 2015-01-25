@@ -1,6 +1,7 @@
 #########1 Test File for Spreadsheet::XLSX::Reader::LibXML  6#########7#########8#########9
-#!env perl
+#!/usr/bin/env perl
 my ( $lib, $test_file );
+#~ $Module::Load::Conditional::CACHE = undef;
 BEGIN{
 	$ENV{PERL_TYPE_TINY_XS} = 0;
 	my	$start_deeper = 1;
@@ -19,16 +20,47 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 123;
+use	Test::Most tests => 119;
 use	Test::Moose;
+use Data::Dumper;
 use	lib	'../../../../../Log-Shiras/lib',
+		'../../../../../MooseX-ShortCut-BuildInstance/lib',
 		$lib,
 	;
 #~ use Log::Shiras::Switchboard v0.21 qw( :debug );#
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(
 ###LogSD						name_space_bounds =>{
 ###LogSD							UNBLOCK =>{
-###LogSD								log_file => 'trace',
+###LogSD								log_file => 'debug',
+###LogSD							},
+###LogSD							Test =>{
+###LogSD								StylesInstance =>{
+###LogSD									XMLReader =>{
+###LogSD										DEMOLISH =>{
+###LogSD											UNBLOCK =>{
+###LogSD												log_file => 'warn',
+###LogSD											},
+###LogSD										},
+###LogSD									},
+###LogSD								},
+###LogSD								SharedStringsInstance =>{
+###LogSD									XMLReader =>{
+###LogSD										DEMOLISH =>{
+###LogSD											UNBLOCK =>{
+###LogSD												log_file => 'warn',
+###LogSD											},
+###LogSD										},
+###LogSD									},
+###LogSD								},
+###LogSD								Worksheet =>{
+###LogSD									XMLReader =>{
+###LogSD										DEMOLISH =>{
+###LogSD											UNBLOCK =>{
+###LogSD												log_file => 'warn',
+###LogSD											},
+###LogSD										},
+###LogSD									},
+###LogSD								},
 ###LogSD							},
 ###LogSD						},
 ###LogSD						reports =>{
@@ -40,7 +72,6 @@ use	lib	'../../../../../Log-Shiras/lib',
 use Spreadsheet::XLSX::Reader::LibXML;
 $test_file = ( @ARGV ) ? $ARGV[0] : $test_file;
 $test_file .= 'TestBook.xlsx';
-	#~ print "Test file is: $test_file\n";
 my  ( 
 		$error_instance, $parser, $workbook, $row_ref,
 	);
@@ -78,10 +109,9 @@ my	$answer_ref = [
 	];
 my 			@class_attributes = qw(
 				error_inst					file_name					file_handle
-				file_creator				file_modified_by			file_date_created
-				file_date_modified			sheet_parser				count_from_zero
-				file_boundary_flags			empty_is_end				from_the_edge
-				default_format_list			format_string_parser		group_return_type
+				sheet_parser				count_from_zero				file_boundary_flags
+				empty_is_end				from_the_edge				default_format_list
+				format_string_parser		group_return_type
 				empty_return_type
 			);
 my  		@class_methods = qw(
@@ -101,7 +131,7 @@ my  		@class_methods = qw(
 				in_the_list					get_empty_return_type		set_empty_return_type
 			);
 ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space => 'main', );
-###LogSD		$phone->talk( level => 'inf	o', message => [ "easy questions ..." ] );
+###LogSD		$phone->talk( level => 'info', message => [ "easy questions ..." ] );
 map{ 
 has_attribute_ok
 			'Spreadsheet::XLSX::Reader::LibXML', $_,
@@ -118,21 +148,24 @@ lives_ok{
 									should_warn => 0,
 								);
 			$parser =	Spreadsheet::XLSX::Reader::LibXML->new(
-							#~ file_name 	=> $test_file,
+							#~ file_name			=> $test_file,
 							count_from_zero		=> 0,
-			###LogSD		log_space			=> 'Test',
 							error_inst			=> $error_instance,
 							group_return_type	=> 'value',
 							empty_return_type	=> 'undef_string',
+			###LogSD		log_space			=> 'Test',
 						);
 }										"Prep a test parser instance";
 ###LogSD	$phone->talk( level => 'info', message => [ "parser only loaded" ] );
 
-lives_ok{ 	$workbook = $parser->parse( $test_file ) }
-										"Attempt to unzip the file and prepare to read data";
+lives_ok{ 	
+			$workbook = $parser->parse( $test_file );
+}										"Attempt to unzip the file and prepare to read data";
+			#~ print Dumper( $workbook );
 			if ( !defined $workbook ) {
 				# the test version of "die $parser->error()";
-is			$parser->error(), undef,	"Write any error messages from the file load";
+is			$parser->error(), 'Workbook failed to load',
+										"Write any error messages from the file load";
 			}else{
 ok			1,							"The file unzipped and the parser set up without issues";
 			}
@@ -199,7 +232,7 @@ is_deeply	$row_ref, $answer_ref->[$offset_ref->[$y] + $x],
 			}
 is			$workbook->parse( 'badfile.not' ), undef,
 										"Check that a bad file will not load";
-is			$workbook->error, 'Attribute (file_name) does not pass the type constraint because: The string -badfile.not- does not have an xlsx file extension',
+like		$workbook->error, qr/Attribute \(file_name\) does not pass the type constraint because: The string \-badfile\.not\- does not have an xlsx file extension/,
 										"Confirm that the correct error is passed";
 explain 								"...Test Done";
 done_testing();

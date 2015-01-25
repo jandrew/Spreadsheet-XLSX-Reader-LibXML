@@ -1,12 +1,8 @@
 package Spreadsheet::XLSX::Reader::LibXML::Error;
-use version; our $VERSION = qv('v0.30.0');
+use version; our $VERSION = qv('v0.34.1');
 
 use Moose;
 use Carp qw( cluck );
-no warnings 'once';
-@Spreadsheet::XLSX::Reader::LibXML::Error::CARP_NOT = qw(
-	Capture::Tiny
-);
 use MooseX::StrictConstructor;
 use MooseX::HasDefaults::RO;
 use Types::Standard qw(
@@ -14,6 +10,7 @@ use Types::Standard qw(
 		Bool
     );
 use lib	'../../../../../lib',;
+use Spreadsheet::XLSX::Reader::LibXML::Types qw( ErrorString );
 ###LogSD	with 'Log::Shiras::LogSpace';
 ###LogSD	use Log::Shiras::TapWarn qw( re_route_warn restore_warn );
 ###LogSD	use Log::Shiras::Telephone;
@@ -21,26 +18,27 @@ use lib	'../../../../../lib',;
 #########1 Public Attributes  3#########4#########5#########6#########7#########8#########9
 
 has error_string =>(
-		isa		=> Str,
-		clearer	=> 'clear_error',
-		reader	=> 'error',
-		writer	=> 'set_error',
+		isa			=> ErrorString,
+		clearer		=> 'clear_error',
+		reader		=> 'error',
+		writer		=> 'set_error',
+		init_arg 	=> undef,
+		coerce		=> 1,
 		trigger	=> sub{
-			my ( $self ) = @_;
+			my ( $self, $error ) = @_;
+			###LogSD	my	$phone = Log::Shiras::Telephone->new(
+			###LogSD			name_space => $self->get_log_space . '::error', );
 			if( $self->if_warn ){
+				###LogSD	$phone->talk( level => 'debug', message => [ $error ] );
 				###LogSD	re_route_warn();
-				cluck "$_[1] line " .
-					(((caller(2))[2])? ((caller(2))[2]) : ((caller(1))[2]) ). "\n";
+				cluck $error;
 				###LogSD	restore_warn;
 			}else{
-				###LogSD	my	$phone = Log::Shiras::Telephone->new(
-				###LogSD			name_space => $self->get_log_space . '::error', );
-				###LogSD		$phone->talk( level => 'debug', message => [
-				###LogSD			"$_[1] line " .
-				###LogSD			(((caller(2))[2])? ((caller(2))[2]) : ((caller(1))[2]) ) ] );
+				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD		$error . " line " .
+				###LogSD		(((caller(2))[2])? ((caller(2))[2]) : ((caller(1))[2]) ) ] );
 			}
 		},
-		init_arg => undef,
 	);
 
 has should_warn =>(
@@ -83,9 +81,8 @@ Spreadsheet::XLSX::Reader::LibXML::Error - Moose class for remembering the last 
                 },
             },
 			error_inst => Spreadsheet::XLSX::Reader::LibXML::Error->new(
-                should_warn => 1,
-                # should_warn => 0,# to turn off cluck when the error is set
-            ),
+				should_warn => 1,# 0 to turn off cluck when the error is set
+			),
         );
     print $action->dump;
           $action->set_error( "You did something wrong" );
@@ -100,11 +97,10 @@ Spreadsheet::XLSX::Reader::LibXML::Error - Moose class for remembering the last 
     # 04:                                 'log_space' => 'Spreadsheet::XLSX::Reader::LogSpace'
     # 04:                             }, 'Spreadsheet::XLSX::Reader::Error' )
     # 05:         }, 'ANONYMOUS_SHIRAS_MOOSE_CLASS_1' );
-    # 06: You did something wrong line 19
-    # 07: at ../lib/Spreadsheet/XLSX/Reader/Error.pm line 28.
-    # 08:    Spreadsheet::XLSX::Reader::Error::__ANON__('Spreadsheet::XLSX::Reader::Error=HASH(0x45e818)', 'You did something wrong') called at writer Spreadsheet::XLSX::Reader::Error::set_error of attribute error_string (defined at ../lib/Spreadsheet/XLSX/Reader/Error.pm line 28) line 9
+    # 06: You did something wrong at ~~lib/Spreadsheet/XLSX/Reader/LibXML/Error.pm line 31.
+    # 08:    Spreadsheet::XLSX::Reader::Error::__ANON__('Spreadsheet::XLSX::Reader::Error=HASH(0x45e818)', 'You did something wrong') called at writer Spreadsheet::XLSX::Reader::Error::set_error of attribute error_string (defined at ../lib/Spreadsheet/XLSX/Reader/Error.pm line 42) line 13
     # 09:    Spreadsheet::XLSX::Reader::Error::set_error('Spreadsheet::XLSX::Reader::Error'=HASH(0x45e818)', 'You did something wrong') called at C:/strawberry/perl/site/lib/Moose/Meta/Method/Delegation.pm line 110
-    # 10:    ANONYMOUS_SHIRAS_MOOSE_CLASS_1::set_error('ANONYMOUS_SHIRAS_MOOSE_CLASS_1=HASH(0x45e890)', 'You did something wrong') called at error_example.pl line 19
+    # 10:    ANONYMOUS_SHIRAS_MOOSE_CLASS_1::set_error('ANONYMOUS_SHIRAS_MOOSE_CLASS_1=HASH(0x45e890)', 'You did something wrong') called at error_example.pl line 18
     # 11: $VAR1 = bless( {
     # 12:             'error_inst' => bless( {
     # 13:                                 'should_warn' => 1,
@@ -116,26 +112,16 @@ Spreadsheet::XLSX::Reader::LibXML::Error - Moose class for remembering the last 
     
 =head1 DESCRIPTION
 
-B<This documentation is written to explain ways to extend this package.  To use the data 
-extraction of Excel workbooks, worksheets, and cells please review the documentation for  
-L<Spreadsheet::XLSX::Reader::LibXML>,
-L<Spreadsheet::XLSX::Reader::LibXML::Worksheet>, and 
-L<Spreadsheet::XLSX::Reader::LibXML::Cell>>
+This documentation is written to explain ways to use this module when writing your own excel 
+parser.  To use the general package for excel parsing out of the box please review the 
+documentation for L<Workbooks|Spreadsheet::XLSX::Reader::LibXML>,
+L<Worksheets|Spreadsheet::XLSX::Reader::LibXML::Worksheet>, and 
+L<Cells|Spreadsheet::XLSX::Reader::LibXML::Cell>
 
 This L<Moose> class contains two L<attributes|Moose::Manual::Attributes>.  It is intended 
 to be used through (by) L<delegation|Moose::Manual::Delegation> in other classes.  The first 
 attribute is used to store the current error string.  The second, is set to turn on or off 
 pushing the error string to STDERR when the first attribute is (re)set.
-
-This class uses a role for full functional implementation.  Read the documentation 
-for each of the role(s) as well as this documentation to gain a complete picture of this 
-class.
-
-=head2 with
-
-These are attached role(s) for additional (re-used) functionality
-
-=head3 L<Spreadsheet::XLSX::Reader::LibXML::LogSpace>
 
 =head2 Attributes
 
@@ -147,13 +133,12 @@ attributes see L<Moose::Manual::Attributes>.
 
 =over
 
-B<Definition:> This stores the most recent error string for recall later.  It 
-also provides a hook to debug logging through 
-L<Log::Shiras|https://github.com/jandrew/Log-Shiras>.
+B<Definition:> This stores an error string for recall later.
 
 B<Default> undef (init_arg = undef)
 
-B<Range> any string
+B<Range> any string (error objects with the 'as_string' or 'message' are auto coerced to 
+a string)
 
 B<attribute methods> Methods provided to adjust this attribute
 		
@@ -163,7 +148,7 @@ B<attribute methods> Methods provided to adjust this attribute
 
 =over
 
-B<Definition:> returns the currently stored error
+B<Definition:> returns the currently stored error string
 
 =back
 
@@ -171,7 +156,7 @@ B<Definition:> returns the currently stored error
 
 =over
 
-B<Definition:> clears the currently stored error
+B<Definition:> clears the currently stored error string
 
 =back
 
@@ -179,7 +164,7 @@ B<Definition:> clears the currently stored error
 
 =over
 
-B<Definition:> sets the attribute to $error_string.
+B<Definition:> sets the attribute with $error_string.
 
 =back
 
@@ -227,8 +212,8 @@ L<github Spreadsheet::XLSX::Reader::LibXML/issues
 
 =over
 
-B<1.> get clases in this package to return error numbers rather than 
-error strings and then provide opportunity for this class to localize.
+B<1.> get clases in this package to return error numbers and or error strings and 
+then provide opportunity for this class to localize.
 
 =back
 
@@ -236,9 +221,9 @@ error strings and then provide opportunity for this class to localize.
 
 =over
 
-=item Jed Lund
+Jed Lund
 
-=item jandrew@cpan.org
+jandrew@cpan.org
 
 =back
 
@@ -250,17 +235,17 @@ it and/or modify it under the same terms as Perl itself.
 The full text of the license can be found in the
 LICENSE file included with this module.
 
-This software is copyrighted (c) 2014 by Jed Lund
+This software is copyrighted (c) 2014, 2015 by Jed Lund
 
 =head1 DEPENDENCIES
 
 =over
 
-L<version>
+L<version> - 0.77
 
 L<Moose>
 
-L<Carp>
+L<Carp> - cluck
 
 L<MooseX::StrictConstructor>
 
@@ -268,7 +253,7 @@ L<MooseX::HasDefaults::RO>
 
 L<Types::Standard>
 
-L<lib>
+L<Spreadsheet::XLSX::Reader::LibXML::Types> - v0.34
 
 =back
 

@@ -11,8 +11,7 @@ my 	$action = build_instance(
 			},
 		},
 		error_inst => Spreadsheet::XLSX::Reader::LibXML::Error->new(
-			should_warn => 1,
-			# should_warn => 0,# to turn off cluck when the error is set
+			should_warn => 1,# 0 to turn off cluck when the error is set
 		),
 	);
 print	$action->dump;

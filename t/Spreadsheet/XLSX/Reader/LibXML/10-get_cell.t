@@ -21,6 +21,8 @@ $| = 1;
 
 use	Test::Most tests => 749;
 use	Test::Moose;
+use IO::File;
+use XML::LibXML::Reader;
 use	DateTime::Format::Flexible;
 use	DateTimeX::Format::Excel;
 use Type::Tiny;
@@ -70,10 +72,11 @@ my	$test_file_2 = $test_file . 'worksheets/sheet2.xml';
 my  ( 
 			$test_instance, $error_instance, $styles_instance, $shared_strings_instance,
 			$string_type, $date_time_type, $cell, $row_ref, $offset, $workbook_instance,
+			$file_handle, $styles_handle, $shared_strings_handle,
 	);
 my 			$row = 0;
 my 			@class_attributes = qw(
-				file_name					error_inst					sheet_rel_id
+				file						error_inst					sheet_rel_id
 				sheet_id					sheet_position				sheet_name
 				custom_formats
 			);
@@ -266,21 +269,21 @@ lives_ok{
 									superclasses =>[ 'Spreadsheet::XLSX::Reader::LibXML::Error' ],
 									should_warn => 0,
 								);
-			$styles_instance =	build_instance(
+			$styles_instance	=	build_instance(
 									package => 'StylesInstance',
 									superclasses	=> [ 'Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles' ],
 									add_roles_in_sequence => [qw(
 										Spreadsheet::XLSX::Reader::LibXML::FmtDefault
 										Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings
 									)],
-									file_name	=> $styles_file,
-			###LogSD				log_space	=> 'Test::Styles',
+									file		=> $styles_file,
 									error_inst	=> $error_instance,
 									epoch_year	=> 1904,
+			###LogSD				log_space	=> 'Test::Styles',
 								);
-			$shared_strings_instance =	Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings->new(
+			$shared_strings_instance	=	Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings->new(
 											error_inst	=> $error_instance,
-											file_name	=> $shared_strings_file,
+											file		=> $shared_strings_file,
 			###LogSD						log_space	=> 'Test::SharedStrings',
 										);
 			$workbook_instance =	build_instance(
@@ -289,6 +292,17 @@ lives_ok{
 											get_epoch_year => sub{ return '1904' },
 										},
 										add_attributes =>{
+											error_inst =>{
+												isa			=> 	HasMethods[qw(
+																	error set_error clear_error set_warnings if_warn
+																) ],
+												clearer		=> '_clear_error_inst',
+												reader		=> 'get_error_inst',
+												required	=> 1,
+												handles =>[ qw(
+													error set_error clear_error set_warnings if_warn
+												) ],
+											},
 											empty_is_end =>{
 												isa		=> Bool,
 												writer	=> 'set_empty_is_end',
@@ -345,12 +359,12 @@ lives_ok{
 										},
 										styles_instance => $styles_instance,
 										shared_strings_instance => $shared_strings_instance,
+										error_inst => $error_instance,
 									);
 			$test_instance	=	build_instance(
 									package	=> 'GetCellTest',
-									superclasses =>[ 'Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet' ],
-									file_name			=> $test_file,
-			###LogSD				log_space			=> 'Test',
+									superclasses 		=>[ 'Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet' ],
+									file				=> $test_file,
 									error_inst			=> $error_instance,
 									custom_formats		=> {
 																E10	=> $date_time_type,
@@ -358,6 +372,7 @@ lives_ok{
 																D14	=> $string_type,
 															},
 									workbook_instance	=> $workbook_instance,
+			###LogSD				log_space			=> 'Test',
 								);
 }										"Prep a test GetCellTest instance";
 map{ 
@@ -583,15 +598,15 @@ explain									"Test fetchrow_hashref";
 ok			$workbook_instance->set_group_return_type( 'value' ),
 										"Set the group_return_type to: value";
 ok			$test_instance = GetCellTest->new(
-								file_name			=> $test_file_2,
+								file			=> $test_file_2,
+								error_inst		=> $error_instance,
+								custom_formats	=> {
+									E10	=> $date_time_type,
+									10	=> $string_type,
+									D14	=> $string_type,
+								},
+								workbook_instance => $workbook_instance,
 			###LogSD			log_space			=> 'Test',
-								error_inst			=> $error_instance,
-								custom_formats		=> {
-															E10	=> $date_time_type,
-															10	=> $string_type,
-															D14	=> $string_type,
-														},
-								workbook_instance	=> $workbook_instance,
 							),			'Build another connection to a different worksheet';
 is 			$test_instance->fetchrow_hashref( 1 ), undef,
 										"Check that a fetchrow_hashref call returns undef without a set header";

@@ -1,6 +1,6 @@
 package Spreadsheet::XLSX::Reader::LibXML::Cell;
-use version; our $VERSION = qv('v0.30.0');
-#~ use Data::Dumper;
+use version 0.77; our $VERSION = qv('v0.34.1');
+
 $| = 1;
 use 5.010;
 use Moose;
@@ -12,7 +12,6 @@ use Types::Standard qw(
 		Int					Maybe					CodeRef
 		is_Object
     );
-my	$message_type = HasMethods[ 'message' ];
 use lib	'../../../../../lib';
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
@@ -73,6 +72,7 @@ has cell_fill =>(
 has cell_type =>(
 		isa		=> Enum[qw( Text Numeric Date Custom )],
 		reader	=> 'type',
+		writer	=> '_set_cell_type',
 		predicate	=> 'has_type',
 	);
 
@@ -177,14 +177,7 @@ sub value{
 		###LogSD		"Attempting to return the value of the cell formatted to " .
 		###LogSD		(($self->has_coercion) ? $self->coercion_name : 'No conversion available' ) ] );
 		eval '$formatted = $self->get_coercion->assert_coerce( $unformatted )';
-		if( $@ ){
-			if( is_Object( $@ ) and $message_type->check( $@ ) ){
-				print $@->message . "\n";
-				$self->set_error( $@->message );
-			}else{
-				$self->set_error( "$@" );
-			}
-		}
+		$self->set_error( $@ ) if( $@ );
 	}
 	$formatted =~ s/\\//g if $formatted;
 	###LogSD	$phone->talk( level => 'debug', message => [
@@ -232,6 +225,17 @@ sub value{
 
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
 
+after 'set_coercion' => sub{
+	my ( $self, ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD					($self->get_log_space .  '::set_coercion' ), );
+	###LogSD		$phone->talk( level => 'debug', message =>[
+	###LogSD			"Setting 'cell_type' to custom since the coercion has been set" ] );
+	$self->_set_cell_type( 'Custom' );
+};
+
+#########1 Private Methods    3#########4#########5#########6#########7#########8#########9
+
 sub DEMOLISH{
 	my ( $self ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new(
@@ -258,7 +262,7 @@ __END__
 
 =head1 NAME
 
-Spreadsheet::XLSX::Reader::LibXML::Cell - XLSX Cell data and formatting source
+Spreadsheet::XLSX::Reader::LibXML::Cell - XLSX Cell data class
 
 =head1 SYNOPSIS
 
@@ -275,14 +279,19 @@ as a standalone class just fill in the L<Attributes|/Attributes> below.
 =head2 Primary Methods
 
 These are methods used to transform data stored in the L<Attributes|/Attributes> 
-(not just return it directly).
+(not just return it directly).  All methods are object methods and should be implemented 
+on the instance.
+
+B<Example:>
+
+	my $unformatted_value = $cell_intance->unformatted;
 
 =head3 unformatted
 
 =over
 
 B<Definition:> Returns the unformatted value of the cell transformed with the 
-L<change_output_encoding|/Spreadsheet::XLSX::Reader::LibXML::FmtDefault/change_output_encoding( $string )> 
+L<change_output_encoding|Spreadsheet::XLSX::Reader::LibXML::FmtDefault/change_output_encoding( $string )> 
 method.
 
 B<Accepts:>Nothing
@@ -303,7 +312,7 @@ cell specific formatting for all cells in the merge area.
 
 B<Accepts:>Nothing
 
-B<Returns:> True if the cell holds a value
+B<Returns:> True if the cell holds an unformatted value (even if it is just a space or empty string)
 
 =back
 
@@ -327,17 +336,17 @@ B<Returns:> the cell value processed by the set conversion
 
 This class is just a storage of coallated information about the requested cell stored 
 in the following attributes. For more information on attributes see 
-L<Moose::Manual::Attributes>.
+L<Moose::Manual::Attributes>.  The meta data about the cell can be retrieved from each 
+attribute using the 'attribute methods'.
 
 =head3 error_inst
 
 =over
 
-B<Definition:> This attribute holds an 'error' object instance.  It should have 
-several methods for managing errors.  Currently no error codes or error translation 
-options are available but this should make implementation of that easier.  In general 
-the package shares a reference for this instance accross the workbook all worksheets 
-and all cells so any set or get action should return the latest state from anywhere.
+B<Definition:> This attribute holds an 'error' object instance.  In general 
+the package shares a reference for this instance accross the workbook with all 
+worksheets and all cells so any set or get action should return the latest error state 
+from anywhere. (not just the instance you are working on)
 
 B<Default:> a L<Spreadsheet::XLSX::Reader::LibXML::Error> instance with the 
 attributes set as;
@@ -388,7 +397,8 @@ B<set_warnings>
 
 =over
 
-B<Definition:> used to turn on or off real time warnings when errors are set
+B<Definition:> used to turn on or off real time warnings when errors are set.  
+This is a delegated method from the error instance.
 		
 =back
 
@@ -419,12 +429,24 @@ B<attribute methods> Methods provided to adjust this attribute
 		
 =over
 
+B<unformatted>
+
+=over
+
+B<Definition:> returns the attribute value
+		
+=back
+		
+=over
+
 B<has_unformatted>
 
 =over
 
 B<Definition:> a predicate method to determine if any value is in the cell
 		
+=back
+
 =back
 
 =back
@@ -438,15 +460,20 @@ B<Definition:> a predicate method to determine if any value is in the cell
 B<Definition:> This attribute hold a rich text data structure like 
 L<Spreadsheet::ParseExcel::Cell/get_rich_text()> with the exception that it 
 doesn't bless each hashref into an object.  The hashref's are also organized 
-per the Excel xlsx information the the sharedStrings.xml file.  In general 
+per the Excel xlsx information in the the sharedStrings.xml file.  In general 
 this is an arrayref of arrayrefs where the second level contains two positions.  
 The first position is the place (from zero) where the formatting is implemented.  
-The second position is a hashref of the formatting values.
+The second position is a hashref of the formatting values.  The format is inforce 
+until the next start place is identified.
+
+=over
 
 B<note:> It is important to understand that Excel can store two formats for the 
-same cell and often they don't agree.  For example using the L<get_font|/get_font> 
-method in class will not always yield the same value as specific fonts in the 
-rich text array.
+same cell and often they don't agree.  For example using the attribute L<cell_font
+|/cell_font> will not always contain the same value as specific fonts (or any font) 
+listed in the rich text array.
+f
+=back
 
 B<Default:> undef = no rich text defined for this cell
 
@@ -476,6 +503,8 @@ B<Definition:> Indicates if the attribute has anything stored
 
 =back
 
+=back
+
 =head3 cell_font
 
 =over
@@ -484,7 +513,7 @@ B<Definition:> This holds the font assigned to the cell
 
 B<Default:> undef
 
-B<Range:> a hashref of font definitions
+B<Range:> a hashref of definitions for the font
 
 B<attribute methods> Methods provided to adjust this attribute
 		
@@ -617,9 +646,11 @@ B<Definition:> Indicates if the attribute has anything stored
 =over
 
 B<Definition:> This holds the type of data stored in the cell.  In general it 
-follows the convention of L<Spreadsheet::ParseExcel> however, since custom 
-coercions will change data to some possible non excel standard state this also 
-includes a 'Custom' type representing any value with a custom conversion assigned.
+follows the convention of L<ParseExcel
+|Spreadsheet::ParseExcel/ChkType($self, $is_numeric, $format_index)> (Date, Numeric, 
+or Text) however, since custom coercions will change data to some possible non excel 
+standard state this also allows a 'Custom' type representing any cell with a custom 
+conversion assigned to it (by you either at the worksheet level or here).
 
 B<Default:> Text
 
@@ -690,7 +721,7 @@ B<Definition:> Indicates if the attribute has anything stored
 
 B<Definition:> if the cell is part of a group of merged cells this will 
 store the upper left and lower right cell ID's in a string concatenated 
-with a :
+with a ':'
 
 B<Default:> undef
 
@@ -823,7 +854,7 @@ B<Definition:> Indicates if the attribute has anything stored
 
 =over
 
-B<Definition:> This is the sheet ID of the cell
+B<Definition:> This is the cell ID of the cell
 
 B<attribute methods> Methods provided to adjust this attribute
 		
@@ -893,7 +924,8 @@ data.
 B<Range:> If you wish to set this with your own code it must have two 
 methods.  First, 'assert_coerce' which will be applied when transforming 
 the unformatted value.  Second, 'display_name' which will be used to self 
-identify.
+identify.  For an example of how to build a custom format see 
+L<Spreadsheet::XLSX::Reader::LibXML::Worksheet/custom_formats>.
 
 B<attribute methods> Methods provided to adjust this attribute
 		
@@ -919,7 +951,8 @@ B<set_coercion>
 
 =over
 
-B<Definition:> used to set a new coercion instance
+B<Definition:> used to set a new coercion instance.  Implementation of this 
+method will also switch the cell type to 'Custom'.
 		
 =back
 
@@ -968,9 +1001,9 @@ B<3.> Have unformatted return '' (the empty string) rather than undef for null?
 
 =over
 
-=item Jed Lund
+Jed Lund
 
-=item jandrew@cpan.org
+jandrew@cpan.org
 
 =back
 
@@ -988,7 +1021,7 @@ This software is copyrighted (c) 2014 by Jed
 
 =over
 
-L<version>
+L<version> 0.77
 
 L<perl 5.010|perl/5.10.0>
 
@@ -998,9 +1031,7 @@ L<MooseX::StrictConstructor>
 
 L<MooseX::HasDefaults::RO>
 
-L<Types::Standard>
-
-L<lib>
+L<Type::Tiny> - 1.000>
 
 L<Spreadsheet::XLSX::Reader::LibXML::Types>
 

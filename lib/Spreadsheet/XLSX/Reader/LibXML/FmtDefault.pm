@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::FmtDefault;
-use version; our $VERSION = qv('v0.30.0');
+use version 0.77; our $VERSION = qv('v0.34.1');
 
 use	5.010;
 use	Moose::Role;
@@ -131,19 +131,23 @@ Spreadsheet::XLSX::Reader::LibXML::FmtDefault - Default xlsx number formats and 
     
 =head1 DESCRIPTION
 
-B<This documentation is written to explain ways to extend this package.  To use the data 
-extraction of Excel workbooks, worksheets, and cells please review the documentation for  
-L<Spreadsheet::XLSX::Reader::LibXML>,
-L<Spreadsheet::XLSX::Reader::LibXML::Worksheet>, and 
-L<Spreadsheet::XLSX::Reader::LibXML::Cell>>
+This documentation is written to explain ways to use this module when writing your 
+own excel parser.  To use the general package for excel parsing out of the box please 
+review the documentation for L<Workbooks|Spreadsheet::XLSX::Reader::LibXML>,
+L<Worksheets|Spreadsheet::XLSX::Reader::LibXML::Worksheet>, and 
+L<Cells|Spreadsheet::XLSX::Reader::LibXML::Cell>
 
-This L<Moose Role|Moose::Manual::Roles> is the primary tool for localization.  It stores the 
-number conversion format strings for the set region.  In this particular case it is the base 
-L<english conversion
+This L<Moose Role|Moose::Manual::Roles> is the primary tool for localization.  It 
+stores the number conversion format strings for the set region.  In this particular 
+case this module  is the base L<english conversion
 |http://openxmldeveloper.org/blog/b/openxmldeveloper/archive/2012/02/16/dates-in-spreadsheetml.aspx> 
-set.  It does rely on L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings> to build 
-the actual coercions used to transform numbers for each string.  However, the 
-ParseExcelFormatStrings transformation should work for all regions strings.
+set.  It does rely on L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings> 
+to build the actual coercions used to transform numbers for each string.  However, 
+the ParseExcelFormatStrings transformation should work for all regions strings.  
+When writing a drop in replacement for this module you should be able to just replace 
+the strings in the '_defined_excel_translations' attribute and then set the 
+L<Spreadsheet::XLSX::Reader::LibXML/default_format_list> with your module when 
+creating a new workbook parser.  (Don't forget to rename the module!)
 
 The role also includes a string conversion function that is implemented after the data is 
 extracted by libxml2 from the xml file.  Specifically libxml2 attempts to determine the input 
@@ -151,25 +155,6 @@ encoding from the xml header and convert whatever format the file is in to unico
 conversion out should be from unicode to your L<target_encoding|/target_encoding>.   
 L<For now|/TODO> no encoding (output) conversion is actually provided and the function is 
 essentially a pass-through of standard perl unicode.
-
-To replace this module just build a L<Moose::Role|Moose::Manual::Roles> that has the following 
-L<Primary Methods|/Primary Methods> and L<Attributes|/Attributes>.  Then set the 
-L<default_format_list|Spreadsheet::XLSX::Reader::LibXML/default_format_list> attribute with 
-the new role name when initially starting L<Spreadsheet::XLSX::Reader::LibXML>.
-
-=head2 requires
-
-These are method(s) used by this Role but not provided by the role.  Any class consuming this 
-role will not build without first providing these methods prior to loading this role.
-
-=head3 get_log_space
-
-=over
-
-B<Definition:> Used to return the log space used by the code protected by ###LogSD.  See
-L<Log::Shiras|https://github.com/jandrew/Log-Shiras> for more information.
-
-=back
 	
 =head2 Primary Methods
 
@@ -190,7 +175,7 @@ way you want.
 
 B<Accepts:> a unicode string
 
-B<Returns:> the converted string
+B<Returns:> the converted string I<currently with no changes>
 
 =back
 
@@ -200,8 +185,9 @@ B<Returns:> the converted string
 
 B<Definition:> This will return the preset excel format string for the stored position.  
 This role is used in the L<Styles|Spreadsheet::XLSX::Reader::LibXML::Styles> class but 
-I<this method is actually exposed all the way up to the L<Workbook
-|Spreadsheet::XLSX::Reader::LibXML> class through L<Delegation|Moose::Manual::Delegation>.>
+this method is actually implemented through the the attribute 
+L<Spreadsheet::XLSX::Reader::LibXML/default_format_list> using L<delegation
+|Moose::Manual::Delegation>.
 
 B<Accepts:> an $integer for the format string position
 
@@ -214,8 +200,8 @@ B<Returns:> an excel format string
 =over
 
 B<Definition:> This will return the count of all defined Excel format strings for this 
-localization.  The primary value is to understand if the format string is a pre-set value 
-or if the general .xlsx sheet reader should look in the 
+role.  The primary value is to understand if the format string falls in the range of a 
+pre-set value or if the general .xlsx sheet reader should look in the 
 L<Styles|Spreadsheet::XLSX::Reader::LibXML::Styles> sheet for the format string.
 
 B<Accepts:> nothing
@@ -243,11 +229,11 @@ B<Returns:> an array ref of all pre-defined format strings
 B<Definition:> If you don't want to re-write this role you can just set a new 
 array ref of format strings that you want excel to use.  The strings need to comply with 
 the capabilities of L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings>.  With 
-any luck means they comply with the Excel L<format string definitions
+any luck that means they also comply with the Excel L<format string definitions
 |https://support.office.com/en-us/article/Create-or-delete-a-custom-number-format-83657ca7-9dbe-4ee5-9c89-d8bf836e028e?ui=en-US&rs=en-US&ad=US>.  
-This role is used in the L<Styles|Spreadsheet::XLSX::Reader::LibXML::Styles> class but 
-I<this method is actually exposed all the way up to the L<Workbook
-|Spreadsheet::XLSX::Reader::LibXML> class through L<Delegation|Moose::Manual::Delegation>.>
+This role is consumed by the L<Styles|Spreadsheet::XLSX::Reader::LibXML::Styles> class but 
+this method is actually exposed all the way up to the L<Workbook
+|Spreadsheet::XLSX::Reader::LibXML> class through L<Delegation|Moose::Manual::Delegation>.
 
 B<Accepts:> an array ref of format strings
 
@@ -258,15 +244,17 @@ B<Returns:> nothing
 =head2 Attributes
 
 Data passed to new when creating the L<Styles|Spreadsheet::XLSX::Reader::LibXML::Styles> 
-instance.   For modification of these attributes see the listed 'attribute methods'.
-For more information on attributes see L<Moose::Manual::Attributes>.  Most of these are 
-not exposed to the top level of L<Spreadsheet::XLSX::Reader::LibXML>.
+instance.   (or other class instance consuming this role) For modification of these attributes 
+see the listed 'attribute methods'.  For more information on attributes see 
+L<Moose::Manual::Attributes>.  Most of these attributes and methods are not exposed to the top 
+level of L<Spreadsheet::XLSX::Reader::LibXML>.
 
 =head3 excel_region
 
 =over
 
-B<Definition:> This records the target region of this localization role
+B<Definition:> This records the target region of this localization role (Not the region of the 
+Excel workbook being parsed)
 
 B<Default:> en = english
 
@@ -294,7 +282,7 @@ B<Definition:> This is the target output encoding
 
 B<Default:> UTF-8
 
-B<Range:> No real options here (since it currently is a noop)
+B<Range:> No real options here (since it currently is a No Op)
 
 B<attribute methods> Methods provided to adjust this attribute
 		
@@ -345,9 +333,9 @@ by a region attribute setting in L<Spreadsheet::XLSX::Reader::LibXML>
 
 =over
 
-=item Jed Lund
+Jed Lund
 
-=item jandrew@cpan.org
+jandrew@cpan.org
 
 =back
 
@@ -359,21 +347,19 @@ it and/or modify it under the same terms as Perl itself.
 The full text of the license can be found in the
 LICENSE file included with this module.
 
-This software is copyrighted (c) 2014 by Jed Lund
+This software is copyrighted (c) 2014, 2015 by Jed Lund
 
 =head1 DEPENDENCIES
 
 =over
 
-L<version>
+L<version> - 0.77
 
 L<perl 5.010|perl/5.10.0>
 
 L<Moose::Role>
 
 L<Types::Standard>
-
-L<lib>
 
 =back
 

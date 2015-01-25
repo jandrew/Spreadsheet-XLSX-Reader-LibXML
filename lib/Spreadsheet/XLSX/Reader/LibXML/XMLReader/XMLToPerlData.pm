@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData;
-use version; our $VERSION = qv('v0.30.0');
+use version; our $VERSION = qv('v0.34.1');
 
 use	Moose::Role;
 use 5.010;
@@ -25,7 +25,7 @@ sub parse_element{
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
 	###LogSD					($self->get_log_space .  '::parse_element' ), );
 	###LogSD		$phone->talk( level => 'debug', message =>[
-	###LogSD			"Parsing element: " . $self->node_name,
+	###LogSD			"Parsing element: " . ($self->node_name//''),
 	###LogSD			".. at byte position: " . $self->byte_consumed,
 	###LogSD			(( defined $level ) ? "..to level: $level" : undef ),] );
 	my $current_level //= $self->node_depth;
@@ -36,7 +36,7 @@ sub parse_element{
 	###LogSD	$phone->talk( level => 'trace', message => [
 	###LogSD		"Result of the first attribute move: $result",
 	###LogSD		".. at byte position: " . $self->byte_consumed,
-	###LogSD		'..for node name: ' . $self->node_name			] );
+	###LogSD		'..for node name: ' . ($self->node_name//'')	] );
 	ATTRIBUTELIST: while( $result > 0 ){
 		my $att_name = $self->node_name;
 		my $att_value = $self->node_value;
@@ -75,7 +75,7 @@ sub parse_element{
 		###LogSD		'..at byte position: ' . $self->byte_consumed, ] );
 	}else{
 		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"Pre dive node name: " . $self->node_name ] );
+		###LogSD		"Pre dive node name: " . ($self->node_name//'') ] );
 		$result = $self->next_element;
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD		"Attempted to go deeper with result: $result",
@@ -159,7 +159,7 @@ sub parse_element{
 	return $current_ref;
 }
 
-#########1 Private Attributes 3#########4#########5#########6#########7#########8#########9
+#########1 Private Attributes 3#########4#########5#########6#########7#########8#########9	
 
 
 
@@ -174,7 +174,7 @@ __END__
 =head1 NAME
 
 Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData - 
-Helper to turn xlsx XML to perl hashs
+XMLReader to turn xlsx XML to perl hashes
     
 =head1 DESCRIPTION
 
