@@ -446,8 +446,9 @@ sub _build_workbook{
 	# Load the workbook rels file
 	$workbook_file = $self->_get_temp_dir . '/xl/_rels/workbook.xml.rels';
 	###LogSD	$phone->talk( level => 'debug', message =>[ "Loading _rels file: $workbook_file"	] );
-	my ( $pivot_lookup ) = $self->_load_rels_workbook_file( $rel_lookup, $workbook_file );
-	return undef if !$pivot_lookup;
+	my ( $load_result, $pivot_lookup ) = 
+	   $self->_load_rels_workbook_file( $rel_lookup, $workbook_file );
+	return undef if !$load_result;
 	
 	# Load the docProps file
 	$workbook_file = $self->_get_temp_dir . '/docProps/core.xml';
@@ -540,10 +541,10 @@ sub _load_rels_workbook_file{
 	###LogSD		"Pivot lookup:", $pivot_lookup	] );
 	if( !$found_file_names ){
 		$self->set_error( "Couldn't find any file names for the sheets" );
-		return undef;
+		return ( 0, undef );
 	}
 	$self->_set_worksheet_lookup( $sheet_ref );
-	return $pivot_lookup;
+	return ( 1, $pivot_lookup );
 }
 
 sub _load_doc_props_file{
