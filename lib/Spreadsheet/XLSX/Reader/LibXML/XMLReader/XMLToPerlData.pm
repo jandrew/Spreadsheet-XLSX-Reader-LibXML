@@ -113,7 +113,7 @@ sub parse_element{
 			}
 			
 			# Go up when finished
-			if( $self->node_depth <= $current_level or !ref( $sub_ref ) ){
+			if( $self->node_depth <= $current_level ){
 				###LogSD	$phone->talk( level => 'info', message => [
 				###LogSD		'Reached the end of node group at level: ' . ($current_level+1) ] );
 				last SUBNODES;
