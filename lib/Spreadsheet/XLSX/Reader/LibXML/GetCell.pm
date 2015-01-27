@@ -353,28 +353,34 @@ sub _build_out_the_cell{
 	my $return;
 	if( is_HashRef( $result ) ){
 		###LogSD	$phone->talk( level => 'debug', message =>[
-		###LogSD		"Initial result is:", $result ] );
-		$result->{cell_type} = 'Text';
-		if( exists $result->{t} and $result->{t} eq 's' ){# Test for all in one sheet here!
-			@$result{qw( cell_unformatted rich_text )} =
-				@{$self->get_shared_string_position( $result->{v}->{raw_text} )}{qw( raw_text rich_text )};
-			delete $result->{t};
-			delete $result->{v};
-			delete $result->{rich_text} if !$result->{rich_text};
+		###LogSD		"processing cell object from cell ref:", $result ] );
+		$return->{cell_type} = 'Text';
+		$return->{r} = $result->{r};
+		$return->{cell_merge} = $result->{cell_merge} if exists $result->{cell_merge};
+		if( exists $result->{t} and $result->{t} eq 's' ){# Test for all in one sheet here!(future)
+			my $position = $self->get_shared_string_position( $result->{v}->{raw_text} );
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD		"Shared strings returned:",  $position] );
+			@$return{qw( cell_unformatted rich_text )} = ( $position->{raw_text}, $position->{rich_text} );
+			delete $return->{rich_text} if !$return->{rich_text};
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD		"Updated return:",  $return] );
 		}else{
-			$result->{cell_unformatted} = $result->{v}->{raw_text};
-			$result->{cell_type} = 'Numeric' if $result->{cell_unformatted} and $result->{cell_unformatted} ne '';
-			delete $result->{v};
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD		"Setting unformatted from:", $result ] );
+			$return->{cell_unformatted} = $result->{v}->{raw_text};
+			$return->{cell_type} = 'Numeric' if $return->{cell_unformatted} and $return->{cell_unformatted} ne '';
 		}
-		if( !$result->{cell_unformatted} and $self->get_empty_return_type eq 'empty_string' ){
+		if( !$return->{cell_unformatted} and $self->get_empty_return_type eq 'empty_string' ){
 			###LogSD	$phone->talk( level => 'debug', message =>[ "(Re)setting undef to ''"] );
-			$result->{cell_unformatted} = '';
+			$return->{cell_unformatted} = '';
 		}
 		###LogSD	$phone->talk( level => 'debug', message =>[
-		###LogSD		"Cell raw text is:", $result->{cell_unformatted}] );
+		###LogSD		"Cell raw text is:", $return->{cell_unformatted}] );
 		if( $self->get_group_return_type eq 'unformatted' ){
-			my $reformatted = $self->change_output_encoding( $result->{cell_unformatted} );
-			return  $reformatted;
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD		"Sending back just the unformatted value: $return->{cell_unformatted}" ] ) ;
+			return $self->change_output_encoding( $return->{cell_unformatted} );
 		}
 		my	$custom_format;
 		if( $self->has_custom_format( $result->{r} ) ){
@@ -398,21 +404,24 @@ sub _build_out_the_cell{
 			###LogSD	$phone->talk( level => 'debug', message =>[
 			###LogSD		'Cell custom_format is:', $custom_format ] );
 			if( $self->get_group_return_type eq 'value' ){
-				my $reformatted = $self->change_output_encoding( $result->{cell_unformatted} );
+				my $reformatted = $self->change_output_encoding( $return->{cell_unformatted} );
+				###LogSD	$phone->talk( level => 'debug', message =>[
+				###LogSD		'Applying custom format to: ' .  $reformatted ] );
 				return $custom_format->assert_coerce( $reformatted );
 			}
 		}
 		# handle the formula
 		if( exists $result->{f} ){
-			$result->{cell_formula} = $result->{f}->{raw_text};
-			delete $result->{f};
+			$return->{cell_formula} = $result->{f}->{raw_text};
 		}
+		###LogSD	$phone->talk( level => 'debug', message =>[
+		###LogSD		"Cell args to this point:", $return] );
 		
 		if( exists $result->{s} ){
 			my $header = ($self->get_group_return_type eq 'value') ? 'numFmts' : undef;
 			my $format;
 			if( $self->_has_styles_file ){
-				$format = $self->get_format_position( $result->{s}, $header );#############  Change here when allow a list rather than a string filter
+				$format = $self->get_format_position( $result->{s}, $header );
 				###LogSD	$phone->talk( level => 'trace', message =>[
 				###LogSD		"format position is:", $format ] );
 			}
@@ -421,9 +430,9 @@ sub _build_out_the_cell{
 				###LogSD		"Attempting to just return the cell value with:",
 				###LogSD		((exists $format->{numFmts}) ? $format->{numFmts} : undef), ] );
 				if( exists $format->{numFmts} ){
-					return $format->{numFmts}->assert_coerce( $result->{cell_unformatted} );
+					return $format->{numFmts}->assert_coerce( $return->{cell_unformatted} );
 				}else{
-					return $result->{cell_unformatted};
+					return $return->{cell_unformatted};
 				}
 			}
 			if( $self->_has_styles_file ){
@@ -432,15 +441,15 @@ sub _build_out_the_cell{
 						###LogSD	$phone->talk( level => 'trace', message =>[
 						###LogSD		"Transferring styles header -$header- to cell attribute: $format_headers->{$header}", ] );
 						if( $header eq 'numFmts' ){
-							$result->{cell_coercion} = $format->{$header};
-							if(	$result->{cell_type} eq 'Numeric' and
+							$return->{cell_coercion} = $format->{$header};
+							if(	$return->{cell_type} eq 'Numeric' and
 								$format->{$header}->name =~ /date/i ){
 								###LogSD	$phone->talk( level => 'trace', message =>[
 								###LogSD		"Found a -Date- cell", ] );
-								$result->{cell_type} = 'Date';
+								$return->{cell_type} = 'Date';
 							}
 						}else{
-							$result->{$format_headers->{$header}} = $format->{$header};
+							$return->{$format_headers->{$header}} = $format->{$header};
 						}
 					}
 				}
@@ -448,56 +457,52 @@ sub _build_out_the_cell{
 			if( $custom_format ){
 				###LogSD	$phone->talk( level => 'trace', message =>[
 				###LogSD		"Using custom number formats", ] );
-				$result->{cell_coercion} = $custom_format;
-				$result->{cell_type} = 'Custom';
+				$return->{cell_coercion} = $custom_format;
+				$return->{cell_type} = 'Custom';
 			}
-			delete $result->{s},
 		}
 		###LogSD	$phone->talk( level => 'trace', message =>[
 		###LogSD		"Checking return type: " . $self->get_group_return_type ] );
 		if( $self->get_group_return_type eq 'value' ){
 			###LogSD	$phone->talk( level => 'trace', message =>[
 			###LogSD		"The caller only wants the coerced value (Not the whole cell)", ] );
-			if( !$result->{cell_coercion} ){
-				$result = $result->{cell_unformatted};
-			}elsif( !defined $result->{cell_unformatted} ){
-				$result = undef;
+			my $return_value;
+			if( !$return->{cell_coercion} ){
+				$return_value = $return->{cell_unformatted};
+			}elsif( !defined $return->{cell_unformatted} ){
 				$self->set_error( "The cell does not have a value" );
-				;
 			}else{
-				eval '$result = $result->{cell_coercion}->assert_coerce( $result->{cell_unformatted} )';
+				eval '$return_value = $return->{cell_coercion}->assert_coerce( $return->{cell_unformatted} )';
 				if( $@ ){
 					$self->set_error( $@ );
 				}
 			}
-			$result =~ s/\\//g if $result;
+			$return_value =~ s/\\//g if $return_value;
 			###LogSD	$phone->talk( level => 'trace', message =>[
-			###LogSD		"Returning: $result", ] );
-			return $result;
+			###LogSD		"Returning: $return_value", ] );
+			return $return_value;
 		}
-		$result->{cell_row} = $self->_get_used_position( $result->{row} );
-		delete $result->{row};
-		$result->{cell_col} = $self->_get_used_position( $result->{col} );
-		delete $result->{col};
-		$result->{error_inst} = $self->_get_error_inst;
+		$return->{cell_row} = $self->_get_used_position( $result->{row} );
+		$return->{cell_col} = $self->_get_used_position( $result->{col} );
+		$return->{error_inst} = $self->_get_error_inst;
 		###LogSD	$result->{log_space} = $self->get_log_space . '::Cell';
-		$result->{unformatted_converter} = sub{ 
+		$return->{unformatted_converter} = sub{ 
 			my	$string = $_[0];
 			###LogSD	$phone->talk( level => 'debug', message =>[
 			###LogSD		"Sending stuff to converter:", @_ ] );
 			$self->change_output_encoding( $string ) 
 		};
 		###LogSD	$phone->talk( level => 'debug', message =>[
-		###LogSD		"Final ref is:", $result ] );
-		
-		# build cell
-		$return = Spreadsheet::XLSX::Reader::LibXML::Cell->new( %$result );
+		###LogSD		"Final args ref is:", $return] );
 	}elsif( $result ){
-		$return = ( $self->boundary_flag_setting ) ? $result : undef;
+		# This is where you return 'EOF' and 'EOR' flags
+		return ( $self->boundary_flag_setting ) ? $result : undef;
 	}
+	# build a cell
+	my $cell = Spreadsheet::XLSX::Reader::LibXML::Cell->new( %$return );
 	###LogSD		$phone->talk( level => 'debug', message =>[
-	###LogSD			"Cell is:", $return ] );
-	return $return;
+	###LogSD			"Cell is:", $cell ] );
+	return $cell;
 }
 
 # THE NEXT TWO METHODS ARE USED FOR ABSTRACTION AND DO NOT DO WHAT YOU THINK THEY DO

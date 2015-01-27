@@ -356,7 +356,6 @@ has _styles_instance =>(
 			set_format_cache_behavior => 'set_cache_behavior',
 			get_date_behavior => 'get_date_behavior',
 			set_date_behavior => 'set_date_behavior',
-			set_cache_behavior => 'set_cache_behavior',
 			parse_excel_format_string => 'parse_excel_format_string',
 			_demolish_styles => 'DEMOLISH',
 		},
@@ -485,8 +484,8 @@ sub _build_workbook{
 	# Load the workbook rels info
 	%answer = $self->_build_dom( $build_ref->{workbook_rels}, $workbook_file );
 	###LogSD	$phone->talk( level	=> 'debug', message =>[ "DOM built for method: _load_workbook_rels" ] );
-	my ( $pivot_lookup ) = $self->_load_workbook_rels( $rel_lookup, $answer{dom} );
-	return undef if !$pivot_lookup;
+	my ( $load_success, $pivot_lookup ) = $self->_load_workbook_rels( $rel_lookup, $answer{dom} );
+	return undef if !$load_success;
 	###LogSD	$phone->talk( level => 'debug', message =>[ 'pivot lookup:', $pivot_lookup,	] );
 	
 	# Load the docProps info
@@ -637,10 +636,10 @@ sub _load_workbook_rels{
 	###LogSD		"Pivot lookup:", $pivot_lookup	] );
 	if( !$found_member_names ){
 		$self->set_error( "Couldn't find any zip member (file) names for the sheets" );
-		return undef;
+		return( 0, undef );
 	}
 	$self->_set_worksheet_lookup( $sheet_ref );
-	return $pivot_lookup;
+	return( 1, $pivot_lookup );
 }
 
 sub _load_doc_props{
@@ -668,56 +667,48 @@ sub _set_shared_worksheet_files{
 	###LogSD		"Building the shared worksheet files with the lookup ref:", $object_ref, ] );
 	my $translation_method = $object_ref->{build_method};
 	for my $file ( keys %$object_ref ){
+		
+		# Build out the shared files (shared by all worksheets) only!
 		next if $file eq 'build_method' or $file eq 'worksheet';
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"checking the file class: $file",], );
-		if( $file eq 'worksheet' ){
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"Storing the worksheet superclass: ", $object_ref->{worksheet}->{superclasses}], );
-			my $method = $object_ref->{$file}->{store};
-			$self->$method( $object_ref->{$file}->{superclasses} );
-		}else{
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"Attempting to load the file: ${file}\.xml",
-			###LogSD		"With translation method: $translation_method" ], );
-			my %args = $self->$translation_method( $build_ref->{$file}, $zip_workbook );
-			if( !$args{file} and !$args{dom} ){
-				$self->set_error( "Unable to load XML::LibXML with the element: $file" );
-				next;
-			}
-			###LogSD	$phone->talk( level => 'debug', message =>[ "Built an xml_object", ], );
-			$args{package} = $object_ref->{$file}->{package} if exists $object_ref->{$file}->{package};
-			$args{superclasses} = $object_ref->{$file}->{superclasses} if exists $object_ref->{$file}->{superclasses};
-			for my $attribute ( @{$object_ref->{$file}->{attributes}} ){
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		"Loading attribute: $attribute", ], );
-				my $method = 'get_' . $attribute;
-				$args{$attribute} = $self->$method;
-			}
-			my $role_ref;
-			for my $role ( @{$object_ref->{$file}->{add_roles_in_sequence}} ){
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		"collecting the role for: $role", ], );
-				my $method = 'get_' . $role;
-				push @$role_ref, $self->$method;
-			}
-			$args{add_roles_in_sequence} = $role_ref if $role_ref;
-			###LogSD	$args{log_space} = $self->get_log_space . "::$args{package}";
-			my $method = $object_ref->{$file}->{store};
-			###LogSD	$phone->talk( level => 'debug', message =>[
-			###LogSD		"Final args for building the instance:", %args,
-			###LogSD		"Loading -$method- with build_instance( 'args' )"	], );
-			my $object = build_instance( %args );
-			###LogSD	$phone->talk( level => 'debug', message =>[
-			###LogSD		"Finished building instance for: $file",
-			###LogSD		"Loading to the worbook with method: $method", # $object	
-			###LogSD		], );
-			$self->$method( $object );
-			###LogSD	$phone->talk( level => 'debug', message =>[
-			###LogSD		"Finished building and installing: $file", ], );
-		}
+		
 		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"Finished the attempt at: $file"	], );
+		###LogSD		"Attempting to load the file: ${file}\.xml",
+		###LogSD		"With translation method: $translation_method" ], );
+		my %args = $self->$translation_method( $build_ref->{$file}, $zip_workbook );
+		if( !$args{file} and !$args{dom} ){
+			$self->set_error( "Unable to load XML::LibXML with the element: $file" );
+			next;
+		}
+		###LogSD	$phone->talk( level => 'debug', message =>[ "Built an xml_object", ], );
+		$args{package} = $object_ref->{$file}->{package} if exists $object_ref->{$file}->{package};
+		$args{superclasses} = $object_ref->{$file}->{superclasses} if exists $object_ref->{$file}->{superclasses};
+		for my $attribute ( @{$object_ref->{$file}->{attributes}} ){
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"Loading attribute: $attribute", ], );
+			my $method = 'get_' . $attribute;
+			$args{$attribute} = $self->$method;
+		}
+		my $role_ref;
+		for my $role ( @{$object_ref->{$file}->{add_roles_in_sequence}} ){
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"collecting the role for: $role", ], );
+			my $method = 'get_' . $role;
+			push @$role_ref, $self->$method;
+		}
+		$args{add_roles_in_sequence} = $role_ref if $role_ref;
+		###LogSD	$args{log_space} = $self->get_log_space . "::$args{package}";
+		my $method = $object_ref->{$file}->{store};
+		###LogSD	$phone->talk( level => 'debug', message =>[
+		###LogSD		"Final args for building the instance:", %args,
+		###LogSD		"Loading -$method- with build_instance( 'args' )"	], );
+		my $object = build_instance( %args );
+		###LogSD	$phone->talk( level => 'debug', message =>[
+		###LogSD		"Finished building instance for: $file",
+		###LogSD		"Loading to the worbook with method: $method", # $object	
+		###LogSD		], );
+		$self->$method( $object );
+		###LogSD	$phone->talk( level => 'debug', message =>[
+		###LogSD		"Finished building and installing: $file", ], );
 	}
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		"All shared files that can be built are built!"	], );

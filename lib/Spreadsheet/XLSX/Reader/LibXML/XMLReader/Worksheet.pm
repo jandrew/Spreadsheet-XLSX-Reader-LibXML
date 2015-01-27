@@ -201,10 +201,13 @@ sub _load_unique_bits{
 		my	$range = $self->get_attribute( 'ref' );
 		my	( $start, $end ) = split( /:/, $range );
 		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"Start position: $start", "End position: $end", "Byte position: " . $self->byte_consumed ] );
+		###LogSD		"Start position: $start", 
+		###LogSD		( $end ? "End position: $end" : '' ), "Byte position: " . $self->byte_consumed ] );
 		my ( $start_column, $start_row ) = ( $self->_starts_at_the_edge ) ?
 												( 1, 1 ) : $self->_parse_column_row( $start );
-		my ( $end_column, $end_row	) = $self->_parse_column_row( $end );
+		my ( $end_column, $end_row	) = $end ? 
+				$self->_parse_column_row( $end ) : 
+				( $start_column, $start_row ) ;
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD		"Start column: $start_column", "Start row: $start_row",
 		###LogSD		"End column: $end_column", "End row: $end_row" ] );

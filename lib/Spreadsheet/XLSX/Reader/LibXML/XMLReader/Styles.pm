@@ -245,15 +245,17 @@ sub _load_unique_bits{
 	$self->start_the_file_over;
 	$self->next_element( 'numFmts' );
 	my	$number_ref = $self->parse_element;
-	###LogSD	$phone->talk( level => 'debug', message => [
-	###LogSD		"Number format list:", $number_ref ] );
-	my	$translations = $self->get_defined_excel_format_list;
-	for my $format ( @{$number_ref->{list}} ){
-		$translations->[$format->{numFmtId}] = "$format->{formatCode}";
+	if( ref $number_ref ){
 		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		'loaded format: ' . $translations->[$format->{numFmtId}] ] );
+		###LogSD		"Adding sheet defined translations:", $number_ref ] );
+		my	$translations = $self->get_defined_excel_format_list;
+		for my $format ( @{$number_ref->{list}} ){
+			$translations->[$format->{numFmtId}] = "$format->{formatCode}";
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		'loaded format: ' . $translations->[$format->{numFmtId}] ] );
+		}
+		$self->set_defined_excel_format_list( $translations );
 	}
-	$self->set_defined_excel_format_list( $translations );
 }
 
 sub _get_header_and_position{

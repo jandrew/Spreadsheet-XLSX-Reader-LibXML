@@ -19,7 +19,7 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 23;
+use	Test::Most tests => 6;
 use	Test::Moose;
 #~ $File::Temp::DEBUG = 1;
 use	lib	'../../../../../Log-Shiras/lib',
@@ -27,45 +27,32 @@ use	lib	'../../../../../Log-Shiras/lib',
 	;
 #~ use Log::Shiras::Switchboard v0.21 qw( :debug );#
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(
-###LogSD						name_space_bounds =>{
-###LogSD							UNBLOCK =>{
-###LogSD								log_file => 'debug',
-###LogSD							},
-###LogSD						},
-###LogSD						reports =>{
-###LogSD							log_file =>[ Print::Log->new ],
-###LogSD						},
-###LogSD					);
+###LogSD			name_space_bounds =>{
+###LogSD				UNBLOCK =>{
+###LogSD					log_file => 'debug',
+###LogSD				},
+#~ ###LogSD				Test =>{
+#~ ###LogSD					UNBLOCK =>{
+#~ ###LogSD						log_file => 'debug',
+#~ ###LogSD					},
+#~ ###LogSD				},
+###LogSD			},
+###LogSD			reports =>{
+###LogSD				log_file =>[ Print::Log->new ],
+###LogSD			},
+###LogSD		);
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
 use Spreadsheet::XLSX::Reader::LibXML;
 $test_file = ( @ARGV ) ? $ARGV[0] : $test_file;
-$test_file .= 'TestBook.xlsx';
+$test_file .= 'HelloWorld.xlsx';
 	#~ print "Test file is: $test_file\n";
 my  ( 
 		$parser, $worksheet, $value, $value_position,
 	);
 my	$answer_ref = [
-		'Hello',
-		'my',
-		'World',
 		'Hello World',
-		'',
-		69,
-		27,
-		37145,
-		42,
-		'',
-		'2/6/2011',
-		'2/6/2011',
-		2.1345678901,
-		'',
-		39118,
-		'',
-		' ',
-		39118,
-		39118,
-		'EOF',
+		'EOF'
 	];
 ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space => 'main', );
 ###LogSD		$phone->talk( level => 'info', message => [ "harder questions ..." ] );
@@ -83,6 +70,25 @@ ok			$worksheet = $parser->worksheet( 'Sheet1' ),
 										"Load 'Sheet1' ok";
 			$value_position = 0;
 			while( !$value or $value ne 'EOF' ){
+#~ ###LogSD	if( $value_position == 0 ){
+#~ ###LogSD		$operator->add_name_space_bounds( {
+#~ ###LogSD			Test =>{
+#~ ###LogSD				UNBLOCK =>{
+#~ ###LogSD					log_file => 'debug',
+#~ ###LogSD				},
+#~ ###LogSD			},
+#~ ###LogSD		} );
+#~ ###LogSD	}
+#~ ###LogSD	elsif( $value_position == 1 ){
+#~ ###LogSD		exit 1;
+#~ ###LogSD	}
+is			$value = ($worksheet->get_next_value//'undef'), $answer_ref->[$value_position],
+										"Get the next value position -$value_position- with answer: " . $answer_ref->[$value_position];
+			$value_position++;
+			}
+ok			$worksheet = $parser->worksheet( 'Sheet2' ),
+										"Load 'Sheet2' ok";
+			while( !$value or $value ne 'EOF' ){
 ###LogSD	if( $value_position == 0 ){
 ###LogSD		$operator->add_name_space_bounds( {
 ###LogSD			Test =>{
@@ -92,9 +98,9 @@ ok			$worksheet = $parser->worksheet( 'Sheet1' ),
 ###LogSD			},
 ###LogSD		} );
 ###LogSD	}
-###LogSD	elsif( $value_position == 1 ){
-###LogSD		exit 1;
-###LogSD	}
+#~ ###LogSD	elsif( $value_position == 1 ){
+#~ ###LogSD		exit 1;
+#~ ###LogSD	}
 is			$value = ($worksheet->get_next_value//'undef'), $answer_ref->[$value_position],
 										"Get the next value position -$value_position- with answer: " . $answer_ref->[$value_position];
 			$value_position++;

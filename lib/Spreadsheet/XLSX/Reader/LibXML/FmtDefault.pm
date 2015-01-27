@@ -38,7 +38,7 @@ sub	change_output_encoding{
 	###LogSD	my	$phone = Log::Shiras::Telephone->new(
 	###LogSD				name_space 	=> $self->get_log_space . '::change_output_encoding', );
 	###LogSD		$phone->talk( level => 'info', message => [
-	###LogSD				"Changing the encoding of: ", @_,
+	###LogSD				"Changing the encoding of: $string",
 	###LogSD				'..to encoding type: ' . $self->get_target_encoding ] );
 	return $string;
 }

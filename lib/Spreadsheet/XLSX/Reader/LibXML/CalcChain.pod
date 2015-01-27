@@ -9,7 +9,7 @@ Spreadsheet::XLSX::Reader::LibXML::CalcChain - Read xlsx calcChain files with Li
 =head1 SYNOPSIS
 
 The following uses the 'calcChain.xml' file found in the t/test_files/xl/ folder.  
-It also uses the XMLReader version of the CalcChain class.  (Any version will do.)
+It also uses the XMLReader version of the CalcChain class.  (Any version should do the same.)
 	
 	#!/usr/bin/env perl
 	$|=1;

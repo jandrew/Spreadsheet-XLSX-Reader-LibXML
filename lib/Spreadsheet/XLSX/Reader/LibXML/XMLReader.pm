@@ -171,11 +171,12 @@ sub DEMOLISH{
 	}
 	if( my $fh = $self->get_file ){
 		#~ print "Clearing file handle\n";
-		###LogSD	$phone->talk( level => 'debug', message =>[ "Closing the system file handle", $self->dump(2) ] );
+		###LogSD	$phone->talk( level => 'debug', message =>[ "Closing the system file handle" ] );#, $self->dump(2)
 		$fh->close;
-		###LogSD	$phone->talk( level => 'debug', message =>[ "Clearing the system file handle", $self->dump(2) ] );
+		###LogSD	$phone->talk( level => 'debug', message =>[ "Clearing the system file handle" ] );#, $self->dump(2)
 		$self->clear_file;
-		###LogSD	$phone->talk( level => 'debug', message =>[ "Final self", $self->dump(2) ] );
+		###LogSD	$phone->talk( level => 'debug', message =>[ 'All done' ] );
+		###LogSD	$phone->talk( level => 'trace', message =>[ "Final self", $self->dump(2) ] );
 	}
 }
 

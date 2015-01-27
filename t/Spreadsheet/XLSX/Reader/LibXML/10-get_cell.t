@@ -19,7 +19,7 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 749;
+use	Test::Most tests => 751;
 use	Test::Moose;
 use IO::File;
 use XML::LibXML::Reader;
@@ -388,6 +388,11 @@ can_ok		$test_instance, $_,
 ###LogSD		$phone->talk( level => 'info', message => [ "hardest questions ..." ] );
 
 explain									"Test get_cell";
+explain		$test_instance->get_cell( 1, 0 )->row;
+is			$test_instance->get_cell( 1, 0 )->row, 1,
+										"Check that you can call the same cell twice";
+is			$test_instance->get_cell( 1, 0 )->row, 1,
+										"...and again";
 			my ( $row_min, $row_max ) = $test_instance->row_range();
 			my ( $col_min, $col_max ) = $test_instance->col_range();
 			my $x = 0;
@@ -395,20 +400,15 @@ explain									"Test get_cell";
 			INITIALRUN: for my $row ( $row_min .. ($row_max + 1) ) {
             for my $col ( $col_min .. $col_max ) {
 
-#~ ###LogSD	if( $row == 11 and $col == 1 ){
-#~ ###LogSD		$operator->add_name_space_bounds( {
-#~ ###LogSD			main =>{
-#~ ###LogSD				UNBLOCK =>{
-#~ ###LogSD					log_file => 'debug',
-#~ ###LogSD				},
-#~ ###LogSD			},
-#~ ###LogSD			Test =>{
-#~ ###LogSD				UNBLOCK =>{
-#~ ###LogSD					log_file => 'trace',
-#~ ###LogSD				},
-#~ ###LogSD			},
-#~ ###LogSD		} );
-#~ ###LogSD	}
+###LogSD	if( $row == 0 and $col == 0 ){
+###LogSD		$operator->add_name_space_bounds( {
+###LogSD			Test =>{
+###LogSD				UNBLOCK =>{
+###LogSD					log_file => 'trace',
+###LogSD				},
+###LogSD			},
+###LogSD		} );
+###LogSD	}
 #~ ###LogSD	elsif( $row == 11 and $col == 2 ){
 #~ ###LogSD		exit 1;
 #~ ###LogSD	}
