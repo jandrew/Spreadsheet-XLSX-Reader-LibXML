@@ -485,8 +485,8 @@ sub _build_workbook{
 	# Load the workbook rels info
 	%answer = $self->_build_dom( $build_ref->{workbook_rels}, $workbook_file );
 	###LogSD	$phone->talk( level	=> 'debug', message =>[ "DOM built for method: _load_workbook_rels" ] );
-	my ( $pivot_lookup ) = $self->_load_workbook_rels( $rel_lookup, $answer{dom} );
-	return undef if !$pivot_lookup;
+	my ( $load_success, $pivot_lookup ) = $self->_load_workbook_rels( $rel_lookup, $answer{dom} );
+	return undef if !$load_success;
 	###LogSD	$phone->talk( level => 'debug', message =>[ 'pivot lookup:', $pivot_lookup,	] );
 	
 	# Load the docProps info
@@ -637,10 +637,10 @@ sub _load_workbook_rels{
 	###LogSD		"Pivot lookup:", $pivot_lookup	] );
 	if( !$found_member_names ){
 		$self->set_error( "Couldn't find any zip member (file) names for the sheets" );
-		return undef;
+		return ( 0, undef );
 	}
 	$self->_set_worksheet_lookup( $sheet_ref );
-	return $pivot_lookup;
+	return ( 1, $pivot_lookup );
 }
 
 sub _load_doc_props{
