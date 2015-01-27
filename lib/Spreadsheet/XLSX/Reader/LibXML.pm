@@ -636,10 +636,10 @@ sub _load_workbook_rels{
 	###LogSD		"Pivot lookup:", $pivot_lookup	] );
 	if( !$found_member_names ){
 		$self->set_error( "Couldn't find any zip member (file) names for the sheets" );
-		return( 0, undef );
+		return ( 0, undef );
 	}
 	$self->_set_worksheet_lookup( $sheet_ref );
-	return( 1, $pivot_lookup );
+	return ( 1, $pivot_lookup );
 }
 
 sub _load_doc_props{
