@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML;
-use version 0.77; our $VERSION = qv('v0.34.1');
+use version 0.77; our $VERSION = qv('v0.34.2');
 
 use 5.010;
 use	List::Util 1.33;
@@ -135,6 +135,13 @@ has empty_is_end =>(
 		isa		=> Bool,
 		writer	=> 'set_empty_is_end',
 		reader	=> 'is_empty_the_end',
+		default	=> 0,
+	);
+
+has values_only =>(
+		isa		=> Bool,
+		writer	=> 'set_values_only',
+		reader	=> 'get_values_only',
 		default	=> 0,
 	);
 
@@ -884,7 +891,7 @@ classes in this package are for architectual extensibility.
 
 =over
 
----> Workbook level (This class)
+---> L<Workbook level|Spreadsheet::XLSX::Reader::LibXML>
 
 =over
 
@@ -1225,6 +1232,44 @@ B<Definition:> a way to check the current attribute setting
 =back
 
 B<set_empty_is_end>
+
+=over
+
+B<Definition:> a way to set the current attribute setting
+
+=back
+
+=back
+
+=back
+
+=head3 values_only
+
+=over
+
+B<Definition:> Excel with store information about a cell even if it only contains 
+formatting data.  In many cases you only want to see cells that actually have 
+values.  This attribute will change the package behaviour regarding cells that have 
+formatting stored against that cell but no actual value.
+
+B<Default> 0 
+
+B<Range> 1 = skip cells with formatting only and treat them as completely empty, 
+0 = return informat about cells that only contain formatting
+
+B<attribute methods> Methods provided to adjust this attribute
+		
+=over
+
+B<get_values_only>
+
+=over
+
+B<Definition:> a way to check the current attribute setting
+
+=back
+
+B<set_values_only>
 
 =over
 

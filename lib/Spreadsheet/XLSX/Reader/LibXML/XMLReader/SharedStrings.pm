@@ -139,9 +139,10 @@ sub _load_unique_bits{
 		$found_it = $self->next_element( 'sst' );
 	}
 	if( $found_it ){
-		$self->_set_unique_count( $self->get_attribute( 'uniqueCount' ) );#
+		my $unique_count = $self->get_attribute( 'uniqueCount' ) // 0;
 		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"The unique count is: " . $self->_get_unique_count ] );
+		###LogSD		"Loading unique count: $unique_count" ] );
+		$self->_set_unique_count( $unique_count );
 		return undef;
 	}else{
 		$self->set_error( "No 'sst' element found - can't parse this as a shared strings file" );

@@ -746,6 +746,22 @@ is carried for date coercions when returning formatted values.
 
 =back
 
+B<get_values_only>
+
+=over
+
+B<Definition:> gets the L<Spreadsheet::XLSX::Reader::LibXML/values_only> 
+instance state.
+
+=back
+
+B<set_values_only>
+
+=over
+
+B<Definition:> sets the L<Spreadsheet::XLSX::Reader::LibXML/values_only> 
+instance state (B<For the whole workbook!>)
+
 =back
 
 =back

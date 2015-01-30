@@ -21,7 +21,6 @@ $| = 1;
 
 use	Test::Most tests => 6;
 use	Test::Moose;
-#~ $File::Temp::DEBUG = 1;
 use	lib	'../../../../../Log-Shiras/lib',
 		$lib,
 	;

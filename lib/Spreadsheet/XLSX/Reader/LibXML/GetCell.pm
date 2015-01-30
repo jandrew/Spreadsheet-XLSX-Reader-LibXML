@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::GetCell;
-use version 0.77; our $VERSION = qv('v0.34.1');
+use version 0.77; our $VERSION = qv('v0.34.2');
 
 use	Moose::Role;
 requires qw(
@@ -67,7 +67,7 @@ has custom_formats =>(
 		default => sub{ {} },
 		clearer	=> '_clear_custom_formats',
 	);
-
+#################################################
 has workbook_instance =>(
 		isa		=> HasMethods[qw(
 						counting_from_zero			boundary_flag_setting
@@ -79,6 +79,7 @@ has workbook_instance =>(
 						get_epoch_year				change_output_encoding
 						get_date_behavior			set_date_behavior
 						get_empty_return_type		set_error
+						get_values_only				set_values_only
 					)],
 		handles	=> [qw(
 						counting_from_zero			boundary_flag_setting
@@ -90,6 +91,7 @@ has workbook_instance =>(
 						get_epoch_year				change_output_encoding
 						get_date_behavior			set_date_behavior
 						get_empty_return_type		set_error
+						get_values_only				set_values_only
 					)],
 		required => 1,
 	);
@@ -1045,6 +1047,10 @@ B<set_date_behavior> - delegated
 B<get_empty_return_type> - delegated
 
 B<set_error> - delegated
+
+B<set_values_only> - delegated
+
+B<get_values_only> - delegated
 
 =back
 

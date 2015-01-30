@@ -268,10 +268,26 @@ sub _get_next_value_cell{
 		###LogSD			'Reached the end of the file',] );
 		$self->start_the_file_over;
 	}else{
-		$sub_ref = $self->parse_element;
-		@$sub_ref{qw( col row )} = $self->_parse_column_row( $sub_ref->{r} );
-		###LogSD	$phone->talk( level => 'trace', message => [
-		###LogSD		'The next cell with data is:', $sub_ref,] );
+		$sub_ref = undef;
+		CHECKVALUECELLS: while( !$sub_ref or $self->get_values_only ){
+			$sub_ref = $self->parse_element;
+			@$sub_ref{qw( col row )} = $self->_parse_column_row( $sub_ref->{r} );
+			###LogSD	$phone->talk( level => 'trace', message => [
+			###LogSD		'The next cell with data is:', $sub_ref,] );
+			if( exists $sub_ref->{v} or !$self->get_values_only ){### Other text or value call outs here?
+				###LogSD	$phone->talk( level => 'trace', message => [
+				###LogSD		'Found a cell with a value no additional work is needed' ,] );
+				last CHECKVALUECELLS;
+			}
+			$result = $self->next_element( 'c' ) if !$self->node_name or $self->node_name ne 'c';
+			if( !$result ){
+				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD			'Reached the end of the file',] );
+				$sub_ref = 'EOF';
+				$self->start_the_file_over;
+				last CHECKVALUECELLS;
+			}
+		}
 	}
 	
 	#Add merge value
