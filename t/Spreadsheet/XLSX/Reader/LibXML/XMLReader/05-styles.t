@@ -35,7 +35,7 @@ use	lib
 ###LogSD							UNBLOCK =>{
 ###LogSD								log_file => 'trace',
 ###LogSD							},
-#~ ###LogSD							Test =>{
+###LogSD							Test =>{
 #~ ###LogSD								_parse_the_file =>{
 #~ ###LogSD									UNBLOCK =>{
 #~ ###LogSD										log_file => 'warn',
@@ -58,7 +58,7 @@ use	lib
 #~ ###LogSD								},
 #~ ###LogSD								parse_element =>{
 #~ ###LogSD									UNBLOCK =>{
-#~ ###LogSD										log_file => 'trace',
+#~ ###LogSD										log_file => 'warn',
 #~ ###LogSD									},
 #~ ###LogSD								},
 #~ ###LogSD								_build_date =>{
@@ -81,7 +81,7 @@ use	lib
 #~ ###LogSD										log_file => 'warn',
 #~ ###LogSD									},
 #~ ###LogSD								},
-#~ ###LogSD							},
+###LogSD							},
 ###LogSD						},
 ###LogSD						reports =>{
 ###LogSD							log_file =>[ Print::Log->new ],

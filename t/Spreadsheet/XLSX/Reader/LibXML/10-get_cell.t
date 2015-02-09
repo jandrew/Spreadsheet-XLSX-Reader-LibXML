@@ -19,7 +19,7 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 751;
+use	Test::Most tests => 728;
 use	Test::Moose;
 use IO::File;
 use XML::LibXML::Reader;
@@ -111,7 +111,7 @@ my			$answer_list =[
 				{ cell_id => 'E10', row => 9, col => 4, type => 'Custom', unformatted => '2/6/2011', value => '2011-02-06T00:00:00', coercion_name => 'Custom_date_type' },
 				{ cell_id => 'F10', row => 9, col => 5, type => 'Custom', unformatted => '2/6/2011', value => '2011-02-06', coercion_name => 'YYYYMMDD' },
 				{ cell_id => 'A11', row => 10, col => 0, type => 'Numeric', unformatted => '2.1345678901', value => '2.13', coercion_name => 'Excel_number_2' },{},{},{},{},{},
-				{},{ cell_id => 'B12', row => 11, col => 1, type => 'Text', unformatted => '', value => '', formula => 'IF(B11&gt;0,"Hello","")', },
+				{},{ cell_id => 'B12', row => 11, col => 1, type => 'Text', unformatted => '', value => '', formula => 'IF(B11>0,"Hello","")', },
 				{},{ cell_id => 'D12', row => 11, col => 3, type => 'Date', unformatted => '39118', value => '6-Feb-11', coercion_name => 'Excel_date_164', merge_range => 'D12:E12' },
 				{ cell_id => 'E12', row => 11, col => 4, type => 'Text', unformatted => undef, value => undef, coercion_name => 'Excel_date_164', merge_range => 'D12:E12' },{},
 				{},{},{},{},{},{},
@@ -129,18 +129,15 @@ my			$answer_list =[
 					],
 					merge_range => 'A6:B6',
 				},
-				{ cell_id => 'B6', row => 5, col => 1, type => 'Text', unformatted => undef, value => undef, merge_range => 'A6:B6' },
 				{ cell_id => 'B7', row => 6, col => 1, type => 'Numeric', unformatted => '69', value => '69' },
 				{ cell_id => 'B8', row => 7, col => 1, type => 'Numeric', unformatted => '27', value => '27' },
 				{ cell_id => 'E8', row => 7, col => 4, type => 'Date', unformatted => '37145', value => '12-Sep-05', coercion_name => 'Excel_date_164' },
 				{ cell_id => 'B9', row => 8, col => 1, type => 'Numeric', unformatted => '42', value => '42', formula => 'B7-B8' },
-				{ cell_id => 'D10', row => 9, col => 3, type => 'Custom', unformatted => undef, value => undef, coercion_name => 'YYYYMMDD' },
 				{ cell_id => 'E10', row => 9, col => 4, type => 'Custom', unformatted => '2/6/2011', value => '2011-02-06T00:00:00', coercion_name => 'Custom_date_type' },
 				{ cell_id => 'F10', row => 9, col => 5, type => 'Custom', unformatted => '2/6/2011', value => '2011-02-06', coercion_name => 'YYYYMMDD' },
 				{ cell_id => 'A11', row => 10, col => 0, type => 'Numeric', unformatted => '2.1345678901', value => '2.13', coercion_name => 'Excel_number_2' },
-				{ cell_id => 'B12', row => 11, col => 1, type => 'Text', unformatted => '', value => '', formula => 'IF(B11&gt;0,"Hello","")', },
+				{ cell_id => 'B12', row => 11, col => 1, type => 'Text', unformatted => '', value => '', formula => 'IF(B11>0,"Hello","")', },
 				{ cell_id => 'D12', row => 11, col => 3, type => 'Date', unformatted => '39118', value => '6-Feb-11', coercion_name => 'Excel_date_164', merge_range => 'D12:E12' },
-				{ cell_id => 'E12', row => 11, col => 4, type => 'Text', unformatted => undef, value => undef, coercion_name => 'Excel_date_164', merge_range => 'D12:E12' },
 				{ cell_id => 'C14', row => 13, col => 2, type => 'Text', unformatted => ' ', value => ' ', has_coercion => '', },
 				{ cell_id => 'D14', row => 13, col => 3, type => 'Custom', unformatted => '39118', value => '2011-02-06', coercion_name => 'YYYYMMDD', },
 				{ cell_id => 'E14', row => 13, col => 4, type => 'Date', unformatted => '39118', value => '6-Feb-11', coercion_name => 'Excel_date_164', },
@@ -190,7 +187,7 @@ my			$answer_list =[
 					{ cell_id => 'A11', row => 10, col => 0, type => 'Numeric', unformatted => '2.1345678901', value => '2.13', coercion_name => 'Excel_number_2' },{},{},{},{},{},
 				],
 				[
-					{},{ cell_id => 'B12', row => 11, col => 1, type => 'Text', unformatted => '', value => '', formula => 'IF(B11&gt;0,"Hello","")', },
+					{},{ cell_id => 'B12', row => 11, col => 1, type => 'Text', unformatted => '', value => '', formula => 'IF(B11>0,"Hello","")', },
 					{},{ cell_id => 'D12', row => 11, col => 3, type => 'Date', unformatted => '39118', value => '6-Feb-11', coercion_name => 'Excel_date_164', merge_range => 'D12:E12' },
 					{ cell_id => 'E12', row => 11, col => 4, type => 'Text', unformatted => undef, value => undef, coercion_name => 'Excel_date_164', merge_range => 'D12:E12' },{},
 				],
@@ -356,6 +353,12 @@ lives_ok{
 												writer	=> 'set_empty_return_type',
 												default	=> 'undef_string',
 											},
+											values_only =>{
+												isa		=> Bool,
+												reader	=> 'get_values_only',
+												writer	=> 'set_values_only',
+												default	=> 0,
+											},
 										},
 										styles_instance => $styles_instance,
 										shared_strings_instance => $shared_strings_instance,
@@ -441,7 +444,9 @@ is			$test_instance->get_cell( 2, 6 ), undef,
 is			$test_instance->get_cell( 14, 0 ), undef,
 										"Check and end of file position (should be undef)";
 
-explain									"Test get_next_value";
+ok			$test_instance->set_values_only( 1 ),
+										'Turn values_only on';
+explain									"Test get_next_value with values_only = 1";
 			$cell = undef;
 			$x = 0;
 			VALUERUN: while( $x < 105 and (!$cell or ref $cell eq 'Spreadsheet::XLSX::Reader::LibXML::Cell' ) ){
@@ -477,12 +482,14 @@ is_deeply	$cell->$key, $answer_list->[$position]->{$key},
 			}
 			$x++;
             }
+is			$test_instance->set_values_only( 0 ), 0,
+										'Turn values_only off';
 
 explain									"Test fetchrow_arrayref";
 			$row_ref = undef;
 			$x = 0;
-			$offset = 105;
-			ROWREFRUN: while( $x < 120 and ( !$row_ref or ref $row_ref eq 'ARRAY' ) ){
+			$offset = 102;
+			ROWREFRUN: while( $x < 117 and ( !$row_ref or ref $row_ref eq 'ARRAY' ) ){
 				my $position = $x + $offset;
 
 #~ ###LogSD	if( $x == 1 ){
@@ -545,8 +552,8 @@ ok			$test_instance->change_boundary_flag( 1 ),
 ok			$workbook_instance->set_group_return_type( 'unformatted' ),
 										"Return just the cell coerced values rather than a Cell instance";
 			$x = 0;
-			$offset = 120;
-			ROWARRAYRUN: while( $x < 136 and ( !$row_ref or !$row_ref->[0] or $row_ref->[0] ne 'EOF' ) ){
+			$offset = 117;
+			ROWARRAYRUN: while( $x < 133 and ( !$row_ref or !$row_ref->[0] or $row_ref->[0] ne 'EOF' ) ){
 				my $position = $x + $offset;
 
 #~ ###LogSD	if( $x == 1 ){
@@ -612,14 +619,14 @@ is 			$test_instance->fetchrow_hashref( 1 ), undef,
 										"Check that a fetchrow_hashref call returns undef without a set header";
 is			$test_instance->error, "Headers must be set prior to calling fetchrow_hashref",
 										"..and check for the correct error message";
-is_deeply	$test_instance->set_headers( 1 ), $answer_list->[135],
+is_deeply	$test_instance->set_headers( 1 ), $answer_list->[132],
 										"Set the headers for building a hashref";
 ok			$test_instance->set_max_header_col( 3 ),,
 										"Set the maximum header column";
 			$row_ref = undef;
 			$x = 0;
-			$offset = 136;
-			HASHREFRUN: while( $x < 141 and ( !$row_ref or ref $row_ref eq 'HASH' ) ){
+			$offset = 133;
+			HASHREFRUN: while( $x < 138 and ( !$row_ref or ref $row_ref eq 'HASH' ) ){
 				my $position = $x + $offset;
 
 ###LogSD	if( $x == 0 ){

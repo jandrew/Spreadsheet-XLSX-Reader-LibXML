@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader;
-use version; our $VERSION = qv('v0.34.1');
+use version; our $VERSION = qv('v0.34.2');
 
 use 5.010;
 use Moose;
@@ -72,10 +72,13 @@ has _xml_reader =>(
 		copy_current_node	=> 'copyCurrentNode',
 		byte_consumed		=> 'byteConsumed',
 		start_reading		=> 'read',
+		next_node			=> 'next',
 		next_element		=> 'nextElement',
 		next_sibling		=> 'nextSibling',
 		get_attribute		=> 'getAttribute',
 		read_state			=> 'readState',
+		node_type			=> 'nodeType',
+		text_content		=> 'textContent',
 		node_name			=> 'name',
 		node_value			=> 'value',
 		has_value			=> 'hasValue',

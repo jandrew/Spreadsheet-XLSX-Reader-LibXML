@@ -249,11 +249,19 @@ sub _load_unique_bits{
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD		"Adding sheet defined translations:", $number_ref ] );
 		my	$translations = $self->get_defined_excel_format_list;
-		for my $format ( @{$number_ref->{list}} ){
-			$translations->[$format->{numFmtId}] = "$format->{formatCode}";
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		'loaded format: ' . $translations->[$format->{numFmtId}] ] );
-		}
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Defined excel format list:", $translations ] );
+		#~ if( $number_ref->{count} == 1 ){
+			#~ $translations->[$number_ref->{numFmt}->{numFmtId}] = "$number_ref->{numFmt}->{formatCode}";
+			#~ ###LogSD	$phone->talk( level => 'debug', message => [
+			#~ ###LogSD		'loaded format: ' . $translations->[$number_ref->{numFmt}->{numFmtId}] ] );
+		#~ }else{
+			for my $format ( @{$number_ref->{list}} ){
+				$translations->[$format->{numFmtId}] = "$format->{formatCode}";
+				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD		'loaded format: ' . $translations->[$format->{numFmtId}] ] );
+			}
+		#~ }
 		$self->set_defined_excel_format_list( $translations );
 	}
 }

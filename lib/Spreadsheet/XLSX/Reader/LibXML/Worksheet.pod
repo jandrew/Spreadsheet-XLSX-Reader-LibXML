@@ -766,6 +766,8 @@ instance state (B<For the whole workbook!>)
 
 =back
 
+=back
+
 =head1 SUPPORT
 
 =over

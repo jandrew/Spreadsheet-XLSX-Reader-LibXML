@@ -159,6 +159,7 @@ can_ok		$test_instance, $_,
 } 			@instance_methods;
 
 ###LogSD		$phone->talk( level => 'info', message => [ "hardest questions ..." ] );
+explain		"index to position 15";
 			map{ $test_instance->next_element( 'si' ) }( 0..15 );
 			#~ print Dumper( $test_instance->parse_element );
 is_deeply	$test_instance->parse_element, $answer_ref->[0],
@@ -173,6 +174,7 @@ lives_ok{
 			###LogSD				log_space	=> 'Test',
 								);
 }										"Prep another TestIntance to test XMLToPerlData";
+explain		"Index to position 12";
 			map{ $test_instance->next_element( 'c' ) }( 0..12 );
 			#~ print Dumper( $test_instance->parse_element );
 			#~ exit 1;
