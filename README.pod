@@ -91,30 +91,31 @@ I had written this.
 
 In the process of learning and building I also wrote some additional features for 
 this parser that are not found in the L<Spreadsheet::ParseExcel> package.  For instance 
-in the L<SYNOPSIS|/SYNOPSIS> the '$parser' and the '$workbook' are actually the same class.  
-You could combine both steps by calling ->new with the 'file_name' (or 'file_handle') 
-attribute called out.  Afterward it is still possible to call ->error on the instance.  
-The test in that case for load success would be $instance->has_file_name(handle) Another 
-improvement (from my perspective) is date handling.  This package allows for a simple 
-pluggable custom output format that is very flexible as well as handling dates older than 
-1-January-1900.  I leveraged coercions from L<Type::Tiny|Type::Tiny::Manual> to do this 
-but anything that follows that general format will work here.  Additionally, this is a 
-L<Moose> based package.  As such it is designed to be (fairly) extensible by writing roles 
+in the L<SYNOPSIS|/SYNOPSIS> the '$parser' and the '$workbook' are actually the same 
+class.  You could combine both steps by calling ->new with the 'file_name' (or 
+'file_handle') attribute called out.  Afterward it is still possible to call ->error on 
+the instance.  The test in that case for load success would be 
+$instance->has_file_name(handle) Another improvement (from my perspective) is date 
+handling.  This package allows for a simple pluggable custom output format that is very 
+flexible as well as handling dates older than 1-January-1900.  I leveraged coercions from 
+L<Type::Tiny|Type::Tiny::Manual> to do this but anything that follows that general format 
+will work here.  Additionally, this is a L<Moose> based package.  As such it is designed 
+to be (fairly) extensible by writing roles 
 and adding them to this package rather than requiring that you extend the package to some 
 new branch.  Read the full documentation for all opportunities!
 
-In the realm of extensibility, L<XML::LibXML> has multiple ways to read an XML file but this 
-release only has an L<XML::LibXML::Reader> parser option.  Future iterations could include a 
-DOM parser option.  Additionally this package does not (yet) provide the same access to the 
-formatting elements provided in L<Spreadsheet::ParseExcel>.  That is on the longish and 
-incomplete TODO list.
+In the realm of extensibility, L<XML::LibXML> has multiple ways to read an XML file but 
+this release only has an L<XML::LibXML::Reader> parser option.  Future iterations could 
+include a DOM parser option.  Additionally this package does not (yet) provide the same 
+access to the formatting elements provided in L<Spreadsheet::ParseExcel>.  That is on the 
+longish and incomplete TODO list.
 
-The package operates on the workbook with three primary tiers of classes.  All other classes 
-in this package are for architectual extensibility.
+The package operates on the workbook with three primary tiers of classes.  All other 
+classes in this package are for architectual extensibility.
 
 =over
 
----> Workbook level (This class)
+---> L<Workbook level|Spreadsheet::XLSX::Reader::LibXML>
 
 =over
 
@@ -133,239 +134,115 @@ L<optional|/group_return_type>
 
 =head2 Warnings
 
-B<1.> Archive-Zip versions greater than 1.30 appear to be broken.  This package requires Archive::Zip so 
-I reccomend Archive-Zip-1.30.
-
-B<2.> Earlier versions of this package would extract the .xlsx file to a temp directory and then release 
-the file lock on the original file while still retaining the information for acess by the parser.  In order 
-to resolve some some temp dir cleanup issues this package no longer releases the lock on the file during 
-reading.  (It will release the file lock and clean up any temp directories when the class is closed)
-
-=head2 Primary Methods
-
-These are the primary ways to use this class.  They can be used to open an .xlsx 
-workbook.  They are also ways to investigate information at the workbook level.  For 
-information on how to retrieve data from the worksheets see the 
-L<Worksheet|Spreadsheet::XLSX::Reader::LibXML::Worksheet> and L<Cell|Spreadsheet::XLSX::Reader::LibXML::Cell> 
-documentation.  For additional workbook options see the L<Attributes|/Attributes> section.  The 
-attributes section also documents all the methods used to adjust the attributes of this class.
-
-=head3 new( %attributes )
-
-=over
-
-B<Definition:> This is the way to instantiate an instance of this class.  It can accept 
-settings for all, some, or none of the L<Attributes|/Attributes>.  If the instance is started 
-with no arguments then a L<method|/set_file_name> is needed to open the 
-xlsx file.
-
-B<Accepts:> the L<attributes|/Attributes>
-
-B<Returns:> An instance of this class
-
-=back
-
-=head3 parse( $file_name|$file_handle, $formatter )
-
-=over
-
-B<Definition:> This is a convenience method to match L<Spreadsheet::ParseExcel/parse($filename, $formatter)>.  
-It only works if the L<file_name|/file_name> or L<file_handle|/file_handle> attribute was not 
-set with ->new.  It is one way to set the 'file_name' or 'file_handle' attribute [and the 
-L<default_format_list|/default_format_list> attribute].  I<You cannot pass both a file name 
-and a file handle simultaneously to this method.>
-
-B<Accepts:>
-
-	$file = a valid xlsx file [or a valid xlsx file handle] (required)
-	[$formatter] = see the default_format_list attribute for valid options (optional)
-
-B<Returns:> itself when passing with the xlsx file loaded to the workbook level or 
-undef for failure.
-
-=back
-
-=head3 worksheets
-
-=over
-
-B<Definition:> This method will return an array (I<not an array reference>) 
-containing a list of references to all worksheets in the workbook.  This is not 
-a reccomended method.  It is provided for compatibility to Spreadsheet::ParseExcel.  
-For alternatives see the L<get_worksheet_names|/get_worksheet_names> method and the
-L<worksheet|/worksheet( $name )> methods.
-
-B<Accepts:> nothing
-
-B<Returns:> an array ref of  L<Worksheet|Spreadsheet::XLSX::Reader::LibXML::Worksheet> 
-objects for all worksheets in the workbook.
-
-=back
-
-=head3 worksheet( $name )
-
-=over
-
-B<Definition:> This method will return an  object to read values in the worksheet.  
-If no value is passed to $name then the 'next' worksheet in physical order is 
-returned. I<'next' will NOT wrap>
-
-B<Accepts:> the $name string representing the name of the worksheet object you 
-want to open.  This name is the word visible on the tab when opening the spreadsheet 
-in Excel. (not the underlying zip member file name - which can be different)
-
-B<Returns:> a L<Worksheet|Spreadsheet::XLSX::Reader::LibXML::Worksheet> object with the 
-ability to read the worksheet of that name.  Or in 'next' mode it returns undef if 
-past the last sheet
-
-B<Example:> using the implied 'next' worksheet;
-
-	while( my $worksheet = $workbook->worksheet ){
-		print "Reading: " . $worksheet->name . "\n";
-		# get the data needed from this worksheet
-	}
-
-=back
-
-=head3 in_the_list
-
-=over
-
-B<Definition:> This is a predicate method that indicates if the 'next' 
-L<worksheet|/worksheet( $name )> function has been implemented at least once.
-
-B<Accepts:>nothing
-
-B<Returns:> true = 1, false = 0
-once
-
-=back
-
-=head3 start_at_the_beginning
-
-=over
-
-B<Definition:> This restarts the 'next' worksheet at the first worksheet.  This 
-method is only useful in the context of the L<worksheet|/worksheet( $name )> 
-function.
-
-B<Accepts:> nothing
-
-B<Returns:> nothing
-
-=back
-
-=head3 number_of_sheets
-
-=over
-
-B<Definition:> This method returns the count of worksheets in the workbook
-
-B<Accepts:>nothing
-
-B<Returns:> an integer
-
-=back
-
-=head3 get_worksheet_names
-
-=over
-
-B<Definition:> This method returns an array ref of all the worksheet names in the 
-workbook.
-
-B<Accepts:> nothing
-
-B<Returns:> an array ref
-
-B<Example:> Another way to parse a workbook without building all the sheets at 
-once is;
-
-	for $sheet_name ( @{$workbook->worksheet_names} ){
-		my $worksheet = $workbook->worksheet( $sheet_name );
-		# Read the worksheet here
-	}
-
-=back
-
-=head3 worksheet_name( $Int )
-
-=over
-
-B<Definition:> This method returns the worksheet name for a given physical position 
-in the worksheet from left to right. It counts from zero even if the workbook is in 
-'count_from_one' mode.
-
-B<Accepts:> integers
-
-B<Returns:> the worksheet name
-
-B<Example:> To return only worksheet positions 2 through 4
-
-	for $x (2..4){
-		my $worksheet = $workbook->worksheet( $workbook->worksheet_name( $x ) );
-		# Read the worksheet here
-	}
-
-=back
-
-=head3 error
-
-=over
-
-B<Definition:> This returns the most recent error message logged by the package.  
-This method is mostly relevant when an unexpected result is returned by some other 
-method.
-
-B<Accepts:>nothing
-
-B<Returns:> an error string.
-
-=back
-
-=head3 get_epoch_year
-
-=over
-
-B<Definition:> This returns the epoch year defined by the workbook.
-
-B<Accepts:> nothing
-
-B<Returns:> 1900 = Windows Excel or 1904 = Apple Excel
-
-=back
-
-=head3 parse_excel_format_string( $format_string )
-
-=over
-
-B<Definition:> This returns a L<Type::Tiny> object with built-in chained coercions 
-to turn Excel Julian Dates and general date strings into target-formatted date strings.
-
-B<Accepts:> a custom $format_string complying with L<Excel definitions 
-|https://support.office.com/en-us/article/Create-or-delete-a-custom-number-format-2d450d95-2630-43b8-bf06-ccee7cbe6864?ui=en-US&rs=en-US&ad=US> 
-
-B<Returns:> a L<Type::Tiny> object
-
-=back
+B<1.> Archive-Zip versions greater than 1.30 appear to be broken.  This package requires 
+Archive::Zip so I reccomend Archive-Zip-1.30.
+
+B<2.> Earlier versions of this package would extract the .xlsx file to a temp directory and 
+release the file lock on the original file while still retaining the information for acess 
+by the parser.  In order to resolve some some temp dir cleanup issues this package no 
+longer releases the lock on the file during reading.  (It will release the file lock and 
+clean up any temp directories when the class is closed)
 
 =head2 Attributes
 
-Data passed to new when creating an instance.  For modification of these attributes 
-see the listed 'attribute methods'. For more information on attributes see 
-L<Moose::Manual::Attributes>.
+Data passed to new when creating an instance.  For modification of these attributes see the 
+listed 'attribute methods'. For general information on attributes see 
+L<Moose::Manual::Attributes>.  For ways to manage the workbook when opened see the 
+L<Primary Methods|/Primary Methods>.  For additional lesser used workbook options 
+see L<Secondary Methods|/Secondary Methods>.
+
+B<Example>
+
+	$workbook_instance = Spreadsheet::XLSX::Reader::LibXML->new( %attributes )
+
+I<note: if a file name or file handle for an .xlsx file are not included in the initial 
+%attributes then one of them must be set by L<method|/set_file_name> before the rest of 
+the package can be used.>
+
+=head3 file_name
+
+=over
+
+B<Definition:> This attribute holds the full file name and path for the xlsx file to be 
+parsed.
+
+B<Default> no default - either this or a L<file handle|/file_handle> must be provided to 
+read a file
+
+B<Range> any unencrypted xlsx file that can be opened in Microsoft Excel
+
+B<attribute methods> Methods provided to adjust this attribute
+		
+=over
+
+B<set_file_name>
+
+=over
+
+B<Definition:> change the file name value in the attribute (this will reboot 
+the workbook instance)
+
+=back
+
+B<has_file_name>
+
+=over
+
+B<Definition:> this is used to see if the workbook loaded correctly using the 
+file_name option to open an Excel .xlsx file.
+
+=back
+
+=back
+
+=back
+
+=head3 file_handle
+
+=over
+
+B<Definition:> This attribute holds a copy of the passed file handle reference.
+
+B<Default> no default - either this or a L<file name|/file_name> must be provided to read 
+a file
+
+B<Range> any unencrypted xlsx file handle that can be opened in Microsoft Excel
+
+B<attribute methods> Methods provided to adjust this attribute
+		
+=over
+
+B<set_file_handle>
+
+=over
+
+B<Definition:> change the set file handle (this will reboot the workbook instance)
+
+=back
+
+B<has_file_handle>
+
+=over
+
+B<Definition:> this is used to see if the workbook loaded correctly when using the 
+file_handle option to open an Excel .xlsx file.
+
+=back
+
+=back
+
+=back
 
 =head3 error_inst
 
 =over
 
-B<Definition:> This attribute holds an 'error' object instance.  It should have 
-several methods for managing errors.  Currently no error codes or error language 
-translation options are available but this should make implementation of that 
-easier.
+B<Definition:> This attribute holds an 'error' object instance.  It should have several 
+methods for managing errors.  Currently no error codes or error language translation 
+options are available but this should make implementation of that easier.
 
-B<Default:> a L<Spreadsheet::XLSX::Reader::LibXML::Error> instance with the 
-attributes set as;
+B<Default:> a L<Spreadsheet::XLSX::Reader::LibXML::Error> instance with the attributes set 
+as;
 	
 	( should_warn => 0 )
 
@@ -434,192 +311,6 @@ see if warnings should be emitted.
 
 =back
 		
-=back
-
-=back
-
-=head3 file_name
-
-=over
-
-B<Definition:> This attribute holds the full file name and path for the 
-xlsx file to be parsed.
-
-B<Default> no default - either this or a L<file handle|/file_handle> must be 
-provided to read a file
-
-B<Range> any unencrypted xlsx file that can be opened in Microsoft Excel
-
-B<attribute methods> Methods provided to adjust this attribute
-		
-=over
-
-B<set_file_name>
-
-=over
-
-B<Definition:> change the file name value in the attribute (this will reboot 
-the workbook instance)
-
-=back
-
-B<has_file_name>
-
-=over
-
-B<Definition:> this is used to see if the workbook loaded correctly using the 
-file_name option to open an Excel .xlsx file.
-
-=back
-
-=back
-
-=back
-
-=head3 file_handle
-
-=over
-
-B<Definition:> This attribute holds a copy of the passed file handle reference.
-
-B<Default> no default - either this or a L<file name|/file_name> must be 
-provided to read a file
-
-B<Range> any unencrypted xlsx file handle that can be opened in Microsoft Excel
-
-B<attribute methods> Methods provided to adjust this attribute
-		
-=over
-
-B<set_file_handle>
-
-=over
-
-B<Definition:> change the set file handle (this will reboot the workbook instance)
-
-=back
-
-B<has_file_handle>
-
-=over
-
-B<Definition:> this is used to see if the workbook loaded correctly when using the 
-file_handle option to open an Excel .xlsx file.
-
-=back
-
-=back
-
-=back
-
-=head3 file_creator
-
-=over
-
-B<Definition:> This holds the information stored in the Excel file metadata 
-about who created the file originally.  B<You shouldn't set this attribute 
-yourself.>
-
-B<Default> the value from the file
-
-B<Range> A string
-
-B<attribute methods> Methods provided to adjust this attribute
-		
-=over
-
-B<creator>
-
-=over
-
-B<Definition:> returns the name string of the file creator
-
-=back
-
-=back
-
-=back
-
-=head3 file_date_created
-
-=over
-
-B<Definition:> This holds the created date in the Excel file metadata 
-for when the file was first built.  B<You shouldn't set this attribute 
-yourself.>
-
-B<Default> the value from the file
-
-B<Range> A timestamp string (ISO ish)
-
-B<attribute methods> Methods provided to adjust this attribute
-		
-=over
-
-B<date_created>
-
-=over
-
-B<Definition:> returns the date the file was created
-
-=back
-
-=back
-
-=back
-
-=head3 file_modified_by
-
-=over
-
-B<Definition:> This holds the information stored in the Excel Metadata 
-for who modified the file last.  B<You shouldn't set this attribute 
-yourself.>
-
-B<Default> the value from the file
-
-B<Range> A string
-
-B<attribute methods> Methods provided to adjust this attribute
-		
-=over
-
-B<modified_by>
-
-=over
-
-B<Definition:> returns the user name of the person who last modified the file
-
-=back
-
-=back
-
-=back
-
-=head3 file_date_modified
-
-=over
-
-B<Definition:> This holds the last modified date in the Excel Metadata 
-for when the file was last changed.  B<You shouldn't set this attribute 
-yourself.>
-
-B<Default> the value from the file
-
-B<Range> A timestamp string (ISO ish)
-
-B<attribute methods> Methods provided to adjust this attribute
-		
-=over
-
-B<date_modified>
-
-=over
-
-B<Definition:> returns the date when the file was last modified
-
-=back
-
 =back
 
 =back
@@ -765,6 +456,44 @@ B<Definition:> a way to check the current attribute setting
 =back
 
 B<set_empty_is_end>
+
+=over
+
+B<Definition:> a way to set the current attribute setting
+
+=back
+
+=back
+
+=back
+
+=head3 values_only
+
+=over
+
+B<Definition:> Excel with store information about a cell even if it only contains 
+formatting data.  In many cases you only want to see cells that actually have 
+values.  This attribute will change the package behaviour regarding cells that have 
+formatting stored against that cell but no actual value.
+
+B<Default> 0 
+
+B<Range> 1 = skip cells with formatting only and treat them as completely empty, 
+0 = return informat about cells that only contain formatting
+
+B<attribute methods> Methods provided to adjust this attribute
+		
+=over
+
+B<get_values_only>
+
+=over
+
+B<Definition:> a way to check the current attribute setting
+
+=back
+
+B<set_values_only>
 
 =over
 
@@ -968,6 +697,321 @@ B<Definition:> a way to set the current attribute setting
 
 =back
 
+=head2 Primary Methods
+
+These are the primary ways to use this class.  They can be used to open an .xlsx workbook.  
+They are also ways to investigate information at the workbook level.  For information on 
+how to retrieve data from the worksheets see the 
+L<Worksheet|Spreadsheet::XLSX::Reader::LibXML::Worksheet> and 
+L<Cell|Spreadsheet::XLSX::Reader::LibXML::Cell> documentation.  For additional workbook 
+options see the L<Secondary Methods|/Secondary Methods> 
+and the L<Attributes|/Attributes> sections.  The attributes section specifically contains 
+all the methods used to adjust the attributes of this class.
+
+All methods are object methods and should be implemented on the object instance.
+
+B<Example:>
+
+	my @worksheet_array = $workbook_instance->worksheets;
+
+=head3 parse( $file_name|$file_handle, $formatter )
+
+=over
+
+B<Definition:> This is a convenience method to match L<Spreadsheet::ParseExcel/parse($filename, $formatter)>.  
+It only works if the L<file_name|/file_name> or L<file_handle|/file_handle> attribute was not 
+set with ->new.  It is one way to set the 'file_name' or 'file_handle' attribute [and the 
+L<default_format_list|/default_format_list> attribute].  I<You cannot pass both a file name 
+and a file handle simultaneously to this method.>
+
+B<Accepts:>
+
+	$file = a valid xlsx file [or a valid xlsx file handle] (required)
+	[$formatter] = see the default_format_list attribute for valid options (optional)
+
+B<Returns:> itself when passing with the xlsx file loaded to the workbook level or 
+undef for failure.
+
+=back
+
+=head3 worksheets
+
+=over
+
+B<Definition:> This method will return an array (I<not an array reference>) 
+containing a list of references to all worksheets in the workbook.  This is not 
+a reccomended method.  It is provided for compatibility to Spreadsheet::ParseExcel.  
+For alternatives see the L<get_worksheet_names|/get_worksheet_names> method and the
+L<worksheet|/worksheet( $name )> methods.
+
+B<Accepts:> nothing
+
+B<Returns:> an array ref of  L<Worksheet|Spreadsheet::XLSX::Reader::LibXML::Worksheet> 
+objects for all worksheets in the workbook.
+
+=back
+
+=head3 worksheet( $name )
+
+=over
+
+B<Definition:> This method will return an  object to read values in the worksheet.  
+If no value is passed to $name then the 'next' worksheet in physical order is 
+returned. I<'next' will NOT wrap>
+
+B<Accepts:> the $name string representing the name of the worksheet object you 
+want to open.  This name is the word visible on the tab when opening the spreadsheet 
+in Excel. (not the underlying zip member file name - which can be different)
+
+B<Returns:> a L<Worksheet|Spreadsheet::XLSX::Reader::LibXML::Worksheet> object with the 
+ability to read the worksheet of that name.  Or in 'next' mode it returns undef if 
+past the last sheet
+
+B<Example:> using the implied 'next' worksheet;
+
+	while( my $worksheet = $workbook->worksheet ){
+		print "Reading: " . $worksheet->name . "\n";
+		# get the data needed from this worksheet
+	}
+
+=back
+
+=head3 in_the_list
+
+=over
+
+B<Definition:> This is a predicate method that indicates if the 'next' 
+L<worksheet|/worksheet( $name )> function has been implemented at least once.
+
+B<Accepts:>nothing
+
+B<Returns:> true = 1, false = 0
+once
+
+=back
+
+=head3 start_at_the_beginning
+
+=over
+
+B<Definition:> This restarts the 'next' worksheet at the first worksheet.  This 
+method is only useful in the context of the L<worksheet|/worksheet( $name )> 
+function.
+
+B<Accepts:> nothing
+
+B<Returns:> nothing
+
+=back
+
+=head3 number_of_sheets
+
+=over
+
+B<Definition:> This method returns the count of worksheets in the workbook
+
+B<Accepts:>nothing
+
+B<Returns:> an integer
+
+=back
+
+=head3 get_worksheet_names
+
+=over
+
+B<Definition:> This method returns an array ref of all the worksheet names in the 
+workbook.
+
+B<Accepts:> nothing
+
+B<Returns:> an array ref
+
+B<Example:> Another way to parse a workbook without building all the sheets at 
+once is;
+
+	for $sheet_name ( @{$workbook->worksheet_names} ){
+		my $worksheet = $workbook->worksheet( $sheet_name );
+		# Read the worksheet here
+	}
+
+=back
+
+=head3 worksheet_name( $Int )
+
+=over
+
+B<Definition:> This method returns the worksheet name for a given physical position 
+in the worksheet from left to right. It counts from zero even if the workbook is in 
+'count_from_one' mode.
+
+B<Accepts:> integers
+
+B<Returns:> the worksheet name
+
+B<Example:> To return only worksheet positions 2 through 4
+
+	for $x (2..4){
+		my $worksheet = $workbook->worksheet( $workbook->worksheet_name( $x ) );
+		# Read the worksheet here
+	}
+
+=back
+
+=head3 error
+
+=over
+
+B<Definition:> This returns the most recent error message logged by the package.  This 
+method is mostly relevant when an unexpected result is returned by some other method.
+
+B<Accepts:>nothing
+
+B<Returns:> an error string.
+
+=back
+
+=head2 Secondary Methods
+
+These are the additional methods that include ways to extract additional information about 
+the .xlsx file and ways to modify workbook and worksheet parsing that are less common.  
+Note that all methods specifically used to adjust workbook level attributes are listed in 
+the L<Attribute|/Attribute> section.  This section primarily contains methods for or 
+L<delegated|Moose::Manual::Delegation> from private attributes set up during the workbook 
+load process.
+
+=head3 parse_excel_format_string( $format_string )
+
+=over
+
+Roundabout delegation from 
+L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/parse_excel_format_string( $string )>
+
+=back
+
+=head3 creator
+
+=over
+
+B<Definition:> Retrieve the stored creator string from the Excel file.
+
+B<Accepts> nothing
+
+B<Returns> A string
+
+=back
+
+=head3 date_created
+
+=over
+
+B<Definition:> returns the date the file was created
+
+B<Accepts> nothing
+
+B<Returns> A string
+
+=back
+
+=head3 modified_by
+
+=over
+
+B<Definition:> returns the user name of the person who last modified the file
+
+B<Accepts> nothing
+
+B<Returns> A string
+
+=back
+
+=head3 date_modified
+
+=over
+
+B<Definition:> returns the date when the file was last modified
+
+B<Accepts> nothing
+
+B<Returns> A string
+
+=back
+
+=head3 get_epoch_year
+
+=over
+
+B<Definition:> This returns the epoch year defined by the Excel workbook.
+
+B<Accepts:> nothing
+
+B<Returns:> 1900 = Windows Excel or 1904 = Apple Excel
+
+=back
+
+=head3 get_shared_string_position
+
+=over
+
+Roundabout delegation from 
+L<Spreadsheet::XLSX::Reader::LibXML::SharedStrings/get_shared_string_position( $int )>
+
+=back
+
+=head3 get_format_position
+
+=over
+
+Roundabout delegation from 
+L<Spreadsheet::XLSX::Reader::LibXML::Styles/get_format_position( $int )>
+
+=back
+
+=head3 set_defined_excel_format_list
+
+=over
+
+Roundabout delegation from 
+L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/set_defined_excel_format_list>
+
+=back
+
+=head3 change_output_encoding
+
+=over
+
+Roundabout delegation from 
+L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/change_output_encoding( $string )>
+
+=back
+
+=head3 set_format_cache_behavior
+
+=over
+
+Roundabout delegation from 
+L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/set_cache_behavior>
+
+=back
+
+=head3 get_date_behavior
+
+=over
+
+Roundabout delegation from 
+L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/get_date_behavior>
+
+=back
+
+=head3 set_date_behavior
+
+=over
+
+Roundabout delegation from 
+L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/set_date_behavior>
+
+=back
+
 =head1 BUILD / INSTALL from Source
 
 B<1.> Ensure that you have the libxml2 B<and libxml2-devel> libraries installed using 
@@ -1016,15 +1060,15 @@ B<5.> Run the following
 	
 =back
 
-	>perl Makefile.PL
+	perl Makefile.PL
 
-	>make
+	make
 
-	>make test
+	make test
 
-	>make install # As sudo/root
+	make install # As sudo/root
 
-	>make clean
+	make clean
 
 =head1 SUPPORT
 
@@ -1071,9 +1115,22 @@ Possibly this requires an additional attribute 'next_ignores_empty'?
 
 =over
 
-=item Jed Lund
+Jed Lund
 
-=item jandrew@cpan.org
+jandrew@cpan.org
+
+=back
+
+=head1 CONTRIBUTORS
+
+This is the (likely incomplete) list of people who have helped
+make this distribution what it is, either via code contributions, 
+patches, bug reports, help with troubleshooting, etc. A huge
+'thank you' to all of them.
+
+=over
+
+L<Frank Maas|https://github.com/Frank071>
 
 =back
 
@@ -1085,7 +1142,7 @@ it and/or modify it under the same terms as Perl itself.
 The full text of the license can be found in the
 LICENSE file included with this module.
 
-This software is copyrighted (c) 2014 by Jed Lund
+This software is copyrighted (c) 2014, 2015 by Jed Lund
 
 =head1 DEPENDENCIES
 

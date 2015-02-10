@@ -445,7 +445,7 @@ L<github Spreadsheet::XLSX::Reader::LibXML/issues
 
 =over
 
-B<1.> Nothing L<yet|/SUPPORT>
+B<2.> This was one of the first XMLReader parsers I wrote and the XML parsing is crufty (needs a scrub)
 
 =back
 

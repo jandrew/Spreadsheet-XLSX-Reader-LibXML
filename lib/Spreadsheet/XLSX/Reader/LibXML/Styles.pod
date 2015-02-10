@@ -19,15 +19,15 @@ It also uses the XMLReader version of the Styles class.  (Any version should do 
 	use Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles;
 
 	my $file_instance = build_instance(
-		  package      => 'StylesInstance',
-		  superclasses => ['Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles'],
-		  file         => 'styles.xml',
-		  error_inst   => Spreadsheet::XLSX::Reader::LibXML::Error->new,
-		  add_roles_in_sequence => [qw(
-			 Spreadsheet::XLSX::Reader::LibXML::FmtDefault
-			 Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings
-		  )],
-		);
+	    package      => 'StylesInstance',
+	    superclasses => ['Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles'],
+	    file         => 'styles.xml',
+	    error_inst   => Spreadsheet::XLSX::Reader::LibXML::Error->new,
+	    add_roles_in_sequence => [qw(
+	        Spreadsheet::XLSX::Reader::LibXML::FmtDefault
+	        Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings
+	    )],
+	);
 	print Dumper( $file_instance->get_format_position( 2 ) );
 
 	#######################################
@@ -123,19 +123,73 @@ These are the primary way(s) to use this class.  For additional Styles options s
 L<Attributes|/Attributes> section.  I<All replacement classes must provide these methods.>  
 Methods used to manipulate the attributes are listed in each attribute.
 
-=head3 get_calc_chain_position( $integer )
+=head3 get_format_position( $position, [$header] )
 
 =over
 
-B<Definition:> This will return the calcChain information from the identified $integer 
-position. (Counting from zero).  The information is returned as a perl hash ref.
+B<Definition:> This will return the styles information from the identified $position
+(Counting from zero).  the target position is usually drawn from the cell data stored in 
+the worksheet.  The information is returned as a perl hash ref.  Since the styles 
+data is in two tiers it finds all the subtier information for each indicated piece and 
+appends them to the hash ref as values for each type key.  If you only want a specific 
+branch then you can add the branch $header key and the returned value will only contain 
+that leg.  If you know the second level position for that header then call 
+L<get_sub_format_position|/get_sub_format_position( $position, $header )> as a quicker 
+substitute.
 
-B<Accepts:> an $integer for the calcChain position.  (usually saved in the cell data for 
-the worksheet)
+B<Accepts:> $position = an integer for the styles $position. (required)
+
+B<Accepts:> $header = the target header key (optional)
 
 B<Returns:> a hash ref of data
 
 =back
+
+=head3 get_sub_format_position( $position, $header )
+
+=over
+
+B<Definition:> This will return the styles information from the identified $position
+(Counting from zero) for the specific $header.  The information is returned as a perl 
+hash ref.  This call will not seek a second level just return the data from that header.
+
+B<Accepts:> $position = an integer for the styles $position (required)
+
+B<Accepts:> $header = a string for the header key (required)
+
+B<Returns:> a hash ref of data
+
+=back
+
+=head3 get_default_format_position( $position, $header )
+
+=over
+
+B<Definition:> For any cell that does not have a unquely identified format excel generally 
+stores a default format for the remainder of the sheet.  This will return the two 
+tiered default styles information.  If you only want the default from a specific header 
+then add the $header string to the method call.  The information is returned as a perl 
+hash ref.
+
+B<Accepts:> $header = a string for the header key (optional)
+
+B<Returns:> a hash ref of data
+
+=back
+
+=head2 On-the-fly-roles
+
+In order to let the end user define some behaviours for the styles implemented in this 
+worksheet, roles are added to this class on the fly when the workbook is built for the 
+first time.  These roles are used to provide the functions 
+L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/get_defined_excel_format( $integer )> 
+and 
+L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/parse_excel_format_string( $string )> 
+that will be used by this class to get number formats (Type::Tiny Coercions).  Changing 
+which roles are supplied at run time is documented in the attributes 
+L<Spreadsheet::XLSX::Reader::LibXML/default_format_list> and
+L<Spreadsheet::XLSX::Reader::LibXML/format_string_parser>  To change the whole behaviour 
+and interaction read paragraph 3 of the L<DESCRIPTION|/DESCRIPTION>
 
 =head2 Attributes
 
@@ -147,16 +201,16 @@ L<Moose::Manual::Attributes>.
 
 =over
 
-B<Definition:> This needs to be the full file path to the calcChain file or an 
+B<Definition:> This needs to be the full file path to the styles file or an 
 opened file handle .  When set it will coerce to a file handle and then 
-will open and read the primary settings in the calcChain and then maintain an open 
-file handle for accessing specific calcChain position information.
+will open and read the primary settings in the styles.xml file and then maintain an open 
+file handle for accessing specific styles position information.
 
 B<Required:> Yes
 
 B<Default:> none
 
-B<Range> an actual Excel 2007+ calcChain file or open file handle (with the 
+B<Range> an actual Excel 2007+ styles.xml file or open file handle (with the 
 pointer set to the beginning of the file)
 
 B<attribute methods> Methods provided to adjust this attribute
@@ -171,6 +225,23 @@ B<Definition:> Returns the value (file handle) stored in the attribute
 
 =back
 
+B<set_file>
+
+=over
+
+B<Definition:> Sets the value (file handle) stored in the attribute. Then triggers 
+a read of the file level unique bits.
+
+=back
+
+B<has_file>
+
+=over
+
+B<Definition:> predicate for the attribute
+
+=back
+
 =back
 
 =back
@@ -179,10 +250,10 @@ B<Definition:> Returns the value (file handle) stored in the attribute
 
 =over
 
-B<Definition:> Currently all CalcChain readers require an 
+B<Definition:> Currently all Styles readers require an 
 L<Error|Spreadsheet::XLSX::Reader::LibXML::Error> instance.  In general the 
 package will share an error instance reference between the workbook and all 
-classes built during workbook parsing.
+classes built during the initial workbook build.
 
 B<Required:> Yes
 
@@ -284,7 +355,7 @@ it and/or modify it under the same terms as Perl itself.
 The full text of the license can be found in the
 LICENSE file included with this module.
 
-This software is copyrighted (c) 2014 by Jed Lund
+This software is copyrighted (c) 2014, 2015 by Jed Lund
 
 =head1 DEPENDENCIES
 

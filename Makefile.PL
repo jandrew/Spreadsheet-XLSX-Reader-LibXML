@@ -67,12 +67,9 @@ my %WriteMakefileArgs = (
     "Type::Tiny" => "1.000",
     "XML::LibXML" => 0,
     "XML::LibXML::Reader" => 0,
-    "lib" => 0,
-    "strict" => 0,
-    "version" => "0.77",
-    "warnings" => 0
+    "version" => "0.77"
   },
-  "VERSION" => "v0.34.0",
+  "VERSION" => "v0.34.2",
   "test" => {
     "TESTS" => "t/Spreadsheet/XLSX/Reader/*.t t/Spreadsheet/XLSX/Reader/LibXML/*.t t/Spreadsheet/XLSX/Reader/LibXML/XMLReader/*.t"
   }
