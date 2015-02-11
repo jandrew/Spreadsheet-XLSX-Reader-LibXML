@@ -195,7 +195,8 @@ and interaction read paragraph 3 of the L<DESCRIPTION|/DESCRIPTION>
 
 Data passed to new when creating an instance.   For modification of these attributes 
 see the listed 'attribute methods'. For more information on attributes see 
-L<Moose::Manual::Attributes>.
+L<Moose::Manual::Attributes>.  I<It may be that these attributes migrate based on the 
+reader type.>
 
 =head3 file
 

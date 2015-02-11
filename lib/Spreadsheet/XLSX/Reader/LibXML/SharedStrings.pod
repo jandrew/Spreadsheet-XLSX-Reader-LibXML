@@ -8,17 +8,208 @@ Spreadsheet::XLSX::Reader::LibXML::SharedStrings - Read xlsx sharedStrings files
 
 =head1 SYNOPSIS
 
-See the SYNOPSIS in the L<Workbook class|Spreadsheet::XLSX::Reader::LibXML/SYNOPSIS>
+	#!/usr/bin/env perl
+	$|=1;
+	use Data::Dumper;
+	use MooseX::ShortCut::BuildInstance qw( build_instance );
+	use Spreadsheet::XLSX::Reader::LibXML::Error;
+	use Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings;
+
+	my $file_instance = build_instance(
+	    package      => 'SharedStringsInstance',
+	    superclasses => ['Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings'],
+	    file         => 'sharedStrings.xml',
+	    error_inst   => Spreadsheet::XLSX::Reader::LibXML::Error->new,
+	);
+	print Dumper( $file_instance->get_shared_string_position( 3 ) );
+	print Dumper( $file_instance->get_shared_string_position( 12 ) );
+
+	#######################################
+	# SYNOPSIS Screen Output
+	# 01: $VAR1 = {
+	# 02:     'raw_text' => ' '
+	# 03: };
+	# 04: $VAR1 = {
+	# 05:     'raw_text' => 'Superbowl Audibles'
+	# 06: };
+	#######################################
 
 =head1 DESCRIPTION
 
-B<This documentation is written to explain ways to extend this package.  To use the data 
-extraction of Excel workbooks, worksheets, and cells please review the documentation for  
-L<Spreadsheet::XLSX::Reader::LibXML>,
-L<Spreadsheet::XLSX::Reader::LibXML::Worksheet>, and 
-L<Spreadsheet::XLSX::Reader::LibXML::Cell>>
+This documentation is written to explain ways to use this module when writing your 
+own excel parser or extending this package.  To use the general package for excel 
+parsing out of the box please review the documentation for L<Workbooks
+|Spreadsheet::XLSX::Reader::LibXML>, L<Worksheets
+|Spreadsheet::XLSX::Reader::LibXML::Worksheet>, and 
+L<Cells|Spreadsheet::XLSX::Reader::LibXML::Cell>.
 
-The POD is not written yet!
+This general class is written to get useful data from the sub file 'sharedStrings.xml' 
+that is a member of a zipped (.xlsx) archive.  The file to be read is generally found in 
+the xl/ sub folder of the zip library.  Sometimes it is found as a subset of a single xml 
+tabular file.  The sharedStrings.xml file contains a list of unique strings (not numbers) 
+used as values in the spreadsheet cells of Excel.  Uniqueness of a string is determined by 
+upper case and lower case as well as full cell text.  Partial common elements are not 
+sorted out.
+
+This documentation is for the general explanation of the SharedStrings class.  The example 
+uses a class built with an XMLReader version at the core.  Documentation specific to that 
+parser can be found in the L<~XMLReader::SharedStrings
+|Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings> documentation.  To replace or 
+augment this class you would need to understand how it is built on the fly using 
+L<MooseX::ShortCut::BuildInstance>.  Next you should fork this code on L<github
+|https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML>.  Then add or change the parts 
+you want and re-point the package to use the new elements in the correct circumstance using 
+the $parser_modules variable maintained in the L<Spreadsheet::XLSX::Reader::LibXML> class.  
+(about line 35).
+	
+=head2 Required Method(s)
+
+These are the primary way(s) to use this class.  For additional Styles options see the 
+L<Attributes|/Attributes> section.  I<All replacement classes must provide these methods.>  
+Methods used to manipulate the attributes are listed in each attribute.
+
+=head3 get_shared_string_position( $position )
+
+=over
+
+B<Definition:> This will return the shared string in a L<hash_ref|/SYNOPSIS> for the 
+requested position.  (Counting from zero)
+
+B<Accepts:> $position = an integer for the styles $position. (required)
+
+B<Returns:> a hash ref with the key = 'raw_text' and the value = the stored string
+
+=back
+
+=head2 Attributes
+
+Data passed to new when creating an instance.   For modification of these attributes 
+see the listed 'attribute methods'. For more information on attributes see 
+L<Moose::Manual::Attributes>.  I<It may be that these attributes migrate based on the 
+reader type.>
+
+=head3 file
+
+=over
+
+B<Definition:> This needs to be the full file path to the sharedStrings file or an 
+opened file handle .  When set it will coerce to a file handle and then will open 
+and read the primary settings in the sharedStrings.xml file and then maintain an open 
+file handle for accessing specific sharedStrings position information.
+
+B<Required:> Yes
+
+B<Default:> none
+
+B<Range> an actual Excel 2007+ sharedStrings.xml file or open file handle (with the 
+pointer set to the beginning of the file)
+
+B<attribute methods> Methods provided to adjust this attribute
+		
+=over
+
+B<get_file>
+
+=over
+
+B<Definition:> Returns the value (file handle) stored in the attribute
+
+=back
+
+B<set_file>
+
+=over
+
+B<Definition:> Sets the value (file handle) stored in the attribute. Then triggers 
+a read of the file level unique bits.
+
+=back
+
+B<has_file>
+
+=over
+
+B<Definition:> predicate for the attribute
+
+=back
+
+=back
+
+=back
+
+=head3 error_inst
+
+=over
+
+B<Definition:> Currently all ShareStrings readers require an 
+L<Error|Spreadsheet::XLSX::Reader::LibXML::Error> instance.  In general the 
+package will share an error instance reference between the workbook and all 
+classes built during the initial workbook build.
+
+B<Required:> Yes
+
+B<Default:> none
+
+B<Range:> The minimum list of methods to implement for your own instance is;
+
+	error set_error clear_error set_warnings if_warn
+
+B<attribute methods> Methods provided to adjust this attribute
+		
+=over
+
+B<get_error_inst>
+
+=over
+
+B<Definition:> returns this instance
+
+=back
+
+B<error>
+
+=over
+
+B<Definition:> Used to get the most recently logged error
+
+=back
+
+B<set_error>
+
+=over
+
+B<Definition:> used to set a new error string
+
+=back
+
+B<clear_error>
+
+=over
+
+B<Definition:> used to clear the current error string in this attribute
+
+=back
+
+B<set_warnings>
+
+=over
+
+B<Definition:> used to turn on or off real time warnings when errors are set
+
+=back
+
+B<if_warn>
+
+=over
+
+B<Definition:> a method mostly used to extend this package and see if warnings 
+should be emitted.
+
+=back
+
+=back
+
+=back
 
 =head1 SUPPORT
 
@@ -55,7 +246,7 @@ it and/or modify it under the same terms as Perl itself.
 The full text of the license can be found in the
 LICENSE file included with this module.
 
-This software is copyrighted (c) 2014 by Jed Lund
+This software is copyrighted (c) 2014, 2015 by Jed Lund
 
 =head1 DEPENDENCIES
 

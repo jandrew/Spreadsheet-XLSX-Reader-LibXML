@@ -189,7 +189,7 @@ L<github Spreadsheet::XLSX::Reader::LibXML/issues
 
 =over
 
-B<1.> Nothing L<yet|/SUPPORT>
+B<1.> This is an early write and very crufty - needs a scrub
 
 =back
 
