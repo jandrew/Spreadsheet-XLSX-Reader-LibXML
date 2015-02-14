@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::CalcChain;
-use version; our $VERSION = qv('v0.34.1');
+use version; our $VERSION = qv('v0.34.2');
 
 use 5.010;
 use Moose;

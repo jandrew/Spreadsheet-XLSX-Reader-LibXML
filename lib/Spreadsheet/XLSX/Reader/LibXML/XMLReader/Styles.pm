@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles;
-use version; our $VERSION = qv('v0.34.1');
+use version; our $VERSION = qv('v0.34.2');
 
 use 5.010;
 use Moose;
@@ -421,16 +421,169 @@ __END__
 =head1 NAME
 
 Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles - A LibXML::Reader styles base class
-    
+
+=head1 SYNOPSIS
+
+	#!/usr/bin/env perl
+	$|=1;
+	use Data::Dumper;
+	use MooseX::ShortCut::BuildInstance qw( build_instance );
+	use Spreadsheet::XLSX::Reader::LibXML::Error;
+	use Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles;
+
+	my $file_instance = build_instance(
+	    package      => 'StylesInstance',
+	    superclasses => ['Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles'],
+	    file         => 'styles.xml',
+	    error_inst   => Spreadsheet::XLSX::Reader::LibXML::Error->new,
+	    add_roles_in_sequence => [qw(
+	        Spreadsheet::XLSX::Reader::LibXML::FmtDefault
+	        Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings
+	    )],
+	);
+	print Dumper( $file_instance->get_format_position( 2 ) );
+
+	#######################################
+	# SYNOPSIS Screen Output
+	# 01: $VAR1 = {
+	# 02:    'applyNumberFormat' => '1',
+	# 03:    'fontId' => '0',
+	# 04:    'fonts'  => {
+	# 05:       'color' => {
+	# 06:          'theme' => '1'
+	# 07:       },
+	# 08:       'sz'     => '11',
+	# 09:       'name'   => 'Calibri',
+	# 10:       'scheme' => 'minor',
+	# 11:       'family' => '2'
+	# 12:    },
+	# 13:    'numFmtId' => '164',
+	# 14:    'fillId'   => '0',
+	# 15:    'xfId'     => '0',
+	# 16:    'borders' => {
+	# 17:       'left'     => 1,
+	# 18:       'right'    => 1,
+	# 19:       'top'      => 1,
+	# 20:       'diagonal' => 1,
+	# 21:       'bottom'   => 1
+	# 22:    },
+	# 23:    'borderId' => '0',
+	# 24:    'cellStyleXfs' => {
+	# 25:       'fillId'   => '0',
+	# 26:       'fontId'   => '0',
+	# 27:       'borderId' => '0',
+	# 28:       'numFmtId' => '0'
+	# 29:    },
+	# 30:    'fills' => {
+	# 31:       'patternFill' => {
+	# 32:          'patternType' => 'none'
+	# 33:       }
+	# 34:    },
+	# 35:    'numFmts' => bless( {
+	# 36:       'name' => 'Excel_date_164',
+	# 37:       'uniq' => 86,
+	# 38:       'coercion' => bless( { 
+                    ~ 180 lines hidden ~
+	# 219:      }, 'Type::Coercion' )
+	# 220:    }, 'Type::Tiny' )
+	# 221: };
+	#######################################
+
 =head1 DESCRIPTION
 
-B<This documentation is written to explain ways to extend this package.  To use the data 
-extraction of Excel workbooks, worksheets, and cells please review the documentation for  
-L<Spreadsheet::XLSX::Reader::LibXML>,
-L<Spreadsheet::XLSX::Reader::LibXML::Worksheet>, and 
-L<Spreadsheet::XLSX::Reader::LibXML::Cell>>
+This documentation is written to explain ways to use this module.  To use the general 
+package for excel parsing out of the box please review the documentation for L<Workbooks
+|Spreadsheet::XLSX::Reader::LibXML>, L<Worksheets
+|Spreadsheet::XLSX::Reader::LibXML::Worksheet>, and 
+L<Cells|Spreadsheet::XLSX::Reader::LibXML::Cell>.
 
-POD not written yet!
+This class is written to get useful data from the sub file 'styles.xml' that is 
+a member of a zipped (.xlsx) archive or a stand alone XML text file of the same format.  
+The styles.xml file contains the format and display options used by Excel for showing 
+the stored data.  To unzip an Excel file manually change the \.xlsx extention to \.zip 
+and windows should do (most) of the rest.  For linux use an unzip utility. (
+L<Archive::Zip> for instance :)
+
+This documentation is the explanation of this specific module.  For a general explanation 
+of the class and how to to add or adjust its place in the larger package see the L<Styles
+|Spreadsheet::XLSX::Reader::LibXML::Styles> POD.
+
+This module is the simplified way to extract information from the styles file needed when 
+doing high level reading of an Excel spread sheet.  In order to do so it subclasses the module 
+L<Spreadsheet::XLSX::Reader::LibXML::XMLReader> and leverages one hard coded role 
+L<Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData> Additionally the module will 
+error if not built with roles that supply two additional methods.  The methods are 
+L<get_defined_excel_format|Spreadsheet::XLSX::Reader::LibXML::FmtDefault/get_defined_excel_format( $integer )> 
+and L<parse_excel_format_string
+|Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/parse_excel_format_string( $string )>.  
+The links lead to the default source of these methods in the package.  I<These methods are 
+intentionally not hard coded to this class so that the user can change them at run time.  See 
+the attributes L<Spreadsheet::XLSX::Reader::LibXML/default_format_list> and
+L<Spreadsheet::XLSX::Reader::LibXML/format_string_parser> for more explanation.>   Read about 
+the function of each when replacing them.  If you want to use the roles as-is, one way to 
+integrate them is with L<MooseX::ShortCut::BuildInstance>. The 'on-the-fly' roles also 
+add other methods (not documented here) to this class.  Look at the documentation for those 
+modules to see what else comes with them.
+
+=head2 Method(s)
+
+These are the methods just provided by this class.  Look at the documentation for the the two 
+modules consumed by this class for their elements. L<Spreadsheet::XLSX::Reader::LibXML::XMLReader> 
+and L<Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData> 
+
+=head3 get_format_position( $position, [$header] )
+
+=over
+
+B<Definition:> This will return the styles information from the identified $position
+(Counting from zero).  the target position is usually drawn from the cell data stored in 
+the worksheet.  The information is returned as a perl hash ref.  Since the styles 
+data is in two tiers it finds all the subtier information for each indicated piece and 
+appends them to the hash ref as values for each type key.  If you only want a specific 
+branch then you can add the branch $header key and the returned value will only contain 
+that leg.  If you know the second level position for that header then call 
+L<get_sub_format_position|/get_sub_format_position( $position, $header )> as a quicker 
+substitute.
+
+B<Accepts:> $position = an integer for the styles $position. (required)
+
+B<Accepts:> $header = the target header key (optional)
+
+B<Returns:> a hash ref of data
+
+=back
+
+=head3 get_sub_format_position( $position, $header )
+
+=over
+
+B<Definition:> This will return the styles information from the identified $position
+(Counting from zero) for the specific $header.  The information is returned as a perl 
+hash ref.  This call will not seek a second level just return the data from that header.
+
+B<Accepts:> $position = an integer for the styles $position (required)
+
+B<Accepts:> $header = a string for the header key (required)
+
+B<Returns:> a hash ref of data
+
+=back
+
+=head3 get_default_format_position( $position, $header )
+
+=over
+
+B<Definition:> For any cell that does not have a unquely identified format excel generally 
+stores a default format for the remainder of the sheet.  This will return the two 
+tiered default styles information.  If you only want the default from a specific header 
+then add the $header string to the method call.  The information is returned as a perl 
+hash ref.
+
+B<Accepts:> $header = a string for the header key (optional)
+
+B<Returns:> a hash ref of data
+
+=back
 
 =head1 SUPPORT
 

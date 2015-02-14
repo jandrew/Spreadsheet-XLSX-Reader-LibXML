@@ -21,7 +21,7 @@ It also uses the XMLReader version of the Styles class.  (Any version should do 
 	my $file_instance = build_instance(
 	    package      => 'StylesInstance',
 	    superclasses => ['Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles'],
-	    file         => 'styles.xml',
+	    file         => 'styles.xml', #( for excel zip format sheets )
 	    error_inst   => Spreadsheet::XLSX::Reader::LibXML::Error->new,
 	    add_roles_in_sequence => [qw(
 	        Spreadsheet::XLSX::Reader::LibXML::FmtDefault

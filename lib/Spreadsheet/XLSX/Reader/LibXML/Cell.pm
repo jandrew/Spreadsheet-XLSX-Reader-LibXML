@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::Cell;
-use version 0.77; our $VERSION = qv('v0.34.1');
+use version 0.77; our $VERSION = qv('v0.34.2');
 
 $| = 1;
 use 5.010;
