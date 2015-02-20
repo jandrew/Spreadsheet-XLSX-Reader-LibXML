@@ -19,7 +19,7 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 46;
+use	Test::Most tests => 38;
 use	Test::TypeTiny;
 #~ use	Test::Moose;
 use Data::Dumper;
@@ -43,18 +43,17 @@ use	lib
 ###LogSD					);
 ###LogSD	use Log::Shiras::Telephone;
 use Spreadsheet::XLSX::Reader::LibXML::Types v0.1 qw(
-		PassThroughType				FileName					XLSXFile
-		XMLFile						ParserType					EpochYear
-		Excel_number_0				CellID						PositiveNum
+		XMLFile						XLSXFile					ParserType
 		NegativeNum					ZeroOrUndef					NotNegativeNum
-		IOFileType
-	);
+		IOFileType					ErrorString					CellID
+		PositiveNum					Excel_number_0
+	);#PassThroughType FileName EpochYear
 my	@types_list = (
-		PassThroughType,			FileName,					XLSXFile,
-		XMLFile	,					ParserType,					EpochYear,
+		XLSXFile,					XMLFile	,					ParserType,					
 		CellID,						PositiveNum,				NegativeNum,
 		ZeroOrUndef,				NotNegativeNum,				IOFileType,
-	);
+		ErrorString,
+	);#PassThroughType,			FileName,					EpochYear,
 my	$test_dir	= ( @ARGV ) ? $ARGV[0] : $test_file;
 my	$xlsx_file	= $test_dir . 'TestBook.xlsx';
 my	$xml_file	= $test_dir . '[Content_Types].xml';
@@ -66,23 +65,19 @@ my			$file_handle = IO::File->new( $xlsx_file );
 			open( $fh, '<', $xlsx_file );
 my 			$row = 0;
 my			$question_ref =[
-				[ 1, 2, 'Help', 0x234, undef ],# PassThroughType
-				[ $xlsx_file, $xml_file, 'badfile.not', ],# FileName	
 				[ $xlsx_file, $file_handle, $fh, 'badfile.not',],# XLSXFile
 				[ $xml_file, 'badfile.not',],#~ XMLFile
 				[ 'reader', 'dom', 'badfile.not' ],#~ ParserType
-				[ 1900, 1904, 2000 ],#~ EpochYear
 				[ 'A1', 'CCC10000', 'A0' ],#~ CellID
 				[ 1, 2, 0.1234, -3 ], #~ PositiveNum
 				[ -1, -2, -0.1234, 0 ],#~ NegativeNum
 				[ 0, undef, 's', 2 ],#~ ZeroOrUndef
 				[ 1, 2, 0.1234, 0, -1],#~ NotNegativeNum
 				[ $fh, $file_handle, $xlsx_file, $xml_file, $real_file],#~ IOFileType
+				[ 'Watch out world', WithErrorString->new, WithErrorMessage->new ],#~ ErrorString
 				#~ Excel_number_0?
 			];
 my			$answer_ref = [
-				[],
-				[undef, undef, qr/Could not find \/ read the file: badfile.not/, ],
 				[	undef,
 					qr/IO::File=GLOB\(.{6,20}\)'\s+is not a string value/,#IO::
 					qr/GLOB\(.{6,20}\)'\s+is not a string value/,
@@ -91,7 +86,6 @@ my			$answer_ref = [
 				[	undef,
 					qr/Value "dom" did not pass type constraint "ParserType"/,
 					qr/Value "badfile.not" did not pass type constraint "ParserType"/, ],
-				[undef, undef, qr/Value "2000" did not pass type constraint "EpochYear"/, ],
 				[undef, undef, qr/Value "A0" did not pass type constraint "CellID"/, ],
 				[undef, undef, undef, qr/Value "-3" did not pass type constraint "PositiveNum"/, ],
 				[undef, undef, undef, qr/Value "0" did not pass type constraint "NegativeNum"/, ],
@@ -100,6 +94,7 @@ my			$answer_ref = [
 					qr/Value "2" did not pass type constraint "ZeroOrUndef"/, ],
 				[undef, undef, undef, undef, qr/Value "-1" did not pass type constraint "NotNegativeNum"/, ],
 				[undef, undef, undef, undef, qr/badfile\.is" did not pass type constraint "IOFileType"/, ],
+				[undef, undef, undef, ],
 			];
 ###LogSD my $phone = Log::Shiras::Telephone->new;
 ###LogSD	$phone->talk( level => 'debug', message =>[ 'Start your engines ...' ] );
@@ -144,6 +139,15 @@ ok			Excel_number_0->assert_coerce( 'jabberwoky' ),
 explain 								"...Test Done";
 done_testing();
 
+package WithErrorString;
+sub new{ bless {}, shift; }
+sub as_string{ "The is an error string!" }
+
+package WithErrorMessage;
+sub new{ bless {}, shift; }
+sub message{ "The is an error message!" }
+
+
 ###LogSD	package Print::Log;
 ###LogSD	use Data::Dumper;
 ###LogSD	sub new{
@@ -170,4 +174,4 @@ done_testing();
 ###LogSD		use warnings 'uninitialized';
 ###LogSD	}
 
-###LogSD	1;
+1;

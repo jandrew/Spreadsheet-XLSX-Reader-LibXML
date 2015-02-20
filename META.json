@@ -116,6 +116,10 @@
          "file" : "lib/Spreadsheet/XLSX/Reader/LibXML/XMLReader/CalcChain.pm",
          "version" : "v0.34.2"
       },
+      "Spreadsheet::XLSX::Reader::LibXML::XMLReader::Chartsheet" : {
+         "file" : "lib/Spreadsheet/XLSX/Reader/LibXML/XMLReader/Chartsheet.pm",
+         "version" : "v0.34.2"
+      },
       "Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings" : {
          "file" : "lib/Spreadsheet/XLSX/Reader/LibXML/XMLReader/SharedStrings.pm",
          "version" : "v0.34.2"

@@ -12,6 +12,10 @@ See the SYNOPSIS in the L<Workbook class|Spreadsheet::XLSX::Reader::LibXML/SYNOP
 
 =head1 DESCRIPTION
 
+This documentation is intended to cover all 'tabular' data worksheets.  Even if they 
+contain embedded charts.  If the tab is a 'chartsheet' then please review the documentation 
+for L<Chartsheets|Spreadsheet::XLSX::Reader::LibXML::Chartsheet>.
+
 The worksheet class provided by this package is an amalgam of a class, a few roles, 
 and a few traits aggregated at run time based on attribute settings from the workbook 
 level class.  This documentation shows the ways to use the resulting instance.  First, 
@@ -49,9 +53,9 @@ read the documentation for the L<Cell|Spreadsheet::XLSX::Reader::LibXML::Cell> i
 
 =head2 Methods to access data from the sheet
 
-These are the various functions that are available (independent of sheet parser type) to 
-select which cell(s) to read.  When allowed the requested row and column numbers are 
-interpreted using the attribute L<Spreadsheet::XLSX::Reader::LibXML/count_from_zero>.  
+These are the various functions that are available (independent of tabualar sheet parser 
+type) to select which cell(s) to read.  When allowed the requested row and column numbers 
+are interpreted using the attribute L<Spreadsheet::XLSX::Reader::LibXML/count_from_zero>.  
 all the methods are object methods performed on the worksheet.
 
 B<Example:>
@@ -592,6 +596,30 @@ B<attribute methods> Methods provided to adjust this attribute
 =over
 
 B<get_name>
+
+=over
+
+B<Definition:> returns the value stored in the attribute
+
+=back
+
+=back
+
+=back
+
+=head3 sheet_type
+
+=over
+
+B<Definition:> There are two possible kinds of sheets in an Excel file; 'worksheets' and 
+'chartsheets' if you are not sure what kind of sheet you have this is where the information 
+is stored.
+
+B<attribute methods> Methods provided to adjust this attribute
+
+=over
+
+B<get_sheet_type>
 
 =over
 

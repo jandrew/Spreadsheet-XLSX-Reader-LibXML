@@ -1,0 +1,408 @@
+=pod
+
+=encoding utf-8
+
+=head1 NAME
+
+Spreadsheet::XLSX::Reader::LibXML::Chartsheet - Read xlsx chartsheets with LibXML
+
+=head1 SYNOPSIS
+
+See the SYNOPSIS in the L<Workbook class|Spreadsheet::XLSX::Reader::LibXML/SYNOPSIS>
+
+=head1 DESCRIPTION
+
+This documentation is intended to cover all 'chart' sheets.  For review of the function 
+and implementation of the 'tabular' data style worksheets please review the documentation 
+for L<Worksheets|Spreadsheet::XLSX::Reader::LibXML::WorkSheet>.
+
+Currently this class is mostly a stub to keep the package from dying if a chartsheet 
+exists in the xlsx file to be read.  It doesn't provide much functionality or indeed expose 
+any real useful information about the chart.  Please provide all suggestions to what you 
+would like for this class to do to the L<issues section in the github repo
+|https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML/issues>
+
+=head2 Extending the chartsheet class
+
+I don't have any good ideas yet.  Outside input welcome.
+
+=head2 Attributes
+
+These are attributes that contain information about the sheet.  Not much else. At the end 
+of this list it is noted that a reference to the workbook is stored in one of the 
+attributes as well so many workbook settings can be adjusted from the chartsheet 
+instance. (Don't)
+
+=head3 sheet_rel_id
+
+=over
+
+B<Definition:> This is the relId of the sheet listed in the XML of the .xlsx file.  
+You probably don't care and you should never set this value.
+
+B<attribute methods> Methods provided to adjust this attribute
+
+=over
+
+B<rel_id>
+
+=over
+
+B<Definition:> returns the value stored in the attribute
+
+=back
+
+=back
+
+=back
+
+=head3 sheet_id
+
+=over
+
+B<Definition:> This is the Id of the sheet listed in the XML of the .xlsx file.  
+I beleive this to be the number used in vbscript to reference the sheet.  You 
+should never set this value.
+
+B<attribute methods> Methods provided to adjust this attribute
+
+=over
+
+B<sheet_id>
+
+=over
+
+B<Definition:> returns the value stored in the attribute
+
+=back
+
+=back
+
+=back
+
+=head3 sheet_position
+
+=over
+
+B<Definition:> This is the visual sheet position in the .xlsx file.  
+You should never set this value.
+
+B<attribute methods> Methods provided to adjust this attribute
+
+=over
+
+B<position>
+
+=over
+
+B<Definition:> returns the value stored in the attribute
+
+=back
+
+=back
+
+=back
+
+=head3 sheet_name
+
+=over
+
+B<Definition:> This is the visual sheet name in the .xlsx file.  
+You should never set this value.
+
+B<attribute methods> Methods provided to adjust this attribute
+
+=over
+
+B<get_name>
+
+=over
+
+B<Definition:> returns the value stored in the attribute
+
+=back
+
+=back
+
+=back
+
+=head3 drawing_rel_id
+
+=over
+
+B<Definition:> A chart sheet has an underlying drawing object that the chart is 
+built on.  This is the xlsx relID of that drawing object.
+
+B<attribute methods> Methods provided to adjust this attribute
+
+=over
+
+B<get_drawing_rel_id>
+
+=over
+
+B<Definition:> returns the value stored in the attribute
+
+=back
+
+=back
+
+=back
+
+=head3 sheet_type
+
+=over
+
+B<Definition:> There are two possible kinds of sheets in an Excel file; 'worksheets' and 
+'chartsheets' if you are not sure what kind of sheet you have this is where the information 
+is stored.
+
+B<attribute methods> Methods provided to adjust this attribute
+
+=over
+
+B<get_sheet_type>
+
+=over
+
+B<Definition:> returns the value stored in the attribute
+
+=back
+
+=back
+
+=back
+
+=head3 workbook_instance
+
+=over
+
+B<Definition:> This attribute holds a reference back to the workbook instance so that 
+the worksheet has access to the global settings managed there.  As a consequence many 
+of the workbook methods are be exposed here.  This includes some setter methods for 
+workbook attributes. I<Beware that setting or adjusting the workbook level attributes 
+with methods here will be universal and affect other worksheets.  So don't forget to 
+return the old value if you want the old behavour after you are done.>  If that 
+doesn't make sense then don't use these methods.  (Nothing to see here! Move along.)
+
+B<Default:> a Spreadsheet::XLSX::Reader::LibXML instance
+
+B<attribute methods> Methods of the workbook exposed here by the L<delegation
+|Moose::Manual::Attributes/Delegation> of the instance to this class through this 
+attribute
+
+=over
+
+B<counting_from_zero>
+
+=over
+
+B<Definition:> returns the L<Spreadsheet::XLSX::Reader::LibXML/count_from_zero> 
+instance state
+
+=back
+
+B<boundary_flag_setting>
+
+=over
+
+B<Definition:> returns the L<Spreadsheet::XLSX::Reader::LibXML/file_boundary_flags> 
+instance state
+
+=back
+
+B<change_boundary_flag( $Bool )>
+
+=over
+
+B<Definition:> sets the L<Spreadsheet::XLSX::Reader::LibXML/file_boundary_flags> 
+instance state (B<For the whole workbook!>)
+
+=back
+
+B<get_shared_string_position( $int )>
+
+=over
+
+B<Definition:> returns the shared string data stored in the sharedStrings 
+file at position $int.  For more information review 
+L<Spreadsheet::XLSX::Reader::LibXML::SharedStrings>.  I<This is a delegation 
+of a delegation!>
+
+=back
+
+B<get_format_position( $int, [$header] )>
+
+=over
+
+B<Definition:> returns the format data stored in the styles 
+file at position $int.  If the optional $header is passed only the data for that 
+header is returned.  Otherwise all styles for that position are returned.  
+For more information review 
+L<Spreadsheet::XLSX::Reader::LibXML::Styles>.  I<This is a delegation 
+of a delegation!>
+
+=back
+
+B<set_empty_is_end( $Bool )>
+
+=over
+
+B<Definition:> sets the L<Spreadsheet::XLSX::Reader::LibXML/empty_is_end> 
+instance state (B<For the whole workbook!>)
+
+=back
+
+B<is_empty_the_end>
+
+=over
+
+B<Definition:> returns the L<Spreadsheet::XLSX::Reader::LibXML/empty_is_end> 
+instance state.
+
+=back
+
+B<get_group_return_type>
+
+=over
+
+B<Definition:> returns the L<Spreadsheet::XLSX::Reader::LibXML/group_return_type> 
+instance state.
+
+=back
+
+B<set_group_return_type( (instance|unformatted|value) )>
+
+=over
+
+B<Definition:> sets the L<Spreadsheet::XLSX::Reader::LibXML/group_return_type> 
+instance state (B<For the whole workbook!>)
+
+=back
+
+B<get_epoch_year>
+
+=over
+
+B<Definition:> uses the L<Spreadsheet::XLSX::Reader::LibXML/get_epoch_year> method.
+
+=back
+
+B<get_date_behavior>
+
+=over
+
+B<Definition:> This is a L<delegated|Moose::Manual::Delegation> method from the 
+L<styles|Spreadsheet::XLSX::Reader::LibXML::Styles> class (stored as a private 
+instance in the workbook).  It is held (and documented) in the 
+L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings> role.  It will 
+indicate how far unformatted L<transformation
+|Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/datetime_dates> 
+is carried for date coercions when returning formatted values. 
+
+=back
+
+B<set_date_behavior>
+
+=over
+
+B<Definition:> This is a L<delegated|Moose::Manual::Delegation> method from 
+the L<styles|Spreadsheet::XLSX::Reader::LibXML::Styles> class (stored as a private 
+instance in the workbook).  It is held (and documented) in the 
+L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings> role.  It will set how 
+far unformatted L<transformation
+|Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/datetime_dates> 
+is carried for date coercions when returning formatted values. 
+
+=back
+
+B<get_values_only>
+
+=over
+
+B<Definition:> gets the L<Spreadsheet::XLSX::Reader::LibXML/values_only> 
+instance state.
+
+=back
+
+B<set_values_only>
+
+=over
+
+B<Definition:> sets the L<Spreadsheet::XLSX::Reader::LibXML/values_only> 
+instance state (B<For the whole workbook!>)
+
+=back
+
+=back
+
+=back
+
+=head1 SUPPORT
+
+=over
+
+L<github Spreadsheet::XLSX::Reader::LibXML/issues
+|https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML/issues>
+
+=back
+
+=head1 TODO
+
+=over
+
+B<1.> Figure out what users want from their charts and how they want to read it.
+
+=back
+
+=head1 AUTHOR
+
+=over
+
+=item Jed Lund
+
+=item jandrew@cpan.org
+
+=back
+
+=head1 COPYRIGHT
+
+This program is free software; you can redistribute
+it and/or modify it under the same terms as Perl itself.
+
+The full text of the license can be found in the
+LICENSE file included with this module.
+
+This software is copyrighted (c) 2014, 2015 by Jed Lund
+
+=head1 DEPENDENCIES
+
+=over
+
+L<Spreadsheet::XLSX::Reader::LibXML>
+
+=back
+
+=head1 SEE ALSO
+
+=over
+
+L<Spreadsheet::ParseExcel> - Excel 2003 and earlier
+
+L<Spreadsheet::XLSX> - 2007+
+
+L<Spreadsheet::ParseXLSX> - 2007+
+
+L<Log::Shiras|https://github.com/jandrew/Log-Shiras>
+
+=over
+
+All lines in this package that use Log::Shiras are commented out
+
+=back
+
+=back
+
+=cut
+
+#########1#########2 main pod documentation end  5#########6#########7#########8#########9

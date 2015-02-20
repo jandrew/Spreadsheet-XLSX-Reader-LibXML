@@ -6,9 +6,11 @@ use	5.010;
 use	Moose;
 use	MooseX::StrictConstructor;
 use	MooseX::HasDefaults::RO;
+use Carp qw( confess );
 use Types::Standard qw(
 		Int				Str				ArrayRef
 		HashRef			HasMethods		Bool
+		Enum
     );
 use lib	'../../../../../../lib';
 ###LogSD	use Log::Shiras::Telephone;
@@ -28,6 +30,12 @@ my	$cell_name_translation = {
 	};
 
 #########1 Public Attributes  3#########4#########5#########6#########7#########8#########9
+
+has sheet_type =>(
+		isa		=> Enum[ 'worksheet' ],
+		default	=> 'worksheet',
+		reader	=> 'get_sheet_type',
+	);
 
 has sheet_rel_id =>(
 		isa		=> Str,
@@ -222,7 +230,7 @@ sub _load_unique_bits{
 		$self->_set_reported_row( $start_row );
 		$self->_set_reported_col( $start_column - 1 );
 	}else{
-		$self->_set_error( "No sheet dimensions provided" );
+		confess "No sheet dimensions provided";# Shouldn't the error instance be loaded already?
 	}
 	
 	#build a merge map
@@ -508,7 +516,7 @@ sub _get_row_all{
 	###LogSD	my	$phone = Log::Shiras::Telephone->new(
 	###LogSD					name_space 	=> ($self->get_log_space . '::_get_row_all' ), );
 	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			'Getting row: ' . (($row) ? $row : undef) ] );
+	###LogSD			'Getting row: ' . (($row) ? $row : '') ] );
 	
 	# Get next row as needed
 	if( !$row ){

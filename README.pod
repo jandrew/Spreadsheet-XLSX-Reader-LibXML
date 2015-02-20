@@ -75,7 +75,7 @@ The following uses the 'TestBook.xlsx' file found in the t/test_files/ folder
 
 =head1 DESCRIPTION
 
-This is another module for parsing Excel 2007+ workbooks.  The goals of this package are 
+This is another package for parsing Excel 2007+ workbooks.  The goals of this package are 
 three fold.  First, as close as possible produce the same output as is visible in an 
 excel spreadsheet with exposure to underlying settings from Excel.  Second, adhere as 
 close as is reasonable to the L<Spreadsheet::ParseExcel> API (where it doesn't conflict 
@@ -85,7 +85,7 @@ The other two primary options for XLSX parsing on CPAN use either a one-off XML 
 (L<Spreadsheet::XLSX>) or L<XML::Twig> (L<Spreadsheet::ParseXLSX>).  In general if 
 either of them already work for you without issue then there is no reason to change to 
 this package.  I personally found some bugs and functionality boundaries in both that I 
-wanted to improve and by the time I had educated myself enough to make improvement 
+wanted to improve, and by the time I had educated myself enough to make improvement 
 suggestions including root causing the bugs to either the XML parser or the reader logic 
 I had written this.
 
@@ -119,11 +119,11 @@ classes in this package are for architectual extensibility.
 
 =over
 
----> L<Worksheet level|Spreadsheet::XLSX::Reader::LibXML::Worksheet>
+---> L<Worksheet level|Spreadsheet::XLSX::Reader::LibXML::Worksheet>*
 
 =over
 
----> L<Cell level|Spreadsheet::XLSX::Reader::LibXML::Cell> - 
+---> L<Cell level|Spreadsheet::XLSX::Reader::LibXML::Cell>* - 
 L<optional|/group_return_type>
 
 =back
@@ -137,11 +137,24 @@ L<optional|/group_return_type>
 B<1.> Archive-Zip versions greater than 1.30 appear to be broken.  This package requires 
 Archive::Zip so I reccomend Archive-Zip-1.30.
 
-B<2.> Earlier versions of this package would extract the .xlsx file to a temp directory and 
-release the file lock on the original file while still retaining the information for acess 
+B<2.> This package requires that you can load L<XML::LibXML> which requires the L<libxml2
+http://xmlsoft.org/> and 'libxml2-devel' libraries.  Many PC's have these already but you 
+should try to load XML::LibXML separatly if you have problems loading this.  L<If it loads 
+but you have a test suit failure please log a case in my repo on L<github|SUPPORT>>.
+
+B<3.> Earlier versions of this package would extract the .xlsx file to a temp directory and 
+release the file lock on the original file while still retaining the information for access 
 by the parser.  In order to resolve some some temp dir cleanup issues this package no 
 longer releases the lock on the file during reading.  (It will release the file lock and 
 clean up any temp directories when the class is closed)
+
+B<*3.> Not all workbook sheets (tabs) are created equal!  Some Excel sheet tabs are only a 
+chart.  These tabs are 'chartsheets'.  The methods with 'worksheet' in the name only act on 
+the sub set of tabs that are worksheets.  Future methods with 'chartsheet' in the name will 
+focus on the subset of sheets that are chartsheets.  Methods with just 'sheet' in the name 
+have the potential to act on both.  The documentation for the chartsheet level class is found 
+in L<Spreadsheet::XLSX::Reader::LibXML::Chartsheet> (still under construction).  All chartsheet 
+classes do not provide access to cells.
 
 =head2 Attributes
 
@@ -742,7 +755,9 @@ B<Definition:> This method will return an array (I<not an array reference>)
 containing a list of references to all worksheets in the workbook.  This is not 
 a reccomended method.  It is provided for compatibility to Spreadsheet::ParseExcel.  
 For alternatives see the L<get_worksheet_names|/get_worksheet_names> method and the
-L<worksheet|/worksheet( $name )> methods.
+L<worksheet|/worksheet( $name )> methods.  B<For now it also only returns the tabular 
+worksheets in the workbook.  All chart worksheets are ignored! (future inclusion will 
+included a backwards compatibility policy)>
 
 B<Accepts:> nothing
 
@@ -757,15 +772,17 @@ objects for all worksheets in the workbook.
 
 B<Definition:> This method will return an  object to read values in the worksheet.  
 If no value is passed to $name then the 'next' worksheet in physical order is 
-returned. I<'next' will NOT wrap>
+returned. I<'next' will NOT wrap>  It also only iterates through the 'worksheets' 
+in the workbook (but not the 'chartsheets').
 
 B<Accepts:> the $name string representing the name of the worksheet object you 
 want to open.  This name is the word visible on the tab when opening the spreadsheet 
-in Excel. (not the underlying zip member file name - which can be different)
+in Excel. (not the underlying zip member file name - which can be different.  It will 
+not accept chart tab names.)
 
 B<Returns:> a L<Worksheet|Spreadsheet::XLSX::Reader::LibXML::Worksheet> object with the 
-ability to read the worksheet of that name.  Or in 'next' mode it returns undef if 
-past the last sheet
+ability to read the worksheet of that name.  It returns undef and sets the error attribute 
+if a 'chartsheet' is requested.  Or in 'next' mode it returns undef if past the last sheet.
 
 B<Example:> using the implied 'next' worksheet;
 
@@ -804,11 +821,12 @@ B<Returns:> nothing
 
 =back
 
-=head3 number_of_sheets
+=head3 worksheet_count
 
 =over
 
-B<Definition:> This method returns the count of worksheets in the workbook
+B<Definition:> This method returns the count of worksheets (excluding charts) in 
+the workbook.
 
 B<Accepts:>nothing
 
@@ -821,7 +839,7 @@ B<Returns:> an integer
 =over
 
 B<Definition:> This method returns an array ref of all the worksheet names in the 
-workbook.
+workbook.  (It excludes chartsheets.)
 
 B<Accepts:> nothing
 
@@ -837,17 +855,45 @@ once is;
 
 =back
 
-=head3 worksheet_name( $Int )
+=head3 get_sheet_names
 
 =over
 
-B<Definition:> This method returns the worksheet name for a given physical position 
-in the worksheet from left to right. It counts from zero even if the workbook is in 
-'count_from_one' mode.
+B<Definition:> This method returns an array ref of all the sheet names (tabs) in the 
+workbook.  (It includes chartsheets.)
+
+B<Accepts:> nothing
+
+B<Returns:> an array ref
+
+=back
+
+=head3 get_chartheet_names
+
+=over
+
+B<Definition:> This method returns an array ref of all the chartsheet names in the 
+workbook.  (It excludes worksheets.)
+
+B<Accepts:> nothing
+
+B<Returns:> an array ref
+
+=back
+
+=head3 sheet_name( $Int )
+
+=over
+
+B<Definition:> This method returns the sheet name for a given physical position 
+in the workbook from left to right. It counts from zero even if the workbook is in 
+'count_from_one' mode.  B(It will return chart names but chart tab names cannot currently 
+be converted to worksheets). You may actually want L<worksheet_name|worksheet_name( $Int )> 
+instead of this function.
 
 B<Accepts:> integers
 
-B<Returns:> the worksheet name
+B<Returns:> the sheet name (both workbook and worksheet)
 
 B<Example:> To return only worksheet positions 2 through 4
 
@@ -855,6 +901,80 @@ B<Example:> To return only worksheet positions 2 through 4
 		my $worksheet = $workbook->worksheet( $workbook->worksheet_name( $x ) );
 		# Read the worksheet here
 	}
+
+=back
+
+=head3 sheet_count
+
+=over
+
+B<Definition:> This method returns the count of all sheets in the workbook (worksheets 
+and chartsheets).
+
+B<Accepts:> nothing
+
+B<Returns:> a count of all sheets
+
+=back
+
+=head3 worksheet_name( $Int )
+
+=over
+
+B<Definition:> This method returns the worksheet name for a given order in the workbook 
+from left to right. It does not count any 'chartsheet' positions as valid.  It counts 
+from zero even if the workbook is in 'count_from_one' mode.
+
+B<Accepts:> integers
+
+B<Returns:> the worksheet name
+
+B<Example:> To return only worksheet positions 2 through 4 and then parse them
+
+	for $x (2..4){
+		my $worksheet = $workbook->worksheet( $workbook->worksheet_name( $x ) );
+		# Read the worksheet here
+	}
+
+=back
+
+=head3 worksheet_count
+
+=over
+
+B<Definition:> This method returns the count of all worksheets in the workbook (not 
+including chartsheets).
+
+B<Accepts:> nothing
+
+B<Returns:> a count of all worksheets
+
+=back
+
+=head3 chartsheet_name( $Int )
+
+=over
+
+B<Definition:> This method returns the chartsheet name for a given order in the workbook 
+from left to right. It does not count any 'worksheet' positions as valid.  It counts 
+from zero even if the workbook is in 'count_from_one' mode.
+
+B<Accepts:> integers
+
+B<Returns:> the chartsheet name
+
+=back
+
+=head3 chartsheet_count
+
+=over
+
+B<Definition:> This method returns the count of all chartsheets in the workbook (not 
+including worksheets).
+
+B<Accepts:> nothing
+
+B<Returns:> a count of all chartsheets
 
 =back
 
@@ -1082,6 +1202,8 @@ L<github Spreadsheet::XLSX::Reader::LibXML/issues|https://github.com/jandrew/Spr
 
 =over
 
+B<1.> Add POD for all the new chart methods!
+
 B<1.> Build an 'Alien::LibXML::Devel' package to load the libxml2-devel libraries from source and 
 require that and L<Alien::LibXML> in the build file. So all needed requirements for L<XML::LibXML> 
 are met
@@ -1131,6 +1253,8 @@ patches, bug reports, help with troubleshooting, etc. A huge
 =over
 
 L<Frank Maas|https://github.com/Frank071>
+
+L<Stuart Watt|https://github.com/morungos>
 
 =back
 

@@ -14,3 +14,5 @@ t/Spreadsheet/XLSX/Reader/LibXML/XMLDOM/*
 t/test_files/spread_test.xlsx
 t/04-endless_loop_bug.t
 t/test_files/spread_test*
+t/test_files/ChartSheet/*
+t/test_files/ChartSheet.zip

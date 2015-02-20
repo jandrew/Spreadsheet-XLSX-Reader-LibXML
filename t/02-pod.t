@@ -24,6 +24,8 @@ pod_file_ok( $up . 	'lib/Spreadsheet/XLSX/Reader/LibXML/XMLReader/XMLToPerlData.
 						"The Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData file has good POD" );
 pod_file_ok( $up . 	'lib/Spreadsheet/XLSX/Reader/LibXML/XMLReader/Worksheet.pm',
 						"The Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet file has good POD" );
+pod_file_ok( $up . 	'lib/Spreadsheet/XLSX/Reader/LibXML/XMLReader/Chartsheet.pm',
+						"The Spreadsheet::XLSX::Reader::LibXML::XMLReader::Chartsheet file has good POD" );
 pod_file_ok( $up . 	'lib/Spreadsheet/XLSX/Reader/LibXML/FmtDefault.pm',
 						"The Spreadsheet::XLSX::Reader::LibXML::FmtDefault file has good POD" );
 pod_file_ok( $up . 	'lib/Spreadsheet/XLSX/Reader/LibXML/ParseExcelFormatStrings.pm',
@@ -40,6 +42,8 @@ pod_file_ok( $up . 	'lib/Spreadsheet/XLSX/Reader/LibXML/Cell.pm',
 						"The Spreadsheet::XLSX::Reader::LibXML::Cell file has good POD" );
 pod_file_ok( $up . 	'lib/Spreadsheet/XLSX/Reader/LibXML/Worksheet.pod',
 						"The Spreadsheet::XLSX::Reader::LibXML::Worksheet file has good POD" );
+pod_file_ok( $up . 	'lib/Spreadsheet/XLSX/Reader/LibXML/Chartsheet.pod',
+						"The Spreadsheet::XLSX::Reader::LibXML::Chartsheet file has good POD" );
 pod_file_ok( $up . 	'lib/Spreadsheet/XLSX/Reader/LibXML/Styles.pod',
 						"The Spreadsheet::XLSX::Reader::LibXML::Styles file has good POD" );
 pod_file_ok( $up . 	'lib/Spreadsheet/XLSX/Reader/LibXML/SharedStrings.pod',

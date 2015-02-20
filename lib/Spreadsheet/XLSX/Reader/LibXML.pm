@@ -10,6 +10,7 @@ use	Carp qw( confess );
 use	Archive::Zip qw( AZ_OK );
 use	XML::LibXML;
 use	IO::File;
+use Clone 'clone';
 use Types::Standard qw(
  		InstanceOf			Str       		StrMatch
 		Enum				HashRef			ArrayRef
@@ -28,6 +29,7 @@ use	Spreadsheet::XLSX::Reader::LibXML::FmtDefault;
 use	Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings;
 use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings;
 use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet;
+use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::Chartsheet;
 use	Spreadsheet::XLSX::Reader::LibXML::Types qw( XLSXFile ParserType IOFileType );
 
 #########1 Dispatch Tables    3#########4#########5#########6#########7#########8#########9
@@ -50,7 +52,11 @@ my	$parser_modules ={
 			},
 			worksheet =>{
 				superclasses	=> ['Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet'],
-				#~ store			=> '_set_worksheet_superclass',
+				package			=> 'WorksheetInstance',
+			},
+			chartsheet =>{
+				superclasses	=> ['Spreadsheet::XLSX::Reader::LibXML::XMLReader::Chartsheet'],
+				package			=> 'ChartsheetInstance',
 			},
 		},
 	};
@@ -78,7 +84,7 @@ my	$build_ref	= {
 
 #########1 Public Attributes  3#########4#########5#########6#########7#########8#########9
 
-has	error_inst =>(
+has error_inst =>(
 		isa			=> 	HasMethods[qw(
 							error set_error clear_error set_warnings if_warn
 						) ],
@@ -235,19 +241,6 @@ sub worksheet{
 	###LogSD		$phone->talk( level => 'info', message =>[
 	###LogSD			"Arrived at (build a) worksheet with: ", $worksheet_name ] );
 	
-	# Check for a file and an available parser type
-	confess "No file loaded yet" if !$self->has_file_name and !$self->has_file_handle;
-	my ( $translation_method, $parser_type );
-	if( exists $parser_modules->{ $self->get_parser_type } ){
-		$translation_method	= $parser_modules->{ $self->get_parser_type }->{build_method};
-		$parser_type		= $parser_modules->{ $self->get_parser_type }->{worksheet};
-	}else{
-		confess 'This package still under development - parser type |' . $self->get_parser_type . '| not yet supported - try the "reader" parser';
-		return undef;
-	}
-	###LogSD		$phone->talk( level => 'info', message =>[
-	###LogSD			"Using translation: $translation_method", "With parser: ", $parser_type, ] );
-	
 	# Handle an implied 'next sheet'
 	if( !$worksheet_name ){
 		my $worksheet_position = $self->_get_current_worksheet_position;
@@ -257,43 +250,68 @@ sub worksheet{
 		$next_position = ( !$self->in_the_list ) ? 0 : ($self->_get_current_worksheet_position + 1);
 		###LogSD	$phone->talk( level => 'info', message =>[
 		###LogSD		"No worksheet name passed", "Attempting position: $next_position" ] );
-		if( $next_position >= $self->number_of_sheets ){
+		if( $next_position >= $self->worksheet_count ){
 			###LogSD	$phone->talk( level => 'info', message =>[
 			###LogSD		"Reached the end of the worksheet list" ] );
 			return undef;
 		}
 		$worksheet_name = $self->worksheet_name( $next_position );
+	}else{
+		my $sheet_data = $self->_get_sheet_info( $worksheet_name );
 		###LogSD	$phone->talk( level => 'info', message =>[
-		###LogSD		"Now attempting to build the worksheet named: $worksheet_name", ] );
+		###LogSD		"Info for the worksheet -$worksheet_name- is:", $sheet_data ] );
+		$next_position = $sheet_data->{sheet_position};
 	}
 	
-	# build the worksheet
-	my	$worksheet_info = $self->_get_worksheet_info( $worksheet_name );
+	# Deal with chartsheet requests
+	my $worksheet_info = $self->_get_sheet_info( $worksheet_name );
+	if( $worksheet_info->{sheet_type} eq 'chartsheet' ){
+		$self->set_error( "You have requested -$worksheet_name- which is a 'chartsheet' using a worksheet focused method" );
+		return undef;
+	}
+	# NOTE: THE CHARTSHEET / WORKSHEET COMMON SUB-METHOD COULD PROBABLY START HERE
 	###LogSD	$phone->talk( level => 'info', message =>[
-	###LogSD		'Returned worksheet info:', $worksheet_info, ] );
-	###LogSD	$phone->talk( level => 'debug', message => [
-	###LogSD		"Attempting to build the worsheet: $worksheet_name\.xml",
-	###LogSD		"With translation method: $translation_method" ], );
+	###LogSD		"Building: $worksheet_name", "..with data:", $worksheet_info ] );
+	
+	# Check for a file and an available parser type
+	confess "No file loaded yet" if !$self->has_file_name and !$self->has_file_handle;
+	my ( $translation_method, $parser_type );
+	if( exists $parser_modules->{ $self->get_parser_type } ){
+		$translation_method	= $parser_modules->{ $self->get_parser_type }->{build_method};
+		$parser_type		= $parser_modules->{ $self->get_parser_type }->{$worksheet_info->{sheet_type}};
+	}else{
+		confess 'This package still under development - parser type |' . $self->get_parser_type . '| not yet supported - try the "reader" parser';
+		return undef;
+	}
+	###LogSD		$phone->talk( level => 'info', message =>[
+	###LogSD			"Using translation: $translation_method", "With parser: ", $parser_type, ] );
+	
+	# build the worksheet
 	my %args = $self->$translation_method( $worksheet_info, $self->_get_zip_file_handle );
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		'Intermediate worksheet args are:', %args ], );
 	if( !$args{file} and !$args{dom} ){
 		$self->set_error( "Unable to load XML::LibXML with the element: $worksheet_name" );
 		return undef;
 	}
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		'made it past the has-file check with:', $parser_type, $worksheet_name, ], );
 	
 	confess "No worksheet info for: $worksheet_name" if !exists $worksheet_info->{sheet_position};
 	$args{superclasses}			= $parser_type->{superclasses};
 	$args{sheet_name}			= $worksheet_name;
 	$args{workbook_instance}	= $self;
 	$args{error_inst}			= $self->get_error_inst;
-	$args{package}				= 'WorksheetInstance';
-	###LogSD $args{log_space} = $self->get_log_space . "::Worksheet";
-	###LogSD	$phone->talk( level => 'trace', message =>[
-	###LogSD		'Built an xml object with final worksheet build info:', %args, ] );
+	$args{package}				= $parser_type->{package};;
+	###LogSD $args{log_space} = $self->get_log_space . "::Worksheet";# FUTURE COMMON DECISION
+	###LogSD	$phone->talk( level => 'debug', message =>[
+	###LogSD		'Finalized build info:', %args, ] );
 	my	$worksheet = build_instance( %args );
 	if( $worksheet ){
 		###LogSD	$phone->talk( level => 'info', message =>[
-		###LogSD		"Successfully loaded: $worksheet_name",] );
-		$self->_set_current_worksheet_position( $worksheet->position );
+		###LogSD		"Successfully loaded: $worksheet_name", 
+		###LogSD		"Setting the current worksheet position to: $next_position" ] );
+		$self->_set_current_worksheet_position( $next_position );
 		return $worksheet;
 	}else{
 		$self->set_error( "Failed to build the object for worksheet: $worksheet_name" );
@@ -382,24 +400,50 @@ has _calc_chain_instance =>(
 has _worksheet_list =>(
 		isa		=> ArrayRef,
 		traits	=> ['Array'],
-		writer	=> '_set_worksheet_list',
 		clearer	=> '_clear_worksheet_list',
 		reader	=> 'get_worksheet_names',
 		handles	=>{
-			worksheet_name => 'get',
+			worksheet_name  => 'get',
+			worksheet_count => 'count',
+			_add_worksheet       => 'push',
 		},
 		default	=> sub{ [] },
 	);
 
-has _worksheet_lookup =>(
+has _chartsheet_list =>(
+		isa		=> ArrayRef,
+		traits	=> ['Array'],
+		clearer	=> '_clear_chartsheet_list',
+		reader	=> 'get_chartsheet_names',
+		handles	=>{
+			chartsheet_name  => 'get',
+			chartsheet_count => 'count',
+			_add_chartsheet  => 'push',
+		},
+		default	=> sub{ [] },
+	);
+
+has _sheet_list =>(
+		isa		=> ArrayRef,
+		traits	=> ['Array'],
+		writer	=> '_set_sheet_list',
+		clearer	=> '_clear_sheet_list',
+		reader	=> 'get_sheet_names',
+		handles	=>{
+			get_sheet_name => 'get',
+			sheet_count	   => 'count',
+		},
+		default	=> sub{ [] },
+	);
+
+has _sheet_lookup =>(
 		isa		=> HashRef,
 		traits	=> ['Hash'],
-		writer	=> '_set_worksheet_lookup',
-		clearer	=> '_clear_worksheet_lookup',
-		reader	=> '_get_worksheet_lookup',
+		writer	=> '_set_sheet_lookup',
+		clearer	=> '_clear_sheet_lookup',
+		reader	=> '_get_sheet_lookup',
 		handles	=>{
-			_get_worksheet_info => 'get',
-			number_of_sheets	=> 'count',
+			_get_sheet_info => 'get',
 		},
 		default	=> sub{ {} },
 	);
@@ -439,7 +483,7 @@ sub _build_workbook{
 	$self->_clear_calc_chain;
 	$self->_clear_styles;
 	$self->_clear_worksheet_list;
-	$self->_clear_worksheet_lookup;
+	$self->_clear_sheet_lookup;
 	$self->_clear_creator;
 	$self->_clear_modified_by;
 	$self->_clear_date_created;
@@ -503,6 +547,7 @@ sub _build_workbook{
 	
 	# Build the instances for all the shared files (data for sheets shared across worksheets)
 	if( exists $parser_modules->{ $self->get_parser_type } ){
+		###LogSD	$phone->talk( level => 'debug', message =>[ 'loading shared worksheets for: ' . $self->get_parser_type, ] );
 		my	$result = 	$self->_set_shared_worksheet_files(
 							$parser_modules->{ $self->get_parser_type },
 							$workbook_file,
@@ -517,7 +562,8 @@ sub _build_workbook{
 }
 
 sub _build_dom{
-	my( $self, $build_target, $workbook_file ) = @_;
+	my( $self, $target, $workbook_file ) = @_;
+	my $build_target = clone( $target );
 	###LogSD	my	$phone = Log::Shiras::Telephone->new(
 	###LogSD					name_space 	=> $self->get_log_space .  '::Workbook::_build_dom', );
 	###LogSD		$phone->talk( level => 'debug', message => [
@@ -544,7 +590,8 @@ sub _build_dom{
 }
 
 sub _build_reader{
-	my( $self, $build_target, $workbook_file ) = @_;
+	my( $self, $target, $workbook_file ) = @_;
+	my $build_target = clone( $target );
 	###LogSD	my	$phone = Log::Shiras::Telephone->new(
 	###LogSD					name_space 	=> $self->get_log_space .  '::Workbook::_build_reader', );
 	###LogSD		$phone->talk( level => 'debug', message => [
@@ -608,8 +655,8 @@ sub _load_top_level_workbook{
 		$self->set_error( "No worksheets identified in this workbook" );
 		return undef;
 	}
-	$self->_set_worksheet_list( $list );
-	$self->_set_worksheet_lookup( $sheet_ref );
+	$self->_set_sheet_list( $list );
+	$self->_set_sheet_lookup( $sheet_ref );
 	return( $rel_lookup, $id_lookup );
 }
 
@@ -620,18 +667,30 @@ sub _load_workbook_rels{
 	###LogSD					name_space 	=> $self->get_log_space .  '::Workbook::_load_workbook_rels', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			"Adding the rels file data for the workbook with:", $rel_lookup ] );
-	my	$sheet_ref = $self->_get_worksheet_lookup;
+	my	$sheet_ref = $self->_get_sheet_lookup;
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		"Working on sheet ref:", $sheet_ref, '..and rel lookup:', $rel_lookup ] );
 	my	$found_member_names = 0;
+	my ( $worksheet_list, $chartsheet_list );
 	for my $sheet ( $dom->getElementsByTagName( 'Relationship' ) ){
 		my	$rel_ID = $sheet->getAttribute( 'Id' );
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Processing relID:", $rel_ID, ] );
 		if( exists $rel_lookup->{$rel_ID} ){
 			my	$target = 'xl/';
 				$target .= $sheet->getAttribute( 'Target' );
 			###LogSD	$phone->talk( level => 'debug', message => [
 			###LogSD		"Building relationship for: $rel_ID", "With target: $target" ] );
 			$target =~ s/\\/\//g;
-			if( $target =~ /worksheets/ ){
+			if( $target =~ /worksheets(\\|\/)/ ){
 				$sheet_ref->{$rel_lookup->{$rel_ID}}->{zip} = $target;
+				$sheet_ref->{$rel_lookup->{$rel_ID}}->{sheet_type} = 'worksheet';
+				$worksheet_list->[$sheet_ref->{$rel_lookup->{$rel_ID}}->{sheet_position}] = $rel_lookup->{$rel_ID};
+				$found_member_names = 1;
+			}elsif( $target =~ /chartsheets(\\|\/)/ ){
+				$sheet_ref->{$rel_lookup->{$rel_ID}}->{zip} = $target;
+				$sheet_ref->{$rel_lookup->{$rel_ID}}->{sheet_type} = 'chartsheet';
+				$chartsheet_list->[$sheet_ref->{$rel_lookup->{$rel_ID}}->{sheet_position}] = $rel_lookup->{$rel_ID};
 				$found_member_names = 1;
 			}else{
 				$pivot_lookup->{$rel_ID} = $target;
@@ -645,7 +704,9 @@ sub _load_workbook_rels{
 		$self->set_error( "Couldn't find any zip member (file) names for the sheets" );
 		return ( 0, undef );
 	}
-	$self->_set_worksheet_lookup( $sheet_ref );
+	map{ $self->_add_worksheet( $_ ) if $_ } @$worksheet_list if $worksheet_list;
+	map{ $self->_add_chartsheet( $_ ) if $_ } @$chartsheet_list if $chartsheet_list;
+	$self->_set_sheet_lookup( $sheet_ref );
 	return ( 1, $pivot_lookup );
 }
 
@@ -676,7 +737,7 @@ sub _set_shared_worksheet_files{
 	for my $file ( keys %$object_ref ){
 		
 		# Build out the shared files (shared by all worksheets) only!
-		next if $file eq 'build_method' or $file eq 'worksheet';
+		next if $file eq 'build_method' or $file eq 'worksheet' or $file eq 'chartsheet';
 		
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD		"Attempting to load the file: ${file}\.xml",
@@ -851,7 +912,7 @@ The following uses the 'TestBook.xlsx' file found in the t/test_files/ folder
 
 =head1 DESCRIPTION
 
-This is another module for parsing Excel 2007+ workbooks.  The goals of this package are 
+This is another package for parsing Excel 2007+ workbooks.  The goals of this package are 
 three fold.  First, as close as possible produce the same output as is visible in an 
 excel spreadsheet with exposure to underlying settings from Excel.  Second, adhere as 
 close as is reasonable to the L<Spreadsheet::ParseExcel> API (where it doesn't conflict 
@@ -861,7 +922,7 @@ The other two primary options for XLSX parsing on CPAN use either a one-off XML 
 (L<Spreadsheet::XLSX>) or L<XML::Twig> (L<Spreadsheet::ParseXLSX>).  In general if 
 either of them already work for you without issue then there is no reason to change to 
 this package.  I personally found some bugs and functionality boundaries in both that I 
-wanted to improve and by the time I had educated myself enough to make improvement 
+wanted to improve, and by the time I had educated myself enough to make improvement 
 suggestions including root causing the bugs to either the XML parser or the reader logic 
 I had written this.
 
@@ -895,11 +956,11 @@ classes in this package are for architectual extensibility.
 
 =over
 
----> L<Worksheet level|Spreadsheet::XLSX::Reader::LibXML::Worksheet>
+---> L<Worksheet level|Spreadsheet::XLSX::Reader::LibXML::Worksheet>*
 
 =over
 
----> L<Cell level|Spreadsheet::XLSX::Reader::LibXML::Cell> - 
+---> L<Cell level|Spreadsheet::XLSX::Reader::LibXML::Cell>* - 
 L<optional|/group_return_type>
 
 =back
@@ -913,11 +974,24 @@ L<optional|/group_return_type>
 B<1.> Archive-Zip versions greater than 1.30 appear to be broken.  This package requires 
 Archive::Zip so I reccomend Archive-Zip-1.30.
 
-B<2.> Earlier versions of this package would extract the .xlsx file to a temp directory and 
-release the file lock on the original file while still retaining the information for acess 
+B<2.> This package requires that you can load L<XML::LibXML> which requires the L<libxml2
+http://xmlsoft.org/> and 'libxml2-devel' libraries.  Many PC's have these already but you 
+should try to load XML::LibXML separatly if you have problems loading this.  L<If it loads 
+but you have a test suit failure please log a case in my repo on L<github|SUPPORT>>.
+
+B<3.> Earlier versions of this package would extract the .xlsx file to a temp directory and 
+release the file lock on the original file while still retaining the information for access 
 by the parser.  In order to resolve some some temp dir cleanup issues this package no 
 longer releases the lock on the file during reading.  (It will release the file lock and 
 clean up any temp directories when the class is closed)
+
+B<*3.> Not all workbook sheets (tabs) are created equal!  Some Excel sheet tabs are only a 
+chart.  These tabs are 'chartsheets'.  The methods with 'worksheet' in the name only act on 
+the sub set of tabs that are worksheets.  Future methods with 'chartsheet' in the name will 
+focus on the subset of sheets that are chartsheets.  Methods with just 'sheet' in the name 
+have the potential to act on both.  The documentation for the chartsheet level class is found 
+in L<Spreadsheet::XLSX::Reader::LibXML::Chartsheet> (still under construction).  All chartsheet 
+classes do not provide access to cells.
 
 =head2 Attributes
 
@@ -1518,7 +1592,9 @@ B<Definition:> This method will return an array (I<not an array reference>)
 containing a list of references to all worksheets in the workbook.  This is not 
 a reccomended method.  It is provided for compatibility to Spreadsheet::ParseExcel.  
 For alternatives see the L<get_worksheet_names|/get_worksheet_names> method and the
-L<worksheet|/worksheet( $name )> methods.
+L<worksheet|/worksheet( $name )> methods.  B<For now it also only returns the tabular 
+worksheets in the workbook.  All chart worksheets are ignored! (future inclusion will 
+included a backwards compatibility policy)>
 
 B<Accepts:> nothing
 
@@ -1533,15 +1609,17 @@ objects for all worksheets in the workbook.
 
 B<Definition:> This method will return an  object to read values in the worksheet.  
 If no value is passed to $name then the 'next' worksheet in physical order is 
-returned. I<'next' will NOT wrap>
+returned. I<'next' will NOT wrap>  It also only iterates through the 'worksheets' 
+in the workbook (but not the 'chartsheets').
 
 B<Accepts:> the $name string representing the name of the worksheet object you 
 want to open.  This name is the word visible on the tab when opening the spreadsheet 
-in Excel. (not the underlying zip member file name - which can be different)
+in Excel. (not the underlying zip member file name - which can be different.  It will 
+not accept chart tab names.)
 
 B<Returns:> a L<Worksheet|Spreadsheet::XLSX::Reader::LibXML::Worksheet> object with the 
-ability to read the worksheet of that name.  Or in 'next' mode it returns undef if 
-past the last sheet
+ability to read the worksheet of that name.  It returns undef and sets the error attribute 
+if a 'chartsheet' is requested.  Or in 'next' mode it returns undef if past the last sheet.
 
 B<Example:> using the implied 'next' worksheet;
 
@@ -1580,11 +1658,12 @@ B<Returns:> nothing
 
 =back
 
-=head3 number_of_sheets
+=head3 worksheet_count
 
 =over
 
-B<Definition:> This method returns the count of worksheets in the workbook
+B<Definition:> This method returns the count of worksheets (excluding charts) in 
+the workbook.
 
 B<Accepts:>nothing
 
@@ -1597,7 +1676,7 @@ B<Returns:> an integer
 =over
 
 B<Definition:> This method returns an array ref of all the worksheet names in the 
-workbook.
+workbook.  (It excludes chartsheets.)
 
 B<Accepts:> nothing
 
@@ -1613,17 +1692,45 @@ once is;
 
 =back
 
-=head3 worksheet_name( $Int )
+=head3 get_sheet_names
 
 =over
 
-B<Definition:> This method returns the worksheet name for a given physical position 
-in the worksheet from left to right. It counts from zero even if the workbook is in 
-'count_from_one' mode.
+B<Definition:> This method returns an array ref of all the sheet names (tabs) in the 
+workbook.  (It includes chartsheets.)
+
+B<Accepts:> nothing
+
+B<Returns:> an array ref
+
+=back
+
+=head3 get_chartheet_names
+
+=over
+
+B<Definition:> This method returns an array ref of all the chartsheet names in the 
+workbook.  (It excludes worksheets.)
+
+B<Accepts:> nothing
+
+B<Returns:> an array ref
+
+=back
+
+=head3 sheet_name( $Int )
+
+=over
+
+B<Definition:> This method returns the sheet name for a given physical position 
+in the workbook from left to right. It counts from zero even if the workbook is in 
+'count_from_one' mode.  B(It will return chart names but chart tab names cannot currently 
+be converted to worksheets). You may actually want L<worksheet_name|worksheet_name( $Int )> 
+instead of this function.
 
 B<Accepts:> integers
 
-B<Returns:> the worksheet name
+B<Returns:> the sheet name (both workbook and worksheet)
 
 B<Example:> To return only worksheet positions 2 through 4
 
@@ -1631,6 +1738,80 @@ B<Example:> To return only worksheet positions 2 through 4
 		my $worksheet = $workbook->worksheet( $workbook->worksheet_name( $x ) );
 		# Read the worksheet here
 	}
+
+=back
+
+=head3 sheet_count
+
+=over
+
+B<Definition:> This method returns the count of all sheets in the workbook (worksheets 
+and chartsheets).
+
+B<Accepts:> nothing
+
+B<Returns:> a count of all sheets
+
+=back
+
+=head3 worksheet_name( $Int )
+
+=over
+
+B<Definition:> This method returns the worksheet name for a given order in the workbook 
+from left to right. It does not count any 'chartsheet' positions as valid.  It counts 
+from zero even if the workbook is in 'count_from_one' mode.
+
+B<Accepts:> integers
+
+B<Returns:> the worksheet name
+
+B<Example:> To return only worksheet positions 2 through 4 and then parse them
+
+	for $x (2..4){
+		my $worksheet = $workbook->worksheet( $workbook->worksheet_name( $x ) );
+		# Read the worksheet here
+	}
+
+=back
+
+=head3 worksheet_count
+
+=over
+
+B<Definition:> This method returns the count of all worksheets in the workbook (not 
+including chartsheets).
+
+B<Accepts:> nothing
+
+B<Returns:> a count of all worksheets
+
+=back
+
+=head3 chartsheet_name( $Int )
+
+=over
+
+B<Definition:> This method returns the chartsheet name for a given order in the workbook 
+from left to right. It does not count any 'worksheet' positions as valid.  It counts 
+from zero even if the workbook is in 'count_from_one' mode.
+
+B<Accepts:> integers
+
+B<Returns:> the chartsheet name
+
+=back
+
+=head3 chartsheet_count
+
+=over
+
+B<Definition:> This method returns the count of all chartsheets in the workbook (not 
+including worksheets).
+
+B<Accepts:> nothing
+
+B<Returns:> a count of all chartsheets
 
 =back
 
@@ -1858,6 +2039,8 @@ L<github Spreadsheet::XLSX::Reader::LibXML/issues|https://github.com/jandrew/Spr
 
 =over
 
+B<1.> Add POD for all the new chart methods!
+
 B<1.> Build an 'Alien::LibXML::Devel' package to load the libxml2-devel libraries from source and 
 require that and L<Alien::LibXML> in the build file. So all needed requirements for L<XML::LibXML> 
 are met
@@ -1907,6 +2090,8 @@ patches, bug reports, help with troubleshooting, etc. A huge
 =over
 
 L<Frank Maas|https://github.com/Frank071>
+
+L<Stuart Watt|https://github.com/morungos>
 
 =back
 

@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::Types;
-use version; our $VERSION = qv('v0.34.2');
+use version; our $VERSION = qv('v0.34.4');
 		
 use strict;
 use warnings;
@@ -7,11 +7,10 @@ use Type::Utils -all;
 use Type::Library 1.000
 	-base,
 	-declare => qw(
-		FileName					XMLFile						XLSXFile
-		ParserType					Excel_number_0				EpochYear
-		PassThroughType				CellID						PositiveNum
+		XMLFile						XLSXFile					ParserType										
 		NegativeNum					ZeroOrUndef					NotNegativeNum
 		IOFileType					ErrorString					SubString
+		CellID						PositiveNum					Excel_number_0
 	);
 use IO::File;
 BEGIN{ extends "Types::Standard" };
@@ -31,15 +30,6 @@ if( $try_xs and exists $INC{'Type/Tiny/XS.pm'} ){
 
 
 #########1 Type Library       3#########4#########5#########6#########7#########8#########9
-
-declare FileName,
-	as Str,
-    where{ -r $_ },
-    message{ 
-        ( $_ ) ? 
-            "Could not find / read the file: $_" : 
-            'No value passed to the file_name test' 
-    };
 	
 declare XMLFile,
 	as Str,
@@ -85,19 +75,12 @@ coerce IOFileType,
 	from XMLFile,
 	via{  IO::File->new( $_, 'r' ); };
 
-declare ParserType, 
+declare ParserType,
 	as Enum[qw( reader )];#dom  sax
 
 coerce ParserType,
 	from Str,
 	via{ lc( $_ ) };
-
-declare EpochYear,
-	as Int,
-	where{ $_ == 1900 or $_ == 1904 };
-
-declare PassThroughType,
-	as Maybe[Any];
 
 declare CellID,
 	as StrMatch[ qr/^[A-Z]{1,3}[1-9]\d*$/ ];
@@ -123,7 +106,7 @@ declare SubString,
 
 declare ErrorString,
 	as SubString,
-	where{ $_ !~ /\)\n;/ };
+	where{ $_ !~ /\)\n;/ };# Since the coercion removes them
 	
 coerce SubString,
 	from Object,
@@ -173,14 +156,52 @@ Spreadsheet::XLSX::Reader::LibXML::Types - A type library for the LibXML xlsx re
     
 =head1 DESCRIPTION
 
-B<This documentation is written to explain ways to extend this package.  To use the data 
-extraction of Excel workbooks, worksheets, and cells please review the documentation for  
-L<Spreadsheet::XLSX::Reader::LibXML>,
-L<Spreadsheet::XLSX::Reader::LibXML::Worksheet>, and 
-L<Spreadsheet::XLSX::Reader::LibXML::Cell>>
+This documentation is written to explain ways to use this module.  To use the general 
+package for excel parsing out of the box please review the documentation for L<Workbooks
+|Spreadsheet::XLSX::Reader::LibXML>, L<Worksheets
+|Spreadsheet::XLSX::Reader::LibXML::Worksheet>, and 
+L<Cells|Spreadsheet::XLSX::Reader::LibXML::Cell>.
 
-POD not written yet!
+This is a L<Type::Library|Type::Tiny::Manual::Libraries> for this package.
 
+=head1 TYPES
+
+=head2 XMLFile
+
+This type checks that the value is a readable file (full path - no file find magic 
+used) with an \.xml extention
+
+=head3 coercions
+
+none
+
+=head2 XLSXFile
+
+This type checks that the value is a readable file (full path - no file find magic 
+used)  with an \.xlsx extention
+
+=head3 coercions
+
+none
+
+=head2 ParserType
+
+For now this type checks that the parser type string == 'reader'.  As future parser 
+types are added to the package I will update this type.
+
+=head3 coercions
+
+=over
+
+B<Str:> this will lower case any other version of reader (Reader| READER) to get it to pass
+
+=back
+
+=head2 NegativeNum
+
+ZeroOrUndef					NotNegativeNum
+		IOFileType					ErrorString					SubString
+		CellID						PositiveNum					Excel_number_0
 =head1 SUPPORT
 
 =over
@@ -194,7 +215,7 @@ L<github Spreadsheet::XLSX::Reader::LibXML/issues
 
 =over
 
-B<1.> Add ErrorString type tests to the test suit
+B<1.> The ErrorString type tests still needs a 'fail' case
 
 =back
 
@@ -216,7 +237,7 @@ it and/or modify it under the same terms as Perl itself.
 The full text of the license can be found in the
 LICENSE file included with this module.
 
-This software is copyrighted (c) 2014 by Jed Lund
+This software is copyrighted (c) 2014, 2015 by Jed Lund
 
 =head1 DEPENDENCIES
 
