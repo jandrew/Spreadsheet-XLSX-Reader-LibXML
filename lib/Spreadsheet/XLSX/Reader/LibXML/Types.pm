@@ -106,7 +106,7 @@ declare SubString,
 
 declare ErrorString,
 	as SubString,
-	where{ $_ !~ /\)\n;/ };# Since the coercion removes them
+	where{ $_ !~ /\)\n;/ };
 	
 coerce SubString,
 	from Object,
@@ -162,7 +162,9 @@ package for excel parsing out of the box please review the documentation for L<W
 |Spreadsheet::XLSX::Reader::LibXML::Worksheet>, and 
 L<Cells|Spreadsheet::XLSX::Reader::LibXML::Cell>.
 
-This is a L<Type::Library|Type::Tiny::Manual::Libraries> for this package.
+This is a L<Type::Library|Type::Tiny::Manual::Libraries> for this package.  There are no 
+real tricks here outside of the standard Type::Tiny stuf.  For the cool number and date 
+formatting implementation see L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings>.
 
 =head1 TYPES
 
@@ -184,6 +186,22 @@ used)  with an \.xlsx extention
 
 none
 
+=head2 IOFileType
+
+This is set as an L<instance of|Types::Standard/InstanceOf[`a]> 'IO::File'
+
+=head3 coercions
+
+=over
+
+B<GlobRef:>  by blessing it into an IO::File instance 'via{  bless $_, 'IO::File' }'
+
+B<XLSXFile:>  by opening it as an IO::File instance 'via{  IO::File->new( $_, 'r' ); }'
+
+B<XMLFile:>  by opening it as an IO::File instance 'via{  IO::File->new( $_, 'r' ); }'
+
+=back
+
 =head2 ParserType
 
 For now this type checks that the parser type string == 'reader'.  As future parser 
@@ -193,15 +211,88 @@ types are added to the package I will update this type.
 
 =over
 
-B<Str:> this will lower case any other version of reader (Reader| READER) to get it to pass
+B<Str:> this will lower case any other version of the string 'reader' (Reader| READER) 
+to get it to pass
 
 =back
 
+=head2 PositiveNum
+
+This type checks that the value is a number and is greater than 0
+
+=head3 coercions
+
+none
+
 =head2 NegativeNum
 
-ZeroOrUndef					NotNegativeNum
-		IOFileType					ErrorString					SubString
-		CellID						PositiveNum					Excel_number_0
+This type checks that the value is a number and is less than 0
+
+=head3 coercions
+
+none
+
+=head2 ZeroOrUndef
+
+This type allows the value to be the number 0 or undef
+
+=head3 coercions
+
+none
+
+=head2 NotNegativeNum
+
+This type checks that the value is a number and that the number is greater than 
+or equal to 0
+
+=head3 coercions
+
+none
+
+=head2 CellID
+
+this is a value that passes the following regular expression test; qr/^[A-Z]{1,3}[1-9]\d*$/
+
+=head3 coercions
+
+none
+
+=head2 SubString
+
+This is a precurser type to ErrorString.  It is used to perform the first layer of coersions 
+so that error objects can be consumed as-is in this package when a subcomponent throws an 
+object rather than a string as an error.
+
+=head3 coercions
+
+=over
+
+B<Object:>  it will test the object for two methods and if either one is present it will use 
+the results of that method as the string.  The methods in order are; 'as_string' and 'message'
+
+=back
+
+=head2 ErrorString
+
+This is a string that can't match the following sequence /\)\n;/ 
+#I don't even remember why that sequence is bad but it is
+
+=head3 coercions
+
+=over
+
+B<SubString:> by using the following substitution on the string; s/\)\n;/\);/g
+
+=back
+
+=head1 NAMED COERCIONS
+
+=head2 Excel_number_0
+
+This is essentially a pass through coercion used as a convenience rather than writing the 
+pass through each time a coercion is needed but no actual work should be performed on the 
+value
+
 =head1 SUPPORT
 
 =over

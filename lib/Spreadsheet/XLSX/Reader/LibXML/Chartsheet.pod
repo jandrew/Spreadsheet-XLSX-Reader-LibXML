@@ -165,7 +165,7 @@ B<get_sheet_type>
 
 =over
 
-B<Definition:> returns the value stored in the attribute
+B<Definition:> returns the value stored in the attribute (chartsheet)
 
 =back
 

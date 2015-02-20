@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::GetCell;
-use version 0.77; our $VERSION = qv('v0.34.2');
+use version; our $VERSION = qv('v0.34.4');
 
 use	Moose::Role;
 requires qw(
