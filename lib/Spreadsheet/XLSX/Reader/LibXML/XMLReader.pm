@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader;
-use version; our $VERSION = qv('v0.34.4');
+use version; our $VERSION = qv('v0.34.6');
 
 use 5.010;
 use Moose;
@@ -27,6 +27,7 @@ has file =>(
 		predicate	=> 'has_file',
 		clearer		=> 'clear_file',
 		coerce		=> 1,
+		required	=> 1,
 		trigger		=> \&_build_xml_reader,
 	);
 
@@ -205,18 +206,167 @@ Spreadsheet::XLSX::Reader::LibXML::XMLReader - A LibXML::Reader xlsx base class
     
 =head1 DESCRIPTION
 
-B<This documentation is written to explain ways to extend this package.  To use the data 
-extraction of Excel workbooks, worksheets, and cells please review the documentation for  
-L<Spreadsheet::XLSX::Reader::LibXML>,
-L<Spreadsheet::XLSX::Reader::LibXML::Worksheet>, and 
-L<Spreadsheet::XLSX::Reader::LibXML::Cell>>
+This documentation is written to explain ways to use this module when writing your own excel 
+parser.  To use the general package for excel parsing out of the box please review the 
+documentation for L<Workbooks|Spreadsheet::XLSX::Reader::LibXML>,
+L<Worksheets|Spreadsheet::XLSX::Reader::LibXML::Worksheet>, and 
+L<Cells|Spreadsheet::XLSX::Reader::LibXML::Cell>
 
-When setting worksheet file handles you can't reuse them again to re-open the same sheet 
-since the last act of this package is to close the file handle before returning it.  You 
-must also set both the file handle and the xml reader when building an instance of this 
-class.
+This module provides a generic way to open an xml file or xml file handle and then extract 
+information using the L<XML::LibXML::Reader> parser.  It it xlsx file type agnostic.  The  
+does this by using L<delegation|Moose::Manual::Delegation> from the ~::Reader module to 
+import useful functions to this module.  Aside from the delegation piece this module 
+provides three other useful elements.  First, the module has an attribute to load the file 
+or file handle and uses coercion to turn a file into a file handle from the L<Types
+|Spreadsheet::XLSX::Reader::LibXML::Types/IOFileType> library.  Second, the module has an 
+attribute to store an L<error handler|Spreadsheet::XLSX::Reader::LibXML::Error>.  Third, 
+the module provides a L<rewind|/start_the_file_over> function since that is not available in  
+the L<XML::LibXML> parser.
 
-POD not written yet!
+Further use of the module or specialization of the reader can be done by L<extending|/SYNOPSIS> 
+the class.
+
+=head2 Attributes
+
+Data passed to new when creating an instance.  For modification of these attributes see the 
+listed 'attribute methods'. For general information on attributes see 
+L<Moose::Manual::Attributes>.  For ways to manage the workbook when opened see the 
+L<Methods|/Methods>.
+
+=head3 file
+
+=over
+
+B<Definition:> This attribute holds the file handle for the file being read.  If the full 
+file name and path is passed to the attribute it is coerced to an IO::File file handle.
+
+B<Default:> no default - this must be provided to read a file
+
+B<Required:> yes
+
+B<Range:> any unencrypted xml file name and path or file handle
+
+B<attribute methods> Methods provided to adjust this attribute
+		
+=over
+
+B<set_file>
+
+=over
+
+B<Definition:> change the file value in the attribute (this will reboot 
+the file instance and lock the file)
+
+=back
+
+B<get_file>
+
+=over
+
+B<Definition:> Returns the file handle of the file even if a file name 
+was passed
+
+=back
+
+B<has_file>
+
+=over
+
+B<Definition:> this is used to see if the file loaded correctly.
+
+=back
+
+B<clear_file>
+
+=over
+
+B<Definition:> this clears (and unlocks) the file handle
+
+=back
+
+=back
+
+=back
+
+=head3 error_inst
+
+=over
+
+B<Definition:> This attribute holds the L<error handler
+|Spreadsheet::XLSX::Reader::LibXML::Error>.
+
+B<Default:> no default - this must be provided to read a file
+
+B<Required:> yes
+
+B<Range:> any object instance that can provide the required delegated methods.
+
+B<delegated methods> Methods provided delegated by the attribute
+		
+=over
+
+B<error>
+
+=over
+
+B<Definition:> returns the stored error string
+
+=back
+
+B<set_error>
+
+=over
+
+B<Definition:> Sets the error string
+
+=back
+
+B<clear_error>
+
+=over
+
+B<Definition:> clears the error string
+
+=back
+
+B<set_warnings>
+
+=over
+
+B<Definition:> Sets the state that determins if the instance pro-activly 
+warns with the error string when the error string is set.
+
+=back
+
+B<if_warn>
+
+=over
+
+B<Definition:> Returns the current state of the state value from 'set_warnings'
+
+=back
+
+=back
+
+=back
+
+=head2 Methods
+
+These are the methods provided by this class.  They most likely should be agumented 
+with file specific methods when extending this module.
+
+=head3 start_the_file_over
+
+=over
+
+B<Definition:> This will disconnect the L<XML::LibXML::Reader> from the file handle,  
+rewind the file handle, and then reconnect the L<XML::LibXML::Reader> to the file handle.
+
+B<Accepts:> nothing
+
+B<Returns:> nothing
+
+=back
 
 =head1 SUPPORT
 
@@ -231,7 +381,8 @@ L<github Spreadsheet::XLSX::Reader::LibXML/issues
 
 =over
 
-B<1.> Nothing L<yet|/SUPPORT>
+B<1.> The delegation from XML::LibXML::Reader is a bit crufty.  I need to scrub all the 
+unused commands out.
 
 =back
 
@@ -259,7 +410,7 @@ This software is copyrighted (c) 2014 by Jed Lund
 
 =over
 
-L<Spreadsheet::XLSX::Reader::LibXML>
+L<XML::LibXML::Reader>
 
 =back
 
