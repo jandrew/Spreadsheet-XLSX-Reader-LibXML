@@ -230,7 +230,7 @@ the class.
 
 Data passed to new when creating an instance.  For modification of these attributes see the 
 listed 'attribute methods'. For general information on attributes see 
-L<Moose::Manual::Attributes>.  For ways to manage the workbook when opened see the 
+L<Moose::Manual::Attributes>.  For ways to manage the instance when opened see the 
 L<Methods|/Methods>.
 
 =head3 file

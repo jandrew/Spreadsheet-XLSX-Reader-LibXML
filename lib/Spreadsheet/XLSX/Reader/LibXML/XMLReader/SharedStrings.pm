@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings;
-use version; our $VERSION = qv('v0.34.4');
+use version; our $VERSION = qv('v0.34.6');
 
 use 5.010;
 use Moose;
@@ -165,16 +165,66 @@ __END__
 =head1 NAME
 
 Spreadsheet::XLSX::Reader::XMLReader::SharedStrings - A LibXML::Reader sharedStrings base class
+
+=head1 SYNOPSIS
+
+	#!/usr/bin/env perl
+	use Data::Dumper;
+	use MooseX::ShortCut::BuildInstance qw( build_instance );
+	use Spreadsheet::XLSX::Reader::LibXML::Error;
+	use Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings;
+
+	my $file_instance = build_instance(
+	    package      => 'SharedStringsInstance',
+	    superclasses => ['Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings'],
+	    file         => 'sharedStrings.xml',
+	    error_inst   => Spreadsheet::XLSX::Reader::LibXML::Error->new,
+	);
+	print Dumper( $file_instance->get_shared_string_position( 3 ) );
+	print Dumper( $file_instance->get_shared_string_position( 12 ) );
+
+	#######################################
+	# SYNOPSIS Screen Output
+	# 01: $VAR1 = {
+	# 02:     'raw_text' => ' '
+	# 03: };
+	# 04: $VAR1 = {
+	# 05:     'raw_text' => 'Superbowl Audibles'
+	# 06: };
+	#######################################
     
 =head1 DESCRIPTION
 
-B<This documentation is written to explain ways to extend this package.  To use the data 
-extraction of Excel workbooks, worksheets, and cells please review the documentation for  
-L<Spreadsheet::XLSX::Reader::LibXML>,
-L<Spreadsheet::XLSX::Reader::LibXML::Worksheet>, and 
-L<Spreadsheet::XLSX::Reader::LibXML::Cell>>
+This documentation is written to explain ways to use this module when writing your 
+own excel parser or extending this package.  To use the general package for excel 
+parsing out of the box please review the documentation for L<Workbooks
+|Spreadsheet::XLSX::Reader::LibXML>, L<Worksheets
+|Spreadsheet::XLSX::Reader::LibXML::Worksheet>, and 
+L<Cells|Spreadsheet::XLSX::Reader::LibXML::Cell>.
 
-POD not written yet!
+This class is written to extend L<Spreadsheet::XLSX::Reader::LibXML::XMLReader>.  
+It addes to that functionality specifically to read the sharedStrings.xml sub file 
+zipped into an .xlsx file.  It does not provide connection to other file types or 
+even the elements from other files that are related to this file.  This POD only 
+describes the functionality incrementally provided by this module.  For an overview 
+of sharedStrings.xml reading see L<Spreadsheet::XLSX::Reader::LibXML::SharedStrings>
+
+=head2 Methods
+
+These are the methods provided by this module.
+
+=head3 get_shared_string_position( $positive_int )
+
+=over
+
+B<Definition:> This returns the xml converted to a deep perl data structure from the 
+defined 'si' position.
+
+B<Accepts:> $positive_int ( a positive integer )
+
+B<Returns:> a deep perl data structure built from the xml at 'si' position $positive_int
+
+=back
 
 =head1 SUPPORT
 
@@ -189,7 +239,7 @@ L<github Spreadsheet::XLSX::Reader::LibXML/issues
 
 =over
 
-B<1.> This is an early write and very crufty - needs a scrub
+B<1.> Nothing yet
 
 =back
 
@@ -211,7 +261,7 @@ it and/or modify it under the same terms as Perl itself.
 The full text of the license can be found in the
 LICENSE file included with this module.
 
-This software is copyrighted (c) 2014 by Jed Lund
+This software is copyrighted (c) 2014, 2015 by Jed Lund
 
 =head1 DEPENDENCIES
 

@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::Cell;
-use version; our $VERSION = qv('v0.34.4');
+use version; our $VERSION = qv('v0.34.6');
 
 $| = 1;
 use 5.010;
@@ -1015,7 +1015,7 @@ it and/or modify it under the same terms as Perl itself.
 The full text of the license can be found in the
 LICENSE file included with this module.
 
-This software is copyrighted (c) 2014 by Jed 
+This software is copyrighted (c) 2014, 2015 by Jed 
 
 =head1 DEPENDENCIES
 
