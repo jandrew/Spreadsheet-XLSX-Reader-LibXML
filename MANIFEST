@@ -53,6 +53,7 @@ t/Spreadsheet/XLSX/Reader/LibXML/error_example.pl
 t/Spreadsheet/XLSX/Reader/LibXML/fmt_default_example.pl
 t/Spreadsheet/XLSX/Reader/LibXML/parse_excel_fmt_string_example.pl
 t/Spreadsheet/XLSX/Reader/libxml_example.pl
+t/Spreadsheet/XLSX/Reader/libxml_example_alt.pl
 t/test_files/ChartSheet.xls
 t/test_files/ChartSheet.xlsx
 t/test_files/ChartSheet/xl/_rels/workbook.xml.rels

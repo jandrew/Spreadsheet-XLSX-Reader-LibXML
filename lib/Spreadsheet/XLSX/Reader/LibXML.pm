@@ -19,6 +19,7 @@ use Types::Standard qw(
     );
 use	MooseX::ShortCut::BuildInstance 1.032 qw( build_instance should_re_use_classes );
 use lib	'../../../../lib',;
+use Data::Dumper;
 ###LogSD with 'Log::Shiras::LogSpace';
 ###LogSD use Log::Shiras::Telephone;
 ###LogSD use Log::Shiras::UnhideDebug;
@@ -81,6 +82,31 @@ my	$build_ref	= {
 			zip	=> 'xl/calcChain.xml',
 		},
 	};
+my	$attribute_defaults ={
+		error_inst           => Spreadsheet::XLSX::Reader::LibXML::Error->new( should_warn => 0 ),
+		sheet_parser         => 'reader',
+		count_from_zero      => 1,
+		file_boundary_flags  => 1,
+		empty_is_end         => 0,
+		values_only          => 0,
+		from_the_edge        => 1,
+		default_format_list  => 'Spreadsheet::XLSX::Reader::LibXML::FmtDefault',
+		format_string_parser => 'Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings',
+		group_return_type    => 'instance',
+		empty_return_type    => 'empty_string',
+	};
+my	$flag_settings ={
+		alt_default =>{
+			values_only       => 1,
+			count_from_zero   => 0,
+			empty_is_end      => 1,
+		},
+		just_the_data =>{
+			count_from_zero   => 0,
+			values_only       => 1,
+			group_return_type => 'value',
+		},
+	};
 
 #########1 Public Attributes  3#########4#########5#########6#########7#########8#########9
 
@@ -94,9 +120,8 @@ has error_inst =>(
 		handles =>[ qw(
 			error set_error clear_error set_warnings if_warn
 		) ],
-		default => sub{ Spreadsheet::XLSX::Reader::LibXML::Error->new( should_warn => 0 ) },
 	);
-
+	
 has file_name =>(
 		isa			=> XLSXFile,
 		writer		=> 'set_file_name',
@@ -118,7 +143,6 @@ has sheet_parser =>(
 		isa		=> ParserType,
 		writer	=> 'set_parser_type',
 		reader	=> 'get_parser_type',
-		default	=> 'reader',
 		coerce	=> 1,
 	);
 
@@ -126,14 +150,12 @@ has count_from_zero =>(
 		isa		=> Bool,
 		reader	=> 'counting_from_zero',
 		writer	=> 'set_count_from_zero',
-		default	=> 1,
 	);
 	
 has file_boundary_flags =>(
 		isa			=> Bool,
 		reader		=> 'boundary_flag_setting',
 		writer		=> 'change_boundary_flag',
-		default		=> 1,
 		required	=> 1,
 	);
 
@@ -141,52 +163,63 @@ has empty_is_end =>(
 		isa		=> Bool,
 		writer	=> 'set_empty_is_end',
 		reader	=> 'is_empty_the_end',
-		default	=> 0,
 	);
 
 has values_only =>(
 		isa		=> Bool,
 		writer	=> 'set_values_only',
 		reader	=> 'get_values_only',
-		default	=> 0,
 	);
 
 has from_the_edge =>(
 		isa		=> Bool,
 		reader	=> '_starts_at_the_edge',
 		writer	=> 'set_from_the_edge',
-		default	=> 1,
 	);
 
 has default_format_list =>(
 		isa		=> Str,
 		writer	=> 'set_default_format_list',
 		reader	=> 'get_default_format_list',
-		default	=> 'Spreadsheet::XLSX::Reader::LibXML::FmtDefault',
 	);
 
 has format_string_parser =>(
 		isa		=> Str,
 		writer	=> 'set_format_string_parser',
 		reader	=> 'get_format_string_parser',
-		default	=> 'Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings',
 	);
 
 has group_return_type =>(
 		isa		=> Enum[qw( unformatted value instance )],
 		reader	=> 'get_group_return_type',
 		writer	=> 'set_group_return_type',
-		default	=> 'instance',
 	);
 
 has empty_return_type =>(
 		isa		=> Enum[qw( empty_string undef_string )],
 		reader	=> 'get_empty_return_type',
 		writer	=> 'set_empty_return_type',
-		default	=> 'empty_string',
 	);
 
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
+
+sub import{# Flags handled here!
+    my ( $self, $flag ) = @_;
+	if( $flag ){
+		#~ print "Arrived at import with flag: $flag\n";
+		if( $flag =~ /^:(\w*)$/ ){
+			my $default_choice = $1;
+			#~ print "Attempting to change the default group type to: $default_choice\n";
+			if( exists $flag_settings->{$default_choice} ){
+				map{ $attribute_defaults->{$_} = $flag_settings->{$default_choice}->{$_} } keys %{$flag_settings->{$default_choice}};
+			}else{
+				confess "No settings available for the flag: $flag";
+			}
+		}else{
+			confess "Passed attribute default flag -$flag- does not comply with the correct format";
+		}
+	}
+}
 
 sub parse{
 
@@ -471,6 +504,27 @@ has _zip_file_handle =>(
 	);
 
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
+
+around BUILDARGS => sub {
+    my ( $orig, $class, %args ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new(
+	###LogSD					name_space 	=> 'Workbook::BUILDARGS', );
+	###LogSD		$phone->talk( level => 'trace', message =>[
+	###LogSD			'Arrived at BUILDARGS with: ', %args ] );
+	for my $key ( keys %$attribute_defaults ){
+		if( exists $args{$key} ){
+			###LogSD	$phone->talk( level => 'trace', message =>[
+			###LogSD			"Found user defined -$key- with value: $args{$key}" ] );
+		}else{
+			###LogSD	$phone->talk( level => 'trace', message =>[
+			###LogSD			"Setting default -$key- with value: $attribute_defaults->{$key}" ] );
+			$args{$key} = $attribute_defaults->{$key};
+		}
+	}
+	###LogSD	$phone->talk( level => 'trace', message =>[
+	###LogSD			"Final BUILDARGS:", %args ] );
+    return $class->$orig(%args);
+};
 
 sub _build_workbook{
 
@@ -1284,8 +1338,8 @@ B<Definition:> The excel convention is to read the table left to right and top
 to bottom.  Some tables have an uneven number of columns with real data from row 
 to row.  This allows the several methods that excersize a 'next' function to wrap 
 after the last element with data rather than going to the max column.  This also 
-triggers 'EOR' flags after the last data element and befor the sheet max 
-column when not implementing 'next' functionality.
+triggers 'EOR' flags after the last data element and before the sheet max column 
+when not implementing 'next' functionality.
 
 B<Default> 0
 
@@ -1321,7 +1375,7 @@ B<Definition:> a way to set the current attribute setting
 
 =over
 
-B<Definition:> Excel with store information about a cell even if it only contains 
+B<Definition:> Excel will store information about a cell even if it only contains 
 formatting data.  In many cases you only want to see cells that actually have 
 values.  This attribute will change the package behaviour regarding cells that have 
 formatting stored against that cell but no actual value.
@@ -1968,6 +2022,44 @@ Roundabout delegation from
 L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/set_date_behavior>
 
 =back
+
+=head1 FLAGS
+
+The parameter list (attributes) that are possible to pass to ->new is somewhat long.  
+Therefore you may want a shortcut that aggregates some set attribute settings that 
+are not the defaults but wind up being boilerplate.  I have provided possible 
+alternate sets like this and am open to providing others that are suggested.  The 
+flags will have a : in front of the identifier and will be passed to the class in the 
+'use' statement for consumption by the import method.  Only the first flag is currently 
+accepted.
+
+Example;
+
+	use Spreadsheet::XLSX::Reader::LibXML v0.34.4 qw( :alt_default );
+
+=head2 :alt_default
+
+This is intended for a deep look at data but skip formatting.
+
+=head3 Default attribute differences
+
+L<values_only|/values_only> => 1
+
+L<count_from_zero|/count_from_zero> => 0
+
+L<empty_is_end|/empty_is_end> => 1
+
+=head2 :just_the_data
+
+This is intended for a shallow look at data but skip formatting.
+
+=head3 Default attribute differences
+
+L<values_only|/values_only> => 1
+
+L<count_from_zero|/count_from_zero> => 0
+
+L<group_return_type|/group_return_type> => 'value'
 
 =head1 BUILD / INSTALL from Source
 

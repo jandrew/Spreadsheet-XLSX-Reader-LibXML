@@ -12,8 +12,8 @@ See the SYNOPSIS in the L<Workbook class|Spreadsheet::XLSX::Reader::LibXML/SYNOP
 
 =head1 DESCRIPTION
 
-This documentation is intended to cover all 'chart' sheets.  For review of the function 
-and implementation of the 'tabular' data style worksheets please review the documentation 
+This documentation is intended to cover all 'chartsheet' tabs.  For review of the function 
+and implementation of the 'worksheet' style tabs please review the documentation 
 for L<Worksheets|Spreadsheet::XLSX::Reader::LibXML::WorkSheet>.
 
 Currently this class is mostly a stub to keep the package from dying if a chartsheet 

@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::Chartsheet;
-use version; our $VERSION = qv('v0.34.4');
+use version; our $VERSION = qv('v0.34.6');
 
 
 use	5.010;
@@ -16,11 +16,6 @@ use lib	'../../../../../../lib';
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
 extends	'Spreadsheet::XLSX::Reader::LibXML::XMLReader';
-#~ with	'Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow',
-		#~ 'Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData',
-		#~ ;
-#~ ###LogSD	use Log::Shiras::UnhideDebug;
-#~ with	'Spreadsheet::XLSX::Reader::LibXML::GetCell';
 
 #########1 Dispatch Tables & Package Variables    5#########6#########7#########8#########9
 
@@ -90,90 +85,11 @@ has workbook_instance =>(
 
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
 
-#~ sub min_row{
-	#~ my( $self ) = @_;
-	#~ ###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	#~ ###LogSD					name_space 	=> ($self->get_log_space .  '::row_bound::min_row' ), );
-	#~ ###LogSD		$phone->talk( level => 'debug', message => [
-	#~ ###LogSD			"Returning the minimum row: " . $self->_min_row ] );
-	#~ return $self->_min_row;
-#~ }
-
-#~ sub max_row{
-	#~ my( $self ) = @_;
-	#~ ###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	#~ ###LogSD					name_space 	=> ($self->get_log_space .  '::row_bound::max_row' ), );
-	#~ ###LogSD		$phone->talk( level => 'debug', message => [
-	#~ ###LogSD			"Returning the maximum row: " . $self->_max_row ] );
-	#~ return $self->_max_row;
-#~ }
-
-#~ sub min_col{
-	#~ my( $self ) = @_;
-	#~ ###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	#~ ###LogSD					name_space 	=> ($self->get_log_space .  '::row_bound::min_col' ), );
-	#~ ###LogSD		$phone->talk( level => 'debug', message => [
-	#~ ###LogSD			"Returning the minimum column: " . $self->_min_col ] );
-	#~ return $self->_min_col;
-#~ }
-
-#~ sub max_col{
-	#~ my( $self ) = @_;
-	#~ ###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	#~ ###LogSD					name_space 	=> ($self->get_log_space .  '::row_bound::max_col' ), );
-	#~ ###LogSD		$phone->talk( level => 'debug', message => [
-	#~ ###LogSD			"Returning the maximum column: " . $self->_max_col ] );
-	#~ return $self->_max_col;
-#~ }
-
-#~ sub row_range{
-	#~ my( $self ) = @_;
-	#~ ###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	#~ ###LogSD					name_space 	=> ($self->get_log_space .  '::row_bound::row_range' ), );
-	#~ ###LogSD		$phone->talk( level => 'debug', message => [
-	#~ ###LogSD			"Returning row range( " . $self->_min_row . ", " . $self->_max_row . " )" ] );
-	#~ return( $self->_min_row, $self->_max_row );
-#~ }
-
-#~ sub col_range{
-	#~ my( $self ) = @_;
-	#~ ###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	#~ ###LogSD					name_space 	=> ($self->get_log_space .  '::row_bound::col_range' ), );
-	#~ ###LogSD		$phone->talk( level => 'debug', message => [
-	#~ ###LogSD			"Returning col range( " . $self->_min_col . ", " . $self->_max_col . " )" ] );
-	#~ return( $self->_min_col, $self->_max_col );
-#~ }
 
 
 #########1 Private Attributes 3#########4#########5#########6#########7#########8#########9
 
-#~ has _sheet_min_col =>(
-		#~ isa			=> Int,
-		#~ default		=> 0,
-		#~ reader		=> '_min_col',
-		#~ predicate	=> 'has_min_col',
-	#~ );
 
-#~ has _sheet_min_row =>(
-		#~ isa			=> Int,
-		#~ default		=> 0,
-		#~ reader		=> '_min_row',
-		#~ predicate	=> 'has_min_row',
-	#~ );
-
-#~ has _sheet_max_col =>(
-		#~ isa			=> Int,
-		#~ default		=> 0,
-		#~ reader		=> '_max_col',
-		#~ predicate	=> 'has_max_col',
-	#~ );
-
-#~ has _sheet_max_row =>(
-		#~ isa			=> Int,
-		#~ default		=> 0,
-		#~ reader		=> '_max_row',
-		#~ predicate	=> 'has_max_row',
-	#~ );
 
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
 
@@ -211,7 +127,7 @@ __END__
 
 =head1 NAME
 
-Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet - A LibXML::Reader worksheet base class
+Spreadsheet::XLSX::Reader::LibXML::XMLReader::Chartsheet - A LibXML::XMLReader chartsheet base class
 
 =head1 SYNOPSIS
 
@@ -219,13 +135,153 @@ See the SYNOPSIS in L<Spreadsheet::XLSX::Reader::LibXML>
     
 =head1 DESCRIPTION
 
-B<This documentation is written to explain ways to extend this package.  To use the data 
-extraction of Excel workbooks, worksheets, and cells please review the documentation for  
-L<Spreadsheet::XLSX::Reader::LibXML>,
-L<Spreadsheet::XLSX::Reader::LibXML::Worksheet>, and 
-L<Spreadsheet::XLSX::Reader::LibXML::Cell>>
+This documentation is written to explain ways to use this module when writing your 
+own excel parser or extending this package.  To use the general package for excel 
+parsing out of the box please review the documentation for L<Workbooks
+|Spreadsheet::XLSX::Reader::LibXML>, L<Worksheets
+|Spreadsheet::XLSX::Reader::LibXML::Worksheet>, and 
+L<Cells|Spreadsheet::XLSX::Reader::LibXML::Cell>.
 
-POD not written yet!
+This class is written to extend L<Spreadsheet::XLSX::Reader::LibXML::XMLReader>.  
+It addes to that functionality specifically to read any 'chartsheet'.xml sub files.  
+Chartsheet files are not charts they are just tabs in a workbook similar to 'worksheets' 
+that only hold one chart. This POD only describes the functionality incrementally provided 
+by this module.  For an overview of sharedStrings.xml reading see 
+L<Spreadsheet::XLSX::Reader::LibXML::Chartsheet>
+
+=head2 Extending the chartsheet class
+
+I don't have any good ideas yet.  Outside input welcome.
+
+=head2 Attributes
+
+Data passed to new when creating an instance.   For modification of these attributes 
+see the listed 'attribute methods'. For more information on attributes see 
+L<Moose::Manual::Attributes>.  I<It may be that these attributes migrate based on the 
+reader type.>
+
+=head3 file
+
+=over
+
+B<Definition:> This needs to be the full file path to the sharedStrings file or an 
+opened file handle .  When set it will coerce to a file handle and then will open 
+and read the primary settings in the sharedStrings.xml file and then maintain an open 
+file handle for accessing specific sharedStrings position information.
+
+B<Required:> Yes
+
+B<Default:> none
+
+B<Range> an actual Excel 2007+ sharedStrings.xml file or open file handle (with the 
+pointer set to the beginning of the file)
+
+B<attribute methods> Methods provided to adjust this attribute
+		
+=over
+
+B<get_file>
+
+=over
+
+B<Definition:> Returns the value (file handle) stored in the attribute
+
+=back
+
+B<set_file>
+
+=over
+
+B<Definition:> Sets the value (file handle) stored in the attribute. Then triggers 
+a read of the file level unique bits.
+
+=back
+
+B<has_file>
+
+=over
+
+B<Definition:> predicate for the attribute
+
+=back
+
+=back
+
+=back
+
+=head3 error_inst
+
+=over
+
+B<Definition:> Currently all ShareStrings readers require an 
+L<Error|Spreadsheet::XLSX::Reader::LibXML::Error> instance.  In general the 
+package will share an error instance reference between the workbook and all 
+classes built during the initial workbook build.
+
+B<Required:> Yes
+
+B<Default:> none
+
+B<Range:> The minimum list of methods to implement for your own instance is;
+
+	error set_error clear_error set_warnings if_warn
+
+B<attribute methods> Methods provided to adjust this attribute
+		
+=over
+
+B<get_error_inst>
+
+=over
+
+B<Definition:> returns this instance
+
+=back
+
+B<error>
+
+=over
+
+B<Definition:> Used to get the most recently logged error
+
+=back
+
+B<set_error>
+
+=over
+
+B<Definition:> used to set a new error string
+
+=back
+
+B<clear_error>
+
+=over
+
+B<Definition:> used to clear the current error string in this attribute
+
+=back
+
+B<set_warnings>
+
+=over
+
+B<Definition:> used to turn on or off real time warnings when errors are set
+
+=back
+
+B<if_warn>
+
+=over
+
+B<Definition:> a method mostly used to extend this package and see if warnings 
+should be emitted.
+
+=back
+
+=back
+
+=back
 
 =head1 SUPPORT
 

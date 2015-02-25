@@ -447,8 +447,8 @@ B<Definition:> The excel convention is to read the table left to right and top
 to bottom.  Some tables have an uneven number of columns with real data from row 
 to row.  This allows the several methods that excersize a 'next' function to wrap 
 after the last element with data rather than going to the max column.  This also 
-triggers 'EOR' flags after the last data element and befor the sheet max 
-column when not implementing 'next' functionality.
+triggers 'EOR' flags after the last data element and before the sheet max column 
+when not implementing 'next' functionality.
 
 B<Default> 0
 
@@ -484,7 +484,7 @@ B<Definition:> a way to set the current attribute setting
 
 =over
 
-B<Definition:> Excel with store information about a cell even if it only contains 
+B<Definition:> Excel will store information about a cell even if it only contains 
 formatting data.  In many cases you only want to see cells that actually have 
 values.  This attribute will change the package behaviour regarding cells that have 
 formatting stored against that cell but no actual value.
@@ -1131,6 +1131,44 @@ Roundabout delegation from
 L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/set_date_behavior>
 
 =back
+
+=head1 FLAGS
+
+The parameter list (attributes) that are possible to pass to ->new is somewhat long.  
+Therefore you may want a shortcut that aggregates some set attribute settings that 
+are not the defaults but wind up being boilerplate.  I have provided possible 
+alternate sets like this and am open to providing others that are suggested.  The 
+flags will have a : in front of the identifier and will be passed to the class in the 
+'use' statement for consumption by the import method.  Only the first flag is currently 
+accepted.
+
+Example;
+
+	use Spreadsheet::XLSX::Reader::LibXML v0.34.4 qw( :alt_default );
+
+=head2 :alt_default
+
+This is intended for a deep look at data but skip formatting.
+
+=head3 Default attribute differences
+
+L<values_only|/values_only> => 1
+
+L<count_from_zero|/count_from_zero> => 0
+
+L<empty_is_end|/empty_is_end> => 1
+
+=head2 :just_the_data
+
+This is intended for a shallow look at data but skip formatting.
+
+=head3 Default attribute differences
+
+L<values_only|/values_only> => 1
+
+L<count_from_zero|/count_from_zero> => 0
+
+L<group_return_type|/group_return_type> => 'value'
 
 =head1 BUILD / INSTALL from Source
 

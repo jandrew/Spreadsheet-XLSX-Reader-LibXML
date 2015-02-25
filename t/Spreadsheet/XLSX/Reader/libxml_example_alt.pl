@@ -8,8 +8,35 @@ use Moose::Util;
 #~ use Log::Shiras::Switchboard qw( :debug );#
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(
 ###LogSD						name_space_bounds => {
-###LogSD							UNBLOCK =>{
-###LogSD								log_file => 'trace',
+###LogSD							Base=>{
+###LogSD								Worksheet =>{
+###LogSD									UNBLOCK =>{
+###LogSD										log_file => 'trace',
+###LogSD									},
+###LogSD									_build_xml_reader =>{
+###LogSD										BLOCK =>{ log_file => 1 },
+###LogSD									},
+###LogSD									start_the_file_over =>{
+###LogSD										BLOCK =>{ log_file => 1 },
+###LogSD									},
+###LogSD									_load_unique_bits =>{
+###LogSD										BLOCK =>{ log_file => 1 },
+###LogSD									},
+###LogSD									_reader_init =>{
+###LogSD										BLOCK =>{ log_file => 1 },
+###LogSD									},
+###LogSD									_parse_column_row =>{
+###LogSD										BLOCK =>{ log_file => 1 },
+###LogSD									},
+###LogSD									parse_element =>{
+###LogSD										BLOCK =>{ log_file => 1 },
+###LogSD									},
+###LogSD									XMLReader =>{
+###LogSD										DEMOLISH =>{
+###LogSD											BLOCK =>{ log_file => 1 },
+###LogSD										},
+###LogSD									},
+###LogSD								},
 ###LogSD							},
 ###LogSD						},
 ###LogSD						reports =>{
@@ -18,9 +45,11 @@ use Moose::Util;
 ###LogSD					);
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
-use Spreadsheet::XLSX::Reader::LibXML;#
+use Spreadsheet::XLSX::Reader::LibXML v0.34.4 qw( :alt_default  );# :just_the_data
 
-my $parser   = Spreadsheet::XLSX::Reader::LibXML->new();
+my $parser   = 	Spreadsheet::XLSX::Reader::LibXML->new(
+					###LogSD	log_space => 'Base',
+				);
 my $workbook = $parser->parse( '../../../test_files/TestBook.xlsx' );
 
 if ( !defined $workbook ) {
@@ -30,19 +59,18 @@ if ( !defined $workbook ) {
 for my $worksheet ( $workbook->worksheets() ) {
 	
 	print "Reading worksheet named: " . $worksheet->get_name . "\n";
-	my ( $row_min, $row_max ) = $worksheet->row_range();
-	my ( $col_min, $col_max ) = $worksheet->col_range();
-
-	for my $row ( $row_min .. $row_max ) {
-		for my $col ( $col_min .. $col_max ) {
-
-			my $cell = $worksheet->get_cell( $row, $col );
-			next unless $cell;
-			print "Row, Col    = ($row, $col)\n";
+	
+	while( 1 ){ 
+		my $cell = $worksheet->get_next_value;
+		if( ref $cell ){
+			print 'Row, Col    = (' . $cell->row . ', ' . $cell->col . ")\n";
 			print "Value       = ", $cell->value(),       "\n";
 			print "Unformatted = ", $cell->unformatted(), "\n";
-			print "\n";
+		}else{
+			print "Cell is: $cell\n";
 		}
+		print "\n";
+		last if $cell eq 'EOF';
 	}
 	#~ last;# In order not to read all sheets
 }

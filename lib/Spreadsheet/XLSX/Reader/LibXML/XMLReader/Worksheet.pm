@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet;
-use version; our $VERSION = qv('v0.34.4');
+use version; our $VERSION = qv('v0.34.6');
 
 
 use	5.010;
@@ -627,9 +627,7 @@ sub _get_row_all{
 #########1 Phinish            3#########4#########5#########6#########7#########8#########9
 
 no Moose;
-__PACKAGE__->meta->make_immutable(
-	inline_constructor => 0,
-);
+__PACKAGE__->meta->make_immutable;
 	
 1;
 
@@ -638,7 +636,7 @@ __END__
 
 =head1 NAME
 
-Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet - A LibXML::Reader worksheet base class
+Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet - A LibXML::XMLReader worksheet base class
 
 =head1 SYNOPSIS
 
@@ -689,7 +687,7 @@ it and/or modify it under the same terms as Perl itself.
 The full text of the license can be found in the
 LICENSE file included with this module.
 
-This software is copyrighted (c) 2014 by Jed Lund
+This software is copyrighted (c) 2014, 2015 by Jed Lund
 
 =head1 DEPENDENCIES
 
