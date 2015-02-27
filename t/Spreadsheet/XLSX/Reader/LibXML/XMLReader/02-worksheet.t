@@ -21,8 +21,6 @@ $| = 1;
 
 use	Test::Most tests => 1330;
 use	Test::Moose;
-use	IO::File;
-use	XML::LibXML::Reader;
 use	MooseX::ShortCut::BuildInstance qw( build_instance );
 use Types::Standard qw( Bool HasMethods );
 use	lib
@@ -55,7 +53,7 @@ use	lib
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
 use	Spreadsheet::XLSX::Reader::LibXML::Error;
-use	Spreadsheet::XLSX::Reader::LibXML::XMLReader;
+#~ use	Spreadsheet::XLSX::Reader::LibXML::XMLReader;
 use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet;
 use	DateTimeX::Format::Excel;
 use	DateTime::Format::Flexible;

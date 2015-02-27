@@ -59,6 +59,7 @@ if ( !defined $workbook ) {
 for my $worksheet ( $workbook->worksheets() ) {
 	
 	print "Reading worksheet named: " . $worksheet->get_name . "\n";
+	print "..at position: " . $worksheet->position . "\n";
 	
 	while( 1 ){ 
 		my $cell = $worksheet->get_next_value;

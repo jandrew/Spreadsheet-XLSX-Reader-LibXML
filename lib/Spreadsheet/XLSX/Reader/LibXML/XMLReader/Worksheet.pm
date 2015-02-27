@@ -1,7 +1,6 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet;
 use version; our $VERSION = qv('v0.34.6');
 
-
 use	5.010;
 use	Moose;
 use	MooseX::StrictConstructor;
@@ -44,7 +43,7 @@ has sheet_rel_id =>(
 
 has sheet_id =>(
 		isa		=> Int,
-		reader	=> 'sheet_id',
+		reader	=> 'sheet_id',#This feels like it might be broken but never tested?
 	);
 
 has sheet_position =>(# XML position
@@ -640,17 +639,632 @@ Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet - A LibXML::XMLReader wo
 
 =head1 SYNOPSIS
 
-See the SYNOPSIS in L<Spreadsheet::XLSX::Reader::LibXML>
+	use Data::Dumper;
+	use MooseX::ShortCut::BuildInstance qw( build_instance );
+	use Types::Standard qw( Bool HasMethods );
+	use Spreadsheet::XLSX::Reader::LibXML::Error;
+	use Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet;
+	my  $error_instance = Spreadsheet::XLSX::Reader::LibXML::Error->new( should_warn => 0 );
+	my  $workbook_instance = build_instance(
+	        package     => 'WorkbookInstance',
+	        add_methods =>{
+	            counting_from_zero         => sub{ return 0 },
+	            boundary_flag_setting      => sub{},
+	            change_boundary_flag       => sub{},
+	            _has_shared_strings_file   => sub{ return 1 },
+				get_shared_string_position => sub{},
+				_has_styles_file           => sub{},
+	            get_format_position        => sub{},
+	            get_group_return_type      => sub{},
+	            set_group_return_type      => sub{},
+	            get_epoch_year             => sub{ return '1904' },
+	            change_output_encoding     => sub{ $_[0] },
+	            get_date_behavior          => sub{},
+	            set_date_behavior          => sub{},
+	            get_empty_return_type      => sub{ return 'undef_string' },
+	            get_values_only            => sub{},
+	            set_values_only            => sub{},
+	        },
+	        add_attributes =>{
+	            error_inst =>{
+	                isa => 	HasMethods[qw(
+	                            error set_error clear_error set_warnings if_warn
+	                        ) ],
+	                clearer  => '_clear_error_inst',
+	                reader   => 'get_error_inst',
+	                required => 1,
+				    handles =>[ qw(
+						error set_error clear_error set_warnings if_warn
+					) ],
+	            },
+	            empty_is_end =>{
+	                isa     => Bool,
+					writer  => 'set_empty_is_end',
+	                reader  => 'is_empty_the_end',
+	                default => 0,
+	            },
+	            from_the_edge =>{
+	                isa     => Bool,
+					reader  => '_starts_at_the_edge',
+	                writer  => 'set_from_the_edge',
+					default => 1,
+	            },
+			},
+			error_inst => $error_instance,
+	    );
+	my $test_instance = Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet->new(
+	        file              => 'xl/worksheets/sheet3.xml',
+	        error_inst        => $error_instance,
+	        sheet_name        => 'Sheet3',
+	        workbook_instance => $workbook_instance,
+	    );
+	my $x = 0;
+	my $result;
+	while( $x < 20 and (!$result or $result ne 'EOF') ){
+	    $result = $test_instance->_get_next_value_cell;
+	    print "Collecting data from position: $x" . Dumper( $result );
+		$x++;
+	}
+
+	###############################################
+	# SYNOPSIS Screen Output
+	# 01: Collecting data from position: 0
+	# 02: $VAR1 = {
+	# 03:           'r' => 'A2',
+	# 04:           'row' => 2,
+	# 05:           'col' => 1,
+	# 06:           'v' => {
+	# 07:                  'raw_text' => '0'
+	# 08:                },
+	# 09:           't' => 's'
+	# 10:         };
+	# 11: 
+	# 12: Collecting data from position: 1
+	# 13: $VAR1 = {
+	# 14:           'r' => 'D2',
+	# 15:           'row' => 2,
+	# 16:           'col' => 4,
+	# 17:           'v' => {
+	# 18:                  'raw_text' => '2'
+	# 19:                },
+	# 20:           't' => 's'
+	# 21:         };
+	#		~~ Continuing ~~
+	###############################################
+	
     
 =head1 DESCRIPTION
 
-B<This documentation is written to explain ways to extend this package.  To use the data 
-extraction of Excel workbooks, worksheets, and cells please review the documentation for  
-L<Spreadsheet::XLSX::Reader::LibXML>,
-L<Spreadsheet::XLSX::Reader::LibXML::Worksheet>, and 
-L<Spreadsheet::XLSX::Reader::LibXML::Cell>>
+This documentation is written to explain ways to use this module when writing your own excel 
+parser.  To use the general package for excel parsing out of the box please review the 
+documentation for L<Workbooks|Spreadsheet::XLSX::Reader::LibXML>,
+L<Worksheets|Spreadsheet::XLSX::Reader::LibXML::Worksheet>, and 
+L<Cells|Spreadsheet::XLSX::Reader::LibXML::Cell>
 
-POD not written yet!
+This module provides the basic connection to individual worksheet files for parsing xlsx 
+workbooks.  It does not provide a way to connect to L<chartsheets|Spreadsheet::XLSX::Reader::LibXML::Chartsheet>.  
+It does not provide the final view of a given cell.  The final view of the cell is collated 
+with the role L<Spreadsheet::XLSX::Reader::LibXML::GetCell>.  This reader extends the base 
+reader class L<Spreadsheet::XLSX::Reader::LibXML::XMLReader>.  The functionality provided 
+by those modules is not covered here.
+
+Modification of this module probably means extending a different reader or using other roles 
+for implementation of the class.  See lines 18 and on in the code here for the location to 
+change and See line 54 in the code L<Spreadsheet::XLSX::Reader::LibXML> for the way to repoint 
+the package at a new module.
+
+=head2 Attributes
+
+Data passed to new when creating an instance.  For access to the values in these 
+attributes see the listed 'attribute methods'. For general information on attributes see 
+L<Moose::Manual::Attributes>.  For ways to manage the instance when opened see the 
+L<Public Methods|/Public Methods>.  The remaining undocumented attributes are used internally 
+for tracking state.
+	
+=head3 sheet_type
+
+=over
+
+B<Definition:> This will always be 'worksheet' for this module.  It is provided as 
+a simple introspection method for distinguishing between worksheets and chartsheets 
+in case the circumstances are ambiguous.
+
+B<Default:> 'worksheet'
+
+B<Range:> 'worksheet'
+
+B<attribute methods> Methods provided to adjust this attribute
+		
+=over
+
+B<get_sheet_type>
+
+=over
+
+B<Definition:> return the attribute value
+
+=back
+
+=back
+
+=back
+	
+=head3 sheet_rel_id
+
+=over
+
+B<Definition:> To coordinate information accross the various sub-files excel maintains 
+a relId for sheets.  This is the value that excel assigned to this sheet.
+
+B<Range:> a string
+
+B<attribute methods> Methods provided to adjust this attribute
+		
+=over
+
+B<rel_id>
+
+=over
+
+B<Definition:> return the attribute value
+
+=back
+
+=back
+
+=back
+	
+=head3 sheet_id
+
+=over
+
+B<Definition:> When writing vbScript the sheet can be identified by a number instead 
+of a name.  This is that number.
+
+B<Range:> an integer
+
+B<attribute methods> Methods provided to adjust this attribute
+		
+=over
+
+B<sheet_id>
+
+=over
+
+B<Definition:> return the attribute value
+
+=back
+
+=back
+
+=back
+	
+=head3 sheet_position
+
+=over
+
+B<Definition:> Even if there are chartsheets in the workbook you will only get a list 
+of worksheets when using 'worksheet' methods.  However, this position is the visible 
+position of the worksheet in the workbook including chartsheets.  This can be different 
+than L<sheet_id|/sheet_id>
+
+B<Range:> an integer
+
+B<attribute methods> Methods provided to adjust this attribute
+		
+=over
+
+B<position>
+
+=over
+
+B<Definition:> return the attribute value
+
+=back
+
+=back
+
+=back
+	
+=head3 sheet_name
+
+=over
+
+B<Definition:> This is the visible string expressed on the tab of the 
+worksheet in the workbook.
+
+B<Range:> a String
+
+B<attribute methods> Methods provided to adjust this attribute
+		
+=over
+
+B<get_name>
+
+=over
+
+B<Definition:> return the attribute value
+
+=back
+
+=back
+
+=back
+	
+=head3 _sheet_min_col
+
+=over
+
+B<Definition:> This is the minimum column in the sheet with data or formatting.  For this 
+module it is pulled from the xml file at worksheet/dimension:ref = "upperleft:lowerright"
+
+B<Range:> an integer
+
+B<attribute methods> Methods provided to adjust this attribute
+		
+=over
+
+B<_set_min_col>
+
+=over
+
+B<Definition:> sets the attribute value
+
+=back
+
+B<_min_col>
+
+=over
+
+B<Definition:> returns the attribute value
+
+=back
+
+B<has_min_col>
+
+=over
+
+B<Definition:> attribute predicate
+
+=back
+
+=back
+
+=back
+	
+=head3 _sheet_min_row
+
+=over
+
+B<Definition:> This is the minimum row in the sheet with data or formatting.  For this 
+module it is pulled from the xml file at worksheet/dimension:ref = "upperleft:lowerright"
+
+B<Range:> an integer
+
+B<attribute methods> Methods provided to adjust this attribute
+		
+=over
+
+B<_set_min_row>
+
+=over
+
+B<Definition:> sets the attribute value
+
+=back
+
+B<_min_row>
+
+=over
+
+B<Definition:> returns the attribute value
+
+=back
+
+B<has_min_row>
+
+=over
+
+B<Definition:> attribute predicate
+
+=back
+
+=back
+
+=back
+	
+=head3 _sheet_max_col
+
+=over
+
+B<Definition:> This is the maximum column in the sheet with data or formatting.  For this 
+module it is pulled from the xml file at worksheet/dimension:ref = "upperleft:lowerright"
+
+B<Range:> an integer
+
+B<attribute methods> Methods provided to adjust this attribute
+		
+=over
+
+B<_set_max_col>
+
+=over
+
+B<Definition:> sets the attribute value
+
+=back
+
+B<_max_col>
+
+=over
+
+B<Definition:> returns the attribute value
+
+=back
+
+B<has_max_col>
+
+=over
+
+B<Definition:> attribute predicate
+
+=back
+
+=back
+
+=back
+	
+=head3 _sheet_max_row
+
+=over
+
+B<Definition:> This is the maximum row in the sheet with data or formatting.  For this 
+module it is pulled from the xml file at worksheet/dimension:ref = "upperleft:lowerright"
+
+B<Range:> an integer
+
+B<attribute methods> Methods provided to adjust this attribute
+		
+=over
+
+B<_set_max_row>
+
+=over
+
+B<Definition:> sets the attribute value
+
+=back
+
+B<_max_row>
+
+=over
+
+B<Definition:> returns the attribute value
+
+=back
+
+B<has_max_row>
+
+=over
+
+B<Definition:> attribute predicate
+
+=back
+
+=back
+
+=back
+	
+=head3 _merge_map
+
+=over
+
+B<Definition:> This is an array ref of array refs where the first level represents rows 
+and the second level of array represents cells.  If a cell is merged then the merge span 
+is stored in the row sub array position.  This means the same span is stored in multiple 
+positions.  The data is stored in the Excel convention of count from 1 so the first position 
+in both levels of the array are essentially placeholders.  The data is extracted from the 
+merge section of the worksheet at worksheet/mergeCells.  That array is read and converted 
+into this format for reading by this module when it first opens the worksheet..
+
+B<Range:> an array ref
+
+B<attribute methods> Methods provided to adjust this attribute
+		
+=over
+
+B<_set_merge_map>
+
+=over
+
+B<Definition:> sets the attribute value
+
+=back
+
+=back
+
+B<delegated methods> This attribute uses the native trait 'Array'
+		
+=over
+
+B<_get_row_merge_map( $int )> => 'get'
+
+=over
+
+B<Definition:> returns the sub array ref representing any merges for that 
+row.  If no merges are available for that row it returns undef.
+
+=back
+
+=back
+
+=back
+
+=head2 Public Methods
+
+These are the methods provided by this class for use by the end user.
+
+=head3 min_row
+
+=over
+
+B<Definition:> This returns the minimum row with data or formatting in the worksheet.  It is 
+separated from L<_min_row|/_sheet_min_row> so that the package can modify the output between the functions 
+to match the attribute L<Spreadsheet::XLSX::Reader::LibXML/count_from_zero>
+
+B<Accepts:> nothing
+
+B<Returns:> the minimum row integer
+
+=back
+
+=head3 max_row
+
+=over
+
+B<Definition:> This returns the maximum row with data or formatting in the worksheet.  It is 
+separated from L<_max_row|/_sheet_max_row> so that the package can modify the output between the functions 
+to match the attribute L<Spreadsheet::XLSX::Reader::LibXML/count_from_zero>
+
+B<Accepts:> nothing
+
+B<Returns:> the maximum row integer
+
+=back
+
+=head3 min_col
+
+=over
+
+B<Definition:> This returns the minimum column with data or formatting in the worksheet.  It is 
+separated from L<_min_col|/_sheet_min_col> so that the package can modify the output between the functions 
+to match the attribute L<Spreadsheet::XLSX::Reader::LibXML/count_from_zero>
+
+B<Accepts:> nothing
+
+B<Returns:> the minimum column integer
+
+=back
+
+=head3 max_col
+
+=over
+
+B<Definition:> This returns the maximum column with data or formatting in the worksheet.  It is 
+separated from L<_max_col|/_sheet_max_col> so that the package can modify the output between the functions 
+to match the attribute L<Spreadsheet::XLSX::Reader::LibXML/count_from_zero>
+
+B<Accepts:> nothing
+
+B<Returns:> the maximum column integer
+
+=back
+
+=head3 row_range
+
+=over
+
+B<Definition:> This returns the first and last row with data or formatting in the worksheet.  It is 
+separated from L<_min_row|/_sheet_min_row> and L<_max_row|/_sheet_max_row> so that the package can modify the 
+output between the functions to match the attribute L<Spreadsheet::XLSX::Reader::LibXML/count_from_zero>
+
+B<Accepts:> nothing
+
+B<Returns:> ( $min_row, $max_row ) as a list
+
+=back
+
+=head3 col_range
+
+=over
+
+B<Definition:> This returns the first and last column  with data or formatting in the worksheet.  It is 
+separated from L<_min_col|/_sheet_min_col> and L<_max_col|/_sheet_max_col> so that the package can modify the 
+output between the functions to match the attribute L<Spreadsheet::XLSX::Reader::LibXML/count_from_zero>
+
+B<Accepts:> nothing
+
+B<Returns:> ( $min_col, $max_col ) as a list
+
+=back
+
+=head2 Private Methods
+
+These are the methods provided by this class for use within the package but are not intended 
+to be used by the end user.  Other private methods not listed here are used in the module but 
+not used by the package.  If the private method is listed here then replacement of this module 
+either requires replacing them or rewriting all the associated connecting roles and classes.
+
+=head3 _load_unique_bits
+
+=over
+
+B<Definition:> This is called by L<Spreadsheet::XLSX::Reader::LibXML::XMLReader> when the file is 
+loaded for the first time so that file specific data can be collected.  All the L<Attributes|/Attributes> 
+with a leading _ in the documentation are filled in at this point.
+
+B<Accepts:> nothing
+
+B<Returns:> nothing
+
+=back
+
+=head3 _get_next_value_cell
+
+=over
+
+B<Definition:> This returns the worksheet file hash ref representation of the xml stored for the 
+'next' value cell.  A cell is determined to have value based on the attribute 
+L<Spreadsheet::XLSX::Reader::LibXML/values_only>.  Next is affected by the attribute 
+L<Spreadsheet::XLSX::Reader::LibXML/empty_is_end>.  This method never returns an 'EOR' flag.  
+It just wraps automatically.
+
+B<Accepts:> nothing
+
+B<Returns:> the cell (or value as requested)
+
+=back
+
+=head3 _get_next_cell
+
+=over
+
+B<Definition:> This returns on every cell position whether there is data or not.  For empty 
+cells undef is returned.  Next is affected by the attribute L<Spreadsheet::XLSX::Reader::LibXML/empty_is_end>.  
+This method never returns an 'EOR' flag.  It just wraps automatically.
+
+B<Accepts:> nothing
+
+B<Returns:> undef, a value, or the cell
+
+=back
+
+=head3 _get_col_row( $col, $row )
+
+=over
+
+B<Definition:> This is the way to return the information about a specific position in the worksheet.  
+Since this is a private method it requires its inputs to be in the 'count from one' index.
+
+B<Accepts:> ( $column, $row ) - both required in that order
+
+B<Returns:> whatever is in that worksheet position as a hashref
+
+=back
+
+=head3 _get_row_all( $row )
+
+=over
+
+B<Definition:> This is returns an array ref of each of the values in the row placed in their 'count 
+from one' position.  If the row is empty but it is not the end of the sheet then this will return an 
+empty array ref.
+
+B<Accepts:> ( $row ) - required
+
+B<Returns:> an array ref
+
+=back
 
 =head1 SUPPORT
 
@@ -693,7 +1307,27 @@ This software is copyrighted (c) 2014, 2015 by Jed Lund
 
 =over
 
-L<Spreadsheet::XLSX::Reader::LibXML>
+L<version>
+
+L<perl 5.010|perl/5.10.0>
+
+L<Moose>
+
+L<MooseX::StrictConstructor>
+
+L<MooseX::HasDefaults::RO>
+
+L<Carp> - confess
+
+L<Type::Tiny> - 1.000
+
+L<Spreadsheet::XLSX::Reader::LibXML::XMLReader>
+
+L<Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow>
+
+L<Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData>
+
+L<Spreadsheet::XLSX::Reader::LibXML::GetCell>
 
 =back
 

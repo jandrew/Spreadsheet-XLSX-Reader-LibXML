@@ -104,6 +104,7 @@ my	$flag_settings ={
 		just_the_data =>{
 			count_from_zero   => 0,
 			values_only       => 1,
+			empty_is_end      => 1,
 			group_return_type => 'value',
 		},
 	};
@@ -1029,9 +1030,9 @@ B<1.> Archive-Zip versions greater than 1.30 appear to be broken.  This package 
 Archive::Zip so I reccomend Archive-Zip-1.30.
 
 B<2.> This package requires that you can load L<XML::LibXML> which requires the L<libxml2
-http://xmlsoft.org/> and 'libxml2-devel' libraries.  Many PC's have these already but you 
-should try to load XML::LibXML separatly if you have problems loading this.  L<If it loads 
-but you have a test suit failure please log a case in my repo on L<github|SUPPORT>>.
+|http://xmlsoft.org/> and 'libxml2-devel' libraries.  Many PC's have these already but you 
+should try to load XML::LibXML separatly if you have problems loading this.  I<If it loads 
+but you have a test suit failure please log a case in my repo on L<github|/SUPPORT>>.
 
 B<3.> Earlier versions of this package would extract the .xlsx file to a temp directory and 
 release the file lock on the original file while still retaining the information for access 
@@ -1965,7 +1966,7 @@ B<Returns:> 1900 = Windows Excel or 1904 = Apple Excel
 =over
 
 Roundabout delegation from 
-L<Spreadsheet::XLSX::Reader::LibXML::SharedStrings/get_shared_string_position( $int )>
+L<Spreadsheet::XLSX::Reader::LibXML::SharedStrings/get_shared_string_position( $position )>
 
 =back
 
@@ -1974,7 +1975,7 @@ L<Spreadsheet::XLSX::Reader::LibXML::SharedStrings/get_shared_string_position( $
 =over
 
 Roundabout delegation from 
-L<Spreadsheet::XLSX::Reader::LibXML::Styles/get_format_position( $int )>
+L<Spreadsheet::XLSX::Reader::LibXML::Styles/get_format_position( $position, [$header] )>
 
 =back
 
@@ -1996,12 +1997,12 @@ L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/change_output_encoding( $string 
 
 =back
 
-=head3 set_format_cache_behavior
+=head3 set_cache_behavior
 
 =over
 
 Roundabout delegation from 
-L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/set_cache_behavior>
+L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/cache_formats>
 
 =back
 
@@ -2010,7 +2011,7 @@ L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/set_cache_behavior>
 =over
 
 Roundabout delegation from 
-L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/get_date_behavior>
+L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/datetime_dates>
 
 =back
 
@@ -2019,14 +2020,14 @@ L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/get_date_behavior>
 =over
 
 Roundabout delegation from 
-L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/set_date_behavior>
+L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/datetime_dates>
 
 =back
 
 =head1 FLAGS
 
 The parameter list (attributes) that are possible to pass to ->new is somewhat long.  
-Therefore you may want a shortcut that aggregates some set attribute settings that 
+Therefore you may want a shortcut that aggregates some set of attribute settings that 
 are not the defaults but wind up being boilerplate.  I have provided possible 
 alternate sets like this and am open to providing others that are suggested.  The 
 flags will have a : in front of the identifier and will be passed to the class in the 
@@ -2041,7 +2042,11 @@ Example;
 
 This is intended for a deep look at data but skip formatting.
 
-=head3 Default attribute differences
+=over
+
+B<Default attribute differences>
+
+=over
 
 L<values_only|/values_only> => 1
 
@@ -2049,17 +2054,31 @@ L<count_from_zero|/count_from_zero> => 0
 
 L<empty_is_end|/empty_is_end> => 1
 
+=back
+
+=back
+
 =head2 :just_the_data
 
 This is intended for a shallow look at data but skip formatting.
 
-=head3 Default attribute differences
+=over
+
+B<Default attribute differences>
+
+=over
 
 L<values_only|/values_only> => 1
 
 L<count_from_zero|/count_from_zero> => 0
 
+L<empty_is_end|/empty_is_end> => 1
+
 L<group_return_type|/group_return_type> => 'value'
+
+=back
+
+=back
 
 =head1 BUILD / INSTALL from Source
 

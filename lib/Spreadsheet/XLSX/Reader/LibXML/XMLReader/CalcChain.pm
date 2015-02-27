@@ -99,11 +99,11 @@ See General  L<SYNOPSIS|Spreadsheet::XLSX::Reader::LibXML::CalcChain/SYNOPSIS>
     
 =head1 DESCRIPTION
 
-B<This documentation is written to explain ways to extend this package.  To use the data 
-extraction of Excel workbooks, worksheets, and cells please review the documentation for  
-L<Spreadsheet::XLSX::Reader::LibXML>,
-L<Spreadsheet::XLSX::Reader::LibXML::Worksheet>, and 
-L<Spreadsheet::XLSX::Reader::LibXML::Cell>>
+This documentation is written to explain ways to use this module.  To use the general 
+package for excel parsing out of the box please review the documentation for L<Workbooks
+|Spreadsheet::XLSX::Reader::LibXML>, L<Worksheets
+|Spreadsheet::XLSX::Reader::LibXML::Worksheet>, and 
+L<Cells|Spreadsheet::XLSX::Reader::LibXML::Cell>.
 
 This class is used to access the sub file calcChain.xml from an unzipped .xlsx file.  
 The file to be read is generally found in the xl/ sub folder after the master file is 
