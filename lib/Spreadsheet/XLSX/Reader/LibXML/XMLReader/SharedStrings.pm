@@ -133,13 +133,12 @@ sub _load_unique_bits{
 	###LogSD					$self->get_log_space .  '::_load_unique_bits', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			"Setting the sharedStrings unique bits" ] );
-	my	$node_name	= $self->node_name;
-	my	$found_it	= 1;
-	if( !$node_name or $node_name ne 'sst' ){
-		$found_it = $self->next_element( 'sst' );
-	}
-	if( $found_it ){
-		my $unique_count = $self->get_attribute( 'uniqueCount' ) // 0;
+	
+	if( $self->node_name eq 'sst' or $self->next_element('sst') ){
+		my $sst_list= $self->parse_element( 0 );
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"parsed sst list to:", $sst_list ] );
+		my $unique_count = $sst_list->{uniqueCount} // 0;
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD		"Loading unique count: $unique_count" ] );
 		$self->_set_unique_count( $unique_count );

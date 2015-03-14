@@ -19,7 +19,7 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 53;
+use	Test::Most tests => 57;
 use	Test::Moose;
 use IO::File;
 #~ use XML::LibXML::Reader;
@@ -70,13 +70,17 @@ my  		@class_methods = qw(
 				copy_current_node
 				byte_consumed
 				start_reading
-				encoding
 				next_element
-				next_sibling
-				next_sibling_element
-				get_attribute
-				read_state
+				node_type
 				node_name
+				node_value	
+				has_value
+				node_depth
+				move_to_first_att
+				move_to_next_att
+				encoding
+				_go_to_the_end
+				_close_the_sheet
 				where_am_i
 				has_position
 				start_the_file_over

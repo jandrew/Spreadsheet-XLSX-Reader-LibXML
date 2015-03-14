@@ -205,8 +205,10 @@ sub _load_unique_bits{
 	
 	# Read the sheet dimensions
 	if( $self->next_element( 'dimension' ) ){
-		my	$range = $self->get_attribute( 'ref' );
-		my	( $start, $end ) = split( /:/, $range );
+		my $dimension = $self->parse_element;
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"parsed dimension value:", $dimension ] );
+		my	( $start, $end ) = split( /:/, $dimension->{ref} );
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD		"Start position: $start", 
 		###LogSD		( $end ? "End position: $end" : '' ), "Byte position: " . $self->byte_consumed ] );
@@ -236,16 +238,19 @@ sub _load_unique_bits{
 	my	$merge_ref = [];
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		"Loading the mergeCell" ] );
-	while( $self->next_element('mergeCell') ){
-		my	$merge_range = $self->get_attribute( 'ref' );
+	while( $self->node_name eq 'mergeCell' or $self->next_element('mergeCell') ){
+		my $merge_range = $self->parse_element;
 		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"Loading the merge range for: $merge_range", "Byte position: " . $self->byte_consumed ] );
-		my ( $start, $end ) = split /:/, $merge_range;
+		###LogSD		"parsed merge element to:", $merge_range ] );
+		my ( $start, $end ) = split /:/, $merge_range->{ref};
 		my ( $start_col, $start_row ) = $self->_parse_column_row( $start );
 		my ( $end_col, $end_row ) = $self->_parse_column_row( $end );
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Start column: $start_col", "Start row: $start_row",
+		###LogSD		"End column: $end_col", "End row: $end_row" ] );
 		my 	$min_col = $start_col;
 		while ( $start_row <= $end_row ){
-			$merge_ref->[$start_row]->[$start_col] = $merge_range;
+			$merge_ref->[$start_row]->[$start_col] = $merge_range->{ref};
 			$start_col++;
 			if( $start_col > $end_col ){
 				$start_col = $min_col;

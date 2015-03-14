@@ -224,16 +224,130 @@ __END__
 
 Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData - 
 XMLReader to turn xlsx XML to perl hashes
+
+=head1 SYNOPSIS
+
+	#!/usr/bin/env perl
+	use Data::Dumper;
+	use	MooseX::ShortCut::BuildInstance qw( build_instance );
+	use	Spreadsheet::XLSX::Reader::LibXML::XMLReader;
+	use	Spreadsheet::XLSX::Reader::LibXML::Error;
+	use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData;
+	my  $test_file = 'xl/sharedStrings.xml';
+	my  $test_instance = build_instance(
+			package => 'TestIntance',
+			superclasses =>[ 'Spreadsheet::XLSX::Reader::LibXML::XMLReader', ],
+			add_roles_in_sequence =>[ 'Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData', ],
+			file	=> $test_file,
+			error_inst	=> Spreadsheet::XLSX::Reader::LibXML::Error->new,
+		);
+	map{ $test_instance->next_element( 'si' ) }( 0..15 );# Go somewhere interesting
+	print Dumper( $test_instance->parse_element ) . "\n";
+
+	###############################################
+	# SYNOPSIS Screen Output
+	# 01: $VAR1 = {
+	# 02:           'list' => [
+	# 03:                       {
+	# 04:                         't' => {
+	# 05:                                'raw_text' => 'He'
+	# 06:                              }
+	# 07:                       },
+	# 08:                       {
+	# 09:                         'rPr' => {
+	# 10:                                  'color' => {
+	# 11:                                             'rgb' => 'FFFF0000'
+	# 12:                                           },
+	# 13:                                  'sz' => '11',
+	# 14:                                  'b' => 1,
+	# 15:                                  'scheme' => 'minor',
+	# 16:                                  'rFont' => 'Calibri',
+	# 17:                                  'family' => '2'
+	# 18:                                },
+	# 19:                         't' => {
+	# 20:                                'raw_text' => 'llo '
+	# 21:                              }
+	# 22:                       },
+	# 23:                       {
+	# 24:                         'rPr' => {
+	# 25:                                  'color' => {
+	# 26:                                             'rgb' => 'FF0070C0'
+	# 27:                                           },
+	# 28:                                  'sz' => '20',
+	# 29:                                  'b' => 1,
+	# 30:                                  'scheme' => 'minor',
+	# 31:                                  'rFont' => 'Calibri',
+	# 32:                                  'family' => '2'
+	# 33:                                },
+	# 34:                         't' => {
+	# 35:                                'raw_text' => 'World'
+	# 36:                              }
+	# 37:                       }
+	# 38:                     ]
+	# 39:         };
+	###############################################
     
 =head1 DESCRIPTION
 
-B<This documentation is written to explain ways to extend this package.  To use the data 
-extraction of Excel workbooks, worksheets, and cells please review the documentation for  
-L<Spreadsheet::XLSX::Reader::LibXML>,
-L<Spreadsheet::XLSX::Reader::LibXML::Worksheet>, and 
-L<Spreadsheet::XLSX::Reader::LibXML::Cell>>
+This documentation is written to explain ways to use this module when writing your own excel 
+parser.  To use the general package for excel parsing out of the box please review the 
+documentation for L<Workbooks|Spreadsheet::XLSX::Reader::LibXML>,
+L<Worksheets|Spreadsheet::XLSX::Reader::LibXML::Worksheet>, and 
+L<Cells|Spreadsheet::XLSX::Reader::LibXML::Cell>
 
-POD not written yet!
+This package is used convert xml to deep perl data structures.  As a note deep perl xml and  
+data structures are not one for one compatible to xml.  However, there is a subset of xml that 
+reasonably translates to deep perl structures.  For this implementation node names are treated 
+as hash keys unless there are multiple subnodes within a node that have the same name.  In this 
+case the subnode name is stripped and each node is added as a subref in an arrary ref.  The overall 
+arrayref is attached to the key list.  Attributes are also treated as hash keys at the same level 
+as the sub nodes.  Text nodes (or raw text between tags) is treated as having the key 'raw_text'.
+
+This reader assumes that it is a role added to a class built on 
+L<Spreadsheet::XLSX::Reader::LibXML::XMLReader> it expects to get the methods provided by that type 
+of file reader to use to traverse the node.  As a consequence it doesn't accept an xml object since 
+it expects the overall file to be read serially.
+
+=head2 Required Methods
+
+L<node_name|Spreadsheet::XLSX::Reader::LibXML::XMLReader/node_name>
+
+L<byte_consumed|Spreadsheet::XLSX::Reader::LibXML::XMLReader/byte_consumed>
+
+L<move_to_first_att|Spreadsheet::XLSX::Reader::LibXML::XMLReader/move_to_first_att>
+
+L<move_to_next_att|Spreadsheet::XLSX::Reader::LibXML::XMLReader/move_next_att>
+
+L<node_depth|Spreadsheet::XLSX::Reader::LibXML::XMLReader/node_depth>
+
+L<node_value|Spreadsheet::XLSX::Reader::LibXML::XMLReader/node_value>
+
+L<node_type|Spreadsheet::XLSX::Reader::LibXML::XMLReader/node_type>
+
+L<has_value|Spreadsheet::XLSX::Reader::LibXML::XMLReader/has_value>
+
+L<start_reading|Spreadsheet::XLSX::Reader::LibXML::XMLReader/start_reading>
+
+=head2 Methods
+
+These are the methods provided by this module.
+
+=head3 parse_element( $level )
+
+=over
+
+B<Definition:> This returns a deep perl data structure that represents the full xml 
+down as many levels as indicated by $level (positive is deeper) or  to the bottom for 
+no passed value.  When this method is done the xml reader will be left at the begining 
+of the next level or up xml node.
+
+B<Accepts:> $level ( a positive integer )
+
+B<Returns:> ($success, $data_ref ) This method returns a list with the first element 
+being success or failure and the second element being the data ref corresponding to the 
+xml being parsed by L<Spreadsheet::XLSX::Reader::LibXML::XMLReader>.
+
+=back 
 
 =head1 SUPPORT
 

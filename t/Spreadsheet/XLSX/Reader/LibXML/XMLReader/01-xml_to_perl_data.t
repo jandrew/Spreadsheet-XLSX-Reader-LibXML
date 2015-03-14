@@ -19,10 +19,8 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 29;
+use	Test::Most tests => 30;
 use	Test::Moose;
-use IO::File;
-use XML::LibXML::Reader;
 use	MooseX::ShortCut::BuildInstance qw( build_instance );
 use	lib
 		'../../../../../../../Log-Shiras/lib',
@@ -75,10 +73,11 @@ my  		@instance_methods = qw(
 				byte_consumed
 				move_to_first_att
 				move_to_next_att
-				inner_xml
-				next_element
 				node_depth
 				node_value
+				node_type
+				has_value	
+				start_reading
 			);
 my			$answer_ref = [
 				{

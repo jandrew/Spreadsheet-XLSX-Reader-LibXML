@@ -2040,7 +2040,7 @@ Example;
 
 =head2 :alt_default
 
-This is intended for a deep look at data but skip formatting.
+This is intended for a deep look at data and skip formatting cells.
 
 =over
 
@@ -2060,7 +2060,7 @@ L<empty_is_end|/empty_is_end> => 1
 
 =head2 :just_the_data
 
-This is intended for a shallow look at data but skip formatting.
+This is intended for a shallow look at data and skip formatting.
 
 =over
 

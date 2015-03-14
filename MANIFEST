@@ -48,6 +48,8 @@ t/Spreadsheet/XLSX/Reader/LibXML/XMLReader/05-styles.t
 t/Spreadsheet/XLSX/Reader/LibXML/XMLReader/calcchain_example.pl
 t/Spreadsheet/XLSX/Reader/LibXML/XMLReader/sharedstrings_example.pl
 t/Spreadsheet/XLSX/Reader/LibXML/XMLReader/styles_example.pl
+t/Spreadsheet/XLSX/Reader/LibXML/XMLReader/worksheet_example.pl
+t/Spreadsheet/XLSX/Reader/LibXML/XMLReader/xml_to_perl_data_example.pl
 t/Spreadsheet/XLSX/Reader/LibXML/cell_to_column_row_example.pl
 t/Spreadsheet/XLSX/Reader/LibXML/error_example.pl
 t/Spreadsheet/XLSX/Reader/LibXML/fmt_default_example.pl

@@ -73,30 +73,17 @@ has _xml_reader =>(
 		copy_current_node	=> 'copyCurrentNode',
 		byte_consumed		=> 'byteConsumed',
 		start_reading		=> 'read',
-		next_node			=> 'next',
 		next_element		=> 'nextElement',
-		next_sibling		=> 'nextSibling',
-		get_attribute		=> 'getAttribute',
-		read_state			=> 'readState',
 		node_type			=> 'nodeType',
-		text_content		=> 'textContent',
 		node_name			=> 'name',
 		node_value			=> 'value',
 		has_value			=> 'hasValue',
-		inner_xml			=> 'readInnerXml',
 		node_depth			=> 'depth',
-		is_empty			=> 'isEmptyElement',
-		inner_xml			=> 'readInnerXml',
-		has_attributes		=> 'hasAttributes',
-		get_attribute_count	=> 'attributeCount',
-		read_attribute		=> 'readAttributeValue',
-		constant_value		=> 'ConstValue',
 		move_to_first_att	=> 'moveToFirstAttribute',
 		move_to_next_att	=> 'moveToNextAttribute',
 		encoding			=> 'encoding',
 		_go_to_the_end		=> 'finish',
 		_close_the_sheet	=> 'close',
-		next_sibling_element	=> 'nextSiblingElement',
 	},
 	trigger => \&_reader_init,
 );
@@ -213,15 +200,17 @@ L<Worksheets|Spreadsheet::XLSX::Reader::LibXML::Worksheet>, and
 L<Cells|Spreadsheet::XLSX::Reader::LibXML::Cell>
 
 This module provides a generic way to open an xml file or xml file handle and then extract 
-information using the L<XML::LibXML::Reader> parser.  It it xlsx file type agnostic.  The  
-does this by using L<delegation|Moose::Manual::Delegation> from the ~::Reader module to 
-import useful functions to this module.  Aside from the delegation piece this module 
-provides three other useful elements.  First, the module has an attribute to load the file 
-or file handle and uses coercion to turn a file into a file handle from the L<Types
+information using the L<XML::LibXML::Reader> parser.  The class does this by using 
+L<delegation|Moose::Manual::Delegation> from the ~::Reader module to import useful functions 
+to this module.  Aside from the delegation piece this module provides four other useful 
+elements.  First, the module has an attribute to load the file or file handle and uses coercion 
+to turn a file into a file handle from the L<Types
 |Spreadsheet::XLSX::Reader::LibXML::Types/IOFileType> library.  Second, the module has an 
 attribute to store an L<error handler|Spreadsheet::XLSX::Reader::LibXML::Error>.  Third, 
 the module provides a L<rewind|/start_the_file_over> function since that is not available in  
-the L<XML::LibXML> parser.
+the L<XML::LibXML::Reader> parser. Finally, this module has a hook for classes that extend 
+this functionality during the initial build.  The initialization of the file will also attempt 
+to call '_load_unique_bits'.  It will only call that method once on initialization.
 
 Further use of the module or specialization of the reader can be done by L<extending|/SYNOPSIS> 
 the class.
@@ -350,7 +339,7 @@ B<Definition:> Returns the current state of the state value from 'set_warnings'
 
 =back
 
-=head2 Methods
+=head2 Class Methods
 
 These are the methods provided by this class.  They most likely should be agumented 
 with file specific methods when extending this module.
@@ -368,6 +357,59 @@ B<Returns:> nothing
 
 =back
 
+=head2 Delegated Methods
+
+These are the methods delegated to this class from L<XML::LibXML::Reader>.  For more 
+general parsing of subsections of the xml file also see L<Spreadsheet::XLSX::Reader::LibXML>.
+
+=head3 copy_current_node
+
+B<Delegated from:> L<XML::LibXML::Reader/copyCurrentNode (deep)>
+
+=head3 byte_consumed
+
+B<Delegated from:> L<XML::LibXML::Reader/byteConsumed ()>
+
+=head3 start_reading
+
+B<Delegated from:> L<XML::LibXML::Reader/read ()>
+
+=head3 next_element
+
+B<Delegated from:> L<XML::LibXML::Reader/nextElement>
+
+=head3 node_type
+
+B<Delegated from:> L<XML::LibXML::Reader/nodeType>
+
+=head3 node_name
+
+B<Delegated from:> L<XML::LibXML::Reader/name>
+
+=head3 node_value
+
+B<Delegated from:> L<XML::LibXML::Reader/value>
+
+=head3 has_value
+
+B<Delegated from:> L<XML::LibXML::Reader/hasValue>
+
+=head3 node_depth
+
+B<Delegated from:> L<XML::LibXML::Reader/depth>
+
+=head3 move_to_first_att
+
+B<Delegated from:> L<XML::LibXML::Reader/moveToFirstAttribute>
+
+=head3 move_to_next_att
+
+B<Delegated from:> L<XML::LibXML::Reader/moveToNextAttribute>
+
+=head3 encoding
+
+B<Delegated from:> L<XML::LibXML::Reader/encoding ()>
+
 =head1 SUPPORT
 
 =over
@@ -381,8 +423,7 @@ L<github Spreadsheet::XLSX::Reader::LibXML/issues
 
 =over
 
-B<1.> The delegation from XML::LibXML::Reader is a bit crufty.  I need to scrub all the 
-unused commands out.
+B<1.> Nothing currently
 
 =back
 

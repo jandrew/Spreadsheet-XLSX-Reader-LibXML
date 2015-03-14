@@ -31,7 +31,7 @@ use	lib
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(
 ###LogSD						name_space_bounds =>{
 ###LogSD							UNBLOCK =>{
-###LogSD								log_file => 'warn',
+###LogSD								log_file => 'trace',
 ###LogSD							},
 ###LogSD							main =>{
 ###LogSD								UNBLOCK =>{
