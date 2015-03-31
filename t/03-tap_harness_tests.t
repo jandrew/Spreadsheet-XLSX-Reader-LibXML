@@ -18,6 +18,7 @@ my $formatter = TAP::Formatter::Console->new({
 my	$args ={
 		lib =>[
 			$up . 'lib',
+			$up,
 			#~ $up . '../Log-Shiras/lib',
 		],
 		test_args =>{
@@ -45,8 +46,8 @@ my	$args ={
 		formatter => $formatter,
 	};
 my	@tests =(
-		[  '01-load.t', 'load_test' ],
-		[  '02-pod.t', 'pod_test' ],
+		[  $dir . '01-load.t', 'load_test' ],
+		[  $dir . '02-pod.t', 'pod_test' ],
 		[  $dir . $tests . 'LibXML/01-types.t', 'types_test' ],
 		[  $dir . $tests . 'LibXML/02-error.t', 'error_test' ],
 		[  $dir . $tests . 'LibXML/04-xml_reader.t', 'generic_reader_test' ],

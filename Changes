@@ -1,0 +1,205 @@
+Revision history for {{$dist->name}}
+
++ New feature.
+- Removed/deprecated feature.
+! Bug fix.
+* Place holder
+
+NOTE: This software is designated as beta quality until this notice is removed.  The goal is to 
+be method matched to Spreadsheet::ParseExcel prior to the 1.0 release.
+
+{{$NEXT}}
+
+	* Another cool change
+
+v0.36.2   2015-03-31 08:13:56-07:00 America/Los_Angeles
+	
+	+ Added a CPAN version badge (Thanks @GARU)
+	+ Added Alien::LibXML as a requirement in MakeFile.PL to see if there was any impact
+	! Removed TODO #6 (I already did it)
+
+v0.34.6   2015-03-13 22:44:41-07:00 America/Los_Angeles
+
+	! Closed #6 in github by writing POD for Spreadsheet::XLSX::Reader::LibXML::XMLReader
+	! Closed #7 in github by writing POD for Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings
+	! Closed #8 in github by writing POD for Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet
+	! Closed #9 in github by writing POD for Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData
+	+ added an 'alt_default' flag so that behaviour different than the Spreadsheet::ParseExcel would be easy
+		and closed #31 in github
+
+v0.34.4   2015-02-20 09:41:28-08:00 America/Los_Angeles
+
+	! Closed #32 in github by creating a separation of chartsheet reading from worksheet
+		reading.  I also found a read sheets more than once bug and fixed it along the way (thanks @morungos) 
+	! Wrote POD for Types.pm module and closed #5 in github
+
+v0.34.2   2015-02-14 08:28:33-08:00 America/Los_Angeles
+
+	! Scrubbed exising pod for cruft and closed #13 issue in github
+	! Improved the contributors section
+	! Re-orderd the changes section from bottom to top rather than top to bottom
+	! Moved the 'next' row function for empty requests for fetchrow_arrayref to 
+		Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet from ~LibXML::GetCell 
+	+ moved the xml_reader attribute from ~XMLReader to private and changed the 
+		file_name attribute to coerce to a file handle and then build the xml_reader 
+		in the background 
+	+ Closed #27 in github by removing some cruft in the worksheet build (Thank you Frank Maas)
+	+ Closed #26 in github by manageing the variable out rather that messing with the variable in
+		This includes adding a possible test for the old failure in 10-get_cell.t (Thank you Frank Maas)
+	+ Added test 04-no_pivot_bug.t in response to issue #24 (pull request)
+		This test actually uncovered two issues with the simple implementation and both are fixed
+		The second issue is with a Styles sheet with no number formats listed
+		The third issue is with worksheet ranges that only have one cell. (Thank you Frank Maas)
+	! Fixed the bug where there are no shared strings in the excel file (Thank you Frank Maas)
+	! Closed #29 in github with a substantial rework of XMLToPerlData.pm  (Thank you Frank Maas)
+		The module API and target results didn't change
+	+ Closed #30 in github by adding the 'values_only' attribute
+		documentation is found in the top level README
+	! Cleaned up a few more bugs found along the way
+	! Wrote POD for Styles.pod module and closed #12 in github
+	! Wrote POD for SharedStrings.pod module and closed #11 in github
+	! Wrote POD for XMLReader::Styles.pm module and closed #10 in github
+		
+v0.34.0   2014-12-29 08:49:14-08:00 America/Los_Angeles
+
+	! Closed #22 issue in github by adding the requirement for Type::Tiny 1.000 (vs 0.046)
+		to implement make_immutable in the type library
+	+ Scrubbed Spreadsheet::XLSX::Reader::LibXML POD to comply better with updates
+
+v0.32.2   2014-12-26 16:25:30-08:00 America/Los_Angeles
+
+	! Closed #21 issue in github with error objects vs error strings - solved with a type coercion
+
+v0.30.2   2014-12-25 21:25:32-08:00 America/Los_Angeles
+
+	! Closed #20 in github (pull request for undef FileType message specificity)
+	+ Closed #3 in github Move Temp::Dir methods to Archive::Zip in github
+		This is a big change since it changes some of the extensibility API's
+		It also changes the way the initial file is locked.  It used to unzip the file to a 
+		temporory directory and then unlock the file.  Now it holds a lock on the file during the whole read.
+	! Closed #18 in github.  The temp dir management is very different
+		The failing solo SciTE GUI test 03-temp_dir_bug.t now passes.
+
+v0.30.0   2014-12-15 12:51:23-08:00 America/Los_Angeles
+
+	+ Closed #16 in github by moving the role Spreadsheet::XLSX::Reader::LibXML::LogSpace to Log::Shiras::LogSpace
+		and moving all the attribute callouts behind ###LogSD comments
+	+ Closed #19 in github by expanding the allowed width of the match data reference pointer when checking the 
+		answer for specific errors
+
+v0.28.2   2014-12-13 20:30:26-08:00 America/Los_Angeles
+
+	! Fixed #15 issue in github (Return precedence error)
+	- Closed #2 issue in github (Remove the OLE::Storage_lite dependancy)
+	! Closes #17 in github (Allow parse to accept either a file name or a file handle)
+		+ Added a file_handle attribute to support passing either file handles or file names
+		+ Improved the test file 01-types.t to include coercions and error message checking
+
+v0.26.2   2014-12-11 08:57:26-08:00 America/Los_Angeles
+
+	! Fixed the 'requires missing role' bug (github issue -> missing role?)
+
+v0.24.2   2014-12-09 05:18:13-08:00 America/Los_Angeles
+
+	+ added the empty_return_type attribute so that this package will emulate ParseExcel
+		You can still choose to return undef by setting this attribute to 'undef_string'
+	! added another fix in the cleanup since it forced a fail when fails weren't needed
+
+v0.22.2   2014-12-04 15:46:15-08:00 America/Los_Angeles
+
+	! Fixed a bug in the error reporting for the value method in the cell
+	! Fixed a bug where the sheet position wasn't set correctly when calling for worksheet generation by name
+		added a test file for this case
+	! Improved temp dir cleanup in error situations - with less code
+		this inclues a new explicit DEMOLISH at the cell level
+
+v0.20.4   2014-12-03 13:27:23-08:00 America/Los_Angeles
+
+	+ A round of POD scrubbing for POD completed to this point
+
+v0.20.2   2014-12-02 12:56:46-08:00 America/Los_Angeles
+
+	+ Finished the POD for ParseExcelFormatStrings.pm
+	+ Merged UtilFunctions with ParseExcelFormatStrings since there was no reason 
+		for them to be separate
+	+ Improved the POD for GetCell.pm
+	+ made the methods for clearing the row reading start and end column definitions public
+
+v0.18.2   2014-11-30 13:54:00-08:00 America/Los_Angeles
+
+	! Although the last update had more passes on CPAN testers this is another update 
+		attempting to reach 100% pass rate
+
+v0.16.2   2014-11-29 16:43:29-08:00 America/Los_Angeles
+
+	+ Some tweaks to the LibXML POD
+	! Another re-write of the ParseExcelFormatStrings.pm to try and fix CPAN Testers fails
+
+v0.14.2   2014-11-26 21:52:22-08:00 America/Los_Angeles
+
+	! Fixed a 32bit precision issue
+
+v0.12.4   2014-11-26 06:45:17-08:00 America/Los_Angeles
+
+	! Removed the regex match within a regex test to pass older perls in test
+
+v0.12.2   2014-11-26 06:06:30-08:00 America/Los_Angeles
+
+	+ Improved the FmtDefault POD
+	+ Improved the LibXML POD
+	+ Extracted several elements of cruft from Types
+	+ Reworked the ParseExcelFormatStrings to run on Dispatch Tables for improved consistency
+		and to hopefully address CPAN testers fails
+	+ moved the change_output_encoding out of ParseExcelFormatStrings an into the cell and value
+
+v0.10.6   2014-11-18 16:46:07-08:00 America/Los_Angeles
+
+	! Fixed several errors in the CellToColumnRow POD
+	+ Improved the Error POD
+	+ More tweaks to the LibXML POD
+	! Fixed a precision bug in ParseExcelFormatStrings 
+		calls for more universal implementation.
+
+v0.10.4   2014-11-16 09:35:36-08:00 America/Los_Angeles
+
+	+ Improved CellToColumnRow POD
+	+ Improved the top level POD
+	+ Improved the Worksheet POD
+	! Removed the SVPerlTalk.odp from the package (as bloat)
+		Look in the github repository if you want to review it
+	+ Added a new POD file for the SharedStrings class (to be universal across Reader and DOM)
+	+ Added a new POD file for the Styles class (to be universal across Reader and DOM)
+	+ Added a new POD file for the CalcChain class (to be universal across Reader and DOM)
+
+v0.10.2   2014-11-13 10:29:27-08:00 America/Los_Angeles
+
+	+ Fixed and updated the POD based on a MetaCPAN read
+
+v0.10.1   2014-11-13 05:37:32-08:00 America/Los_Angeles
+
+	+ Finished the Worksheet POD
+	+ Completed the Cell POD
+	+ Completed the Error POD
+	+ Completed the CellToColumnRow POD
+	+ Another (but not final0 proofread of the Spreadsheet::XLSX::Reader::LibXML POD
+	+ Release with a Beta rev to try and Index on MetaCPAN
+
+v0.7_1    2014-11-12 07:41:39-08:00 America/Los_Angeles
+
+	+ POD for the main module complete
+	+ Improved POD for the worksheet module
+
+v0.5_1    2014-11-07 08:23:08-08:00 America/Los_Angeles
+
+	+ Initial near CPAN ready release with a full test suit for cross platform testing
+	+ Changed the Cell class to be just an encapulated data holder
+	! Fixed the resources links in the META files
+	+ Used type support from Type::Coercions to allow for data transformation definitions
+	! The documentation is all wrong.  Next release I promise!
+	! Reader parsing support only
+		- DOM parsing contract dependant or some (possibly distant) time in the future
+
+v0.1_1 2014-06-06 10:06:00-07:00 America/Los_Angeles
+
+	+ Initial (non-functional) github release
+	

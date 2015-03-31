@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML;
-use version 0.77; our $VERSION = qv('v0.34.6');
+use version 0.77; our $VERSION = qv('v0.36.2');
 
 use 5.010;
 use	List::Util 1.33;
@@ -895,6 +895,18 @@ __END__
 =head1 NAME
 
 Spreadsheet::XLSX::Reader::LibXML - Read xlsx spreadsheet files with LibXML
+
+=begin html
+
+<a href="https://travis-ci.org/jandrew/Spreadsheet-XLSX-Reader-LibXML"><img alt="Build Status" src="https://travis-ci.org/jandrew/Spreadsheet-XLSX-Reader-LibXML.png?branch=master" alt='Travis Build'/></a>
+
+<a href="https://www.perl.org"><img src="https://img.shields.io/badge/perl-5.10+-brightgreen.svg" alt="perl version"></a>
+
+<a href='https://coveralls.io/r/jandrew/Spreadsheet-XLSX-Reader-LibXML?branch=master'><img src='https://coveralls.io/repos/jandrew/Spreadsheet-XLSX-Reader-LibXML/badge.svg?branch=master' alt='Coverage Status' /></a>
+
+<a href='http://cpants.cpanauthors.org/dist/Spreadsheet-XLSX-Reader-LibXML'><img src='http://cpants.cpanauthors.org/dist/Spreadsheet-XLSX-Reader-LibXML.png' alt='kwalitee' height="20"/></a>
+
+=end html
 
 =head1 SYNOPSIS
 
@@ -2082,14 +2094,19 @@ L<group_return_type|/group_return_type> => 'value'
 
 =head1 BUILD / INSTALL from Source
 
-B<1.> Ensure that you have the libxml2 B<and libxml2-devel> libraries installed using 
-your favorite system package installer.  One way to check if it is already installed 
-is to attempt to install L<XML::LibXML> separatly with cpan.
+B<1.> This package uses L<Alien::LibXML> to ensure you have libxml2 and libxml2-devel 
+installed.  The biggest gotcha here is that older (<5.20.0.2) versions of Strawberry Perl 
+and some other Win32 perls may not support the script 'pkg-config' which is required.  You 
+can resolve this by installation L<PkgConfig> as 'pkg-config'.  I have included the 
+short version of that process below but download the full L<PkgConfig> distribution and read 
+README.win32 file for other options and much more explanation.
 
 =over
 
-L<http://xmlsoft.org/>
+B<this will conflict with any existing pkg-config installed>
 
+	C:\> cpanm PkgConfig --configure-args=--script=pkg-config
+	
 =back
 	
 B<2.> Download a compressed file with this package code from your favorite source
@@ -2176,9 +2193,6 @@ B<5.> Build a DOM parser alternative for the sheets
 
 =back
 
-B<6.> Make L</empty_is_end> finish a sheet for rows with formatting but no data.  
-Possibly this requires an additional attribute 'next_ignores_empty'?
-
 =back
 
 =head1 AUTHOR
@@ -2203,6 +2217,8 @@ patches, bug reports, help with troubleshooting, etc. A huge
 L<Frank Maas|https://github.com/Frank071>
 
 L<Stuart Watt|https://github.com/morungos>
+
+L<Toby Inkster|https://github.com/morungos>
 
 =back
 
@@ -2256,11 +2272,11 @@ L<version> - 0.077
 
 =over
 
-L<Spreadsheet::ParseExcel> - Excel 2003 and earlier
+L<Spreadsheet::ParseExcel> - Excel version 2003 and earlier
 
-L<Spreadsheet::XLSX> - 2007+
+L<Spreadsheet::XLSX> - Excel version 2007 and later
 
-L<Spreadsheet::ParseXLSX> - 2007+
+L<Spreadsheet::ParseXLSX> - Excel version 2007 and later
 
 L<Log::Shiras|https://github.com/jandrew/Log-Shiras>
 
