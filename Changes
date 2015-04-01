@@ -10,11 +10,12 @@ be method matched to Spreadsheet::ParseExcel prior to the 1.0 release.
 
 {{$NEXT}}
 
-	* Another cool change
+	+ Added a version header to the primary pod
+	+ Added the cpan version badge and a badge header
 
 v0.36.2   2015-03-31 08:13:56-07:00 America/Los_Angeles
 	
-	+ Added a CPAN version badge (Thanks @GARU)
+	+ Added badges (Thanks @GARU)
 	+ Added Alien::LibXML as a requirement in MakeFile.PL to see if there was any impact
 	! Removed TODO #6 (I already did it)
 
