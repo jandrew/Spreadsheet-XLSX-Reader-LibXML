@@ -6,13 +6,15 @@ use strict;
 use warnings;
 
 use 5.010;
-use ExtUtils::MakeMaker;
+use ExtUtils::MakeMaker 7.04;
+
+use Alien::LibXML 0.003;
 
 my %WriteMakefileArgs = (
   "ABSTRACT" => "Read xlsx spreadsheet files with LibXML",
   "AUTHOR" => "Jed Lund <jandrew\@cpan.org>",
   "CONFIGURE_REQUIRES" => {
-    "ExtUtils::MakeMaker" => 0
+    "ExtUtils::MakeMaker" => "7.04"
   },
   "DISTNAME" => "Spreadsheet-XLSX-Reader-LibXML",
   "EXE_FILES" => [],
@@ -53,6 +55,7 @@ my %WriteMakefileArgs = (
     "Clone" => 0,
     "DateTime::Format::Flexible" => 0,
     "DateTimeX::Format::Excel" => "0.012",
+    "ExtUtils::MakeMaker" => "7.04",
     "IO::File" => 0,
     "List::Util" => "1.33",
     "Moose" => "2.1213",
@@ -69,7 +72,7 @@ my %WriteMakefileArgs = (
     "XML::LibXML::Reader" => 0,
     "version" => "0.77"
   },
-  "VERSION" => "v0.36.6",
+  "VERSION" => "v0.36.8",
   "test" => {
     "TESTS" => "t/Spreadsheet/XLSX/Reader/*.t t/Spreadsheet/XLSX/Reader/LibXML/*.t t/Spreadsheet/XLSX/Reader/LibXML/XMLReader/*.t"
   }
@@ -77,7 +80,8 @@ my %WriteMakefileArgs = (
 
 %WriteMakefileArgs = (
     %WriteMakefileArgs,
-    BUILD_REQUIRES => { "Alien::LibXML" => "0.003" },
+    LIBS => Alien::LibXML->libs,
+    CFLAGS => Alien::LibXML->cflags,
 );
 
 my %FallbackPrereqs = (
@@ -89,6 +93,7 @@ my %FallbackPrereqs = (
   "Data::Dumper" => 0,
   "DateTime::Format::Flexible" => 0,
   "DateTimeX::Format::Excel" => "0.012",
+  "ExtUtils::MakeMaker" => "7.04",
   "IO::File" => 0,
   "List::Util" => "1.33",
   "Moose" => "2.1213",

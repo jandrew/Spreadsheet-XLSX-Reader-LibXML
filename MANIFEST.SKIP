@@ -13,6 +13,8 @@
 ^Supporting_Documentation/.*
 ^t/Spreadsheet/XLSX/Reader/LibXML/XMLDOM/*
 ^lib/Spreadsheet/XLSX/Reader/LibXML/XMLDOM/*
+^Spreadsheet-XLSX-Reader-LibXML
+^Spreadsheet-XLSX-Reader-LibXML/*
 ^SVPerlTalk.odp
 ^Presentation/
 ^TestBook/.*

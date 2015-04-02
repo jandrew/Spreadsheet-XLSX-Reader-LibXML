@@ -10,6 +10,14 @@ be method matched to Spreadsheet::ParseExcel prior to the 1.0 release.
 
 {{$NEXT}}
 
+	* Another cool change
+
+v0.36.8   2015-04-02 10:25:24-07:00 America/Los_Angeles
+
+	+ Rewrote the dist.ini so that Makefile.PL should implement Alien::LibXML correctly
+
+v0.36.6   2015-03-31 19:48:28-07:00 America/Los_Angeles
+
 	+ Added a version header to the primary pod
 	+ Added the cpan version badge and a badge header
 

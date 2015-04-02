@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML;
-use version 0.77; our $VERSION = qv('v0.36.6');
+use version 0.77; our $VERSION = qv('v0.36.8');
 
 use 5.010;
 use	List::Util 1.33;
@@ -896,17 +896,17 @@ __END__
 
 Spreadsheet::XLSX::Reader::LibXML - Read xlsx spreadsheet files with LibXML
 
-=head2 Version
+=head3 version
 
-v0.36.6
+v0.36.8
 
 =begin html
 
-<h2>
-	<a id="user-content-badges" class="anchor" href="#Badges" aria-hidden="true">
+<h3>
+	<a id="user-content-badges" class="anchor" href="#badges" aria-hidden="true">
 		<!-- <span class="octicon octicon-link"></span></a> -->
-		<a href="#___top" title="click to go to top of document" name="user-content-Badges">Badges</a>
-</h2>
+		<a href="#___top" title="click to go to top of document" name="user-content-badges">badges</a>
+</h3>
 
 <a href="https://travis-ci.org/jandrew/Spreadsheet-XLSX-Reader-LibXML"><img alt="Build Status" src="https://travis-ci.org/jandrew/Spreadsheet-XLSX-Reader-LibXML.png?branch=master" alt='Travis Build'/></a>
 
@@ -2106,12 +2106,17 @@ L<group_return_type|/group_return_type> => 'value'
 
 =head1 BUILD / INSTALL from Source
 
-B<1.> This package uses L<Alien::LibXML> to ensure you have libxml2 and libxml2-devel 
-installed.  The biggest gotcha here is that older (<5.20.0.2) versions of Strawberry Perl 
-and some other Win32 perls may not support the script 'pkg-config' which is required.  You 
-can resolve this by installation L<PkgConfig> as 'pkg-config'.  I have included the 
-short version of that process below but download the full L<PkgConfig> distribution and read 
-README.win32 file for other options and much more explanation.
+B<1.> Please note that using L<cpanm|https://metacpan.org/pod/App::cpanminus> is much easier 
+than a source build! (but it will not always give the latest github version)
+
+	cpanm Spreadsheet-XLSX-Reader-LibXML
+
+B<2.> This package uses L<Alien::LibXML> to try and ensure that the mandatory prerequisite 
+L<XML::LibXML> will load.  The biggest gotcha here is that older (<5.20.0.2) versions of 
+Strawberry Perl and some other Win32 perls may not support the script 'pkg-config' which is 
+required.  You can resolve this by installation L<PkgConfig> as 'pkg-config'.  I have 
+included the short version of that process below but download the full L<PkgConfig> distribution 
+and read README.win32 file for other options and much more explanation.
 
 =over
 
@@ -2120,14 +2125,18 @@ B<this will conflict with any existing pkg-config installed>
 	C:\> cpanm PkgConfig --configure-args=--script=pkg-config
 	
 =back
+
+Please L<submit to github|https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML/issues> any 
+installation issues found especially if they occur prior to starting the testsuit as these failures 
+will not auto push from CPAN Testers so I won't know to fix them!
 	
-B<2.> Download a compressed file with this package code from your favorite source
+B<3.> Download a compressed file with this package code from your favorite source
 
 =over
 
-L<Meta::CPAN|https://metacpan.org/pod/Spreadsheet::XLSX::Reader::LibXML>
-
 L<github|https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML>
+
+L<Meta::CPAN|https://metacpan.org/pod/Spreadsheet::XLSX::Reader::LibXML>
 
 L<CPAN|http://search.cpan.org/~jandrew/Spreadsheet-XLSX-Reader-LibXML/>
 
