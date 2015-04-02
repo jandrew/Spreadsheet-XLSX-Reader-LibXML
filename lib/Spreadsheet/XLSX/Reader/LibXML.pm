@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML;
-use version 0.77; our $VERSION = qv('v0.36.10');
+use version 0.77; our $VERSION = qv('v0.36.12');
 
 use 5.010;
 use	List::Util 1.33;
@@ -898,7 +898,7 @@ Spreadsheet::XLSX::Reader::LibXML - Read xlsx spreadsheet files with LibXML
 
 =head3 version
 
-v0.36.10
+v0.36.12
 
 =begin html
 
@@ -2106,12 +2106,12 @@ L<group_return_type|/group_return_type> => 'value'
 
 =head1 BUILD / INSTALL from Source
 
-B<1.> Please note that using L<cpanm|https://metacpan.org/pod/App::cpanminus> is much easier 
+B<0.> Please note that using L<cpanm|https://metacpan.org/pod/App::cpanminus> is much easier 
 than a source build! (but it will not always give the latest github version)
 
 	cpanm Spreadsheet-XLSX-Reader-LibXML
 
-B<2.> This package uses L<Alien::LibXML> to try and ensure that the mandatory prerequisite 
+B<1.> This package uses L<Alien::LibXML> to try and ensure that the mandatory prerequisite 
 L<XML::LibXML> will load.  The biggest gotcha here is that older (<5.20.0.2) versions of 
 Strawberry Perl and some other Win32 perls may not support the script 'pkg-config' which is 
 required.  You can resolve this by installation L<PkgConfig> as 'pkg-config'.  I have 
@@ -2126,11 +2126,13 @@ B<this will conflict with any existing pkg-config installed>
 	
 =back
 
-Please L<submit to github|https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML/issues> any 
-installation issues found especially if they occur prior to starting the testsuit as these failures 
-will not auto push from CPAN Testers so I won't know to fix them!
+It may be that you still need to use a system package manager to L<load|http://xmlsoft.org/> the 
+'libxml2-devel' library.  If this is the case or you experience any other installation issues please 
+L<submit them to github|https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML/issues> especially 
+if they occur prior to starting the test suit as these failures will not auto push from CPAN Testers 
+so I won't know to fix them!
 	
-B<3.> Download a compressed file with this package code from your favorite source
+B<2.> Download a compressed file with this package code from your favorite source
 
 =over
 

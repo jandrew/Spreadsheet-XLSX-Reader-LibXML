@@ -12,13 +12,19 @@ be method matched to Spreadsheet::ParseExcel prior to the 1.0 release.
 
 	* Another cool change
 
+v0.36.12  2015-04-02 11:45:08-07:00 America/Los_Angeles
+
+	! Updated the documentation in preparation for a push all the way to CPAN since
+		TravisCI builds are passing.
+	! Changed the MakeMaker call from setting CFLAGS to setting CCFLAGS
+
 v0.36.10  2015-04-02 11:02:47-07:00 America/Los_Angeles
 
-	+ Moved the Alien::LibXML requirement to the configure stage to try and pass a TavisCI build
+	! Moved the Alien::LibXML requirement to the configure stage to try and pass a TavisCI build
 
 v0.36.8   2015-04-02 10:58:17-07:00 America/Los_Angeles
 
-	+ Rewrote the dist.ini so that Makefile.PL should implement Alien::LibXML correctly
+	! Rewrote the dist.ini so that Makefile.PL should implement Alien::LibXML correctly
 
 v0.36.6   2015-03-31 19:48:28-07:00 America/Los_Angeles
 
