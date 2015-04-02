@@ -14,6 +14,7 @@ my %WriteMakefileArgs = (
   "ABSTRACT" => "Read xlsx spreadsheet files with LibXML",
   "AUTHOR" => "Jed Lund <jandrew\@cpan.org>",
   "CONFIGURE_REQUIRES" => {
+    "Alien::LibXML" => "0.003",
     "ExtUtils::MakeMaker" => "7.04"
   },
   "DISTNAME" => "Spreadsheet-XLSX-Reader-LibXML",
@@ -48,7 +49,6 @@ my %WriteMakefileArgs = (
     "warnings" => 0
   },
   "TEST_REQUIRES" => {
-    "Alien::LibXML" => "0.003",
     "Archive::Zip" => 0,
     "Capture::Tiny" => 0,
     "Carp" => 0,
@@ -72,7 +72,7 @@ my %WriteMakefileArgs = (
     "XML::LibXML::Reader" => 0,
     "version" => "0.77"
   },
-  "VERSION" => "v0.36.8",
+  "VERSION" => "v0.36.10",
   "test" => {
     "TESTS" => "t/Spreadsheet/XLSX/Reader/*.t t/Spreadsheet/XLSX/Reader/LibXML/*.t t/Spreadsheet/XLSX/Reader/LibXML/XMLReader/*.t"
   }
@@ -85,7 +85,6 @@ my %WriteMakefileArgs = (
 );
 
 my %FallbackPrereqs = (
-  "Alien::LibXML" => "0.003",
   "Archive::Zip" => 0,
   "Capture::Tiny" => 0,
   "Carp" => 0,

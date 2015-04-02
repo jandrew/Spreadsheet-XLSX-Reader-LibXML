@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML;
-use version 0.77; our $VERSION = qv('v0.36.8');
+use version 0.77; our $VERSION = qv('v0.36.10');
 
 use 5.010;
 use	List::Util 1.33;
@@ -898,7 +898,7 @@ Spreadsheet::XLSX::Reader::LibXML - Read xlsx spreadsheet files with LibXML
 
 =head3 version
 
-v0.36.8
+v0.36.10
 
 =begin html
 

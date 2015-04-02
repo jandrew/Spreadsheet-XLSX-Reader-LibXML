@@ -12,7 +12,11 @@ be method matched to Spreadsheet::ParseExcel prior to the 1.0 release.
 
 	* Another cool change
 
-v0.36.8   2015-04-02 10:25:24-07:00 America/Los_Angeles
+v0.36.10  2015-04-02 11:02:47-07:00 America/Los_Angeles
+
+	+ Moved the Alien::LibXML requirement to the configure stage to try and pass a TavisCI build
+
+v0.36.8   2015-04-02 10:58:17-07:00 America/Los_Angeles
 
 	+ Rewrote the dist.ini so that Makefile.PL should implement Alien::LibXML correctly
 
