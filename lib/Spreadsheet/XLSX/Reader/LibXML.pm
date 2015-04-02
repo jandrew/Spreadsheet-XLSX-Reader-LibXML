@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML;
-use version 0.77; our $VERSION = qv('v0.36.12');
+use version 0.77; our $VERSION = qv('v0.36.14');
 
 use 5.010;
 use	List::Util 1.33;
@@ -896,27 +896,19 @@ __END__
 
 Spreadsheet::XLSX::Reader::LibXML - Read xlsx spreadsheet files with LibXML
 
-=head3 version
-
-v0.36.12
-
 =begin html
-
-<h3>
-	<a id="user-content-badges" class="anchor" href="#badges" aria-hidden="true">
-		<!-- <span class="octicon octicon-link"></span></a> -->
-		<a href="#___top" title="click to go to top of document" name="user-content-badges">badges</a>
-</h3>
 
 <a href="https://travis-ci.org/jandrew/Spreadsheet-XLSX-Reader-LibXML"><img alt="Build Status" src="https://travis-ci.org/jandrew/Spreadsheet-XLSX-Reader-LibXML.png?branch=master" alt='Travis Build'/></a>
 
 <a href='https://coveralls.io/r/jandrew/Spreadsheet-XLSX-Reader-LibXML?branch=master'><img src='https://coveralls.io/repos/jandrew/Spreadsheet-XLSX-Reader-LibXML/badge.svg?branch=master' alt='Coverage Status' /></a>
 
-<a href="https://www.perl.org"><img src="https://img.shields.io/badge/perl-5.10+-brightgreen.svg" alt="perl version"></a>
+<a><img src="https://img.shields.io/badge/this version-0.36.14-brightgreen.svg" alt="this version"></a>
 
-<a href="http://badge.fury.io/pl/Spreadsheet-XLSX-Reader-LibXML"><img src="https://badge.fury.io/pl/Spreadsheet-XLSX-Reader-LibXML.svg" alt="CPAN version" height="20"></a>
+<a href="https://metacpan.org/pod/Spreadsheet::XLSX::Reader::LibXML"><img src="https://badge.fury.io/pl/Spreadsheet-XLSX-Reader-LibXML.svg?label=cpan version" alt="CPAN version" height="20"></a>
 
 <a href='http://cpants.cpanauthors.org/dist/Spreadsheet-XLSX-Reader-LibXML'><img src='http://cpants.cpanauthors.org/dist/Spreadsheet-XLSX-Reader-LibXML.png' alt='kwalitee' height="20"/></a>
+
+<a href="https://www.perl.org"><img src="https://img.shields.io/badge/perl-5.10+-brightgreen.svg" alt="perl version"></a>
 
 =end html
 

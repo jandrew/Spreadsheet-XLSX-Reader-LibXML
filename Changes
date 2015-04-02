@@ -10,7 +10,7 @@ be method matched to Spreadsheet::ParseExcel prior to the 1.0 release.
 
 {{$NEXT}}
 
-	* Another cool change
+	+ moved the current version to a badge and tweaked the badges to see what happens
 
 v0.36.12  2015-04-02 11:45:08-07:00 America/Los_Angeles
 
