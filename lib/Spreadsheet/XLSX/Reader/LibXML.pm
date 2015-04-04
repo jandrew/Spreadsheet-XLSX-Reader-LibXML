@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML;
-use version 0.77; our $VERSION = qv('v0.36.16');
+use version 0.77; our $VERSION = qv('v0.36_17');
 
 use 5.010;
 use	List::Util 1.33;
@@ -918,12 +918,16 @@ Spreadsheet::XLSX::Reader::LibXML - Read xlsx spreadsheet files with LibXML
 	<img src='http://cpants.cpanauthors.org/dist/Spreadsheet-XLSX-Reader-LibXML.png' alt='kwalitee' height="20"/>
 </a>
 
+=end html
+
+=begin html_javascript
+
 <script>
 
 	if( !window.location.hostname.match( "cpan" ) ){
 
 		document.getElementById("thisVersion").innerHTML = 
-			'<img src="https://img.shields.io/badge/this version-0.36.16-brightgreen.svg" alt="this version">';
+			'<img src="https://img.shields.io/badge/this version-0.36_17-brightgreen.svg" alt="this version">';
 
 		document.getElementById("cpanVersion").href = 
 			"https://metacpan.org/pod/Spreadsheet::XLSX::Reader::LibXML";
@@ -932,10 +936,12 @@ Spreadsheet::XLSX::Reader::LibXML - Read xlsx spreadsheet files with LibXML
 			'<img src="https://badge.fury.io/pl/Spreadsheet-XLSX-Reader-LibXML.svg?label=cpan version" alt="CPAN version" height="20">';
 
 	}
+	
+	document.write( "Test of the if statement" );
 
 </script>
 
-=end html
+=end html_javascript
 
 =head1 SYNOPSIS
 

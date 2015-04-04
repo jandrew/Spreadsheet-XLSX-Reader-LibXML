@@ -10,7 +10,11 @@ be method matched to Spreadsheet::ParseExcel prior to the 1.0 release.
 
 {{$NEXT}}
 
-	* Another cool change.
+	* Another cool change
+
+v0.36_17  2015-04-03 23:37:22-07:00 America/Los_Angeles
+
+	! Test of the javascript changes to see if I can get it to be included
 
 v0.36.16  2015-04-03 22:27:06-07:00 America/Los_Angeles
 
