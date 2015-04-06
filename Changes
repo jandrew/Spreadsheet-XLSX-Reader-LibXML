@@ -1,5 +1,6 @@
 Revision history for {{$dist->name}}
 
+Uses the change tracking convention
 + New feature.
 - Removed/deprecated feature.
 ! Bug fix.
@@ -11,6 +12,10 @@ be method matched to Spreadsheet::ParseExcel prior to the 1.0 release.
 {{$NEXT}}
 
 	* Another cool change
+
+v0.36.18  2015-04-05 21:44:26-07:00 America/Los_Angeles
+
+	! Giving up on the javascript if statement (github strips 'script' tags and content)
 
 v0.36_17  2015-04-03 23:37:22-07:00 America/Los_Angeles
 
