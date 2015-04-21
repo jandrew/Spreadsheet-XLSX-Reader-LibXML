@@ -166,17 +166,19 @@ B<1.> Archive-Zip versions greater than 1.30 appear to be broken.  This package 
 Archive::Zip so I reccomend Archive-Zip-1.30.
 
 B<2.> This package requires that you can load L<XML::LibXML> which requires the L<libxml2
-|http://xmlsoft.org/> and 'libxml2-devel' libraries.  Many PC's have these already but you 
-should try to load XML::LibXML separatly if you have problems loading this.  I<If it loads 
-but you have a test suit failure please log a case in my repo on L<github|/SUPPORT>>.
+|http://xmlsoft.org/> and 'libxml2-devel' libraries.  I have included L<Alien::LibXML> in 
+the build profile in an attempt to resolve any library issues but being new to usage of 
+Alien libraries in general I'm certain I got it quite right.  Many PC's have these already 
+but if thise fails to load please log an issue in my repo on L<github|/SUPPORT>>.
 
 B<3.> Earlier versions of this package would extract the .xlsx file to a temp directory and 
 release the file lock on the original file while still retaining the information for access 
 by the parser.  In order to resolve some some temp dir cleanup issues this package no 
 longer releases the lock on the file during reading.  (It will release the file lock and 
-clean up any temp directories when the class is closed)
+clean up any temp directories when the class is closed) (warning will be removed after 
+2015-June-25)
 
-B<*3.> Not all workbook sheets (tabs) are created equal!  Some Excel sheet tabs are only a 
+B<*4.> Not all workbook sheets (tabs) are created equal!  Some Excel sheet tabs are only a 
 chart.  These tabs are 'chartsheets'.  The methods with 'worksheet' in the name only act on 
 the sub set of tabs that are worksheets.  Future methods with 'chartsheet' in the name will 
 focus on the subset of sheets that are chartsheets.  Methods with just 'sheet' in the name 

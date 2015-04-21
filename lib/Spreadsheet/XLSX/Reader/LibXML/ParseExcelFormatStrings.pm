@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings;
-use version; our $VERSION = qv('v0.36.18');
+use version; our $VERSION = qv('v0.36.20');
 
 use 5.010;
 use Moose::Role;
@@ -700,7 +700,7 @@ sub _build_number{
 				###LogSD		"Regex yielded result:", @result ] );
 				my	$comma = ($2) ? $2 : undef,
 				my	$comma_less = defined( $3) ? "$1$3" : $1;
-				my	$comma_group = length( $3 );
+				my	$comma_group = $3 ? length( $3 ) : 0;
 				my	$divide_by_thousands = ( $4 ) ? (( $2 and $2 ne ',' ) ? $4 : "$2$4" ) : undef;#eval{ $2 . $4 }
 				my	$divisor = $1 if $1 =~ /^([0-9]+)$/;
 				my ( $leading_zeros, $trailinq_zeros );
@@ -721,7 +721,7 @@ sub _build_number{
 				###LogSD		'Initial code hash:', $code_hash_ref] );
 				if( !$number_type ){
 					$number_type = 'INTEGER';
-					$code_hash_ref->{integer}->{leading_zeros} = length( $leading_zeros ) if length( $leading_zeros );
+					$code_hash_ref->{integer}->{leading_zeros} = length( $leading_zeros ) if $leading_zeros and length( $leading_zeros );
 					$code_hash_ref->{integer}->{minimum_length} = length( $comma_less );
 					if( $comma ){
 						@{$code_hash_ref->{integer}}{ 'group_length', 'comma' } = ( $comma_group, $comma );
@@ -744,7 +744,7 @@ sub _build_number{
 						$code_hash_ref->{decimal}->{max_length} = length( $comma_less );
 					}
 				}elsif( ($number_type eq 'SCIENTIFIC') or $number_type eq 'FRACTION' ){
-					$code_hash_ref->{exponent}->{leading_zeros} = length( $leading_zeros ) if length( $leading_zeros );
+					$code_hash_ref->{exponent}->{leading_zeros} = length( $leading_zeros ) if $leading_zeros and length( $leading_zeros );
 					$code_hash_ref->{fraction}->{target_length} = length( $comma_less );
 					if( $divisor ){
 						$code_hash_ref->{fraction}->{divisor} = $divisor;
