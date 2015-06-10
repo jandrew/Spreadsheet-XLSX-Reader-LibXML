@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader;
-use version; our $VERSION = qv('v0.36.20');
+use version; our $VERSION = qv('v0.36.22');
 
 use 5.010;
 use Moose;
@@ -51,10 +51,20 @@ sub start_the_file_over{
 	###LogSD	my	$phone = Log::Shiras::Telephone->new(
 	###LogSD					name_space => $self->get_log_space . '::start_the_file_over', );
 	###LogSD		$phone->talk( level => 'debug', message =>[ "Resetting the XML file" ] );
-	$self->_go_to_the_end;
+	if( eval '$self->_go_to_the_end' ){
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"made it to the end", ] );
+	}
+	if( $@ ){
+		$self->set_error( $@ );
+	}
 	$self->_close_the_sheet;
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		"closed the sheet", ] );
 	#~ $self->_clear_xml_parser;
 	$self->_clear_location;
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		"cleared the current location", ] );
 	my $fh = $self->get_file;
 	$fh->seek( 0, 0 );
 	$self->_set_xml_parser( XML::LibXML::Reader->new( IO => $fh ) );

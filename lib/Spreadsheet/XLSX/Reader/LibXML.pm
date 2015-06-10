@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML;
-use version 0.77; our $VERSION = qv('v0.36.20');
+use version 0.77; our $VERSION = qv('v0.36.22');
 
 use 5.010;
 use	List::Util 1.33;
@@ -911,7 +911,7 @@ Spreadsheet::XLSX::Reader::LibXML - Read xlsx spreadsheet files with LibXML
 </a>
 
 <a>
-	<img src="https://img.shields.io/badge/this version-0.36.20-brightgreen.svg" alt="this version">
+	<img src="https://img.shields.io/badge/this version-0.36.22-brightgreen.svg" alt="this version">
 </a>
 
 <a href="https://metacpan.org/pod/Spreadsheet::XLSX::Reader::LibXML">

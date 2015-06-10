@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData;
-use version; our $VERSION = qv('v0.36.20');
+use version; our $VERSION = qv('v0.36.22');
 
 use	Moose::Role;
 use 5.010;
@@ -138,7 +138,19 @@ sub _parse_element{
 				if( $self->node_type == 15 ){
 					###LogSD	$phone->talk( level => 'debug', message => [
 					###LogSD		'Found an end tag' ] );
-					$result		= $self->start_reading;
+					eval '$self->start_reading';
+					$result = 1;
+					###LogSD	$phone->talk( level => 'info', message => [
+					###LogSD		"After read;",
+					###LogSD		(($self->node_name) ? ('current libxml2 node name: ' . $self->node_name) : undef),
+					###LogSD		'..libxml2 node type: ' . $self->node_type,
+					###LogSD		"current libxml2 node level: " . $self->node_depth, ] );
+					if( $@ ){
+						###LogSD	$phone->talk( level => 'info', message => [
+						###LogSD		"Start reading failed with message:", $@ ] );
+						$node_depth = 0;
+						last SUBNODES;
+					}
 				}
 				
 				# come back up to current level as needed
@@ -194,14 +206,23 @@ sub _parse_element{
 	}
 	
 	# Handle empty Excel shared string values
-	if( $current_ref and ref( $current_ref ) and
-		(!exists $current_ref->{t} or $current_ref->{t} eq 'str') and
-		exists $current_ref->{v} and
-		$current_ref->{v} == 1			){
-		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"Identified an empty string" ] );
-		$current_ref->{v} = {raw_text => ''};
-		delete $current_ref->{t};
+	###LogSD	$phone->talk( level => 'info', message => [
+	###LogSD		"Current ref resolved to:", $current_ref,] );
+	if( $current_ref and ref( $current_ref ) ){
+		if( (!exists $current_ref->{t} or $current_ref->{t} eq 'str') and
+			exists $current_ref->{v} and
+			$current_ref->{v} == 1			){
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"Identified an empty string" ] );
+			$current_ref->{v} = {raw_text => ''};
+			delete $current_ref->{t};
+		}elsif( exists $current_ref->{t} and $current_ref->{t} eq '1' ){
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"badly formed space record" ] );
+			$current_ref->{t} = {raw_text => $current_ref->{raw_text}};
+			delete $current_ref->{raw_text};
+			delete $current_ref->{'#text'};
+		}
 	}
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		"Returning ref: ", $current_ref ] );

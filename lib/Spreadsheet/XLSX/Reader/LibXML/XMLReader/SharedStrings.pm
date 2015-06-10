@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings;
-use version; our $VERSION = qv('v0.36.20');
+use version; our $VERSION = qv('v0.36.22');
 
 use 5.010;
 use Moose;
@@ -68,7 +68,15 @@ sub get_shared_string_position{
 	while( $self->where_am_i < $position ){
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD		"Pulling the next cell: " . ($self->where_am_i + 1) ] );
-		$self->next_element( 'si' );
+		eval '$self->next_element( "si" )';
+		if( $@ ){
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"Found an unexpected end of file: ", $@] );
+			$self->set_error( 'libxml2 error message' . $@ );
+			$self->_set_unique_count( $self->where_am_i + 1 );
+			$self->_i_am_here( 0 );
+			return undef;
+		}
 		$self->_i_am_here( $self->where_am_i + 1 );
 	}
 	
@@ -79,6 +87,8 @@ sub get_shared_string_position{
 	###LogSD	$phone->talk( level => 'trace',  message =>[
 	###LogSD		"Element parse resulted in:", $init_ref ] );
 	if( is_HashRef( $init_ref ) ){
+		###LogSD	$phone->talk( level => 'trace',  message =>[
+		###LogSD		"This is a hash ref" ] );
 		if( exists $init_ref->{list} ){
 			my ( $raw_text, $rich_text );
 			for my $element( @{$init_ref->{list}} ){
@@ -91,7 +101,7 @@ sub get_shared_string_position{
 			$init_ref = $init_ref->{t};
 		}
 	}else{
-		set_error( "Unable to parse the shared string position: $position" );
+		$self->set_error( "Unable to parse the shared string position: $position" );
 		return undef;
 	}
 	$self->_set_last_position_ref( $init_ref );

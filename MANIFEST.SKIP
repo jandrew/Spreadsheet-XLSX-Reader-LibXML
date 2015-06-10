@@ -23,3 +23,4 @@
 ^t/test_files/spread_test\.xlsx
 ^t/test_files/spread_test*
 ^t/test_files/ChartSheet.[^x]
+^t/test_files/metaExample*

@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::Types;
-use version; our $VERSION = qv('v0.36.20');
+use version; our $VERSION = qv('v0.36.22');
 		
 use strict;
 use warnings;

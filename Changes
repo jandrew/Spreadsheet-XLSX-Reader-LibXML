@@ -11,7 +11,7 @@ be method matched to Spreadsheet::ParseExcel prior to the 1.0 release.
 
 {{$NEXT}}
 	
-	* Another cool change
+	+ Closed #40 in github thanks @wdbaker54
 
 v0.36.20  2015-04-21 14:30:58-07:00 America/Los_Angeles
 
