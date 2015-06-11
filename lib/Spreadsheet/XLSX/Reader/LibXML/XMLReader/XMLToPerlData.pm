@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData;
-use version; our $VERSION = qv('v0.36.22');
+use version; our $VERSION = qv('v0.36.24');
 
 use	Moose::Role;
 use 5.010;
@@ -216,7 +216,7 @@ sub _parse_element{
 			###LogSD		"Identified an empty string" ] );
 			$current_ref->{v} = {raw_text => ''};
 			delete $current_ref->{t};
-		}elsif( exists $current_ref->{t} and $current_ref->{t} eq '1' ){
+		}elsif( exists $current_ref->{t} and $current_ref->{t} and $current_ref->{t} eq '1' ){
 			###LogSD	$phone->talk( level => 'debug', message => [
 			###LogSD		"badly formed space record" ] );
 			$current_ref->{t} = {raw_text => $current_ref->{raw_text}};

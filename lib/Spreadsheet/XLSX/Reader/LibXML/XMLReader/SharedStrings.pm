@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings;
-use version; our $VERSION = qv('v0.36.22');
+use version; our $VERSION = qv('v0.36.24');
 
 use 5.010;
 use Moose;
@@ -56,8 +56,16 @@ sub get_shared_string_position{
 	if( !$self->has_position ){
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD		"Pulling the first cell" ] );
-		my $found_it = $self->next_element( 'si' );
-		if( $found_it < 1 ){
+		my $found_it;
+		eval '$found_it = $self->next_element( "si" )';
+		if( $@ ){
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"Found an unexpected end of file: ", $@] );
+			$self->set_error( 'libxml2 error message' . $@ );
+			$self->_set_unique_count( 0 );
+			$self->_i_am_here( 0 );
+			return undef;
+		}elsif( defined $found_it and $found_it < 1 ){
 			$self->set_error( "No strings stored in the sharedStrings file" );
 			return undef;
 		}
@@ -68,11 +76,19 @@ sub get_shared_string_position{
 	while( $self->where_am_i < $position ){
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD		"Pulling the next cell: " . ($self->where_am_i + 1) ] );
-		eval '$self->next_element( "si" )';
+		my $found_it;
+		eval '$found_it = $self->next_element( "si" )';
 		if( $@ ){
 			###LogSD	$phone->talk( level => 'debug', message => [
 			###LogSD		"Found an unexpected end of file: ", $@] );
 			$self->set_error( 'libxml2 error message' . $@ );
+			$self->_set_unique_count( $self->where_am_i + 1 );
+			$self->_i_am_here( 0 );
+			return undef;
+		}elsif( defined $found_it and $found_it < 1 ){
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"Found an unexpected end of file: $found_it" ] );
+			$self->set_error( "Unexpected end of file found" );
 			$self->_set_unique_count( $self->where_am_i + 1 );
 			$self->_i_am_here( 0 );
 			return undef;
