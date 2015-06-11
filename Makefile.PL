@@ -72,7 +72,7 @@ my %WriteMakefileArgs = (
     "XML::LibXML::Reader" => 0,
     "version" => "0.77"
   },
-  "VERSION" => "v0.36.20",
+  "VERSION" => "v0.36.22",
   "test" => {
     "TESTS" => "t/Spreadsheet/XLSX/Reader/*.t t/Spreadsheet/XLSX/Reader/LibXML/*.t t/Spreadsheet/XLSX/Reader/LibXML/XMLReader/*.t"
   }
@@ -85,6 +85,7 @@ my %WriteMakefileArgs = (
 );
 
 my %FallbackPrereqs = (
+  "Alien::LibXML" => "0.003",
   "Archive::Zip" => 0,
   "Capture::Tiny" => 0,
   "Carp" => 0,

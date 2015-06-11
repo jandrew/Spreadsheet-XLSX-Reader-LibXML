@@ -5,7 +5,7 @@ BEGIN{
 	$ENV{PERL_TYPE_TINY_XS} = 0;
 	my	$start_deeper = 1;
 	$lib		= 'lib';
-	$test_file	= 't/test_files/xl/';
+	$test_file	= 't/test_files/';
 	for my $next ( <*> ){
 		if( ($next eq 't') and -d $next ){
 			$start_deeper = 0;
