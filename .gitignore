@@ -14,3 +14,4 @@ t/04-endless_loop_bug.t
 t/test_files/spread_test*
 t/test_files/ChartSheet/*
 t/test_files/ChartSheet.zip
+t/test_files/metaExample*

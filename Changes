@@ -10,8 +10,18 @@ NOTE: This software is designated as beta quality until this notice is removed. 
 be method matched to Spreadsheet::ParseExcel prior to the 1.0 release.
 
 {{$NEXT}}
-	
+
 	* Another cool change
+
+v0.36.24  2015-06-10 19:44:32-07:00 America/Los_Angeles
+
+	! Attempting to solve the deep recursion from TravisCI in the new bugfix
+	+ Added perl 5.22 to TravisCI testing
+	! Fixed the failing TravisCI build
+
+v0.36.22  2015-06-10 17:11:39-07:00 America/Los_Angeles
+	
+	! Closed #40 in github thanks @wdbaker54
 
 v0.36.20  2015-04-21 14:30:58-07:00 America/Los_Angeles
 
