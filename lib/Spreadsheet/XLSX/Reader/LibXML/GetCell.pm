@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::GetCell;
-use version; our $VERSION = qv('v0.36.26');
+use version; our $VERSION = qv('v0.36.28');
 
 use	Moose::Role;
 requires qw(
@@ -415,19 +415,12 @@ sub _build_out_the_cell{
 				###LogSD		'Applying custom format to: ' .  $return->{cell_unformatted} ] );
 				###LogSD	$phone->talk( level => 'trace', message =>[
 				###LogSD		'Returning value coerced by custom format:', $custom_format ] );
-				my	$return_value;
-				my	$sig_warn = $SIG{__WARN__};
-				$SIG{__WARN__} = sub{ print "Found bad value: $_\n" };
-				$@ = undef;
-				eval '$return_value = $custom_format->assert_coerce( $return->{cell_unformatted} );';
-				if( $@ ){
-					$self->set_error( $@ );
-					return $return->{cell_unformatted};
-				}else{
-					$return_value =~ s/\\//g if $return_value;
-					return $return_value;
-				}
-				$SIG{__WARN__} = $sig_warn;
+				return	Spreadsheet::XLSX::Reader::LibXML::Cell->_return_value_only(
+							$return->{cell_unformatted}, 
+							$custom_format,
+							$self->_get_error_inst,
+				###LogSD	$self->get_log_space,
+						);
 			}
 		}
 		# handle the formula
@@ -448,23 +441,14 @@ sub _build_out_the_cell{
 			}
 			# Second check for value only
 			if( $self->get_group_return_type eq 'value' ){
-				if( exists $format->{numFmts} ){
-					###LogSD	$phone->talk( level => 'trace', message =>[
-					###LogSD		"Attempting to just return the cell value coerced by:", $format->{numFmts}, ] );
-					my	$return_value;
-					my	$sig_warn = $SIG{__WARN__};
-					$SIG{__WARN__} = sub{print "Found diff value: $_\n"};
-					$@ = undef;
-					eval '$return_value = $format->{numFmts}->assert_coerce( $return->{cell_unformatted} );';
-					if( $@ ){
-						$self->set_error( $@ );
-					}else{
-						$return_value =~ s/\\//g if $return_value;
-						return $return_value;
-					}
-					$SIG{__WARN__} = $sig_warn;
-				}
-				return $return->{cell_unformatted};
+				###LogSD	$phone->talk( level => 'debug', message =>[
+				###LogSD		'Applying (a possible) regular format to: ' .  $return->{cell_unformatted} ] );
+				return	Spreadsheet::XLSX::Reader::LibXML::Cell->_return_value_only(
+							$return->{cell_unformatted}, 
+							$format->{numFmts},
+							$self->_get_error_inst,
+				###LogSD	$self->get_log_space,
+						);
 			}
 			if( $self->_has_styles_file ){
 				for my $header ( keys %$format_headers ){

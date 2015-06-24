@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML;
-use version 0.77; our $VERSION = qv('v0.36.26');
+use version 0.77; our $VERSION = qv('v0.36.28');
 
 use 5.010;
 use	List::Util 1.33;
@@ -19,7 +19,7 @@ use Types::Standard qw(
     );
 use	MooseX::ShortCut::BuildInstance 1.032 qw( build_instance should_re_use_classes );
 use lib	'../../../../lib',;
-use Data::Dumper;
+#~ use Data::Dumper;
 ###LogSD with 'Log::Shiras::LogSpace';
 ###LogSD use Log::Shiras::Telephone;
 ###LogSD use Log::Shiras::UnhideDebug;

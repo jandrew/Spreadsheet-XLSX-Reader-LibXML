@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::Cell;
-use version; our $VERSION = qv('v0.36.26');
+use version; our $VERSION = qv('v0.36.28');
 
 $| = 1;
 use 5.010;
@@ -165,26 +165,12 @@ sub value{
 	###LogSD			'Reached the -value- function' ] );
 	###LogSD		$phone->talk( level => 'trace', message => [ "Cell:", $self ] );
 	my	$unformatted = $self->unformatted;
-	my	$formatted = $unformatted;
-	if( !$self->has_coercion ){
-		return $unformatted;
-	}elsif( !defined $unformatted ){
-		$self->set_error( "The cell does not have a value" );
-	}elsif( $unformatted eq '' ){
-		$self->set_error( "The cell has the empty string for a value" );
-	}else{
-		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"Attempting to return the value of the cell formatted to " .
-		###LogSD		(($self->has_coercion) ? $self->coercion_name : 'No conversion available' ) ] );
-		eval '$formatted = $self->get_coercion->assert_coerce( $unformatted )';
-		$self->set_error( $@ ) if( $@ );
-	}
-	$formatted =~ s/\\//g if $formatted;
-	###LogSD	$phone->talk( level => 'debug', message => [
-	###LogSD		"Format is:", $self->coercion_name,
-	###LogSD		"Returning the formated value: " . 
-	###LogSD		( $formatted ? $formatted : '' ), ] );
-	return $formatted;
+	return	$self->_return_value_only(
+				$unformatted, 
+				$self->get_coercion,
+				$self->_get_error_inst,
+	###LogSD	$self->get_log_space,
+			);
 }
 
 #~ sub get_merge_range{
@@ -233,6 +219,40 @@ after 'set_coercion' => sub{
 	###LogSD			"Setting 'cell_type' to custom since the coercion has been set" ] );
 	$self->_set_cell_type( 'Custom' );
 };
+
+sub _return_value_only{
+	my ( $self, $unformatted, $coercion, $error_inst, $log_space ) = @_;# To be used by GetCell too
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space => 
+	###LogSD					($log_space .  '::_return_value_only' ), );
+	###LogSD		$phone->talk( level => 'debug', message =>[  
+	###LogSD			 "Returning the coerced value of: " . ($unformatted ? $unformatted : ''),
+	###LogSD			 ($coercion ? ( '..using coercion:' , $coercion ) : ''), ] );
+	my	$formatted = $unformatted;
+	if( !$coercion ){
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"No coercion passed" ) ] );
+		return $unformatted;
+	}elsif( !defined $unformatted ){
+		$error_inst->set_error( "The cell does not have a value" );
+	}elsif( $unformatted eq '' ){
+		$error_inst->set_error( "The cell has the empty string for a value" );
+	}else{
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Attempting to return the value of the cell formatted to " .
+		###LogSD		(($coercion) ? $coercion->display_name : 'No conversion available' ) ] );
+		my	$sig_warn	= $SIG{__WARN__};
+		$SIG{__WARN__}	= sub{};
+		eval '$formatted = $coercion->assert_coerce( $unformatted )';
+		$error_inst->set_error( $@ ) if( $@ );
+		$SIG{__WARN__} = $sig_warn;
+	}
+	$formatted =~ s/\\//g if $formatted;
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		"Format is:", $coercion->display_name,
+	###LogSD		"Returning the formated value: " . 
+	###LogSD		( $formatted ? $formatted : '' ), ] );
+	return $formatted;
+}
 
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
 
