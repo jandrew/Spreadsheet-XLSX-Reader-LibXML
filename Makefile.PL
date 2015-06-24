@@ -26,7 +26,6 @@ my %WriteMakefileArgs = (
     "Archive::Zip" => 0,
     "Carp" => 0,
     "Clone" => 0,
-    "Data::Dumper" => 0,
     "DateTime::Format::Flexible" => 0,
     "DateTimeX::Format::Excel" => "0.012",
     "IO::File" => 0,
@@ -53,6 +52,7 @@ my %WriteMakefileArgs = (
     "Capture::Tiny" => 0,
     "Carp" => 0,
     "Clone" => 0,
+    "Data::Dumper" => 0,
     "DateTime::Format::Flexible" => 0,
     "DateTimeX::Format::Excel" => "0.012",
     "ExtUtils::MakeMaker" => "7.04",
@@ -72,7 +72,7 @@ my %WriteMakefileArgs = (
     "XML::LibXML::Reader" => 0,
     "version" => "0.77"
   },
-  "VERSION" => "v0.36.26",
+  "VERSION" => "v0.36.28",
   "test" => {
     "TESTS" => "t/Spreadsheet/XLSX/Reader/*.t t/Spreadsheet/XLSX/Reader/LibXML/*.t t/Spreadsheet/XLSX/Reader/LibXML/XMLReader/*.t"
   }
