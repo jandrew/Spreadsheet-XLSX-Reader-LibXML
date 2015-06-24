@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData;
-use version; our $VERSION = qv('v0.36.24');
+use version; our $VERSION = qv('v0.36.26');
 
 use	Moose::Role;
 use 5.010;

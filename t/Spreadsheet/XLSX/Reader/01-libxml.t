@@ -231,13 +231,13 @@ explain		'testing worksheet: ' . $worksheet->get_name;
 ###LogSD				},
 ###LogSD			},
 ###LogSD		} );
-###LogSD	}elsif( $x > 0 ){
-###LogSD		exit 1;
+#~ ###LogSD	}elsif( $x > 0 ){
+#~ ###LogSD		exit 1;
 ###LogSD	}
 ###LogSD	$phone->talk( level => 'debug', message => [ "getting position: $x" ] );
  
 lives_ok{	$row_ref = $worksheet->fetchrow_arrayref }
-										'Get the cell value for row: ' . ($x);
+										'Get the cell values for row: ' . ($x);
 #~ explain		"Checking answer position: " . ($offset_ref->[$y] + $x);
 			if( !ref $row_ref ){
 is			$row_ref, $answer_ref->[$offset_ref->[$y] + $x++],
