@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::GetCell;
-use version; our $VERSION = qv('v0.36.24');
+use version; our $VERSION = qv('v0.36.26');
 
 use	Moose::Role;
 requires qw(
@@ -379,11 +379,15 @@ sub _build_out_the_cell{
 		}
 		###LogSD	$phone->talk( level => 'debug', message =>[
 		###LogSD		"Cell raw text is:", $return->{cell_unformatted}] );
+		$return->{cell_unformatted} = $self->change_output_encoding( $return->{cell_unformatted} );
+		###LogSD	$phone->talk( level => 'debug', message =>[
+		###LogSD		"With output encoding changed: " . $return->{cell_unformatted} ] ) ;
 		if( $self->get_group_return_type eq 'unformatted' ){
 			###LogSD	$phone->talk( level => 'debug', message =>[
 			###LogSD		"Sending back just the unformatted value: $return->{cell_unformatted}" ] ) ;
-			return $self->change_output_encoding( $return->{cell_unformatted} );
+			return $return->{cell_unformatted}
 		}
+		# Get any relevant custom format
 		my	$custom_format;
 		if( $self->has_custom_format( $result->{r} ) ){
 			###LogSD	$phone->talk( level => 'debug', message =>[
@@ -402,14 +406,28 @@ sub _build_out_the_cell{
 				$custom_format = $self->get_custom_format( $excel_row );
 			}
 		}
+		# First check for return of value only
 		if( $custom_format ){
 			###LogSD	$phone->talk( level => 'debug', message =>[
 			###LogSD		'Cell custom_format is:', $custom_format ] );
 			if( $self->get_group_return_type eq 'value' ){
-				my $reformatted = $self->change_output_encoding( $return->{cell_unformatted} );
 				###LogSD	$phone->talk( level => 'debug', message =>[
-				###LogSD		'Applying custom format to: ' .  $reformatted ] );
-				return $custom_format->assert_coerce( $reformatted );
+				###LogSD		'Applying custom format to: ' .  $return->{cell_unformatted} ] );
+				###LogSD	$phone->talk( level => 'trace', message =>[
+				###LogSD		'Returning value coerced by custom format:', $custom_format ] );
+				my	$return_value;
+				my	$sig_warn = $SIG{__WARN__};
+				$SIG{__WARN__} = sub{ print "Found bad value: $_\n" };
+				$@ = undef;
+				eval '$return_value = $custom_format->assert_coerce( $return->{cell_unformatted} );';
+				if( $@ ){
+					$self->set_error( $@ );
+					return $return->{cell_unformatted};
+				}else{
+					$return_value =~ s/\\//g if $return_value;
+					return $return_value;
+				}
+				$SIG{__WARN__} = $sig_warn;
 			}
 		}
 		# handle the formula
@@ -424,18 +442,29 @@ sub _build_out_the_cell{
 			my $format;
 			if( $self->_has_styles_file ){
 				$format = $self->get_format_position( $result->{s}, $header );
+				
 				###LogSD	$phone->talk( level => 'trace', message =>[
 				###LogSD		"format position is:", $format ] );
 			}
+			# Second check for value only
 			if( $self->get_group_return_type eq 'value' ){
-				###LogSD	$phone->talk( level => 'trace', message =>[
-				###LogSD		"Attempting to just return the cell value with:",
-				###LogSD		((exists $format->{numFmts}) ? $format->{numFmts} : undef), ] );
 				if( exists $format->{numFmts} ){
-					return $format->{numFmts}->assert_coerce( $return->{cell_unformatted} );
-				}else{
-					return $return->{cell_unformatted};
+					###LogSD	$phone->talk( level => 'trace', message =>[
+					###LogSD		"Attempting to just return the cell value coerced by:", $format->{numFmts}, ] );
+					my	$return_value;
+					my	$sig_warn = $SIG{__WARN__};
+					$SIG{__WARN__} = sub{print "Found diff value: $_\n"};
+					$@ = undef;
+					eval '$return_value = $format->{numFmts}->assert_coerce( $return->{cell_unformatted} );';
+					if( $@ ){
+						$self->set_error( $@ );
+					}else{
+						$return_value =~ s/\\//g if $return_value;
+						return $return_value;
+					}
+					$SIG{__WARN__} = $sig_warn;
 				}
+				return $return->{cell_unformatted};
 			}
 			if( $self->_has_styles_file ){
 				for my $header ( keys %$format_headers ){

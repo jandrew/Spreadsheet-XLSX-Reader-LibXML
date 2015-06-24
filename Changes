@@ -13,6 +13,10 @@ be method matched to Spreadsheet::ParseExcel prior to the 1.0 release.
 
 	* Another cool change
 
+v0.36.26  2015-06-23 19:01:21-07:00 America/Los_Angeles
+
+	! Closed #42 in github
+
 v0.36.24  2015-06-10 19:44:32-07:00 America/Los_Angeles
 
 	! Attempting to solve the deep recursion from TravisCI in the new bugfix
