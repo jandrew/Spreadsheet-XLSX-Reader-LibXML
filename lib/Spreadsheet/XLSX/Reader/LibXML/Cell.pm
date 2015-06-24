@@ -230,7 +230,7 @@ sub _return_value_only{
 	my	$formatted = $unformatted;
 	if( !$coercion ){
 		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"No coercion passed" ) ] );
+		###LogSD		"No coercion passed" ] );
 		return $unformatted;
 	}elsif( !defined $unformatted ){
 		$error_inst->set_error( "The cell does not have a value" );
