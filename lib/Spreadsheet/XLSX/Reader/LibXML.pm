@@ -43,6 +43,7 @@ my	$parser_modules ={
 				attributes		=> [qw( error_inst )],
 				store			=> '_set_shared_strings_instance',
 				package			=> 'SharedStringsInstance',
+				store_read_positions => 1,
 			},
 			styles =>{
 				superclasses			=> ['Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles'],
@@ -200,6 +201,11 @@ has empty_return_type =>(
 		isa		=> Enum[qw( empty_string undef_string )],
 		reader	=> 'get_empty_return_type',
 		writer	=> 'set_empty_return_type',
+	);
+	
+has store_read_positions =>(
+		isa		=> Bool,
+		reader	=> '_should_store_positions',
 	);
 
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9

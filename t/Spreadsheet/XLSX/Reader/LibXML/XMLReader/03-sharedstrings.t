@@ -29,7 +29,7 @@ use	lib
 		'../../../../../../../Log-Shiras/lib',
 		$lib,
 	;
-#~ use Log::Shiras::Switchboard qw( :debug );#
+use Log::Shiras::Switchboard qw( :debug );#
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(#
 ###LogSD						name_space_bounds =>{
 ###LogSD							UNBLOCK =>{

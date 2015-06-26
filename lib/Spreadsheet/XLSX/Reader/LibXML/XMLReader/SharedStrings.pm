@@ -6,7 +6,7 @@ use Moose;
 use MooseX::StrictConstructor;
 use MooseX::HasDefaults::RO;
 use Types::Standard qw(
-		Int				HashRef			is_HashRef
+		Int				HashRef			is_HashRef		ArrayRef
     );
 use Carp qw( confess );
 use lib	'../../../../../../lib';
@@ -70,30 +70,42 @@ sub get_shared_string_position{
 			return undef;
 		}
 		$self->_i_am_here( 0 );
+		$self->_set_ss_position( 0, $self->tell );
 	}
 	
 	# Advance to the proper position
-	while( $self->where_am_i < $position ){
+	if( defined $self->_get_ss_position( $position ) ){
 		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"Pulling the next cell: " . ($self->where_am_i + 1) ] );
-		my $found_it;
-		eval '$found_it = $self->next_element( "si" )';
-		if( $@ ){
+		###LogSD		"I already know where to go: " . $self->_get_ss_position( $position ) ] );
+		$self->seek( $self->_get_ss_position( $position ), 0 );
+		$self->_i_am_here( $position );
+	}else{
+		while( $self->where_am_i < $position ){
 			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"Found an unexpected end of file: ", $@] );
-			$self->set_error( 'libxml2 error message' . $@ );
-			$self->_set_unique_count( $self->where_am_i + 1 );
-			$self->_i_am_here( 0 );
-			return undef;
-		}elsif( defined $found_it and $found_it < 1 ){
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"Found an unexpected end of file: $found_it" ] );
-			$self->set_error( "Unexpected end of file found" );
-			$self->_set_unique_count( $self->where_am_i + 1 );
-			$self->_i_am_here( 0 );
-			return undef;
+			###LogSD		"Pulling the next cell: " . ($self->where_am_i + 1) ] );
+			my $found_it;
+			eval '$found_it = $self->next_element( "si" )';
+			if( $@ ){
+				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD		"Found an unexpected end of file: ", $@] );
+				$self->set_error( 'libxml2 error message' . $@ );
+				$self->_set_unique_count( $self->where_am_i + 1 );
+				$self->_i_am_here( 0 );
+				return undef;
+			}elsif( defined $found_it and $found_it < 1 ){
+				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD		"Found an unexpected end of file: $found_it" ] );
+				$self->set_error( "Unexpected end of file found" );
+				$self->_set_unique_count( $self->where_am_i + 1 );
+				$self->_i_am_here( 0 );
+				return undef;
+			}
+			my $current = $self->where_am_i + 1;
+			###LogSD	$phone->talk( level => 'debug', ask => 1, message => [
+			###LogSD		"Recording current position: $current", "As file byte num: " . $self->tell, "..and byte consumed: " . $self->byte_consumed ] );
+			$self->_i_am_here( $current );
+			$self->_set_ss_position( $self->where_am_i, $self->tell );
 		}
-		$self->_i_am_here( $self->where_am_i + 1 );
 	}
 	
 	# Read the data
@@ -149,6 +161,21 @@ has _last_position_ref =>(
 		reader	=> '_get_last_position_ref',
 		clearer => '_clear_last_position_ref',
 		predicate => '_has_last_position_ref',
+	);
+	
+has _shared_strings_positions =>(
+		isa		=> ArrayRef,
+		traits	=> ['Array'],
+		default	=> sub{ [] },
+		handles	=>{
+			_get_ss_position => 'get',
+			_set_ss_position => 'set',
+		},
+	);
+	
+has store_read_positions =>(
+		isa		=> Bool,
+		reader	=> '_should_store_positions',
 	);
 
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9

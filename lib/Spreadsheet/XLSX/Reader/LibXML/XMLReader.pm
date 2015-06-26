@@ -29,6 +29,7 @@ has file =>(
 		coerce		=> 1,
 		required	=> 1,
 		trigger		=> \&_build_xml_reader,
+		handles		=>[qw( tell getpos seek )],
 	);
 
 has	error_inst =>(
@@ -65,9 +66,8 @@ sub start_the_file_over{
 	$self->_clear_location;
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		"cleared the current location", ] );
-	my $fh = $self->get_file;
-	$fh->seek( 0, 0 );
-	$self->_set_xml_parser( XML::LibXML::Reader->new( IO => $fh ) );
+	$self->seek( 0, 0 );
+	$self->_set_xml_parser( XML::LibXML::Reader->new( IO => $self->get_file ) );
 	$self->start_reading;
 }
 
