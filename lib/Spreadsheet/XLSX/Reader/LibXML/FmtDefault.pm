@@ -2,7 +2,7 @@ package Spreadsheet::XLSX::Reader::LibXML::FmtDefault;
 use version; our $VERSION = qv('v0.36.28');
 
 use	5.010;
-use	Moose::Role;
+use	Moose;
 ###LogSD	requires qw(
 ###LogSD		get_log_space
 ###LogSD	);

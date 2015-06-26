@@ -2259,6 +2259,8 @@ L<Breno G. de Oliveira|https://github.com/garu>
 
 L<Bill Baker|https://github.com/wdbaker54>
 
+L<H.Merijin Brand|https://github.com/Tux>
+
 =back
 
 =head1 COPYRIGHT
