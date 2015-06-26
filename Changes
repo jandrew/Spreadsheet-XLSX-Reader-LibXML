@@ -12,6 +12,8 @@ be method matched to Spreadsheet::ParseExcel prior to the 1.0 release.
 {{$NEXT}}
 	
 	+ Added a store_positions flag -  !!!!!!!!!!!!!! Document This !!!!!!!!!!
+	+ Changed the cell formatter from a Role to a Class to match Spreadsheet::ParseExcel 
+		THIS IS A REALLY BIG CHANGE
 
 v0.36.28  2015-06-24 14:41:34-07:00 America/Los_Angeles
 

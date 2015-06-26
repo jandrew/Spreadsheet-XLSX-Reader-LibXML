@@ -47,7 +47,7 @@ my	$parser_modules ={
 			},
 			styles =>{
 				superclasses			=> ['Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles'],
-				attributes				=> [qw( epoch_year error_inst )],
+				attributes				=> [qw( epoch_year error_inst  )],
 				add_roles_in_sequence	=> [qw( default_format_list format_string_parser )],
 				store					=> '_set_styles_instance',
 				package					=> 'StylesInstance',
@@ -177,6 +177,14 @@ has from_the_edge =>(
 		isa		=> Bool,
 		reader	=> '_starts_at_the_edge',
 		writer	=> 'set_from_the_edge',
+	);
+	
+has format_instance =>(
+		isa		=> HasMethods[qw( 
+						TextFmt			ValFmt		FmtString
+						get_defined_excel_format	get_standard_coercion )],# ChkType		
+		writer	=> 'set_format_instance',
+		handles =>[qw( get_defined_excel_format )],
 	);
 
 has default_format_list =>(
@@ -1006,14 +1014,17 @@ three fold.  First, as close as possible produce the same output as is visible i
 excel spreadsheet with exposure to underlying settings from Excel.  Second, adhere as 
 close as is reasonable to the L<Spreadsheet::ParseExcel> API (where it doesn't conflict 
 with the first objective) so that less work would be needed to integrate ParseExcel and 
-this package.  Third, to provide an XLSX sheet parser that is built on L<XML::LibXML>.  
-The other two primary options for XLSX parsing on CPAN use either a one-off XML parser 
-(L<Spreadsheet::XLSX>) or L<XML::Twig> (L<Spreadsheet::ParseXLSX>).  In general if 
-either of them already work for you without issue then there is no reason to change to 
-this package.  I personally found some bugs and functionality boundaries in both that I 
-wanted to improve, and by the time I had educated myself enough to make improvement 
-suggestions including root causing the bugs to either the XML parser or the reader logic 
-I had written this.
+this package.  An addendum to the second goal is this package will not expose elements of 
+the object hash for use by the consuming program.  This package will either return an 
+unblessed hash with the equivalent elements to the Spreadsheet::ParseExcel output or it 
+will provide methods to manage these sets of data.  Third, to provide an XLSX sheet parser 
+that is built on L<XML::LibXML>.  The other two primary options for XLSX parsing on CPAN 
+use either a one-off XML parser (L<Spreadsheet::XLSX>) or L<XML::Twig> 
+(L<Spreadsheet::ParseXLSX>).  In general if either of them already work for you without 
+issue then there is no reason to change to this package.  I personally found some bugs and 
+functionality boundaries in both that I wanted to improve, and by the time I had educated 
+myself enough to make improvement suggestions including root causing the bugs to either the 
+XML parser or the reader logic I had written this.
 
 In the process of learning and building I also wrote some additional features for 
 this parser that are not found in the L<Spreadsheet::ParseExcel> package.  For instance 
@@ -1066,23 +1077,30 @@ Archive::Zip so I reccomend Archive-Zip-1.30.
 B<2.> This package requires that you can load L<XML::LibXML> which requires the L<libxml2
 |http://xmlsoft.org/> and 'libxml2-devel' libraries.  I have included L<Alien::LibXML> in 
 the build profile in an attempt to resolve any library issues but being new to usage of 
-Alien libraries in general I'm certain I got it quite right.  Many PC's have these already 
-but if thise fails to load please log an issue in my repo on L<github|/SUPPORT>>.
+Alien libraries in general I'm not certain I got it quite right.  Many PC's have these 
+libraries already but if this package fails to load please log an issue in my repo on 
+L<github|/SUPPORT>>.  On the other hand the correct libraries are loading on travis-ci 
+during the builds so if no issue is logged before then I will remove this warning on 2/1/2016.
 
-B<3.> Earlier versions of this package would extract the .xlsx file to a temp directory and 
-release the file lock on the original file while still retaining the information for access 
-by the parser.  In order to resolve some some temp dir cleanup issues this package no 
-longer releases the lock on the file during reading.  (It will release the file lock and 
-clean up any temp directories when the class is closed) (warning will be removed after 
-2015-June-25)
-
-B<*4.> Not all workbook sheets (tabs) are created equal!  Some Excel sheet tabs are only a 
+B<3.> Not all workbook sheets (tabs) are created equal!  Some Excel sheet tabs are only a 
 chart.  These tabs are 'chartsheets'.  The methods with 'worksheet' in the name only act on 
 the sub set of tabs that are worksheets.  Future methods with 'chartsheet' in the name will 
 focus on the subset of sheets that are chartsheets.  Methods with just 'sheet' in the name 
 have the potential to act on both.  The documentation for the chartsheet level class is found 
 in L<Spreadsheet::XLSX::Reader::LibXML::Chartsheet> (still under construction).  All chartsheet 
 classes do not provide access to cells.
+
+B<4.> L<HMBRAND|https://metacpan.org/author/HMBRAND> pointed out that the formatter portion of 
+this package does not follow the L<Spreadsheet::ParseExcel API|> I suppose this was laziness on 
+my part.  In an effort to better comply with goal #2 of this sheet I have updated the API to 
+more closely follow Spreadsheet::ParseExcel.  This means that the Formatter will now be a 
+class rather than a role and that the role L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings> 
+will consumed by this new class rather than built into the parser in the background.  L<Making this 
+change does not allow for L<Spreadsheet::ParseExcel::FmtDefault> to work as a drop-in 
+replacement.>  Additionally if you wrote your own formatter for this package I would be willing 
+to provide troubleshooting support for the transition to the the new/old API.  However if you are 
+setting specific formats today using get_defined_excel_format( $pos ) it should still work.  
+(Moose delegation is a wonderful thing) This warning will be removed on 2/1/2016.
 
 =head2 Attributes
 
@@ -1477,6 +1495,8 @@ B<Definition:> a way to set the current attribute setting
 
 =back
 
+##############################################################################  Fix Start
+
 =head3 default_format_list
 
 =over
@@ -1555,6 +1575,8 @@ B<Definition:> a way to set the current attribute setting
 =back
 
 =back
+
+##############################################################################  Fix End
 
 =head3 group_return_type
 
@@ -2312,6 +2334,8 @@ L<version> - 0.077
 =head1 SEE ALSO
 
 =over
+
+L<Spreadsheet::Read> - generic Spreadsheet reader that (hopefully) supports this package
 
 L<Spreadsheet::ParseExcel> - Excel version 2003 and earlier
 

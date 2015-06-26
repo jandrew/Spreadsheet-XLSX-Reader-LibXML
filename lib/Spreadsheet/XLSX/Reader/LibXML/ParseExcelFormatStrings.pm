@@ -122,7 +122,7 @@ has	format_cash =>(
 
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
  
-sub parse_excel_format_string{# Currently only handles dates and times
+sub parse_excel_format_string{
 	my( $self, $format_strings, $coercion_name ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new(
 	###LogSD			name_space 	=> $self->get_log_space .  '::parse_excel_format_string', );

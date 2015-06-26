@@ -3,6 +3,7 @@ use version; our $VERSION = qv('v0.36.28');
 
 use	5.010;
 use	Moose;
+use Encode qw(decode encode);
 ###LogSD	requires qw(
 ###LogSD		get_log_space
 ###LogSD	);
@@ -10,6 +11,8 @@ use	Moose;
 use Types::Standard qw( InstanceOf ArrayRef Str );
 use lib	'../../../../../lib',;
 ###LogSD	use Log::Shiras::Telephone;
+#~ ###LogSD	use Log::Shiras::UnhideDebug;
+#~ with Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings;
 
 #########1 Dispatch Tables    3#########4#########5#########6#########7#########8#########9
 
@@ -33,66 +36,113 @@ has	target_encoding =>(
 
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
 
-sub	change_output_encoding{
-	my ( $self, $string, ) = @_;
+sub	get_defined_excel_format{
+	my ( $self, $position, ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new(
+	###LogSD				name_space 	=> $self->get_log_space . '::get_defined_excel_format', );
+	###LogSD		$phone->talk( level => 'info', message => [
+	###LogSD				"Getting the defined excel format for position: $position", ] );
+	my	$hex_value = ( $position =~ /0x/ ) ? $position : sprintf( '%x', $position );
+	###LogSD		$phone->talk( level => 'info', message => [
+	###LogSD				"..after hex conversion: $hex_value", ] );
+	return $self->_get_defined_excel_format( $hex_value );
+}
+
+sub	TextFmt{
+	my ( $self, $string, $original_encoding ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new(
 	###LogSD				name_space 	=> $self->get_log_space . '::change_output_encoding', );
 	###LogSD		$phone->talk( level => 'info', message => [
 	###LogSD				"Changing the encoding of: $string",
-	###LogSD				'..to encoding type: ' . $self->get_target_encoding ] );
+	###LogSD				'..to encoding type: ' . $self->get_target_encoding,
+	###LogSD				($original_encoding ? "From original type: $original_encoding" : '') ] );
+	my $intermediate = $original_encoding ? encode( $original_encoding, $string ) : $string;
+	###LogSD		$phone->talk( level => 'info', message => [
+	###LogSD				"intermediate output: $intermediate", ] );
+	my $output = decode( $self->get_target_encoding, $intermediate );
+	###LogSD		$phone->talk( level => 'info', message => [
+	###LogSD				"Final output: $output", ] );
 	return $string;
 }
+
+#~ sub ChkType{
+    #~ my ( $oPkg, $iNumeric, $iFmtIdx ) = @_;
+    #~ if ($iNumeric) {
+        #~ if (   ( ( $iFmtIdx >= 0x0E ) && ( $iFmtIdx <= 0x16 ) )
+            #~ || ( ( $iFmtIdx >= 0x2D ) && ( $iFmtIdx <= 0x2F ) ) )
+        #~ {
+            #~ return "Date";
+        #~ }
+        #~ else {
+            #~ return "Numeric";
+        #~ }
+    #~ }
+    #~ else {
+        #~ return "Text";
+    #~ }
+#~ }
 
 #########1 Private Attributes 3#########4#########5#########6#########7#########8#########9
 
 has _defined_excel_translations =>(
-		isa		=> ArrayRef,
-		traits	=> ['Array'],
-		default	=> sub{ [
-						'General',
-						'0',
-						'0.00',
-						'#,##0',
-						'#,##0.00',
-						'$#,##0_);($#,##0)',
-						'$#,##0_);[Red]($#,##0)',
-						'$#,##0.00_);($#,##0.00)',
-						'$#,##0.00_);[Red]($#,##0.00)',
-						'0%',
-						'0.00%',
-						'0.00E+00',
-						'# ?/?',
-						'# ??/??',
-						'yyyy-m-d',      # Was 'm-d-yy', which is bad as system default
-						'd-mmm-yy',
-						'd-mmm',
-						'mmm-yy',
-						'h:mm AM/PM',
-						'h:mm:ss AM/PM',
-						'h:mm',
-						'h:mm:ss',
-						'm-d-yy h:mm',
-						undef, undef, undef, undef, undef, undef, undef, undef,
-						'#,##0_);(#,##0)',
-						'#,##0_);[Red](#,##0)',
-						'#,##0.00_);(#,##0.00)',
-						'#,##0.00_);[Red](#,##0.00)',
-						'_(*#,##0_);_(*(#,##0);_(*"-"_);_(@_)',
-						'_($*#,##0_);_($*(#,##0);_($*"-"_);_(@_)',
-						'_(*#,##0.00_);_(*(#,##0.00);_(*"-"??_);_(@_)',
-						'_($*#,##0.00_);_($*(#,##0.00);_($*"-"??_);_(@_)',
-						'mm:ss',
-						'[h]:mm:ss',
-						'mm:ss.0',
-						'##0.0E+0',
-						'@'
+		isa		=> HashRef,
+		traits	=> ['Hash'],
+		default	=> sub{
+						0x00 => 'General',
+						0x01 => '0',
+						0x02 => '0.00',
+						0x03 => '#,##0',
+						0x04 => '#,##0.00',
+						0x05 => '($#,##0_);($#,##0)',
+						0x06 => '($#,##0_);[Red]($#,##0)',
+						0x07 => '($#,##0.00_);($#,##0.00_)',
+						0x08 => '($#,##0.00_);[Red]($#,##0.00_)',
+						0x09 => '0%',
+						0x0A => '0.00%',
+						0x0B => '0.00E+00',
+						0x0C => '# ?/?',
+						0x0D => '# ??/??',
+						0x0E => 'yyyy-mm-dd',      # Was 'm-d-yy', which is bad as system default
+						0x0F => 'd-mmm-yy',
+						0x10 => 'd-mmm',
+						0x11 => 'mmm-yy',
+						0x12 => 'h:mm AM/PM',
+						0x13 => 'h:mm:ss AM/PM',
+						0x14 => 'h:mm',
+						0x15 => 'h:mm:ss',
+						0x16 => 'm-d-yy h:mm',
+					 
+						#0x17-0x24 -- Differs in Natinal
+						0x25 => '(#,##0_);(#,##0)',
+						0x26 => '(#,##0_);[Red](#,##0)',
+						0x27 => '(#,##0.00);(#,##0.00)',
+						0x28 => '(#,##0.00);[Red](#,##0.00)',
+						0x29 => '_(*#,##0_);_(*(#,##0);_(*"-"_);_(@_)',
+						0x2A => '_($*#,##0_);_($*(#,##0);_(*"-"_);_(@_)',
+						0x2B => '_(*#,##0.00_);_(*(#,##0.00);_(*"-"??_);_(@_)',
+						0x2C => '_($*#,##0.00_);_($*(#,##0.00);_(*"-"??_);_(@_)',
+						0x2D => 'mm:ss',
+						0x2E => '[h]:mm:ss',
+						0x2F => 'mm:ss.0',
+						0x30 => '##0.0E+0',
+						0x31 => '@',
 					]
 		},
 		reader => 'get_defined_excel_format_list',
 		writer => 'set_defined_excel_format_list',
 		handles =>{
-			get_defined_excel_format => 'get',
+			_get_defined_excel_format => 'get',
 			total_defined_excel_formats => 'count',
+		},
+	);
+
+has _built_coercions =>(
+		isa		=> HashRef,
+		traits	=> ['Hash'],
+		default	=> sub{ {} },
+		reader => '_get_defined_coercions',
+		handles =>{
+			_get_defined_coercion => 'get',
 		},
 	);
 
@@ -102,7 +152,9 @@ has _defined_excel_translations =>(
 
 #########1 Phinish            3#########4#########5#########6#########7#########8#########9
 
-no Moose::Role;
+no Moose;
+__PACKAGE__->meta->make_immutable;
+	
 1;
 
 #########1 Documentation      3#########4#########5#########6#########7#########8#########9
