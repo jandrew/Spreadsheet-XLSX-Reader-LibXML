@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles;
-use version; our $VERSION = qv('v0.36.28');
+use version; our $VERSION = qv('v0.38.2');
 
 use 5.010;
 use Moose;
@@ -8,7 +8,7 @@ use MooseX::HasDefaults::RO;
 use Carp qw( confess );
 use Types::Standard qw(
 		InstanceOf			HashRef				Str
-		Int					Bool
+		Int					Bool				HasMethods
     );
 use lib	'../../../../../../lib',;
 ###LogSD	use Log::Shiras::Telephone;
@@ -41,12 +41,15 @@ my	$id_lookup ={
 
 #########1 Public Attributes  3#########4#########5#########6#########7#########8#########9
 
-
+has format_inst =>(
+		isa		=> HasMethods[qw( get_defined_conversion set_defined_excel_formats )],
+		handles	=>[qw( get_defined_conversion set_defined_excel_formats )],
+	);
 
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
 
 sub get_format_position{
-	my( $self, $position, $header ) = @_;
+	my( $self, $position, $header, $exclude_header ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new(
 	###LogSD			name_space 	=> $self->get_log_space . '::get_format_position', );
 	###LogSD		$phone->talk( level => 'debug', message => [
@@ -54,6 +57,7 @@ sub get_format_position{
 	###LogSD			(($self->_has_sub_translation) ? '..against current stored translation: ' . $self->_get_sub_translation : undef),
 	###LogSD			(($self->_has_sub_position) ? '..against current stored position: ' . $self->_get_sub_position : undef),
 	###LogSD			(($header) ?  "For header: $header" : undef),
+	###LogSD			(($exclude_header) ?  "excluding header: $exclude_header" : undef),
 	###LogSD			(($self->_has_current_header) ? "..against stored header: " . $self->_get_current_header : undef) , ] );
 	# Check header request
 	if( $header and !exists( $id_lookup->{$header} ) ){
@@ -82,7 +86,7 @@ sub get_format_position{
 	return $result if ! $result;
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		"The ref at position -$position- is:", $result ] );
-	$result = $self->_add_sub_refs( $result, $header, $position, 'cellXfs' );
+	$result = $self->_add_sub_refs( $result, $header, $position, 'cellXfs', $exclude_header );
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		"The ref at position -$position- is:", $result ] );
 	return $result;
@@ -248,21 +252,13 @@ sub _load_unique_bits{
 	if( ref $number_ref ){
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD		"Adding sheet defined translations:", $number_ref ] );
-		my	$translations = $self->get_defined_excel_format_list;
-		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"Defined excel format list:", $translations ] );
-		#~ if( $number_ref->{count} == 1 ){
-			#~ $translations->[$number_ref->{numFmt}->{numFmtId}] = "$number_ref->{numFmt}->{formatCode}";
-			#~ ###LogSD	$phone->talk( level => 'debug', message => [
-			#~ ###LogSD		'loaded format: ' . $translations->[$number_ref->{numFmt}->{numFmtId}] ] );
-		#~ }else{
-			for my $format ( @{$number_ref->{list}} ){
-				$translations->[$format->{numFmtId}] = "$format->{formatCode}";
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		'loaded format: ' . $translations->[$format->{numFmtId}] ] );
-			}
-		#~ }
-		$self->set_defined_excel_format_list( $translations );
+		my	$translations;
+		for my $format ( @{$number_ref->{list}} ){
+			$translations->[$format->{numFmtId}] = "$format->{formatCode}";
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		'loaded format: ' . $translations->[$format->{numFmtId}] ] );
+		}
+		$self->set_defined_excel_formats( $translations );
 	}
 }
 
@@ -272,13 +268,11 @@ sub _get_header_and_position{
 	###LogSD					$self->get_log_space .  '::_get_header_and_position', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			"getting the ref for target header: $target_header",
-	###LogSD			"..and position: $target_position"						] );
+	###LogSD			"..and position: $target_position",			] );
 	if( $target_header eq 'numFmts' ){
-		my $format_string = $self->get_defined_excel_format( $target_position );
+		my $conversion = $self->get_defined_conversion( $target_position );
 		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"Special numFmts call: $target_position", "..returned: " . 
-		###LogSD		(($format_string) ? $format_string : ''),	] );
-		my $conversion = $self->parse_excel_format_string( $format_string, "Excel__$target_position" );
+		###LogSD		"Special numFmts call: $target_position", "..returned: " . $conversion->display_name, ] );
 		return $conversion;
 	}
 		
@@ -363,12 +357,13 @@ sub _get_header_and_position{
 }
 
 sub _add_sub_refs{
-	my( $self, $base_ref, $header, $super_position, $base_header ) = @_;
+	my( $self, $base_ref, $header, $super_position, $base_header, $exclude_header ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
 	###LogSD					$self->get_log_space .  '::_build_sub_refs', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			"Building the sub ref for:", $base_ref,
-	###LogSD			(($header) ? "..focused on header: $header" : undef), ] );
+	###LogSD			(($header) ? "..focused on header: $header" : undef),
+	###LogSD			(($exclude_header) ? "..excluding header: $exclude_header" : undef), ] );
 	if( $header ){	
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD		"The call is to add data for just one specific header: $header", ] );
@@ -389,19 +384,35 @@ sub _add_sub_refs{
 			$self->_clear_sub_position;
 			return undef;
 		}
-	}else{		
+	}else{
+		my $missing_header = 0;
 		for my $header ( keys %$id_lookup ){
 			###LogSD	$phone->talk( level => 'debug', message => [
 			###LogSD		"Checking for subdata of header: $header" ] );
 			if( exists( $base_ref->{$id_lookup->{$header}} ) ){
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		"Retreiving the data at subposition: $base_ref->{$id_lookup->{$header}}" ] );
-				$base_ref->{$header} = $self->_get_header_and_position( $header, $base_ref->{$id_lookup->{$header}} );
+				if( $exclude_header and $header eq $exclude_header ){
+					$missing_header = 1;
+					###LogSD	$phone->talk( level => 'debug', message => [
+					###LogSD		"Excluding the header: $exclude_header" ] );
+					delete $base_ref->{$header};
+				}else{
+					###LogSD	$phone->talk( level => 'debug', message => [
+					###LogSD		"Retreiving the data at subposition: $base_ref->{$id_lookup->{$header}}" ] );
+					$base_ref->{$header} = $self->_get_header_and_position( $header, $base_ref->{$id_lookup->{$header}} );
+				}
 			}
 		}
-		$self->_set_sub_position( $super_position );
-		$self->_set_current_header( $base_header );
-		$self->_set_sub_position_ref( $base_ref);
+		if( $missing_header ){
+			$self->_set_last_recorded( 0 );#May not need this?
+			$self->_clear_current_header;
+			$self->_clear_sub_position;
+			$self->_clear_current_header;
+			$self->_clear_sub_position_ref;
+		}else{
+			$self->_set_sub_position( $super_position );
+			$self->_set_current_header( $base_header );
+			$self->_set_sub_position_ref( $base_ref);
+		}
 	}
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		"The final ref is:", $base_ref ] );

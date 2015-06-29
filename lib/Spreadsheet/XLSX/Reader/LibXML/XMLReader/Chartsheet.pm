@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::Chartsheet;
-use version; our $VERSION = qv('v0.36.28');
+use version; our $VERSION = qv('v0.38.2');
 
 
 use	5.010;

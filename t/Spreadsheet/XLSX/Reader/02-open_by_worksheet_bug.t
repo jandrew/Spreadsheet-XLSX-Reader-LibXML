@@ -50,7 +50,7 @@ my	$answer_ref = [
 		'my',
 		'World',
 		'Hello World',
-		'',
+		undef,
 		69,
 		27,
 		37145,
@@ -59,9 +59,9 @@ my	$answer_ref = [
 		'2/6/2011',
 		'2/6/2011',
 		2.1345678901,
-		'',
+		undef,
 		39118,
-		'',
+		undef,
 		' ',
 		39118,
 		39118,
@@ -95,8 +95,8 @@ ok			$worksheet = $parser->worksheet( 'Sheet1' ),
 ###LogSD	elsif( $value_position == 1 ){
 ###LogSD		exit 1;
 ###LogSD	}
-is			$value = ($worksheet->get_next_value//'undef'), $answer_ref->[$value_position],
-										"Get the next value position -$value_position- with answer: " . $answer_ref->[$value_position];
+is			$value = $worksheet->get_next_value, $answer_ref->[$value_position],
+										"Get the next value position -" . ($value_position//'undef') . "- with answer: " . ($answer_ref->[$value_position]//'undef');
 			$value_position++;
 			}
 explain 								"...Test Done";

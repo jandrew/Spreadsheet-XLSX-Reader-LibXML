@@ -29,7 +29,7 @@ use	lib	'../../../../../Log-Shiras/lib',
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(
 ###LogSD			name_space_bounds =>{
 ###LogSD				UNBLOCK =>{
-###LogSD					log_file => 'debug',
+###LogSD					log_file => 'trace',
 ###LogSD				},
 ###LogSD				build_instance =>{
 ###LogSD					UNBLOCK =>{
@@ -77,6 +77,7 @@ use	lib	'../../../../../Log-Shiras/lib',
 ###LogSD		);
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
+###LogSD	use MooseX::ShortCut::BuildInstance;
 use Spreadsheet::XLSX::Reader::LibXML;
 $test_file = ( @ARGV ) ? $ARGV[0] : $test_file;
 $test_file .= 'ChartSheet.xlsx';
@@ -106,6 +107,7 @@ lives_ok{
 						);
 			#~ $parser->set_warnings( 1 );
 }										"Prep a test parser instance";
+###LogSD		$phone->talk( level => 'trace', message => [ "$parser:", $parser ] );
 is			$parser->error(), undef,	"Write any error messages from the file load";
 ok			@worksheets = $parser->worksheets(),
 										"Loaded worksheet objects ok";

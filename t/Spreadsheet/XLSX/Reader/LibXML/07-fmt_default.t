@@ -3,7 +3,7 @@
 BEGIN{ $ENV{PERL_TYPE_TINY_XS} = 0; }##### $ENV{ Smart_Comments } = '### ####';
 $| = 1;
 
-use	Test::Most tests => 393;
+use	Test::Most tests => 404;
 use	Test::Moose;
 use Data::Dumper;
 use	MooseX::ShortCut::BuildInstance v1.8 qw( build_instance );#
@@ -20,8 +20,6 @@ use	lib
 ###LogSD	use Log::Shiras::UnhideDebug;
 use	Spreadsheet::XLSX::Reader::LibXML::FmtDefault;
 use	Spreadsheet::XLSX::Reader::LibXML::Error;
-###LogSD	use Log::Shiras::UnhideDebug;
-use	Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings;
 my	$test_file = ( @ARGV ) ? $ARGV[0] : '../../../../test_files/xl/';
 	$test_file .= 'styles.xml';
 ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space => 'main', );
@@ -32,12 +30,18 @@ my  (
 my 			$row = 0;
 my 			@class_attributes = qw(
 				target_encoding						excel_region
+				epoch_year							cache_formats
+				datetime_dates
 			);
 my  		@class_methods = qw(
 				get_target_encoding					set_target_encoding
-				get_defined_excel_format			total_defined_excel_formats
-				get_excel_region					change_output_encoding
-				get_defined_excel_format_list		set_defined_excel_format_list
+				has_target_encoding					get_epoch_year
+				set_epoch_year						get_cache_behavior
+				set_cache_behavior					get_date_behavior
+				set_date_behavior					parse_excel_format_string
+				get_defined_excel_format			set_defined_excel_formats
+				get_excel_region					set_excel_region
+				set_error							get_defined_conversion
 			);
 my			$question_list =[
 				[ 'Hello World', "It's a mad mad world" ],
@@ -104,7 +108,7 @@ my			$answer_list =[
 					'-9 8/9','10 1/9','-11 1/6','12 1/9','-13 3/7','1/8','-1/8','3/4','0','0','0','1','0','-1'],
 				['# ??/??',undef,'1/3','-1 2/3','2 1/6','-3 5/6','4 1/9','-5 2/9','6 4/9','-7 5/9','8 7/9',
 					'-9 8/9','10 1/11','-11 2/11','12 1/12','-13 5/12','10/81','-1/8','3/4','-1/24','0','0','1','1/53','-1'],
-				['yyyy-m-d',undef,'1776-7-4','1904-1-1','1904-3-1','1904-1-2','1904-2-25','1904-2-29','1904-3-1'],
+				['yyyy-mm-dd',undef,'1776-07-04','1904-01-01','1904-03-01','1904-01-02','1904-02-25','1904-02-29','1904-03-01'],
 				['d-mmm-yy',undef,'4-Jul-76','1-Jan-04','1-Mar-04','2-Jan-04','25-Feb-04','29-Feb-04','1-Mar-04'],
 				['d-mmm',undef,'4-Jul','1-Jan','1-Mar','2-Jan','25-Feb','29-Feb','1-Mar'],
 				['mmm-yy',undef,'Jul-76','Jan-04','Mar-04','Jan-04','Feb-04','Feb-04','Mar-04'],
@@ -138,9 +142,8 @@ lives_ok{
 			###LogSD				roles	=>[ 
 			###LogSD					'Log::Shiras::LogSpace'
 			###LogSD				],
-									add_roles_in_sequence =>[
+									superclasses =>[
 										'Spreadsheet::XLSX::Reader::LibXML::FmtDefault',
-										'Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings'
 									],
 			###LogSD				log_space	=> 'Test',
 									epoch_year	=> 1904,
@@ -156,7 +159,7 @@ can_ok		$test_instance, $_,
 } 			@class_methods;
 ###LogSD		$phone->talk( level => 'info', message => [ "hardest questions ..." ] );
 			no warnings 'uninitialized';
-			for my $position ( 0 .. ($test_instance->total_defined_excel_formats - 1) ){
+			for my $position ( 0 .. $#$question_list ){
 			if( $answer_list->[$position] ){
 is			$test_instance->get_defined_excel_format( $position ), $answer_list->[$position]->[0],
 										,"Check that excel default position -$position- contains: $answer_list->[$position]->[0]";

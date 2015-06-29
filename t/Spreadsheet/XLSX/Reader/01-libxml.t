@@ -20,7 +20,7 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 125;
+use	Test::Most tests => 126;
 use	Test::Moose;
 use Data::Dumper;
 use	lib	'../../../../../Log-Shiras/lib',
@@ -30,38 +30,43 @@ use	lib	'../../../../../Log-Shiras/lib',
 #~ use Log::Shiras::Switchboard v0.21 qw( :debug );#
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(
 ###LogSD						name_space_bounds =>{
+###LogSD							main =>{
+###LogSD								UNBLOCK =>{
+###LogSD									log_file => 'trace',
+###LogSD								},
+###LogSD							},
 ###LogSD							UNBLOCK =>{
-###LogSD								log_file => 'info',
+###LogSD								log_file => 'warn',
 ###LogSD							},
-###LogSD							build_class =>{
-###LogSD								UNBLOCK =>{
-###LogSD									log_file => 'warn',
-###LogSD								},
-###LogSD							},
-###LogSD							build_instance =>{
-###LogSD								UNBLOCK =>{
-###LogSD									log_file => 'warn',
-###LogSD								},
-###LogSD							},
-###LogSD							Test =>{
-###LogSD								StylesInstance =>{
+#~ ###LogSD							build_class =>{
+#~ ###LogSD								UNBLOCK =>{
+#~ ###LogSD									log_file => 'warn',
+#~ ###LogSD								},
+#~ ###LogSD							},
+#~ ###LogSD							build_instance =>{
+#~ ###LogSD								UNBLOCK =>{
+#~ ###LogSD									log_file => 'warn',
+#~ ###LogSD								},
+#~ ###LogSD							},
+#~ ###LogSD							Test =>{
+#~ ###LogSD								StylesInstance =>{
 #~ ###LogSD									XMLReader =>{
 #~ ###LogSD										DEMOLISH =>{
-###LogSD											UNBLOCK =>{
-###LogSD												log_file => 'warn',
-###LogSD											},
+#~ ###LogSD											UNBLOCK =>{
+#~ ###LogSD												log_file => 'warn',
+#~ ###LogSD											},
 #~ ###LogSD										},
 #~ ###LogSD									},
-###LogSD								},
-###LogSD								SharedStringsInstance =>{
+#~ ###LogSD								},
+#~ ###LogSD								SharedStringsInstance =>{
 #~ ###LogSD									XMLReader =>{
 #~ ###LogSD										DEMOLISH =>{
-###LogSD											UNBLOCK =>{
-###LogSD												log_file => 'warn',
-###LogSD											},
+#~ ###LogSD											UNBLOCK =>{
+#~ ###LogSD												log_file => 'warn',
+#~ ###LogSD											},
 #~ ###LogSD										},
 #~ ###LogSD									},
-###LogSD								},
+#~ ###LogSD								},
 #~ ###LogSD								Worksheet =>{
 #~ ###LogSD									XMLReader =>{
 #~ ###LogSD										DEMOLISH =>{
@@ -71,29 +76,29 @@ use	lib	'../../../../../Log-Shiras/lib',
 #~ ###LogSD										},
 #~ ###LogSD									},
 #~ ###LogSD								},
-###LogSD								Workbook =>{
-###LogSD									worksheet =>{
-###LogSD										UNBLOCK =>{
-###LogSD											log_file => 'warn',
-###LogSD										},
-###LogSD									},
-###LogSD									_build_file =>{
-###LogSD										UNBLOCK =>{
-###LogSD											log_file => 'warn',
-###LogSD										},
-###LogSD									},
-###LogSD									_build_dom =>{
-###LogSD										UNBLOCK =>{
-###LogSD											log_file => 'warn',
-###LogSD										},
-###LogSD									},
-###LogSD									_build_reader =>{
-###LogSD										UNBLOCK =>{
-###LogSD											log_file => 'warn',
-###LogSD										},
-###LogSD									},
-###LogSD								},
-###LogSD							},
+#~ ###LogSD								Workbook =>{
+#~ ###LogSD									worksheet =>{
+#~ ###LogSD										UNBLOCK =>{
+#~ ###LogSD											log_file => 'warn',
+#~ ###LogSD										},
+#~ ###LogSD									},
+#~ ###LogSD									_build_file =>{
+#~ ###LogSD										UNBLOCK =>{
+#~ ###LogSD											log_file => 'warn',
+#~ ###LogSD										},
+#~ ###LogSD									},
+#~ ###LogSD									_build_dom =>{
+#~ ###LogSD										UNBLOCK =>{
+#~ ###LogSD											log_file => 'warn',
+#~ ###LogSD										},
+#~ ###LogSD									},
+#~ ###LogSD									_build_reader =>{
+#~ ###LogSD										UNBLOCK =>{
+#~ ###LogSD											log_file => 'warn',
+#~ ###LogSD										},
+#~ ###LogSD									},
+#~ ###LogSD								},
+#~ ###LogSD							},
 ###LogSD						},
 ###LogSD						reports =>{
 ###LogSD							log_file =>[ Print::Log->new ],
@@ -109,15 +114,15 @@ my  (
 	);
 my	$answer_ref = [
 		[qw( Category Total Date )],
-		[qw( Red 5 2017-2-14 )],
-		[qw( Blue 7 2017-2-14 )],
-		[qw( Omaha 2 2018-2-3 )],
-		[qw( Red 3 2018-2-3 )],
-		[qw( Red 30 2016-2-6 )],
-		[qw( Blue 10 2016-2-6 )],
+		[qw( Red 5 2017-02-14 )],
+		[qw( Blue 7 2017-02-14 )],
+		[qw( Omaha 2 2018-02-03 )],
+		[qw( Red 3 2018-02-03 )],
+		[qw( Red 30 2016-02-06 )],
+		[qw( Blue 10 2016-02-06 )],
 		'EOF',
 		[ 'Superbowl Audibles', 'Column Labels', undef, undef, undef, ],
-		[ 'Row Labels', '2016-2-6', '2017-2-14', '2018-2-3', 'Grand Total' ],
+		[ 'Row Labels', '2016-02-06', '2017-02-14', '2018-02-03', 'Grand Total' ],
 		[ 'Blue', 10, 7, undef, 17 ,],
 		[ 'Omaha', undef, undef, 2, 2, ],
 		[ 'Red', 30, 5, 3, 38, ],
@@ -134,7 +139,7 @@ my	$answer_ref = [
 		[undef,'42', undef,undef,undef,undef,],
 		[undef,undef,undef,' ','2/6/2011','6-Feb-11',],
 		['2.13',undef,undef,undef,undef,undef,],
-		[undef,'',undef,'6-Feb-11',undef,undef,],
+		[undef,undef,undef,'6-Feb-11',undef,undef,],
 		[undef,undef,undef,undef,undef,undef,],
 		[undef,undef,' ','39118','6-Feb-11',undef,],
 		'EOF',
@@ -143,7 +148,7 @@ my 			@class_attributes = qw(
 				error_inst					file_name					file_handle
 				sheet_parser				count_from_zero				file_boundary_flags
 				empty_is_end				from_the_edge				default_format_list
-				format_string_parser		group_return_type
+				format_string_parser		group_return_type			format_inst
 				empty_return_type
 			);
 my  		@class_methods = qw(
@@ -191,7 +196,12 @@ lives_ok{
 						);
 }										"Prep a test parser instance";
 ###LogSD	$phone->talk( level => 'info', message => [ "parser only loaded" ] );
-
+#~ ###LogSD	$operator->add_name_space_bounds( {
+#~ ###LogSD		UNBLOCK =>{
+#~ ###LogSD			log_file => 'trace',
+#~ ###LogSD		},
+#~ ###LogSD	}, );
+#~ exit 1;
 lives_ok{ 	
 			$workbook = $parser->parse( $test_file );
 }										"Attempt to unzip the file and prepare to read data";
@@ -211,13 +221,13 @@ explain		'testing worksheet: ' . $worksheet->get_name;
 				$row_ref = undef;
 			my	$x = 0;
 			SHEETDATA: while( $x < 50 and !$row_ref or $row_ref ne 'EOF' ){
-###LogSD	if( $x == 0 ){
-###LogSD		$operator->add_name_space_bounds( {
-###LogSD			Test =>{
-###LogSD				Worksheet =>{
-###LogSD					UNBLOCK =>{
-###LogSD						log_file => 'trace',
-###LogSD					},
+#~ ###LogSD	if( $x == 0 ){
+#~ ###LogSD		$operator->add_name_space_bounds( {
+#~ ###LogSD			Test =>{
+#~ ###LogSD				Worksheet =>{
+#~ ###LogSD					UNBLOCK =>{
+#~ ###LogSD						log_file => 'trace',
+#~ ###LogSD					},
 #~ ###LogSD					_set_file_name =>{
 #~ ###LogSD						UNBLOCK =>{
 #~ ###LogSD							log_file => 'warn',
@@ -228,12 +238,12 @@ explain		'testing worksheet: ' . $worksheet->get_name;
 #~ ###LogSD							log_file => 'warn',
 #~ ###LogSD						},
 #~ ###LogSD					},
-###LogSD				},
-###LogSD			},
-###LogSD		} );
+#~ ###LogSD				},
+#~ ###LogSD			},
+#~ ###LogSD		} );
 #~ ###LogSD	}elsif( $x > 0 ){
 #~ ###LogSD		exit 1;
-###LogSD	}
+#~ ###LogSD	}
 ###LogSD	$phone->talk( level => 'debug', message => [ "getting position: $x" ] );
  
 lives_ok{	$row_ref = $worksheet->fetchrow_arrayref }

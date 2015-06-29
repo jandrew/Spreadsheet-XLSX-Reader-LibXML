@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::Cell;
-use version; our $VERSION = qv('v0.36.28');
+use version; our $VERSION = qv('v0.38.2');
 
 $| = 1;
 use 5.010;
@@ -118,11 +118,11 @@ has cell_hyperlink =>(
 		predicate	=> 'has_hyperlink',
 	);
 
-has unformatted_converter =>(
-		isa			=> CodeRef,
-		reader		=> '_convert_output',
-		required	=> 1,
-	);
+#~ has unformatted_converter =>(
+		#~ isa			=> CodeRef,
+		#~ reader		=> '_convert_output',
+		#~ required	=> 1,
+	#~ );
 
 has cell_coercion =>(
 		isa			=> HasMethods[ 'assert_coerce', 'display_name' ],
@@ -151,9 +151,6 @@ sub unformatted{
 	# get the value
 	my	$unformatted	= $self->_unformatted;
 	###LogSD	$phone->talk( level => 'debug', message => [ "unformatted:", $unformatted ] );
-	my	$converter = $self->_convert_output;
-	$unformatted = $converter->( $unformatted );
-	###LogSD	$phone->talk( level => 'debug', message => [ "converted:", $unformatted ] );
 	return $unformatted;
 }
 
@@ -294,7 +291,10 @@ This is the class that contains cell data.  There are no XML parsing actions tak
 background of this class.  All data has been pre-coalated/built from the L<Worksheet
 |Spreadsheet::XLSX::Reader::LibXML::Worksheet> class.  In general the Worksheet class 
 will populate the attributes of this class when it is generated.  If you want to use it 
-as a standalone class just fill in the L<Attributes|/Attributes> below.
+as a standalone class just fill in the L<Attributes|/Attributes> below.  It should be 
+noted that the Worksheet class also L<pre-converts
+|Spreadsheet::XLSX::Reader::LibXML::FmtDefault/change_output_encoding( $string )> the 
+unformatted value as well.
 
 =head2 Primary Methods
 
@@ -310,13 +310,11 @@ B<Example:>
 
 =over
 
-B<Definition:> Returns the unformatted value of the cell transformed with the 
-L<change_output_encoding|Spreadsheet::XLSX::Reader::LibXML::FmtDefault/change_output_encoding( $string )> 
-method.
+B<Definition:> Returns the unformatted value of the cell
 
 B<Accepts:>Nothing
 
-B<Returns:> the cell value processed by the encoding conversion
+B<Returns:> the raw cell value
 
 =back
 

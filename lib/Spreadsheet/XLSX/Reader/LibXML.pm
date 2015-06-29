@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML;
-use version 0.77; our $VERSION = qv('v0.36.28');
+use version 0.77; our $VERSION = qv('v0.38.2');
 
 use 5.010;
 use	List::Util 1.33;
@@ -24,13 +24,12 @@ use lib	'../../../../lib',;
 ###LogSD use Log::Shiras::Telephone;
 ###LogSD use Log::Shiras::UnhideDebug;
 should_re_use_classes( 1 );
-use	Spreadsheet::XLSX::Reader::LibXML::Error;
 use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles;
 use	Spreadsheet::XLSX::Reader::LibXML::FmtDefault;
-use	Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings;
 use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings;
 use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet;
 use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::Chartsheet;
+use	Spreadsheet::XLSX::Reader::LibXML::Error;
 use	Spreadsheet::XLSX::Reader::LibXML::Types qw( XLSXFile ParserType IOFileType );
 
 #########1 Dispatch Tables    3#########4#########5#########6#########7#########8#########9
@@ -40,17 +39,15 @@ my	$parser_modules ={
 			build_method => '_build_reader',
 			sharedStrings =>{
 				superclasses	=> ['Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings'],
-				attributes		=> [qw( error_inst )],
+				attributes		=> [qw( error_inst cache_positions )],
 				store			=> '_set_shared_strings_instance',
 				package			=> 'SharedStringsInstance',
-				store_read_positions => 1,
 			},
 			styles =>{
-				superclasses			=> ['Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles'],
-				attributes				=> [qw( epoch_year error_inst  )],
-				add_roles_in_sequence	=> [qw( default_format_list format_string_parser )],
-				store					=> '_set_styles_instance',
-				package					=> 'StylesInstance',
+				superclasses	=> ['Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles'],
+				attributes		=> [qw( error_inst format_inst )],
+				store			=> '_set_styles_instance',
+				package			=> 'StylesInstance',
 			},
 			worksheet =>{
 				superclasses	=> ['Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet'],
@@ -84,17 +81,16 @@ my	$build_ref	= {
 		},
 	};
 my	$attribute_defaults ={
-		error_inst           => Spreadsheet::XLSX::Reader::LibXML::Error->new( should_warn => 0 ),
-		sheet_parser         => 'reader',
-		count_from_zero      => 1,
-		file_boundary_flags  => 1,
-		empty_is_end         => 0,
-		values_only          => 0,
-		from_the_edge        => 1,
-		default_format_list  => 'Spreadsheet::XLSX::Reader::LibXML::FmtDefault',
-		format_string_parser => 'Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings',
-		group_return_type    => 'instance',
-		empty_return_type    => 'empty_string',
+		error_inst			=> Spreadsheet::XLSX::Reader::LibXML::Error->new( should_warn => 0 ),
+		format_inst			=> Spreadsheet::XLSX::Reader::LibXML::FmtDefault->new,
+		sheet_parser		=> 'reader',
+		count_from_zero		=> 1,
+		file_boundary_flags	=> 1,
+		empty_is_end		=> 0,
+		values_only			=> 0,
+		from_the_edge		=> 1,
+		group_return_type	=> 'instance',
+		empty_return_type	=> 'empty_string',
 	};
 my	$flag_settings ={
 		alt_default =>{
@@ -107,6 +103,7 @@ my	$flag_settings ={
 			values_only       => 1,
 			empty_is_end      => 1,
 			group_return_type => 'value',
+			cache_positions => 1
 		},
 	};
 
@@ -118,10 +115,34 @@ has error_inst =>(
 						) ],
 		clearer		=> '_clear_error_inst',
 		reader		=> 'get_error_inst',
+		predicate	=> 'has_error_inst',
 		required	=> 1,
 		handles =>[ qw(
 			error set_error clear_error set_warnings if_warn
 		) ],
+		trigger => sub{
+			if( $_[0]->_has_formate_inst and !$_[0]->get_format_inst->block_inherit ){
+				$_[0]->get_format_inst->set_error_inst( $_[1] );
+			}
+		},
+	);
+	
+has format_inst =>(
+		isa		=> HasMethods[qw( 
+						set_error_inst				set_excel_region
+						set_target_encoding			get_defined_excel_format
+						set_defined_excel_formats	change_output_encoding
+						set_epoch_year				set_cache_behavior
+						set_date_behavior			get_defined_conversion		
+						parse_excel_format_string							)],	
+		writer	=> 'set_format_inst',
+		reader	=> 'get_format_inst',
+		predicate => '_has_formate_inst',
+		handles =>[qw(
+						get_defined_excel_format 	parse_excel_format_string
+						change_output_encoding		set_date_behavior
+						get_date_behavior			)],
+		trigger => \&_import_format_settings,
 	);
 	
 has file_name =>(
@@ -178,14 +199,6 @@ has from_the_edge =>(
 		reader	=> '_starts_at_the_edge',
 		writer	=> 'set_from_the_edge',
 	);
-	
-has format_instance =>(
-		isa		=> HasMethods[qw( 
-						TextFmt			ValFmt		FmtString
-						get_defined_excel_format	get_standard_coercion )],# ChkType		
-		writer	=> 'set_format_instance',
-		handles =>[qw( get_defined_excel_format )],
-	);
 
 has default_format_list =>(
 		isa		=> Str,
@@ -211,9 +224,10 @@ has empty_return_type =>(
 		writer	=> 'set_empty_return_type',
 	);
 	
-has store_read_positions =>(
+has cache_positions =>(
 		isa		=> Bool,
-		reader	=> '_should_store_positions',
+		reader	=> 'get_cache_positions',
+		default	=> 1,
 	);
 
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
@@ -398,10 +412,16 @@ has _file_date_modified =>(
 	);
 
 has _epoch_year =>(
-		isa		=> Enum[qw( 1900 1904 )],
-		writer	=> '_set_epoch_year',
-		reader	=> 'get_epoch_year',
-		default	=> 1900,
+		isa			=> Enum[qw( 1900 1904 )],
+		writer		=> '_set_epoch_year',
+		reader		=> 'get_epoch_year',
+		predicate	=> 'has_epoch_year',
+		default		=> 1900,
+		trigger => sub{
+			if( $_[0]->_has_formate_inst and !$_[0]->get_format_inst->block_inherit ){
+				$_[0]->get_format_inst->set_epoch_year( $_[1] );
+			}
+		},
 	);
 	
 has _shared_strings_instance =>(
@@ -424,12 +444,6 @@ has _styles_instance =>(
 		predicate	=> '_has_styles_file',
 		handles		=>{
 			get_format_position	=> 'get_format_position',
-			set_defined_excel_format_list => 'set_defined_excel_format_list',
-			change_output_encoding => 'change_output_encoding',
-			set_format_cache_behavior => 'set_cache_behavior',
-			get_date_behavior => 'get_date_behavior',
-			set_date_behavior => 'set_date_behavior',
-			parse_excel_format_string => 'parse_excel_format_string',
 			_demolish_styles => 'DEMOLISH',
 		},
 	);
@@ -852,6 +866,30 @@ sub _set_shared_worksheet_files{
 	return 1;
 }
 
+sub _import_format_settings{
+
+    my ( $self, $formatter ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new(
+	###LogSD					name_space 	=> $self->get_log_space .  '::Workbook::_import_format_settings', );
+	if( !$formatter->block_inherit ){
+		###LogSD	$phone->talk( level => 'info', message =>[
+		###LogSD		'Arrived at _import_format_settings for: ', $formatter ] );
+		if( $self->has_error_inst ){
+			###LogSD	$phone->talk( level => 'info', message =>[
+			###LogSD		'Setting the global error instance to the formatter' ] );
+			$formatter->set_error_inst( $self->get_error_inst );
+		}
+		my $year = $self->get_epoch_year;
+		###LogSD	$phone->talk( level => 'info', message =>[
+		###LogSD		"Setting the epoch year for the formatter: $year" ] );
+		$formatter->set_epoch_year( $year );
+		my $cache = $self->get_cache_positions;
+		###LogSD	$phone->talk( level => 'info', message =>[
+		###LogSD		"Setting the cache to: $cache" ] );
+		$formatter->set_cache_behavior( $cache );
+	}
+}
+
 sub DEMOLISH{
 	my ( $self ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new(
@@ -1016,15 +1054,15 @@ close as is reasonable to the L<Spreadsheet::ParseExcel> API (where it doesn't c
 with the first objective) so that less work would be needed to integrate ParseExcel and 
 this package.  An addendum to the second goal is this package will not expose elements of 
 the object hash for use by the consuming program.  This package will either return an 
-unblessed hash with the equivalent elements to the Spreadsheet::ParseExcel output or it 
-will provide methods to manage these sets of data.  Third, to provide an XLSX sheet parser 
-that is built on L<XML::LibXML>.  The other two primary options for XLSX parsing on CPAN 
-use either a one-off XML parser (L<Spreadsheet::XLSX>) or L<XML::Twig> 
-(L<Spreadsheet::ParseXLSX>).  In general if either of them already work for you without 
-issue then there is no reason to change to this package.  I personally found some bugs and 
-functionality boundaries in both that I wanted to improve, and by the time I had educated 
-myself enough to make improvement suggestions including root causing the bugs to either the 
-XML parser or the reader logic I had written this.
+unblessed hash with the equivalent elements to the Spreadsheet::ParseExcel output instead 
+of a class instance or it will provide methods to provide these sets of data.  The third 
+goal is to provide an XLSX sheet parser that is built on L<XML::LibXML>.  The other two 
+primary options for XLSX parsing on CPAN use either a one-off XML parser (L<Spreadsheet::XLSX>) 
+or L<XML::Twig> (L<Spreadsheet::ParseXLSX>).  In general if either of them already work for 
+you without issue then there is no reason to change to this package.  I personally found 
+some bugs and functionality boundaries in both that I wanted to improve, and by the time 
+I had educated myself enough to make improvement suggestions including root causing the 
+bugs to either the XML parser or the reader logic I had written this.
 
 In the process of learning and building I also wrote some additional features for 
 this parser that are not found in the L<Spreadsheet::ParseExcel> package.  For instance 
@@ -1077,10 +1115,11 @@ Archive::Zip so I reccomend Archive-Zip-1.30.
 B<2.> This package requires that you can load L<XML::LibXML> which requires the L<libxml2
 |http://xmlsoft.org/> and 'libxml2-devel' libraries.  I have included L<Alien::LibXML> in 
 the build profile in an attempt to resolve any library issues but being new to usage of 
-Alien libraries in general I'm not certain I got it quite right.  Many PC's have these 
-libraries already but if this package fails to load please log an issue in my repo on 
-L<github|/SUPPORT>>.  On the other hand the correct libraries are loading on travis-ci 
-during the builds so if no issue is logged before then I will remove this warning on 2/1/2016.
+Alien libraries in general I'm not certain I got it quite right.  Many OS's have these 
+libraries installed as part of their core but if this package fails to load please log an 
+issue in my repo on L<github|/SUPPORT>>.  On the other hand the correct libraries are 
+loading on travis-ci during the builds so if no issue is logged before then I will remove 
+this warning on 2/1/2016.
 
 B<3.> Not all workbook sheets (tabs) are created equal!  Some Excel sheet tabs are only a 
 chart.  These tabs are 'chartsheets'.  The methods with 'worksheet' in the name only act on 
@@ -1091,14 +1130,17 @@ in L<Spreadsheet::XLSX::Reader::LibXML::Chartsheet> (still under construction). 
 classes do not provide access to cells.
 
 B<4.> L<HMBRAND|https://metacpan.org/author/HMBRAND> pointed out that the formatter portion of 
-this package does not follow the L<Spreadsheet::ParseExcel API|> I suppose this was laziness on 
-my part.  In an effort to better comply with goal #2 of this sheet I have updated the API to 
-more closely follow Spreadsheet::ParseExcel.  This means that the Formatter will now be a 
-class rather than a role and that the role L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings> 
-will consumed by this new class rather than built into the parser in the background.  L<Making this 
-change does not allow for L<Spreadsheet::ParseExcel::FmtDefault> to work as a drop-in 
-replacement.>  Additionally if you wrote your own formatter for this package I would be willing 
-to provide troubleshooting support for the transition to the the new/old API.  However if you are 
+this package does not follow the L<Spreadsheet::ParseExcel API|Spreadsheet::ParseExcel/Formatter-Class> 
+for the formatter class.  I suppose this was, in part, laziness on my part.  In an effort to 
+L<partially|Spreadsheet::XLSX::Reader::LibXML::FmtDefault/DESCRIPTION> 
+comply with goal #2 of this sheet I have updated the API so that L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault> 
+is a stand alone class (not a role).  This more closely follows Spreadsheet::ParseExcel.  And 
+incidentally probably makes building alternate formatting modules easier.  I<The formatters will 
+still not exchange back and forth between L<Spreadsheet::ParseExcel::FmtDefault> and back since 
+they are both built to interface with fundamentally different architecture.>  This also affects 
+the role L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings> and how it is consumed.  If 
+you wrote your own formatter for this package that interfaces in the old way I would be willing 
+to provide troubleshooting support for the transition to the the new API.  However if you are 
 setting specific formats today using get_defined_excel_format( $pos ) it should still work.  
 (Moose delegation is a wonderful thing) This warning will be removed on 2/1/2016.
 
