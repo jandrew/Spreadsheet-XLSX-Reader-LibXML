@@ -10,6 +10,7 @@ NOTE: This software is designated as beta quality until this notice is removed. 
 be method matched to Spreadsheet::ParseExcel prior to the 1.0 release.
 
 {{$NEXT}}
+
 	+ Added a cache_positions flag to the Workbook level
 		For now this only populates to cache built number conversion and the shared strings file
 	+ 'set_custom_formats' now has built in coercion to change Excel strings to coercion objects

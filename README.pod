@@ -108,14 +108,17 @@ three fold.  First, as close as possible produce the same output as is visible i
 excel spreadsheet with exposure to underlying settings from Excel.  Second, adhere as 
 close as is reasonable to the L<Spreadsheet::ParseExcel> API (where it doesn't conflict 
 with the first objective) so that less work would be needed to integrate ParseExcel and 
-this package.  Third, to provide an XLSX sheet parser that is built on L<XML::LibXML>.  
-The other two primary options for XLSX parsing on CPAN use either a one-off XML parser 
-(L<Spreadsheet::XLSX>) or L<XML::Twig> (L<Spreadsheet::ParseXLSX>).  In general if 
-either of them already work for you without issue then there is no reason to change to 
-this package.  I personally found some bugs and functionality boundaries in both that I 
-wanted to improve, and by the time I had educated myself enough to make improvement 
-suggestions including root causing the bugs to either the XML parser or the reader logic 
-I had written this.
+this package.  An addendum to the second goal is this package will not expose elements of 
+the object hash for use by the consuming program.  This package will either return an 
+unblessed hash with the equivalent elements to the Spreadsheet::ParseExcel output instead 
+of a class instance or it will provide methods to provide these sets of data.  The third 
+goal is to provide an XLSX sheet parser that is built on L<XML::LibXML>.  The other two 
+primary options for XLSX parsing on CPAN use either a one-off XML parser (L<Spreadsheet::XLSX>) 
+or L<XML::Twig> (L<Spreadsheet::ParseXLSX>).  In general if either of them already work for 
+you without issue then there is no reason to change to this package.  I personally found 
+some bugs and functionality boundaries in both that I wanted to improve, and by the time 
+I had educated myself enough to make improvement suggestions including root causing the 
+bugs to either the XML parser or the reader logic I had written this.
 
 In the process of learning and building I also wrote some additional features for 
 this parser that are not found in the L<Spreadsheet::ParseExcel> package.  For instance 
@@ -168,23 +171,34 @@ Archive::Zip so I reccomend Archive-Zip-1.30.
 B<2.> This package requires that you can load L<XML::LibXML> which requires the L<libxml2
 |http://xmlsoft.org/> and 'libxml2-devel' libraries.  I have included L<Alien::LibXML> in 
 the build profile in an attempt to resolve any library issues but being new to usage of 
-Alien libraries in general I'm certain I got it quite right.  Many PC's have these already 
-but if thise fails to load please log an issue in my repo on L<github|/SUPPORT>>.
+Alien libraries in general I'm not certain I got it quite right.  Many OS's have these 
+libraries installed as part of their core but if this package fails to load please log an 
+issue in my repo on L<github|/SUPPORT>>.  On the other hand the correct libraries are 
+loading on travis-ci during the builds so if no issue is logged before then I will remove 
+this warning on 2/1/2016.
 
-B<3.> Earlier versions of this package would extract the .xlsx file to a temp directory and 
-release the file lock on the original file while still retaining the information for access 
-by the parser.  In order to resolve some some temp dir cleanup issues this package no 
-longer releases the lock on the file during reading.  (It will release the file lock and 
-clean up any temp directories when the class is closed) (warning will be removed after 
-2015-June-25)
-
-B<*4.> Not all workbook sheets (tabs) are created equal!  Some Excel sheet tabs are only a 
+B<3.> Not all workbook sheets (tabs) are created equal!  Some Excel sheet tabs are only a 
 chart.  These tabs are 'chartsheets'.  The methods with 'worksheet' in the name only act on 
 the sub set of tabs that are worksheets.  Future methods with 'chartsheet' in the name will 
 focus on the subset of sheets that are chartsheets.  Methods with just 'sheet' in the name 
 have the potential to act on both.  The documentation for the chartsheet level class is found 
 in L<Spreadsheet::XLSX::Reader::LibXML::Chartsheet> (still under construction).  All chartsheet 
 classes do not provide access to cells.
+
+B<4.> L<HMBRAND|https://metacpan.org/author/HMBRAND> pointed out that the formatter portion of 
+this package does not follow the L<Spreadsheet::ParseExcel API|Spreadsheet::ParseExcel/Formatter-Class> 
+for the formatter class.  I suppose this was, in part, laziness on my part.  In an effort to 
+L<partially|Spreadsheet::XLSX::Reader::LibXML::FmtDefault/DESCRIPTION> 
+comply with goal #2 of this sheet I have updated the API so that L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault> 
+is a stand alone class (not a role).  This more closely follows Spreadsheet::ParseExcel.  And 
+incidentally probably makes building alternate formatting modules easier.  I<The formatters will 
+still not exchange back and forth between L<Spreadsheet::ParseExcel::FmtDefault> and back since 
+they are both built to interface with fundamentally different architecture.>  This also affects 
+the role L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings> and how it is consumed.  If 
+you wrote your own formatter for this package that interfaces in the old way I would be willing 
+to provide troubleshooting support for the transition to the the new API.  However if you are 
+setting specific formats today using get_defined_excel_format( $pos ) it should still work.  
+(Moose delegation is a wonderful thing) This warning will be removed on 2/1/2016.
 
 =head2 Attributes
 
@@ -579,80 +593,83 @@ B<Definition:> a way to set the current attribute setting
 
 =back
 
-=head3 default_format_list
+=head3 cache_positions
 
 =over
 
-B<Definition:> This is the attribute containing the L<role|Moose::Manual::Roles> that 
-manages the way number formats and encoding conversions are implemented for this sheet.  
-This is a departure from L<Spreadsheet::ParseExcel> for two reasons.  First, it doesn't 
-use the same modules.  Second, this requires a Moose role (not a class) with two methods 
-where ParseExcel uses an object instance.
+B<Definition:> This parse can be slow.  It does this by trading processing and 
+file storage for RAM usage but that is probably not the average users choice.  Not all 
+things that can be cached are cached yet.  However, when this attribute is set where 
+the parser knows how to cache it will.
 
-B<Default> L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault>
-
-B<Range> a L<Moose> role with the methods 'get_defined_excel_format' and 
-'change_output_encoding' it should be noted that libxml2 which is the underlying code 
-for L<XML::LibXML> always attempts to get the data into perl friendly strings based on the 
-xml file encoding setting.  That means this role should only tweak the data on the way out 
-of memory and does not operate on the data on its way into memory.
+B<Default> 1 = caching is turned on
 
 B<attribute methods> Methods provided to adjust this attribute
 		
 =over
 
-B<get_default_format_list>
+B<get_cache_positions>
 
 =over
 
-B<Definition:> a way to check the current attribute setting
+B<Definition:> read the attribute
 
 =back
 
-B<set_default_format_list>
+=back
+
+=back
+
+=head3 format_inst
 
 =over
 
-B<Definition:> a way to set the current attribute setting
-
-=back
-
-=back
-
-=back
-
-=head3 format_string_parser
-
-=over
-
-B<Definition:> This is a Moose role that interprets the excel L<format string
+B<Definition:> This is the attribute containing the format class.  In general the 
+default value is sufficient.  However, If you want to tweak this a bit then review the
+L<class documentation|Spreadsheet::XLSX::Reader::LibXML::FmtDefault>.  It does include 
+a role that interprets the excel L<format string
 |https://support.office.com/en-us/article/Create-or-delete-a-custom-number-format-2d450d95-2630-43b8-bf06-ccee7cbe6864?ui=en-US&rs=en-US&ad=US> 
-into a L<Type::Tiny> coercion.  If you don't like the output or the method 
-you can write your own Moose Role and add it here.
+into a L<Type::Tiny> coercion.
 
-B<Default> L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings>
-
-B<Range> a L<Moose> role with the method 'parse_excel_format_string'
+B<Default> L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault>->new
 
 B<attribute methods> Methods provided to adjust this attribute
 		
 =over
 
-B<get_format_string_parser>
+B<set_format_inst>
+
+>
 
 =over
 
-B<Definition:> a way to check the current attribute setting
+B<Definition:> a way to set the current attribute instance
 
 =back
 
-B<set_format_string_parser>
+B<get_format_inst>
 
 =over
 
-B<Definition:> a way to set the current attribute setting
+B<Definition:> a way to get the current attribute setting
 
 =back
+
+=back
+
+B<delegated methods:>
+
+=over
+
+L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/get_defined_excel_format>
+
+L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/change_output_encoding>
+
+L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/parse_excel_format_string>
+
+L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings//set_date_behavior>
+
+L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings//get_date_behavior>
 
 =back
 
@@ -1214,6 +1231,8 @@ L<empty_is_end|/empty_is_end> => 1
 
 L<group_return_type|/group_return_type> => 'value'
 
+L<cache_positions|/cache_positions> => 1
+
 =back
 
 =back
@@ -1361,6 +1380,8 @@ L<Breno G. de Oliveira|https://github.com/garu>
 
 L<Bill Baker|https://github.com/wdbaker54>
 
+L<H.Merijin Brand|https://github.com/Tux>
+
 =back
 
 =head1 COPYRIGHT
@@ -1412,6 +1433,8 @@ L<version> - 0.077
 =head1 SEE ALSO
 
 =over
+
+L<Spreadsheet::Read> - generic Spreadsheet reader that (hopefully) supports this package
 
 L<Spreadsheet::ParseExcel> - Excel version 2003 and earlier
 

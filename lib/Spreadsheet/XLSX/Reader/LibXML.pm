@@ -1537,88 +1537,87 @@ B<Definition:> a way to set the current attribute setting
 
 =back
 
-##############################################################################  Fix Start
-
-=head3 default_format_list
+=head3 cache_positions
 
 =over
 
-B<Definition:> This is the attribute containing the L<role|Moose::Manual::Roles> that 
-manages the way number formats and encoding conversions are implemented for this sheet.  
-This is a departure from L<Spreadsheet::ParseExcel> for two reasons.  First, it doesn't 
-use the same modules.  Second, this requires a Moose role (not a class) with two methods 
-where ParseExcel uses an object instance.
+B<Definition:> This parse can be slow.  It does this by trading processing and 
+file storage for RAM usage but that is probably not the average users choice.  Not all 
+things that can be cached are cached yet.  However, when this attribute is set where 
+the parser knows how to cache it will.
 
-B<Default> L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault>
-
-B<Range> a L<Moose> role with the methods 'get_defined_excel_format' and 
-'change_output_encoding' it should be noted that libxml2 which is the underlying code 
-for L<XML::LibXML> always attempts to get the data into perl friendly strings based on the 
-xml file encoding setting.  That means this role should only tweak the data on the way out 
-of memory and does not operate on the data on its way into memory.
+B<Default> 1 = caching is turned on
 
 B<attribute methods> Methods provided to adjust this attribute
 		
 =over
 
-B<get_default_format_list>
+B<get_cache_positions>
 
 =over
 
-B<Definition:> a way to check the current attribute setting
+B<Definition:> read the attribute
 
 =back
 
-B<set_default_format_list>
+=back
+
+=back
+
+=head3 format_inst
 
 =over
 
-B<Definition:> a way to set the current attribute setting
-
-=back
-
-=back
-
-=back
-
-=head3 format_string_parser
-
-=over
-
-B<Definition:> This is a Moose role that interprets the excel L<format string
+B<Definition:> This is the attribute containing the format class.  In general the 
+default value is sufficient.  However, If you want to tweak this a bit then review the
+L<class documentation|Spreadsheet::XLSX::Reader::LibXML::FmtDefault>.  It does include 
+a role that interprets the excel L<format string
 |https://support.office.com/en-us/article/Create-or-delete-a-custom-number-format-2d450d95-2630-43b8-bf06-ccee7cbe6864?ui=en-US&rs=en-US&ad=US> 
-into a L<Type::Tiny> coercion.  If you don't like the output or the method 
-you can write your own Moose Role and add it here.
+into a L<Type::Tiny> coercion.
 
-B<Default> L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings>
-
-B<Range> a L<Moose> role with the method 'parse_excel_format_string'
+B<Default> L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault>->new
 
 B<attribute methods> Methods provided to adjust this attribute
 		
 =over
 
-B<get_format_string_parser>
+B<set_format_inst>
+
+>
 
 =over
 
-B<Definition:> a way to check the current attribute setting
+B<Definition:> a way to set the current attribute instance
 
 =back
 
-B<set_format_string_parser>
+B<get_format_inst>
 
 =over
 
-B<Definition:> a way to set the current attribute setting
+B<Definition:> a way to get the current attribute setting
 
 =back
 
 =back
 
+B<delegated methods:>
+
+=over
+
+L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/get_defined_excel_format>
+
+L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/change_output_encoding>
+
+L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/parse_excel_format_string>
+
+L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings//set_date_behavior>
+
+L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings//get_date_behavior>
+
 =back
 
-##############################################################################  Fix End
+=back
 
 =head3 group_return_type
 
@@ -2175,6 +2174,8 @@ L<count_from_zero|/count_from_zero> => 0
 L<empty_is_end|/empty_is_end> => 1
 
 L<group_return_type|/group_return_type> => 'value'
+
+L<cache_positions|/cache_positions> => 1
 
 =back
 
