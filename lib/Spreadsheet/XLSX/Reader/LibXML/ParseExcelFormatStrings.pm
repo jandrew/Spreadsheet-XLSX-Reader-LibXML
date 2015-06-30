@@ -1,12 +1,11 @@
 package Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings;
-use version; our $VERSION = qv('v0.36.28');
+use version; our $VERSION = qv('v0.38.4');
 
 use 5.010;
 use Moose::Role;
-requires 
-			'get_excel_region',
-###LogSD	'get_log_space',
-;
+requires	'get_excel_region', 'set_error', 'get_defined_excel_format',
+###LogSD		'get_log_space',
+		;
 use Types::Standard qw(
 		Int							Str						Maybe
 		Num							HashRef					ArrayRef
@@ -92,6 +91,7 @@ my	$number_build_dispatch ={
 has	epoch_year =>( # Move to required?
 		isa		=> Int,
 		reader	=> 'get_epoch_year',
+		writer	=> 'set_epoch_year',
 		default	=> 1900,
 	);
 	
@@ -108,21 +108,39 @@ has	datetime_dates =>(
 		writer	=> 'set_date_behavior',
 		default	=> 0,
 	);
-	
-has	format_cash =>(
-		isa		=> HashRef,
-		traits	=> ['Hash'],
-		handles =>{
-			has_cached_format => 'exists',
-			get_cached_format => 'get',
-			set_cached_format => 'set',
-		},
-		default	=> sub{ {} },
-	);
 
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
+
+sub get_defined_conversion{
+	my( $self, $position, $target_name ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new(
+	###LogSD			name_space 	=> $self->get_log_space .  '::get_defined_conversion', );
+	###LogSD		$phone->talk( level => 'debug', message => [
+	###LogSD			"Searching for the coercion for position: $position", ($target_name ? "With suggested name: $target_name" : '') ] );
+	my	$coercion_string = $self->get_defined_excel_format( $position );
+	if( !defined $coercion_string ){
+		$self->set_error( "No coercion available for position: $position" );
+		return undef;
+	}
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		"Returned the string: $coercion_string",] );
+	my	$coercion;
+	$coercion = $self->_get_cached_format( $coercion_string ) if $self->get_cache_behavior;
+	if( !$coercion ){
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Attempting to generate the coersion for string: $coercion_string",] );
+		$coercion = $self->parse_excel_format_string( $coercion_string, ($target_name//"Excel__$position") );
+		if( !$coercion ){
+			$self->set_error( "Unparsable conversion string at position -$position- found: $coercion_string" );
+			return undef;
+		}
+	}
+	###LogSD	$phone->talk( level => 'trace', message => [
+	###LogSD		'Returning coercion:', $coercion,] );
+	return $coercion;
+}
  
-sub parse_excel_format_string{# Currently only handles dates and times
+sub parse_excel_format_string{
 	my( $self, $format_strings, $coercion_name ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new(
 	###LogSD			name_space 	=> $self->get_log_space .  '::parse_excel_format_string', );
@@ -139,10 +157,10 @@ sub parse_excel_format_string{# Currently only handles dates and times
 	my	$cache_key;
 	if( $self->get_cache_behavior ){
 		$cache_key	= $format_strings; # TODO fix the non-hashkey character issues;
-		if( $self->has_cached_format( $cache_key ) ){
+		if( $self->_has_cached_format( $cache_key ) ){
 			###LogSD		$phone->talk( level => 'debug', message => [
 			###LogSD			"Format already built - returning stored value for: $cache_key", ] );
-			return $self->get_cached_format( $cache_key );
+			return $self->_get_cached_format( $cache_key );
 		}else{
 			###LogSD	$phone->talk( level => 'debug', message => [
 			###LogSD		"Building new format for key: $cache_key", ] );
@@ -227,7 +245,7 @@ sub parse_excel_format_string{# Currently only handles dates and times
 				###LogSD		"Current action from -$pre_action- is: $current_action" ] );
 				if( $action_type and $current_action and ($current_action ne $action_type) ){
 					###LogSD	$phone->talk( level => 'info', message => [
-					###LogSD		"General action type: $action_type",,
+					###LogSD		"General action type: $action_type",
 					###LogSD		"is failing current action: $current_action", ] );
 					my $fail = 1;
 					if( $action_type eq 'DATE' ){
@@ -297,9 +315,11 @@ sub parse_excel_format_string{# Currently only handles dates and times
 	push @coercion_list, $self->_build_datestring( Str, [ [ '@', '' ] ] ) if $is_date and !$date_text;
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		'Length of coersion list: ' . scalar( @coercion_list ),
-	###LogSD		(map{ if( is_Object( $_ ) and $_->can( 'name' ) ){ $_->name }else{ $_ } } @coercion_list), ] );
+	###LogSD		"Action type: $action_type", "Conversion type: $conversion_type",
+	###LogSD		($coercion_name ? "Initial coercion name: $coercion_name" : ''), @coercion_list, ] );
 	
 	# Build the final format
+	$conversion_type = 'text' if $action_type eq 'TEXT'; 
 	$coercion_name =~ s/__/_${conversion_type}_/ if $coercion_name;
 	my	%args = (
 			name		=> ($coercion_name // ($action_type . '_' . $coercion_index++)),
@@ -309,17 +329,28 @@ sub parse_excel_format_string{# Currently only handles dates and times
 			#~ coerce		=> 1,
 		);
 	my	$final_type = Type::Tiny->new( %args );
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		"Final type:", $final_type ] );
 	
 	# Save the cache
-	$self->set_cached_format( $cache_key => $final_type ) if $self->get_cache_behavior;
+	$self->_set_cashed_format( $cache_key => $final_type ) if $self->get_cache_behavior;
 	
 	return $final_type;
 }
 	
 
 #########1 Private Attributes 3#########4#########5#########6#########7#########8#########9
-
-
+	
+has	_format_cash =>(
+		isa		=> HashRef,
+		traits	=> ['Hash'],
+		handles =>{
+			_has_cached_format => 'exists',
+			_get_cached_format => 'get',
+			_set_cashed_format => 'set',
+		},
+		default	=> sub{ {} },
+	);
 
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
 
@@ -1598,37 +1629,11 @@ Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings - Parser of XLSX form
 
 =head1 SYNOPSYS
 
-	#!/usr/bin/env perl
-	package MyPackage;
-	use Moose;
-	
-	with 	'Spreadsheet::XLSX::Reader::LibXML::FmtDefault';
-	# call 'with' a second time to ensure that the prior methods are recorded
-	with	'Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings';
-
-	package main;
-
-	my	$parser 	= MyPackage->new( epoch_year => 1904 );
-	my	$conversion	= $parser->parse_excel_format_string( '[$-409]dddd, mmmm dd, yyyy;@' );
-	print 'For conversion named: ' . $conversion->name . "\n";
-	for my	$unformatted_value ( '7/4/1776 11:00.234 AM', 0.112311 ){
-		print "Unformatted value: $unformatted_value\n";
-		print "..coerces to: " . $conversion->assert_coerce( $unformatted_value ) . "\n";
-	}
-
-	###########################
-	# SYNOPSIS Screen Output
-	# 01: For conversion named: DATESTRING_0
-	# 02: Unformatted value: 7/4/1776 11:00.234 AM
-	# 03: ..coerces to: Thursday, July 04, 1776
-	# 04: Unformatted value: 0.112311
-	# 05: ..coerces to: Friday, January 01, 1904
-	###########################
+See the L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/SYNOPSYS>
 
 =head1 DESCRIPTION
 
-This documentation is written to explain ways to use this module when writing your 
-own excel parser or extending this package.  To use the general package for excel 
+To use the general package for excel 
 parsing out of the box please review the documentation for L<Workbooks
 |Spreadsheet::XLSX::Reader::LibXML>, L<Worksheets
 |Spreadsheet::XLSX::Reader::LibXML::Worksheet>, and 
@@ -1649,9 +1654,9 @@ applied.  All other types of Excel number conversions still treat strings as a p
 through.
 
 To replace this module just build a L<Moose::Role|Moose::Manual::Roles> that delivers 
-the method L<parse_excel_format_string|/parse_excel_format_string>  Then set the 
-attribute L<Spreadsheet::XLSX::Reader::LibXML/format_string_parser> with the new 
-role name.
+the method L<parse_excel_format_string|/parse_excel_format_string>  and 
+L<get_defined_conversion|/get_defined_conversion( $position )>. Then use it when building 
+a replacement for L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault>.
 
 The decimal (real number) to fractions conversion can be top heavy to build.  If you 
 are experiencing delays when reading values then this is another place to investigate.  
@@ -1666,9 +1671,10 @@ set in this computation so if you reach this point for multi digit denominators 
 is computationally intensive.  (Not that continued fractions are computationally 
 so cheap.).  However, doing the calculation this way generally yields the same result as Excel.  
 In some few cases the result is more accurate.  I was unable to duplicate the results from 
-Excel exactly (or even come close otherwise).  The speed-up can be acheived by 
-substituting the fraction coercion using L<set_custom_formats
-|Spreadsheet::XLSX::Reader::LibXML::GetCell/set_custom_formats( { $key =E<gt> $conversion } )>
+Excel exactly (or even come close otherwise).  If you have a faster conversion then 
+implemenation of the speed-up can be acheived by 
+substituting the fraction coercion using 
+L<Spreadsheet::XLSX::Reader::LibXML::GetCell/set_custom_formats( { $key =E<gt> $conversion } )>
 
 =head2 requires
 
@@ -1681,17 +1687,35 @@ role will not build without first providing these methods prior to loading this 
 
 B<Definition:> Used to return the two letter region ID.  This ID is then used by 
 L<DateTime::Format::Flexible> to interpret date strings.  Currently this method is 
-provided by L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault> when it is loaded as a 
-role of L<Spreadsheet::XLSX::Reader::LibXML::Styles>.
+provided by L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault> and (potentially) reset 
+when that instance is loaded to the parser.
 
 =back
-	
+
+=head3 set_error
+
+=over
+
+B<Definition:> Used to set the error string in a shared error instance.
+
+=back
+
+=head3 get_defined_excel_format
+
+=over
+
+B<Definition:> Used to return the default error string for a defined position.
+
+See L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/defined_excel_translations>
+
+=back
+
 =head2 Primary Methods
 
 These are the primary ways to use this Role.  For additional ParseExcelFormatStrings options 
 see the L<Attributes|/Attributes> section.
 
-=head3 parse_excel_format_string( $string )
+=head3 parse_excel_format_string( $string, $name )
 
 =over
 
@@ -1713,6 +1737,23 @@ to DateTime objects are L<DateTime::Format::Flexible> and L<DateTimeX::Format::E
 
 B<Accepts:> an Excel number L<format string
 |https://support.office.com/en-us/article/Create-or-delete-a-custom-number-format-83657ca7-9dbe-4ee5-9c89-d8bf836e028e?ui=en-US&rs=en-US&ad=US> 
+and a conversion name stored in the Type::Tiny object.  This package will auto-generate a name if 
+none is given
+
+B<Returns:> a L<Type::Tiny> object with type coercions and pre-filters set for each input type 
+from the formatting string
+
+=back
+
+=head3 get_defined_conversion( $position )
+
+=over
+
+B<Definition:> This is a helper method that combines the call to 
+L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/get_defined_excel_format( $position )> and 
+parse_excel_format_string above in order to get all the information with one request.
+
+B<Accepts:> an Excel format position
 
 B<Returns:> a L<Type::Tiny> object with type coercions and pre-filters set for each input type 
 from the formatting string
@@ -1721,7 +1762,7 @@ from the formatting string
 
 =head2 Attributes
 
-Data passed to new when creating the L<Styles|Spreadsheet::XLSX::Reader::LibXML::Styles> 
+Data passed to new when creating the L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault> 
 instance.   For modification of these attributes see the listed 'attribute methods'.
 For more information on attributes see L<Moose::Manual::Attributes>.  Most of these are 
 not exposed to the top level of L<Spreadsheet::XLSX::Reader::LibXML>.
@@ -1733,9 +1774,11 @@ not exposed to the top level of L<Spreadsheet::XLSX::Reader::LibXML>.
 B<Definition:> This is the epoch year in the Excel sheet.  It differentiates between 
 Windows and Apple Excel implementations.  For more information see 
 L<DateTimeX::Format::Excel|DateTimeX::Format::Excel/DESCRIPTION>.  It is generally 
-set by the workbook when the workbook first opens.
+(re)set by the workbook when the formatter instance is passed to the workbook.
 
 B<Default:> 1900
+
+B<Range:> 1900 or 1904
 
 B<attribute methods> Methods provided to adjust this attribute
 		
@@ -1749,6 +1792,14 @@ B<Definition:> returns the value of the attribute
 
 =back
 
+B<set_epoch_year>
+
+=over
+
+B<Definition:> sets the value of the attribute
+
+=back
+
 =back
 
 =back
@@ -1758,15 +1809,15 @@ B<Definition:> returns the value of the attribute
 =over
 
 B<Definition:> It may be that you desire the full L<DateTime> object as output 
-rather than the finalized datestring when converting unformatted data to 
+rather than the finalized datestring when converting unformatted date data to 
 formatted date data. This attribute sets whether data coersions are built to do 
-the full conversion or just to a DateTime object level.
+the full conversion or just to a DateTime object level. It is generally 
+(re)set by the workbook when the formatter instance is passed to the workbook.
 
 B<Default:> 0 = unformatted values are coerced completely to date strings (1 = 
 stop at DateTime)
 
-B<attribute methods> Methods provided to adjust this attribute.  They are both 
-delegated all the way up to the worksbook instance.
+B<attribute methods> Methods provided to adjust this attribute.
 		
 =over
 
@@ -1801,8 +1852,8 @@ B<Accepts:> Boolean values
 
 =over
 
-B<Definition:> In order to save re-building the coercion each time it 
-is required, built coercions can be cached with the format string as the key.  
+B<Definition:> In order to save re-building the coercion each time they are 
+used, the built coercions can be cached with the format string as the key.  
 This attribute sets whether caching is turned on or not.
 
 B<Default:> 1 = caching is on
@@ -1826,49 +1877,6 @@ B<set_cache_behavior>
 B<Definition:> sets the value of the attribute
 
 B<Range:> Boolean 1 = cache formats, 0 = Don't cache formats
-
-=back
-
-=back
-
-=back
-
-=head3 format_cash
-
-=over
-
-B<Definition:> This is the format cache described in L<cache_formats|/cache_formats>.  
-It stores pre-built formats for re-use.
-
-B<Default:> {}
-
-B<attribute methods> Methods provided to adjust this attribute
-		
-=over
-
-B<has_cached_format( $format_string )>
-
-=over
-
-B<Definition:> returns true if the $format_string has a pre-built coersion already stored
-
-=back
-
-B<set_cached_format( $format_string =E<gt> $coercion )>
-
-=over
-
-B<Definition:> sets the coersion object for $format_string key.  Consider working 
-with L<Spreadsheet::XLSX::Reader::LibXML::Worksheet/custom_formats> to manipulate 
-format assignment instead of this method.
-
-=back
-
-B<get_cached_format( $format_string )>
-
-=over
-
-B<Definition:> gets the coersion object stored against the $format_string key
 
 =back
 
@@ -1942,6 +1950,10 @@ B<requires;>
 =over
 
 get_excel_region
+
+set_error
+
+get_defined_excel_format
 
 =back
 

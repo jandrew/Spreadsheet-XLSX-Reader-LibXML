@@ -19,7 +19,7 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 17;
+use	Test::Most tests => 25;
 use	Test::Moose;
 use IO::File;
 use XML::LibXML::Reader;
@@ -94,6 +94,35 @@ lives_ok{
 
 ###LogSD		$phone->talk( level => 'info', message => [ "hardest questions ..." ] );
 			my	$answer_row = 0;
+is			$test_instance->_get_unique_count, $answer_ref->[$answer_row++],
+										"Check for correct unique_count";
+is			$test_instance->encoding, $answer_ref->[$answer_row++],
+										"Check for correct encoding";
+			for my $x ( 2..$#$answer_ref ){
+is_deeply	$test_instance->get_shared_string_position( $answer_ref->[$x]->[0] ), $answer_ref->[$x]->[1],
+										"Get the -$answer_ref->[$x]->[0]- sharedStrings 'si' position as:" . Dumper( $answer_ref->[$x]->[1] );
+			}
+lives_ok{	$capture = $test_instance->get_shared_string_position( 20 ); 
+}										"Attempt an element past the end of the list";
+is		$capture, undef,				'Make sure it returns undef';
+lives_ok{	$capture = $test_instance->get_shared_string_position( 16 ); 
+}										"Attempt a different element past the end of the list";
+is		$capture, undef,				'Make sure it returns undef';
+###LogSD		$phone->talk( level => 'info', message => [ "Turn caching off" ] );
+lives_ok{
+			$test_instance	=	Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings->new(
+									file			=> $test_file,
+									cache_positions	=> 0,
+									error_inst		=> Spreadsheet::XLSX::Reader::LibXML::Error->new(
+										#~ should_warn => 1,
+										should_warn => 0,# to turn off cluck when the error is set
+									),
+			###LogSD				log_space	=> 'Test',
+								);
+}										"Prep a new SharedStrings instance";
+
+###LogSD		$phone->talk( level => 'info', message => [ "hardest questions ..." ] );
+			$answer_row = 0;
 is			$test_instance->_get_unique_count, $answer_ref->[$answer_row++],
 										"Check for correct unique_count";
 is			$test_instance->encoding, $answer_ref->[$answer_row++],

@@ -3,7 +3,7 @@
 BEGIN{ $ENV{PERL_TYPE_TINY_XS} = 0; }
 $| = 1;
 
-use	Test::Most tests => 249;
+use	Test::Most tests => 246;
 use	Test::Moose;
 use Data::Dumper;
 use	MooseX::ShortCut::BuildInstance v1.8 qw( build_instance );#
@@ -13,11 +13,14 @@ use	lib
 #~ use Log::Shiras::Switchboard qw( :debug );
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(#
 ###LogSD						name_space_bounds =>{
-###LogSD							main =>{
-###LogSD								UNBLOCK =>{
-###LogSD									log_file => 'info',
-###LogSD								},
+###LogSD							UNBLOCK =>{
+###LogSD								log_file => 'trace',
 ###LogSD							},
+#~ ###LogSD							main =>{
+#~ ###LogSD								UNBLOCK =>{
+#~ ###LogSD									log_file => 'info',
+#~ ###LogSD								},
+#~ ###LogSD							},
 ###LogSD						},
 ###LogSD						reports =>{
 ###LogSD							log_file =>[ Print::Log->new ],
@@ -27,7 +30,7 @@ use	lib
 ###LogSD	use Log::Shiras::UnhideDebug;
 use	Spreadsheet::XLSX::Reader::LibXML::Error;
 ###LogSD	use Log::Shiras::UnhideDebug;
-use	Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings v0.5;
+use	Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings v0.38;
 my	$test_file = ( @ARGV ) ? $ARGV[0] : '../../../../test_files/xl/';
 	$test_file .= 'styles.xml';
 ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space => 'main', );
@@ -46,8 +49,6 @@ my  		@class_methods = qw(
 				set_date_behavior					parse_excel_format_string
 				get_defined_excel_format			total_defined_excel_formats
 				change_output_encoding				get_excel_region
-				has_cached_format					get_cached_format
-				set_cached_format
 			);
 my			$question_list =[
 				['[$-409]d-mmm-yy;@',undef,'7/4/1776 11:00.234 AM','0.112311','60.99112311','1.500112311','55.0000102311','59.112311','60.345112311'],
@@ -82,9 +83,8 @@ lives_ok{
 ###LogSD							roles	=>[ 
 ###LogSD								'Log::Shiras::LogSpace'
 ###LogSD							],
-									add_roles_in_sequence =>[
-										'Spreadsheet::XLSX::Reader::LibXML::FmtDefault',
-										'Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings'
+									superclasses =>[
+										'Spreadsheet::XLSX::Reader::LibXML::FmtDefault'
 									],
 ###LogSD							log_space	=> 'Test',
 									epoch_year 	=> 1904,

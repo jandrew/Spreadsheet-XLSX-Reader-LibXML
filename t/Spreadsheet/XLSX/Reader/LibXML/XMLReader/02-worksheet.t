@@ -1,6 +1,6 @@
 #########1 Test File for Spreadsheet::XLSX::Reader::XMLReader::Worksheet        8#########9
 #!/usr/bin/env perl
-my ( $lib, $test_file );
+my ( $lib, $test_file, $styles_file );
 BEGIN{
 	$ENV{PERL_TYPE_TINY_XS} = 0;
 	my	$start_deeper = 1;
@@ -55,6 +55,7 @@ use	lib
 use	Spreadsheet::XLSX::Reader::LibXML::Error;
 #~ use	Spreadsheet::XLSX::Reader::LibXML::XMLReader;
 use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet;
+use	Spreadsheet::XLSX::Reader::LibXML::FmtDefault;
 use	DateTimeX::Format::Excel;
 use	DateTime::Format::Flexible;
 use	Type::Coercion;
@@ -62,11 +63,12 @@ use	Type::Tiny;
 
 	$test_file	= ( @ARGV ) ? $ARGV[0] : $test_file;
 	$test_file .= 'sheet3.xml';
+	
 ###LogSD	my	$log_space	= 'Test';
 ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space => 'main', );
 ###LogSD		$phone->talk( level => 'trace', message => [ "Test file is: $test_file" ] );
 my  ( 
-			$test_instance, $error_instance, $workbook_instance, $file_handle,
+			$test_instance, $error_instance, $workbook_instance, $file_handle, $format_instance,
 	);
 my 			@class_attributes = qw(
 				file
@@ -390,7 +392,12 @@ has_attribute_ok
 } 			@class_attributes;
 
 lives_ok{
-			$error_instance		= Spreadsheet::XLSX::Reader::LibXML::Error->new( should_warn => 0 );
+			$error_instance		= 	Spreadsheet::XLSX::Reader::LibXML::Error->new( should_warn => 0 );
+			$format_instance	=  	Spreadsheet::XLSX::Reader::LibXML::FmtDefault->new(
+										epoch_year	=> 1904,
+										error_inst	=> $error_instance,
+				###LogSD				log_space	=> 'Test',
+									);
 			$workbook_instance	= build_instance(
 									package		=> 'WorkbookInstance',
 									add_methods =>{
@@ -401,10 +408,9 @@ lives_ok{
 										get_shared_string_position	=> sub{},
 										_has_styles_file			=> sub{},
 										get_format_position			=> sub{},
+										get_epoch_year				=> sub{ return 1904 },
 										get_group_return_type		=> sub{},
 										set_group_return_type		=> sub{},
-										get_epoch_year				=> sub{ return '1904' },
-										change_output_encoding		=> sub{ $_[0] },
 										get_date_behavior			=> sub{},
 										set_date_behavior			=> sub{},
 										get_empty_return_type		=> sub{ return 'undef_string' },
@@ -435,8 +441,23 @@ lives_ok{
 											writer	=> 'set_from_the_edge',
 											default	=> 1,
 										},
+										format_instance =>{
+											isa		=> HasMethods[qw( 
+															set_error_inst				set_excel_region
+															set_target_encoding			get_defined_excel_format
+															set_defined_excel_formats	change_output_encoding
+															set_epoch_year				set_cache_behavior
+															set_date_behavior			get_defined_conversion		
+															parse_excel_format_string							)],	
+											writer	=> 'set_format_instance',
+											reader	=> 'get_format_instance',
+											handles =>[qw(
+															get_defined_excel_format 	parse_excel_format_string
+															change_output_encoding		)],
+										},
 									},
 									error_inst => $error_instance,
+									format_instance => $format_instance,
 								);
 			$test_instance	= Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet->new(
 				file				=> $test_file,

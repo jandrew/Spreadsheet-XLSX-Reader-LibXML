@@ -19,7 +19,7 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 38;
+use	Test::Most tests => 24;
 use	Test::Moose;
 use IO::File;
 use XML::LibXML::Reader;
@@ -89,26 +89,21 @@ use	lib
 ###LogSD					);
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
-use	Spreadsheet::XLSX::Reader::LibXML::FmtDefault v0.5;
-use	Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings v0.5;
-use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles v0.5;
-use	Spreadsheet::XLSX::Reader::LibXML::Error v0.5;
+use	Spreadsheet::XLSX::Reader::LibXML::FmtDefault;
+use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles;
+use	Spreadsheet::XLSX::Reader::LibXML::Error;
 $test_file = ( @ARGV ) ? $ARGV[0] : $test_file;
 $test_file .= 'styles.xml';
 ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space => 'main', );
 ###LogSD		$phone->talk( level => 'trace', message => [ "Test file is: $test_file" ] );
 my  ( 
-			$test_instance, $capture, $x, @answer, $error_instance, $format_instance, $file_handle,
+			$test_instance, $capture, $x, @answer, $error_instance, $format_instance, $file_handle, $coercion,
 	);
 my 			$row = 0;
 my 			@class_attributes = qw(
 				file
-				excel_region
-				target_encoding
-				cache_formats
-				datetime_dates
-				epoch_year
 				error_inst
+				format_inst
 			);
 my  		@class_methods = qw(
 				get_format_position
@@ -124,35 +119,27 @@ my  		@class_methods = qw(
 				set_warnings
 				if_warn
 				parse_element
-				get_epoch_year
-				get_cache_behavior
-				get_date_behavior
-				set_date_behavior
-				parse_excel_format_string
-				get_excel_region
-				get_target_encoding
-				set_target_encoding
-				get_defined_excel_format
-				total_defined_excel_formats
 			);
 				#~ get_number_format
 ###LogSD		$phone->talk( level => 'info', message => [ "easy questions ..." ] );
 lives_ok{
-			$test_instance	=	build_instance(
-									package => 'TestInstance',
-									superclasses	=> [ 'Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles' ],
-									add_roles_in_sequence => [qw(
-										Spreadsheet::XLSX::Reader::LibXML::FmtDefault
-										Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings
-									)],
-									file		=> $test_file,
-									error_inst	=> Spreadsheet::XLSX::Reader::LibXML::Error->new(
+			$error_instance		= 	Spreadsheet::XLSX::Reader::LibXML::Error->new(
 										should_warn => 1,
 										#~ should_warn => 0,# to turn off cluck when the error is set
-									),
-									epoch_year	=> 1904,
-			###LogSD				log_space	=> 'Test',
-								);
+									);
+			$format_instance	=  	Spreadsheet::XLSX::Reader::LibXML::FmtDefault->new(
+										epoch_year	=> 1904,
+										error_inst	=> $error_instance,
+				###LogSD				log_space	=> 'Test',
+									);
+			$test_instance		=	build_instance(
+										package => 'TestInstance',
+										superclasses => [ 'Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles' ],
+										format_inst  => $format_instance,
+										file		 => $test_file,
+										error_inst	 => $error_instance,
+				###LogSD				log_space	=> 'Test',
+									);
 }										"Prep a new Styles instance";
 map{ 
 has_attribute_ok
@@ -163,11 +150,11 @@ can_ok		$test_instance, $_,
 } 			@class_methods;
 
 ###LogSD		$phone->talk( level => 'info', message => [ "hardest questions ..." ] );
-ok			$format_instance = $test_instance->parse_excel_format_string( '[$-409]d-mmm-yy;@' ),#'(#,##0_);[Red](#,##0)'
+ok			$coercion = $format_instance->parse_excel_format_string( '[$-409]d-mmm-yy;@' ),#'(#,##0_);[Red](#,##0)'
 										"Create a number conversion from an excel format string";
 #~ explain									Dumper( $format_instance );
 			my $answer = '12-Sep-05';
-is			$format_instance->assert_coerce( 37145 ), $answer, #coercecoerce
+is			$coercion->assert_coerce( 37145 ), $answer, #coercecoerce
 										"... and see if it returns: $answer";
 is			$test_instance->get_format_position( 2, 'numFmts' )->{numFmts}->name, 'DATESTRING_0',
 										"Check that the excel number coercion at format position 2 is named: DATESTRING_0";

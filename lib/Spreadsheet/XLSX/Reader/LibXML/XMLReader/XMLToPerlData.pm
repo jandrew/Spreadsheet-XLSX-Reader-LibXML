@@ -1,13 +1,15 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData;
-use version; our $VERSION = qv('v0.36.28');
+use version; our $VERSION = qv('v0.38.4');
 
 use	Moose::Role;
+use	Carp 'confess';
 use 5.010;
 requires qw(
 	node_name		byte_consumed	move_to_first_att	move_to_next_att
 	node_depth		node_value		node_type			has_value	
 	start_reading
 );#text_value
+use Types::Standard qw( is_StrictNum );
 ###LogSD	requires 'get_log_space';
 ###LogSD	use Log::Shiras::Telephone;
 
@@ -22,24 +24,46 @@ requires qw(
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
 
 sub parse_element{
-	my ( $self, $level ) = @_;
+	my ( $self, @args ) = @_;
+	confess "Passed too many arguments to 'parse_element': " . join( '~|~', @args ) if @args > 2;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
 	###LogSD					($self->get_log_space .  '::parse_element' ), );
 	###LogSD		$phone->talk( level => 'debug', message =>[
 	###LogSD			"Parsing element: " . ($self->node_name//''),
-	###LogSD			(( defined $level ) ? "..to level: $level" : undef ),] );
-	
-	my( $success, $return ) = $self->_parse_element( $level );
+	###LogSD			( @args ? ("...with args: ", @args) : undef ),] );
+	my	$args;
+	for my $arg ( @args ){
+		if( is_StrictNum( $arg ) ){
+			$args->{level} = $arg;
+		}elsif( $arg ){
+			$args->{select_tag} = $arg;
+		}
+	}
+	###LogSD		$phone->talk( level => 'debug', message =>[
+	###LogSD			"Parsing element: " . ($self->node_name//''),
+	###LogSD			( $args ? ("...with args: ", $args) : undef ),] );
+	my ( $success, $return );
+	if( exists $args->{select_tag} ){
+		( $success, $return ) = $self->_get_tag_string( $args->{select_tag} );
+	}elsif( exists $args->{level} ){	
+		( $success, $return ) = $self->_parse_element( $args->{level} );
+	}else{	
+		( $success, $return ) = $self->_parse_element;
+	}
 	return $return;
 }
 
 #########1 Private Attributes 3#########4#########5#########6#########7#########8#########9
 
+
+
+#########1 Private Methods    3#########4#########5#########6#########7#########8#########9
+
 sub _parse_element{
 	my ( $self, $level ) = @_;
 	my	$current_level = $self->node_depth;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD					($self->get_log_space .  '::parse_element' ), );
+	###LogSD					($self->get_log_space .  '::parse_element::_parse_element' ), );
 	###LogSD		$phone->talk( level => 'debug', message =>[
 	###LogSD			"Parsing element: " . ($self->node_name//''),
 	###LogSD			"Node type: " . ($self->node_type//''),
@@ -229,9 +253,84 @@ sub _parse_element{
 	return ( $result, $current_ref );
 }
 
-#########1 Private Methods    3#########4#########5#########6#########7#########8#########9
-
-
+sub _get_tag_string{
+	my ( $self, $target_node) = @_;
+	my	$current_level = $self->node_depth;
+	my	$node_name = ($self->node_name//'');
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD					($self->get_log_space .  '::parse_element::_get_tag_string' ), );
+	###LogSD		$phone->talk( level => 'debug', message =>[
+	###LogSD			"Parsing element: $node_name",
+	###LogSD			"Node type: " . ($self->node_type//''),
+	###LogSD			"... from node depth: $current_level",
+	###LogSD			"... collecting values for: $target_node", ] );
+	
+	# Check for the case where the target node is the current node
+	my	$node_text = '';
+	if( $node_name eq $target_node ){
+		$node_text = $self->node_value;
+		###LogSD		$phone->talk( level => 'info', message =>[
+		###LogSD			"This is the target text node - returning value: $node_text",] );
+		return ( $self->start_reading, $node_text );
+	}
+	
+	# Iterate through this node
+	my	$result		= $self->start_reading;
+	my	$node_depth = $self->node_depth;
+	my	$node_type  = $self->node_type;
+		$node_name	= $self->node_name;
+	my	$last_match = 0;
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		"Node index result: $result",
+	###LogSD		"libxml2 current node depth: $node_depth",
+	###LogSD		"And node type: $node_type",
+	###LogSD		"And node name: $node_name",
+	###LogSD		"And last match state: $last_match"		] );
+	while( $node_depth > $current_level ){
+		###LogSD		$phone->talk( level => 'debug', message =>[
+		###LogSD			"continuing the journey",] );
+		if( $last_match and $self->has_value ){
+			$node_text .= $self->node_value;
+			###LogSD		$phone->talk( level => 'info', message =>[
+			###LogSD			"This is a target text node - total text: $node_text",] );
+			$last_match = 0;
+		}elsif( $node_name eq $target_node ){
+			$last_match = 1;
+			###LogSD	$phone->talk( level => 'info', message =>[
+			###LogSD		"Found a target node: $node_name",] );
+		}else{
+			$last_match = 0;# only take the next node
+		}
+		$result		= $self->start_reading;
+		$node_depth = $self->node_depth;
+		$node_name	= $self->node_name;
+		$node_type  = $self->node_type;
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Node index result: $result",
+		###LogSD		"libxml2 current node depth: $node_depth",
+		###LogSD		"And node type: $node_type"	,
+		###LogSD		"And node name: $node_name",
+		###LogSD		"And last match state: $last_match",
+		###LogSD		"...with current string |$node_text|"		] );
+		last if !$result;
+	}
+	while( $result and $node_type eq '15' ){
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Advancing past the end tags", ] );
+		$result		= $self->start_reading;
+		$node_type  = $self->node_type;
+		###LogSD	$node_depth = $self->node_depth;
+		###LogSD	$node_name	= $self->node_name;
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Node index result: $result",
+		###LogSD		"libxml2 current node depth: $node_depth",
+		###LogSD		"And node type: $node_type"	,
+		###LogSD		"And node name: $node_name"		] );
+	}
+	###LogSD	$phone->talk( level => 'info', message =>[
+	###LogSD		"Returning text: $node_text",] );
+	return ( $result, $node_text );
+}
 
 #########1 Phinish            3#########4#########5#########6#########7#########8#########9
 
@@ -316,13 +415,14 @@ documentation for L<Workbooks|Spreadsheet::XLSX::Reader::LibXML>,
 L<Worksheets|Spreadsheet::XLSX::Reader::LibXML::Worksheet>, and 
 L<Cells|Spreadsheet::XLSX::Reader::LibXML::Cell>
 
-This package is used convert xml to deep perl data structures.  As a note deep perl xml and  
-data structures are not one for one compatible to xml.  However, there is a subset of xml that 
-reasonably translates to deep perl structures.  For this implementation node names are treated 
-as hash keys unless there are multiple subnodes within a node that have the same name.  In this 
-case the subnode name is stripped and each node is added as a subref in an arrary ref.  The overall 
-arrayref is attached to the key list.  Attributes are also treated as hash keys at the same level 
-as the sub nodes.  Text nodes (or raw text between tags) is treated as having the key 'raw_text'.
+This package is used convert xml to L<deep|/parse_element( $level, $target_node )> perl data 
+structures.  As a note deep perl xml and  data structures are not one for one compatible to xml.  
+However, there is a subset of xml that reasonably translates to deep perl structures.  For this 
+implementation node names are treated as hash keys unless there are multiple subnodes within a node 
+that have the same name.  In this case the subnode name is stripped and each node is added as a 
+subref in an arrary ref.  The overall arrayref is attached to the key list.  Attributes are also 
+treated as hash keys at the same level as the sub nodes.  Text nodes (or raw text between tags) is 
+treated as having the key 'raw_text'.
 
 This reader assumes that it is a role added to a class built on 
 L<Spreadsheet::XLSX::Reader::LibXML::XMLReader> it expects to get the methods provided by that type 
@@ -353,19 +453,27 @@ L<start_reading|Spreadsheet::XLSX::Reader::LibXML::XMLReader/start_reading>
 
 These are the methods provided by this module.
 
-=head3 parse_element( $level )
+=head3 parse_element( $level, $target_node )
 
 =over
 
-B<Definition:> This returns a deep perl data structure that represents the full xml 
-down as many levels as indicated by $level (positive is deeper) or  to the bottom for 
-no passed value.  When this method is done the xml reader will be left at the begining 
-of the next level or up xml node.
+B<Definition:> This returns a perl equivalent of the xml data structure where the 
+L<Spreadsheet::XLSX::Reader::LibXML::XMLReader> is currently positioned.  If there 
+is a $target_node provided then it just returns all of the values stored in the full 
+node concatenated together.  It is assumed that the desired information are the text 
+elements of each node.  ($level is not applied in this case).  If $level is provided 
+in the absence of a $target_node then the conversion from xml to deep perl data is only 
+carried to that (absolute) level.  Where neither datum is provided a full translation 
+to a perl data structure is done.  When this method is done the xml reader will be left 
+at the next xml tag after the current full node (even or up).  L<It will clear all end 
+tags.>
 
-B<Accepts:> $level ( a positive integer )
+B<Accepts:> $level ( a positive integer ), $target_node ( the specific target node name 
+case sensitive ) - These values are order independant since one is a number  and the 
+other a string
 
 B<Returns:> ($success, $data_ref ) This method returns a list with the first element 
-being success or failure and the second element being the data ref corresponding to the 
+being success or failure and the second element being the data ref (or string) corresponding to the 
 xml being parsed by L<Spreadsheet::XLSX::Reader::LibXML::XMLReader>.
 
 =back 

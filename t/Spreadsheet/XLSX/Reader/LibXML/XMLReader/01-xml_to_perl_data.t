@@ -19,7 +19,7 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 30;
+use	Test::Most tests => 32;
 use	Test::Moose;
 use	MooseX::ShortCut::BuildInstance qw( build_instance );
 use	lib
@@ -48,7 +48,7 @@ $test_fil2 = $test_file . 'worksheets/sheet3_test.xml';
 $test_file .= 'sharedStrings.xml';
 #~ print "$lib\n$test_file\n$test_fil2\n";
 my  ( 
-			$test_instance, $capture, $x, @answer, $error_instance,
+			$test_instance, $capture, @answer, $error_instance,
 	);
 my 			$row = 0;
 my 			@class_attributes = qw(
@@ -119,6 +119,7 @@ my			$answer_ref = [
 						}
 					]
 		        },
+				'Hello World',
 				{
 					'r' => 'A11',
 					'v' => {
@@ -158,11 +159,19 @@ can_ok		$test_instance, $_,
 } 			@instance_methods;
 
 ###LogSD		$phone->talk( level => 'info', message => [ "hardest questions ..." ] );
+			my $x = 0;
 explain		"index to position 15";
 			map{ $test_instance->next_element( 'si' ) }( 0..15 );
 			#~ print Dumper( $test_instance->parse_element );
-is_deeply	$test_instance->parse_element, $answer_ref->[0],
-										"Check that the output matches expectations.";
+is_deeply	$test_instance->parse_element, $answer_ref->[$x++],
+										"Check that the output matches expectations";
+ok			$test_instance->start_the_file_over,
+										"Start the file over";
+explain		"index to position 15 - again";
+			map{ $test_instance->next_element( 'si' ) }( 0..15 );
+			#~ print Dumper( $test_instance->parse_element );
+is_deeply	$test_instance->parse_element( 't' ), $answer_ref->[$x++],
+										"Just get the text this time and check the output";
 lives_ok{
 			$test_instance	=	TestIntance->new(
 									file	=> $test_fil2,
@@ -177,11 +186,11 @@ explain		"Index to position 12";
 			map{ $test_instance->next_element( 'c' ) }( 0..12 );
 			#~ print Dumper( $test_instance->parse_element );
 			#~ exit 1;
-is_deeply	$test_instance->parse_element, $answer_ref->[1],
+is_deeply	$test_instance->parse_element, $answer_ref->[$x++],
 										"Check that the next output matches expectations.";
 ok			$test_instance->next_element( 'c' ),
 										"Advance to the next cell";
-is_deeply	$test_instance->parse_element, $answer_ref->[2],
+is_deeply	$test_instance->parse_element, $answer_ref->[$x++],
 										"Check that the next output matches expectations.";
 explain 								"...Test Done";
 done_testing();

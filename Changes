@@ -13,6 +13,43 @@ be method matched to Spreadsheet::ParseExcel prior to the 1.0 release.
 	
 	* Another cool change
 
+v0.38.4   2015-06-29 17:17:07-07:00 America/Los_Angeles
+
+	! The first Alien::LibXML change failed - trying again
+
+v0.38.2   2015-06-29 16:45:47-07:00 America/Los_Angeles
+
+	+ Added a cache_positions flag to the Workbook level
+		For now this only populates to cache built number conversion and the shared strings file
+	+ 'set_custom_formats' now has built in coercion to change Excel strings to coercion objects
+		This allows for you to define custom excel column formatting (Not already defined in the file)
+		using excel strings without building an intermediate coersion before loading it to the worksheet.
+	+ I changed the custom_formats attribute to _custom_formats in order to indicate that it 
+		should be set via the 'set_custom_formats' method
+	+ The worksheet class now accepts Excel format strings rather than requireing that the custom coercions be pre-built
+		(This is worksheet level functionality not workbook level functionality - still)
+	+ added the ability to only return portions of a node with a specific tag name to Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData
+		This should be activated for the SharedStrings file whenever the workbook attribute 'group_return_type' is set to 'unformatted' or 'value'
+		The goal for this is to see a speed boost
+		Closes #47 in github
+	+ Added a cache_positions flag to the SharedStrings class
+		The goal is to see a speed boost for sheets with a large number of text strings
+			Like perl hash keys, shared strings are not ordered by cell
+			This means for files with lots of stored text each shared strings position is only read once instead of rewinding and re-searching
+		The new behaviour is managed by the SharedStrings class attribute 'cache_positions' (default on)
+			Setting cache_positions => 0 should return the old behaviour
+			If there is only text in the position then the cache only stores the text to minimize RAM impact
+		Additionally as a trade off for the increased RAM usage the sharedStrings file is closed after it has been completely read once
+		I will only read as far into shared strings as you ask (reading one value and then closing the sheet will only read to that value)
+		It will slow the first values out down but overall speed the reading of lots of values
+		Sheets with only numbers will not be affected
+		Closes #46 in github
+	+ Changed the cell formatter from a Role to a Class to match Spreadsheet::ParseExcel 
+		THIS IS A REALLY BIG CHANGE
+		The target is to integrate better with Spreadsheet::Read
+		Closes #45 in github
+	+ Reduced the implementation of Alien::LibXML in dist.ini to see if that affects the CPAN Testers takeup rate
+		
 v0.36.28  2015-06-24 14:41:34-07:00 America/Los_Angeles
 
 	+ Surpressed a misleading error when value coercion is not succesful

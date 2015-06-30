@@ -19,7 +19,7 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 29;
+use	Test::Most tests => 66;
 use	Test::Moose;
 use IO::File;
 use XML::LibXML::Reader;
@@ -27,6 +27,7 @@ use Data::Dumper;
 use	MooseX::ShortCut::BuildInstance qw( build_instance );
 use	lib
 		'../../../../../../../Log-Shiras/lib',
+		'../../../../../..//lib',
 		$lib,
 	;
 #~ use Log::Shiras::Switchboard qw( :debug );#
@@ -128,6 +129,19 @@ my			$answer_ref = [
 				[ 14, { 	
 					raw_text => '2/6/2011',
 				} ],
+				[ 0, 'Hello', ],
+				[ 15, 'Hello World', ],
+				[ 10, 'Row Labels', ],
+				[ 1, 'World', ],
+				[ 2, 'my', ],
+				[ 3, ' ', ],
+				[ 4, 'Category', ],
+				[ 5, 'Total', ],
+				[ 6, 'Date', ],
+				[ 7, 'Red', ],
+				[ 8, 'Blue', ],
+				[ 9, 'Omaha', ],
+				[ 14, '2/6/2011', ],
 			];
 ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space => 'main', );
 ###LogSD		$phone->talk( level => 'info', message => [ "easy questions ..." ] );
@@ -150,7 +164,7 @@ lives_ok{
 									),
 			###LogSD				log_space	=> 'Test',
 								);
-}										"Prep a new SharedStrings instance";
+}										"Prep a new SharedStrings instance - cache_positions => 1";
 
 ###LogSD		$phone->talk( level => 'info', message => [ "hardest questions ..." ] );
 			my	$answer_row = 0;
@@ -158,9 +172,61 @@ is			$test_instance->_get_unique_count, $answer_ref->[$answer_row++],
 										"Check for correct unique_count";
 is			$test_instance->encoding, $answer_ref->[$answer_row++],
 										"Check for correct encoding";
-			for my $x ( 2..$#$answer_ref ){
+			for my $x ( 2..14 ){
 is_deeply	$test_instance->get_shared_string_position( $answer_ref->[$x]->[0] ), $answer_ref->[$x]->[1],
 										"Get the -$answer_ref->[$x]->[0]- sharedStrings 'si' position as:" . Dumper( $answer_ref->[$x]->[1] );
+			}
+lives_ok{	$capture = $test_instance->get_shared_string_position( 20 ); 
+}										"Attempt an element past the end of the list";
+is		$capture, undef,				'Make sure it returns undef';
+lives_ok{	$capture = $test_instance->get_shared_string_position( 16 ); 
+}										"Attempt a different element past the end of the list";
+###LogSD		$phone->talk( level => 'info', message => [ "Rerun the whole thing without caching" ] );
+lives_ok{
+			$test_instance	=	Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings->new(
+									file			=> $test_file,
+									cache_positions	=> 0,
+									#~ no_formats		=> 1,
+									error_inst 		=> Spreadsheet::XLSX::Reader::LibXML::Error->new(
+										#~ should_warn		=> 1,
+										should_warn		=> 0,# to turn off cluck when the error is set
+									),
+			###LogSD				log_space	=> 'Test',
+								);
+}										"Prep a new SharedStrings instance - cache_positions => 0";
+			$answer_row = 0;
+is			$test_instance->_get_unique_count, $answer_ref->[$answer_row++],
+										"Check for correct unique_count";
+is			$test_instance->encoding, $answer_ref->[$answer_row++],
+										"Check for correct encoding";
+			for my $x ( 2..14 ){
+is_deeply	$test_instance->get_shared_string_position( $answer_ref->[$x]->[0] ), $answer_ref->[$x]->[1],
+										"Get the -$answer_ref->[$x]->[0]- sharedStrings 'si' position as:" . Dumper( $answer_ref->[$x]->[1] );
+			}
+lives_ok{	$capture = $test_instance->get_shared_string_position( 20 ); 
+}										"Attempt an element past the end of the list";
+is		$capture, undef,				'Make sure it returns undef';
+lives_ok{	$capture = $test_instance->get_shared_string_position( 16 ); 
+}										"Attempt a different element past the end of the list";
+is		$capture, undef,				'Make sure it returns undef';
+###LogSD		$phone->talk( level => 'info', message => [ "Rerun the whole as values only" ] );
+lives_ok{
+			$test_instance	=	Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings->new(
+									file		=> $test_file,
+									no_formats	=> 1,
+									error_inst 		=> Spreadsheet::XLSX::Reader::LibXML::Error->new(
+										#~ should_warn		=> 1,
+										should_warn		=> 0,# to turn off cluck when the error is set
+									),
+			###LogSD				log_space	=> 'Test',
+								);
+}										"Prep a new SharedStrings instance - no_formats => 1";
+
+###LogSD		$phone->talk( level => 'trace', message => [ "The instance", $test_instance ] );
+			for my $x ( 15..27 ){
+is_deeply	$test_instance->get_shared_string_position( $answer_ref->[$x]->[0] ), $answer_ref->[$x]->[1],
+										"Get the -$answer_ref->[$x]->[0]- sharedStrings 'si' position as:" . $answer_ref->[$x]->[1];
+###LogSD		$phone->talk( level => 'trace', message => [ "The instance", $test_instance ] );
 			}
 lives_ok{	$capture = $test_instance->get_shared_string_position( 20 ); 
 }										"Attempt an element past the end of the list";

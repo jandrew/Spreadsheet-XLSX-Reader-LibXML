@@ -1,18 +1,19 @@
 package Spreadsheet::XLSX::Reader::LibXML::GetCell;
-use version; our $VERSION = qv('v0.36.28');
+use version; our $VERSION = qv('v0.38.4');
 
+use Carp 'confess';
 use	Moose::Role;
 requires qw(
 	min_row						max_row						min_col
 	max_col						row_range					col_range
 	_get_col_row				_get_next_value_cell		_get_row_all
-	
 );
 ###LogSD	requires 'get_log_space';
 use Types::Standard qw(
 	Bool 						HasMethods					Enum
 	Int							is_Int						ArrayRef
 	is_ArrayRef					HashRef						is_HashRef
+	is_Object
 );# Int
 use lib	'../../../../../lib',;
 ###LogSD	use Log::Shiras::Telephone;
@@ -54,19 +55,6 @@ has max_header_col =>(
 		clearer		=> 'clear_max_header_col',
 		predicate	=> 'has_max_header_col'
 	);
-
-has custom_formats =>(
-		isa		=> HashRef[ HasMethods[ 'assert_coerce', 'display_name' ] ],
-		traits	=> ['Hash'],
-		handles	=>{
-			has_custom_format => 'exists',
-			get_custom_format => 'get',
-			set_custom_format => 'set',
-		},
-		writer	=> 'set_custom_formats',
-		default => sub{ {} },
-		clearer	=> '_clear_custom_formats',
-	);
 #################################################
 has workbook_instance =>(
 		isa		=> HasMethods[qw(
@@ -80,6 +68,7 @@ has workbook_instance =>(
 						get_date_behavior			set_date_behavior
 						get_empty_return_type		set_error
 						get_values_only				set_values_only
+						parse_excel_format_string
 					)],
 		handles	=> [qw(
 						counting_from_zero			boundary_flag_setting
@@ -92,10 +81,10 @@ has workbook_instance =>(
 						get_date_behavior			set_date_behavior
 						get_empty_return_type		set_error
 						get_values_only				set_values_only
+						parse_excel_format_string
 					)],
 		required => 1,
 	);
-
 
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
 
@@ -276,7 +265,75 @@ sub fetchrow_hashref{
 	return $return;
 }
 
+sub set_custom_formats{
+    my ( $self, @input_args ) = @_;
+	my $args; 
+	###LogSD	my	$phone = Log::Shiras::Telephone->new(
+	###LogSD					name_space 	=> $self->get_log_space .  '::set_custom_formats', );
+	###LogSD		$phone->talk( level => 'info', message =>[
+	###LogSD			"Arrived at set_custom_formats with: ", @input_args, ] );
+	my $worksheet_custom = 0;
+	if( !@input_args ){
+		$self->( "The input args to 'set_custom_formts' are empty - no op" );
+		return undef;
+	}elsif( is_HashRef( $input_args[0] ) and @input_args == 1 ){
+		$args = $input_args[0];
+	}elsif( @input_args % 2 == 0 ){
+		$args = { @input_args };
+	}else{
+		$self->set_error( "Unable to coerce input args to a hashref: " . join( '~|~', @input_args ) );
+		return undef;
+	}
+	###LogSD	$phone->talk( level => 'info', message =>[
+	###LogSD			"Now acting on: ", $args ] );
+	my $final_load;
+	for my $key ( keys %$args ){
+		my $new_coercion;
+		if( $key eq '' or $key !~ /[A-Z]{0,3}(\d*)/ ){
+			$self->set_error( "-$key- is not an allowed custom format key" );
+			next;
+		}elsif( is_Object( $args->{$key} ) ){
+			###LogSD	$phone->talk( level => 'info', message =>[
+			###LogSD			"Key -$key- already has an object" ] );
+			$new_coercion = $args->{$key};
+		}else{
+			###LogSD	$phone->talk( level => 'info', message =>[
+			###LogSD			"Trying to build a new coercion for -$key- with: $args->{$key}" ] );
+			$new_coercion = $self->parse_excel_format_string( $args->{$key}, "Worksheet_Custom_" . $worksheet_custom++ );
+			if( !$new_coercion ){
+				$self->set_error( "No custom coercion could be built for -$key- with: $args->{$key}" );
+				next;
+			}
+			###LogSD	$phone->talk( level => 'info', message =>[
+			###LogSD			"Built possible new coercion for -$key-" ] );
+		}
+		if( !$new_coercion->can( 'assert_coerce' ) ){
+			$self->set_error( "The identified coercion for -$key- cannot 'assert_coerce'" );
+		}elsif( !$new_coercion->can( 'display_name' ) ){
+			$self->set_error( "The custom coercion for -$key- cannot 'display_name'" );
+		}else{
+			###LogSD	$phone->talk( level => 'info', message =>[
+			###LogSD			"Loading -$key- with coercion: " . $new_coercion->display_name ] );
+			$final_load->{$key} = $new_coercion;
+		}
+	}
+	$self->_set_custom_format( %$final_load );
+}
+
 #########1 Private Attributes 3#########4#########5#########6#########7#########8#########9
+
+has _custom_formats =>(
+		isa		=> HashRef[ HasMethods[ 'assert_coerce', 'display_name' ] ],
+		traits	=> ['Hash'],
+		reader	=> 'get_custom_formats',
+		default => sub{ {} },
+		clearer	=> '_clear_custom_formats',
+		handles	=>{
+			has_custom_format => 'exists',
+			get_custom_format => 'get',
+			_set_custom_format => 'set',
+		},
+	);
 
 has _header_ref =>(
 		isa			=> ArrayRef,
@@ -381,14 +438,16 @@ sub _build_out_the_cell{
 		###LogSD		"Cell raw text is:", $return->{cell_unformatted}] );
 		$return->{cell_unformatted} = $self->change_output_encoding( $return->{cell_unformatted} );
 		###LogSD	$phone->talk( level => 'debug', message =>[
-		###LogSD		"With output encoding changed: " . $return->{cell_unformatted} ] ) ;
+		###LogSD		"With output encoding changed: " . $return->{cell_unformatted} ] ) if $return->{cell_unformatted};
 		if( $self->get_group_return_type eq 'unformatted' ){
 			###LogSD	$phone->talk( level => 'debug', message =>[
-			###LogSD		"Sending back just the unformatted value: $return->{cell_unformatted}" ] ) ;
+			###LogSD		"Sending back just the unformatted value: " . ($return->{cell_unformatted}//'') ] ) ;
 			return $return->{cell_unformatted}
 		}
 		# Get any relevant custom format
 		my	$custom_format;
+		#~ ###LogSD	$phone->talk( level => 'trace', message =>[
+		#~ ###LogSD		"custom formats", $self->get_custom_formats ] );
 		if( $self->has_custom_format( $result->{r} ) ){
 			###LogSD	$phone->talk( level => 'debug', message =>[
 			###LogSD		"Custom format exists for: $result->{r}",] );
@@ -422,6 +481,8 @@ sub _build_out_the_cell{
 				###LogSD	$self->get_log_space,
 						);
 			}
+			$return->{cell_coercion} = $custom_format;
+			$return->{cell_type} = 'Custom';
 		}
 		# handle the formula
 		if( exists $result->{f} ){
@@ -432,9 +493,10 @@ sub _build_out_the_cell{
 		
 		if( exists $result->{s} ){
 			my $header = ($self->get_group_return_type eq 'value') ? 'numFmts' : undef;
+			my $exclude_header = ($custom_format) ? 'numFmts' : undef;
 			my $format;
 			if( $self->_has_styles_file ){
-				$format = $self->get_format_position( $result->{s}, $header );
+				$format = $self->get_format_position( $result->{s}, $header, $exclude_header );
 				
 				###LogSD	$phone->talk( level => 'trace', message =>[
 				###LogSD		"format position is:", $format ] );
@@ -469,44 +531,30 @@ sub _build_out_the_cell{
 					}
 				}
 			}
-			if( $custom_format ){
-				###LogSD	$phone->talk( level => 'trace', message =>[
-				###LogSD		"Using custom number formats", ] );
-				$return->{cell_coercion} = $custom_format;
-				$return->{cell_type} = 'Custom';
-			}
 		}
 		###LogSD	$phone->talk( level => 'trace', message =>[
-		###LogSD		"Checking return type: " . $self->get_group_return_type ] );
+		###LogSD		"Checking return type: " . $self->get_group_return_type,  ] );
+		# Final check for value only
 		if( $self->get_group_return_type eq 'value' ){
-			###LogSD	$phone->talk( level => 'trace', message =>[
-			###LogSD		"The caller only wants the coerced value (Not the whole cell)", ] );
-			my $return_value;
-			if( !$return->{cell_coercion} ){
-				$return_value = $return->{cell_unformatted};
-			}elsif( !defined $return->{cell_unformatted} ){
-				$self->set_error( "The cell does not have a value" );
-			}else{
-				eval '$return_value = $return->{cell_coercion}->assert_coerce( $return->{cell_unformatted} )';
-				if( $@ ){
-					$self->set_error( $@ );
-				}
-			}
-			$return_value =~ s/\\//g if $return_value;
-			###LogSD	$phone->talk( level => 'trace', message =>[
-			###LogSD		"Returning: $return_value", ] );
-			return $return_value;
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD		'Applying (a possible) regular format to: ' .  $return->{cell_unformatted} ] );
+			return	Spreadsheet::XLSX::Reader::LibXML::Cell->_return_value_only(
+						$return->{cell_unformatted}, 
+						$return->{cell_coercion},
+						$self->_get_error_inst,
+			###LogSD	$self->get_log_space,
+					);
 		}
 		$return->{cell_row} = $self->_get_used_position( $result->{row} );
 		$return->{cell_col} = $self->_get_used_position( $result->{col} );
 		$return->{error_inst} = $self->_get_error_inst;
 		###LogSD	$result->{log_space} = $self->get_log_space . '::Cell';
-		$return->{unformatted_converter} = sub{ 
-			my	$string = $_[0];
-			###LogSD	$phone->talk( level => 'debug', message =>[
-			###LogSD		"Sending stuff to converter:", @_ ] );
-			$self->change_output_encoding( $string ) 
-		};
+		#~ $return->{unformatted_converter} = sub{ 
+			#~ my	$string = $_[0];
+			#~ ###LogSD	$phone->talk( level => 'debug', message =>[
+			#~ ###LogSD		"Sending stuff to converter:", @_ ] );
+			#~ $self->change_output_encoding( $string ) 
+		#~ };
 		###LogSD	$phone->talk( level => 'debug', message =>[
 		###LogSD		"Final args ref is:", $return] );
 	}elsif( $result ){
