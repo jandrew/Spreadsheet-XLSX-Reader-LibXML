@@ -120,25 +120,34 @@ per the attribute L<Spreadsheet::XLSX::Reader::LibXML/group_return_type>.
 
 =back
 
-=head3 set_headers( @header_row_list )
+=head3 set_headers( @header_row_list [ \&header_scrubber ] )
 
 =over
 
 B<Definition:> This function is used to set headers used in the function 
 L<fetchrow_hashref|/fetchrow_hashref( $row )>.  It accepts a list of row numbers that 
 will be collated into a set of headers used to build the hashref for each row.
-The header rows are coallated in sequence with the first number in the list taking 
-precedence.  The list is also used to set the lowest row of the headers in the table.  
-All rows at that level and higher will be considered out of the table and will return 
-'undef' while setting the error instance.  If some of the columns do not have values 
-then the instance will auto generate unique headers for each empty header column to 
-fill out the header ref.  Please pay attention to the fact that this method is also 
-affected by the attribute L<Spreadsheet::XLSX::Reader::LibXML/group_return_type> with 
-one exception.  If that attribute is set to 'instance' the headers will be composed of 
-the converted 'value's of each cell rather than either the instance pointer string or 
-the 'unformatted' value.
+The header rows are coallated in sequence with the first number taking precedence.  
+The list is also used to set the lowest row of the headers in the table.  All rows 
+at that level and higher will be considered out of the table and will return undef 
+while setting the error instance.  If some of the columns do not have values then 
+the instance will auto generate unique headers for each empty header column to fill 
+out the header ref.  [ optionally: it is possible to pass a coderef to scrub the 
+headers so they make some sence. for example; ]
 
-B<Accepts:> a list of row numbers
+	my $scrubber = sub{
+		my $input = $_[0];
+		$input =~ s/\n//g if $input;
+		$input =~ s/\s/_/g if $input;
+		return $input;
+	};
+	$self->set_headers( 2, 1, $scrubber ); # Called internally as $new_value = $scrubber->( $old_value );
+	# Returns/stores the headers set at row 2 and 1 with values from row 2 taking precedence
+	#  Then it scrubs the values by removing newlines and replacing spaces with underscores.
+
+B<Accepts:> a list of row numbers (modified as needed by the attribute state of 
+L<Spreadsheet::XLSX::Reader::LibXML/count_from_zero>) and an optional L<closure
+|http://www.perl.com/pub/2002/05/29/closure.html>.
 
 B<Returns:> an array ref of the built headers for review
 

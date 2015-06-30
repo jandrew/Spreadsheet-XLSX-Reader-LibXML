@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML;
-use version 0.77; our $VERSION = qv('v0.38.4');
+use version 0.77; our $VERSION = qv('v0.38.6');
 
 use 5.010;
 use	List::Util 1.33;
@@ -103,7 +103,8 @@ my	$flag_settings ={
 			values_only       => 1,
 			empty_is_end      => 1,
 			group_return_type => 'value',
-			cache_positions => 1
+			cache_positions   => 1,
+			from_the_edge     => 0,
 		},
 	};
 
@@ -141,7 +142,7 @@ has format_inst =>(
 		handles =>[qw(
 						get_defined_excel_format 	parse_excel_format_string
 						change_output_encoding		set_date_behavior
-						get_date_behavior			)],
+						get_date_behavior			set_defined_excel_formats)],
 		trigger => \&_import_format_settings,
 	);
 	
@@ -963,7 +964,7 @@ Spreadsheet::XLSX::Reader::LibXML - Read xlsx spreadsheet files with LibXML
 </a>
 
 <a>
-	<img src="https://img.shields.io/badge/this version-0.36.24-brightgreen.svg" alt="this version">
+	<img src="https://img.shields.io/badge/this version-0.38.6-brightgreen.svg" alt="this version">
 </a>
 
 <a href="https://metacpan.org/pod/Spreadsheet::XLSX::Reader::LibXML">
@@ -1117,9 +1118,9 @@ B<2.> This package requires that you can load L<XML::LibXML> which requires the 
 the build profile in an attempt to resolve any library issues but being new to usage of 
 Alien libraries in general I'm not certain I got it quite right.  Many OS's have these 
 libraries installed as part of their core but if this package fails to load please log an 
-issue in my repo on L<github|/SUPPORT>>.  On the other hand the correct libraries are 
-loading on travis-ci during the builds so if no issue is logged before then I will remove 
-this warning on 2/1/2016.
+issue in my repo on L<github|/SUPPORT>.  On the other hand the correct libraries are 
+loading on travis-ci during the builds so if no issue is logged before then I will B<remove 
+this warning on 2/1/2016.>
 
 B<3.> Not all workbook sheets (tabs) are created equal!  Some Excel sheet tabs are only a 
 chart.  These tabs are 'chartsheets'.  The methods with 'worksheet' in the name only act on 
@@ -1131,18 +1132,20 @@ classes do not provide access to cells.
 
 B<4.> L<HMBRAND|https://metacpan.org/author/HMBRAND> pointed out that the formatter portion of 
 this package does not follow the L<Spreadsheet::ParseExcel API|Spreadsheet::ParseExcel/Formatter-Class> 
-for the formatter class.  I suppose this was, in part, laziness on my part.  In an effort to 
-L<partially|Spreadsheet::XLSX::Reader::LibXML::FmtDefault/DESCRIPTION> 
-comply with goal #2 of this sheet I have updated the API so that L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault> 
-is a stand alone class (not a role).  This more closely follows Spreadsheet::ParseExcel.  And 
-incidentally probably makes building alternate formatting modules easier.  I<The formatters will 
-still not exchange back and forth between L<Spreadsheet::ParseExcel::FmtDefault> and back since 
-they are both built to interface with fundamentally different architecture.>  This also affects 
-the role L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings> and how it is consumed.  If 
-you wrote your own formatter for this package that interfaces in the old way I would be willing 
+for the formatter class.  I suppose this was, in part, laziness.  In an effort to partially 
+comply with goal #2 of this sheet I have updated the API so that it the formatter is a stand-alone 
+class.  For details of the implemenation see L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/CLASS DESCRIPTION> 
+This more closely follows Spreadsheet::ParseExcel, and incidentally probably makes building alternate 
+formatting modules easier.  I<The formatters will still not exchange back and forth between 
+L<Spreadsheet::ParseExcel::FmtDefault> and back since they are both built to interface with 
+fundamentally different architecture.>  This also affects the role 
+L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings> and how it is consumed.  If 
+you wrote your own formatter for this package for the old way I would be willing 
 to provide troubleshooting support for the transition to the the new API.  However if you are 
-setting specific formats today using get_defined_excel_format( $pos ) it should still work.  
-(Moose delegation is a wonderful thing) This warning will be removed on 2/1/2016.
+setting specific formats today using set_defined_excel_format_list you should be able to switch to
+L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/set_defined_excel_formats( %args )> or use the 
+attribute L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/defined_excel_translations>.    B<This warning 
+will be removed on 2/1/2016.>
 
 =head2 Attributes
 
@@ -2176,6 +2179,8 @@ L<empty_is_end|/empty_is_end> => 1
 L<group_return_type|/group_return_type> => 'value'
 
 L<cache_positions|/cache_positions> => 1
+
+L<from_the_edge|/from_the_edge> => 0,
 
 =back
 

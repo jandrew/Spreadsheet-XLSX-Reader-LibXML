@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::GetCell;
-use version; our $VERSION = qv('v0.38.4');
+use version; our $VERSION = qv('v0.38.6');
 
 use Carp 'confess';
 use	Moose::Role;
@@ -200,7 +200,14 @@ sub set_headers{
 		return undef;
 	}
 	my $last_header_row = 0;
+	my $code_ref;
 	for my $row ( @header_row_list ){
+		if( ref( $row ) ){
+			$code_ref = $row;
+			###LogSD	$phone->talk( level => 'info', message =>[
+			###LogSD		"Found header manipulation code: ", $code_ref, ] );
+			next;
+		}
 		$last_header_row = $row if $row > $last_header_row;
 		my $array_ref = $self->fetchrow_arrayref( $row );
 		###LogSD	$phone->talk( level => 'info', message =>[
@@ -210,6 +217,15 @@ sub set_headers{
 		}
 		###LogSD	$phone->talk( level => 'info', message =>[
 		###LogSD		"Updated header ref: ", $header_ref, ] );
+	}
+	if( $code_ref ){
+		my $scrubbed_headers;
+		for my $header ( @$header_ref ){
+			push @$scrubbed_headers, $code_ref->( $header );
+		}
+		###LogSD	$phone->talk( level => 'info', message =>[
+		###LogSD		"scrubbed header ref: ", $scrubbed_headers, ] );
+		$header_ref = $scrubbed_headers;
 	}
 	$self->_set_last_header_row( $last_header_row );
 	$self->_set_header_ref( $header_ref );
@@ -793,7 +809,7 @@ as appropriate.
 
 =back
 
-=head3 set_headers( @header_row_list )
+=head3 set_headers( @header_row_list [ \&header_scrubber ] )
 
 =over
 
@@ -805,10 +821,22 @@ The list is also used to set the lowest row of the headers in the table.  All ro
 at that level and higher will be considered out of the table and will return undef 
 while setting the error instance.  If some of the columns do not have values then 
 the instance will auto generate unique headers for each empty header column to fill 
-out the header ref.
+out the header ref.  [ optionally: it is possible to pass a coderef to scrub the 
+headers so they make some sence. for example; ]
+
+	my $scrubber = sub{
+		my $input = $_[0];
+		$input =~ s/\n//g if $input;
+		$input =~ s/\s/_/g if $input;
+		return $input;
+	};
+	$self->set_headers( 2, 1, $scrubber ); # Called internally as $new_value = $scrubber->( $old_value );
+	# Returns/stores the headers set at row 2 and 1 with values from row 2 taking precedence
+	#  Then it scrubs the values by removing newlines and replacing spaces with underscores.
 
 B<Accepts:> a list of row numbers (modified as needed by the attribute state of 
-L<Spreadsheet::XLSX::Reader::LibXML/count_from_zero>)
+L<Spreadsheet::XLSX::Reader::LibXML/count_from_zero>) and an optional L<closure
+|http://www.perl.com/pub/2002/05/29/closure.html>.
 
 B<Returns:> an array ref of the built headers for review
 

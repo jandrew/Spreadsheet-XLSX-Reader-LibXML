@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings;
-use version; our $VERSION = qv('v0.38.4');
+use version; our $VERSION = qv('v0.38.6');
 
 use 5.010;
 use Moose::Role;
@@ -1743,6 +1743,8 @@ none is given
 B<Returns:> a L<Type::Tiny> object with type coercions and pre-filters set for each input type 
 from the formatting string
 
+B<Delegated to the workbook class:> yes
+
 =back
 
 =head3 get_defined_conversion( $position )
@@ -1757,6 +1759,8 @@ B<Accepts:> an Excel format position
 
 B<Returns:> a L<Type::Tiny> object with type coercions and pre-filters set for each input type 
 from the formatting string
+
+B<Delegated to the workbook class:> no
 
 =back
 
@@ -1790,6 +1794,8 @@ B<get_epoch_year>
 
 B<Definition:> returns the value of the attribute
 
+B<Delegated to the workbook class:> no
+
 =back
 
 B<set_epoch_year>
@@ -1797,6 +1803,8 @@ B<set_epoch_year>
 =over
 
 B<Definition:> sets the value of the attribute
+
+B<Delegated to the workbook class:> no
 
 =back
 
@@ -1827,6 +1835,8 @@ B<get_date_behavior>
 
 B<Definition:> returns the value of the attribute
 
+B<Delegated to the workbook class:> yes
+
 =back
 
 =back
@@ -1841,6 +1851,8 @@ B<Definition:> sets the attribute value (only L<new|/cache_formats> coercions
 are affected)
 
 B<Accepts:> Boolean values
+
+B<Delegated to the workbook class:> yes
 
 =back
 
@@ -1868,6 +1880,8 @@ B<get_cache_behavior>
 
 B<Definition:> returns the value of the attribute
 
+B<Delegated to the workbook class:> inherited
+
 =back
 
 B<set_cache_behavior>
@@ -1877,6 +1891,8 @@ B<set_cache_behavior>
 B<Definition:> sets the value of the attribute
 
 B<Range:> Boolean 1 = cache formats, 0 = Don't cache formats
+
+B<Delegated to the workbook class:> inherited
 
 =back
 
