@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::FmtDefault;
-use version; our $VERSION = qv('v0.38.4');
+use version; our $VERSION = qv('v0.38.6');
 ###LogSD	warn "You uncovered logging statements for Spreadsheet::XLSX::Reader::LibXML::FmtDefault-$VERSION";
 
 use	5.010;
@@ -303,6 +303,8 @@ $position
 
 B<Returns:> an excel format string
 
+B<Delegated to the workbook class:> yes
+
 =back
 
 =head3 set_defined_excel_formats( %args )
@@ -333,6 +335,8 @@ B<Accepts:> nothing
 
 B<Returns:> $count (an integer)
 
+B<Delegated to the workbook class:> yes
+
 =back
 
 =head3 change_output_encoding( $string )
@@ -351,6 +355,8 @@ B<Accepts:> a perl coded string
 
 B<Returns:> the converted $string decoded to the L<defined format|/target_encoding>
 
+B<Delegated to the workbook class:> yes
+
 =back
 
 =head3 get_defined_conversion( $position )
@@ -360,6 +366,8 @@ Defined in L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/get_defi
 =head3 parse_excel_format_string( $format_string, $name )
 
 Defined in L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/parse_excel_format_string( $string, $name )>
+
+B<Delegated to the workbook class:> no
 
 =head2 Attributes
 
