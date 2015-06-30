@@ -8,12 +8,11 @@ use warnings;
 use 5.010;
 use ExtUtils::MakeMaker 7.04;
 
-use Alien::LibXML 0.003;
-
 my %WriteMakefileArgs = (
   "ABSTRACT" => "Read xlsx spreadsheet files with LibXML",
   "AUTHOR" => "Jed Lund <jandrew\@cpan.org>",
   "CONFIGURE_REQUIRES" => {
+    "Alien::LibXML" => "0.003",
     "ExtUtils::MakeMaker" => "7.04"
   },
   "DISTNAME" => "Spreadsheet-XLSX-Reader-LibXML",
@@ -71,19 +70,14 @@ my %WriteMakefileArgs = (
     "XML::LibXML::Reader" => 0,
     "version" => "0.77"
   },
-  "VERSION" => "v0.38.2",
+  "VERSION" => "v0.38.4",
   "test" => {
     "TESTS" => "t/Spreadsheet/XLSX/Reader/*.t t/Spreadsheet/XLSX/Reader/LibXML/*.t t/Spreadsheet/XLSX/Reader/LibXML/XMLReader/*.t"
   }
 );
 
-%WriteMakefileArgs = (
-    %WriteMakefileArgs,
-    LIBS => Alien::LibXML->libs,
-    CCFLAGS => Alien::LibXML->cflags,
-);
-
 my %FallbackPrereqs = (
+  "Alien::LibXML" => "0.003",
   "Archive::Zip" => 0,
   "Capture::Tiny" => 0,
   "Carp" => 0,

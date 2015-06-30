@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::FmtDefault;
-use version; our $VERSION = qv('v0.38.2');
+use version; our $VERSION = qv('v0.38.4');
 ###LogSD	warn "You uncovered logging statements for Spreadsheet::XLSX::Reader::LibXML::FmtDefault-$VERSION";
 
 use	5.010;
