@@ -7,7 +7,7 @@ use 5.010;
 requires qw(
 	node_name		byte_consumed	move_to_first_att	move_to_next_att
 	node_depth		node_value		node_type			has_value	
-	start_reading
+	start_reading	get_empty_return_type
 );#text_value
 use Types::Standard qw( is_StrictNum );
 ###LogSD	requires 'get_log_space';
@@ -222,6 +222,13 @@ sub _parse_element{
 			$value_case and !$duplicate_keys 								){
 			@$current_ref{ keys( %$hash_ref ) } = ( values( %$hash_ref ) );
 			delete $current_ref->{'xml:space'} if exists $current_ref->{raw_text};
+		}elsif( (scalar( keys( %$hash_ref ) ) == 1 and !$duplicate_keys) ){
+			$current_ref = $hash_ref;
+			my $lonely_key = (keys %$hash_ref)[0];
+			if( $current_ref->{$lonely_key} == 1 ){
+				$current_ref->{$lonely_key} =
+					( $self->get_empty_return_type eq 'undef_string' ) ? undef : '';
+			}	
 		}else{
 			$current_ref->{list} = $list_ref;
 		}

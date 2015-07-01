@@ -444,9 +444,9 @@ sub _build_out_the_cell{
 			###LogSD	$phone->talk( level => 'debug', message =>[
 			###LogSD		"Setting unformatted from:", $result ] );
 			$return->{cell_unformatted} = $result->{v}->{raw_text};
-			$return->{cell_type} = 'Numeric' if $return->{cell_unformatted} and $return->{cell_unformatted} ne '';
+			$return->{cell_type} = 'Numeric' if defined $return->{cell_unformatted} and $return->{cell_unformatted} ne '';
 		}
-		if( !$return->{cell_unformatted} and $self->get_empty_return_type eq 'empty_string' ){
+		if( !defined( $return->{cell_unformatted} ) and $self->get_empty_return_type eq 'empty_string' ){
 			###LogSD	$phone->talk( level => 'debug', message =>[ "(Re)setting undef to ''"] );
 			$return->{cell_unformatted} = '';
 		}
@@ -553,7 +553,7 @@ sub _build_out_the_cell{
 		# Final check for value only
 		if( $self->get_group_return_type eq 'value' ){
 			###LogSD	$phone->talk( level => 'debug', message =>[
-			###LogSD		'Applying (a possible) regular format to: ' .  $return->{cell_unformatted} ] );
+			###LogSD		'Applying (a possible) regular format to: |' .  $return->{cell_unformatted} . '|' ] );
 			return	Spreadsheet::XLSX::Reader::LibXML::Cell->_return_value_only(
 						$return->{cell_unformatted}, 
 						$return->{cell_coercion},
