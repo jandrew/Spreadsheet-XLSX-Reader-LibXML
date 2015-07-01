@@ -1586,8 +1586,6 @@ B<attribute methods> Methods provided to adjust this attribute
 
 B<set_format_inst>
 
->
-
 =over
 
 B<Definition:> a way to set the current attribute instance

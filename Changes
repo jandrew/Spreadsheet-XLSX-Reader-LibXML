@@ -15,7 +15,7 @@ be method matched to Spreadsheet::ParseExcel prior to the 1.0 release.
 
 v0.38.6   2015-06-30 06:13:36-07:00 America/Los_Angeles
 	
-	! Some general documentation updates for the FmtDefault class that were not done correct for the last release
+	! Some general documentation updates for the FmtDefault class that were not done correctly for the last release
 		Doh!
 	+ Added the possibility of passing a closure to the set_headers for header value scrubbing
 	+ Adjusted the :just_the_data flag
