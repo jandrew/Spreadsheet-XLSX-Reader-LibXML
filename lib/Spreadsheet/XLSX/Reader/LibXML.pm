@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML;
-use version 0.77; our $VERSION = qv('v0.38.6');
+use version 0.77; our $VERSION = qv('v0.38.7');
 
 use 5.010;
 use	List::Util 1.33;
@@ -328,7 +328,11 @@ sub worksheet{
 	
 	# Deal with chartsheet requests
 	my $worksheet_info = $self->_get_sheet_info( $worksheet_name );
-	if( $worksheet_info->{sheet_type} eq 'chartsheet' ){
+	# Check for sheet existence
+	if( !$worksheet_info or !$worksheet_info->{sheet_type} ){
+		$self->set_error( "The worksheet -$worksheet_name- could not be located!" );
+		return undef;
+	}elsif( $worksheet_info->{sheet_type} and $worksheet_info->{sheet_type} eq 'chartsheet' ){
 		$self->set_error( "You have requested -$worksheet_name- which is a 'chartsheet' using a worksheet focused method" );
 		return undef;
 	}

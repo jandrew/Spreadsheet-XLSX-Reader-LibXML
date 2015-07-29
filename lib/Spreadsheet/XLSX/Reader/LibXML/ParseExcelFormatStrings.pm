@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings;
-use version; our $VERSION = qv('v0.38.6');
+use version; our $VERSION = qv('v0.38.7');
 
 use 5.010;
 use Moose::Role;

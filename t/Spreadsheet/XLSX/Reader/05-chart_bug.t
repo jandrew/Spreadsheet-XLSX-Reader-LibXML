@@ -108,7 +108,8 @@ lives_ok{
 			#~ $parser->set_warnings( 1 );
 }										"Prep a test parser instance";
 ###LogSD		$phone->talk( level => 'trace', message => [ "$parser:", $parser ] );
-is			$parser->error(), undef,	"Write any error messages from the file load";
+is			$parser->error(), undef,
+										"Write any error messages from the file load";
 ok			@worksheets = $parser->worksheets(),
 										"Loaded worksheet objects ok";
 			my	$x = 0;

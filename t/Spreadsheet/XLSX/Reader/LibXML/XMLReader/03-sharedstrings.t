@@ -78,7 +78,7 @@ my			$answer_ref = [
 								'rgb' => 'FFFF0000'
 							},
 							'sz' => '11',
-							'b' => 1,
+							'b' => undef,
 							'scheme' => 'minor',
 							'rFont' => 'Calibri',
 							'family' => '2'
@@ -89,7 +89,7 @@ my			$answer_ref = [
 								'rgb' => 'FF0070C0'
 							},
 							'sz' => '20',
-							'b' => 1,
+							'b' => undef,
 							'scheme' => 'minor',
 							'rFont' => 'Calibri',
 							'family' => '2'

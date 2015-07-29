@@ -98,8 +98,8 @@ my			$answer_list =[
 				{},{},{},{},{},{},
 				{ cell_id => 'A6', row => 5, col => 0, type => 'Text', unformatted => 'Hello World', value => 'Hello World',
 					get_rich_text =>[
-						2, { color =>{ rgb => 'FFFF0000' }, sz => '11', b => 1, scheme => 'minor', rFont => 'Calibri', family => 2 },
-						6, { color =>{ rgb => 'FF0070C0' }, sz => '20', b => 1, scheme => 'minor', rFont => 'Calibri', family => 2 },
+						2, { color =>{ rgb => 'FFFF0000' }, sz => '11', b => undef, scheme => 'minor', rFont => 'Calibri', family => 2 },
+						6, { color =>{ rgb => 'FF0070C0' }, sz => '20', b => undef, scheme => 'minor', rFont => 'Calibri', family => 2 },
 					],
 					merge_range => 'A6:B6',
 				},
@@ -125,8 +125,8 @@ my			$answer_list =[
 				{ cell_id => 'C4', row => 3, col => 2, type => 'Text', unformatted => 'World', value => 'World', coercion_name => 'Excel_text_0' },
 				{ cell_id => 'A6', row => 5, col => 0, type => 'Text', unformatted => 'Hello World', value => 'Hello World',
 					get_rich_text =>[
-						2, { color =>{ rgb => 'FFFF0000' }, sz => '11', b => 1, scheme => 'minor', rFont => 'Calibri', family => 2 },
-						6, { color =>{ rgb => 'FF0070C0' }, sz => '20', b => 1, scheme => 'minor', rFont => 'Calibri', family => 2 },
+						2, { color =>{ rgb => 'FFFF0000' }, sz => '11', b => undef, scheme => 'minor', rFont => 'Calibri', family => 2 },
+						6, { color =>{ rgb => 'FF0070C0' }, sz => '20', b => undef, scheme => 'minor', rFont => 'Calibri', family => 2 },
 					],
 					merge_range => 'A6:B6',
 				},
@@ -162,8 +162,8 @@ my			$answer_list =[
 				[
 					{ cell_id => 'A6', row => 5, col => 0, type => 'Text', unformatted => 'Hello World', value => 'Hello World',
 						get_rich_text =>[
-							2, { color =>{ rgb => 'FFFF0000' }, sz => '11', b => 1, scheme => 'minor', rFont => 'Calibri', family => 2 },
-							6, { color =>{ rgb => 'FF0070C0' }, sz => '20', b => 1, scheme => 'minor', rFont => 'Calibri', family => 2 },
+							2, { color =>{ rgb => 'FFFF0000' }, sz => '11', b => undef, scheme => 'minor', rFont => 'Calibri', family => 2 },
+							6, { color =>{ rgb => 'FF0070C0' }, sz => '20', b => undef, scheme => 'minor', rFont => 'Calibri', family => 2 },
 						],
 						merge_range => 'A6:B6',
 					},

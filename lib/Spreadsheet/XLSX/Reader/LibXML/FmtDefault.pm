@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::FmtDefault;
-use version; our $VERSION = qv('v0.38.6');
+use version; our $VERSION = qv('v0.38.7');
 ###LogSD	warn "You uncovered logging statements for Spreadsheet::XLSX::Reader::LibXML::FmtDefault-$VERSION";
 
 use	5.010;
@@ -151,7 +151,7 @@ sub	set_defined_excel_formats{
 
 sub	change_output_encoding{
 	my ( $self, $string, ) = @_;
-	return undef if !$string;
+	return undef if !defined $string;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new(
 	###LogSD				name_space 	=> $self->get_log_space . '::change_output_encoding', );
 	###LogSD		$phone->talk( level => 'info', message => [

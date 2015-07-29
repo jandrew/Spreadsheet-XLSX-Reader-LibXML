@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData;
-use version; our $VERSION = qv('v0.38.6');
+use version; our $VERSION = qv('v0.38.7');
 
 use	Moose::Role;
 use	Carp 'confess';
@@ -7,7 +7,7 @@ use 5.010;
 requires qw(
 	node_name		byte_consumed	move_to_first_att	move_to_next_att
 	node_depth		node_value		node_type			has_value	
-	start_reading	get_empty_return_type
+	start_reading
 );#text_value
 use Types::Standard qw( is_StrictNum );
 ###LogSD	requires 'get_log_space';
@@ -149,7 +149,7 @@ sub _parse_element{
 				}
 				$duplicate_keys = 1 if exists $hash_ref->{$node_name};
 				push @$list_ref, ( $sub_ref // $node_name );
-				$hash_ref->{$node_name} = ($sub_ref // 1 );
+				$hash_ref->{$node_name} = $sub_ref;
 				$node_depth = $self->node_depth;
 				###LogSD	$phone->talk( level => 'info', message => [
 				###LogSD		"Coallated nodes to this point:", $list_ref, $hash_ref,
@@ -224,11 +224,6 @@ sub _parse_element{
 			delete $current_ref->{'xml:space'} if exists $current_ref->{raw_text};
 		}elsif( (scalar( keys( %$hash_ref ) ) == 1 and !$duplicate_keys) ){
 			$current_ref = $hash_ref;
-			my $lonely_key = (keys %$hash_ref)[0];
-			if( $current_ref->{$lonely_key} == 1 ){
-				$current_ref->{$lonely_key} =
-					( $self->get_empty_return_type eq 'undef_string' ) ? undef : '';
-			}	
 		}else{
 			$current_ref->{list} = $list_ref;
 		}
@@ -240,14 +235,13 @@ sub _parse_element{
 	###LogSD	$phone->talk( level => 'info', message => [
 	###LogSD		"Current ref resolved to:", $current_ref,] );
 	if( $current_ref and ref( $current_ref ) ){
-		if( (!exists $current_ref->{t} or $current_ref->{t} eq 'str') and
-			exists $current_ref->{v} and
-			$current_ref->{v} == 1			){
+		if( (!exists $current_ref->{t} or !$current_ref->{t} or $current_ref->{t} eq 'str') and
+			exists $current_ref->{v} and !$current_ref->{v}				){
 			###LogSD	$phone->talk( level => 'debug', message => [
 			###LogSD		"Identified an empty string" ] );
-			$current_ref->{v} = {raw_text => ''};
+			$current_ref->{v} = {raw_text => undef};
 			delete $current_ref->{t};
-		}elsif( exists $current_ref->{t} and $current_ref->{t} and $current_ref->{t} eq '1' ){
+		}elsif( exists $current_ref->{t} and !$current_ref->{t} ){
 			###LogSD	$phone->talk( level => 'debug', message => [
 			###LogSD		"badly formed space record" ] );
 			$current_ref->{t} = {raw_text => $current_ref->{raw_text}};

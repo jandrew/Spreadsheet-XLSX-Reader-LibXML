@@ -186,15 +186,17 @@ in L<Spreadsheet::XLSX::Reader::LibXML::Chartsheet> (still under construction). 
 classes do not provide access to cells.
 
 B<4.> L<HMBRAND|https://metacpan.org/author/HMBRAND> pointed out that the formatter portion of 
-this package does not follow the L<Spreadsheet::ParseExcel API|Spreadsheet::ParseExcel/Formatter-Class> 
-for the formatter class.  I suppose this was, in part, laziness.  In an effort to partially 
-comply with goal #2 of this sheet I have updated the API so that it the formatter is a stand-alone 
-class.  For details of the implemenation see L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/CLASS DESCRIPTION> 
-This more closely follows Spreadsheet::ParseExcel, and incidentally probably makes building alternate 
-formatting modules easier.  I<The formatters will still not exchange back and forth between 
+this package for versions older than v0.38 do not follow the L<Spreadsheet::ParseExcel API
+|Spreadsheet::ParseExcel/Formatter-Class> for the formatter class.  (I always welcome feeback) 
+I suppose the original implementation was, in part, laziness.  In an effort to comply with goal 
+#2 of this package I have updated the API so that in versions starting with v0.38 the formatter 
+is a stand-alone class.  For details of the implemenation see 
+L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/CLASS DESCRIPTION> This more closely follows 
+Spreadsheet::ParseExcel, and incidentally probably makes building alternate formatting modules 
+easier.  I<The formatters will still not exchange back and forth between 
 L<Spreadsheet::ParseExcel::FmtDefault> and back since they are both built to interface with 
-fundamentally different architecture.>  This also affects the role 
-L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings> and how it is consumed.  If 
+fundamentally different architecture.>  This change also affects how the role 
+L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings> is consumed.  If 
 you wrote your own formatter for this package for the old way I would be willing 
 to provide troubleshooting support for the transition to the the new API.  However if you are 
 setting specific formats today using set_defined_excel_format_list you should be able to switch to
@@ -215,8 +217,8 @@ B<Example>
 	$workbook_instance = Spreadsheet::XLSX::Reader::LibXML->new( %attributes )
 
 I<note: if a file name or file handle for an .xlsx file are not included in the initial 
-%attributes then one of them must be set by L<method|/set_file_name> before the rest of 
-the package can be used.>
+%attributes then one of them must be set by one of the attribute setter methods below 
+before the rest of the package can be used.>
 
 =head3 file_name
 
@@ -640,8 +642,6 @@ B<attribute methods> Methods provided to adjust this attribute
 =over
 
 B<set_format_inst>
-
->
 
 =over
 

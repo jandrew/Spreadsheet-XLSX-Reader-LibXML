@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles;
-use version; our $VERSION = qv('v0.38.6');
+use version; our $VERSION = qv('v0.38.7');
 
 use 5.010;
 use Moose;
@@ -9,6 +9,7 @@ use Carp qw( confess );
 use Types::Standard qw(
 		InstanceOf			HashRef				Str
 		Int					Bool				HasMethods
+		is_HashRef			is_ArrayRef
     );
 use lib	'../../../../../../lib',;
 ###LogSD	use Log::Shiras::Telephone;
@@ -216,7 +217,7 @@ has _last_recorded =>(
 
 sub _load_unique_bits{
 	my( $self, ) = @_;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>	
 	###LogSD					$self->get_log_space .  '::_load_unique_bits', );
 	###LogSD		$phone->talk( level => 'trace', message => [ 'self:', $self ] );
 	###LogSD		$phone->talk( level => 'debug', message => [
@@ -249,17 +250,25 @@ sub _load_unique_bits{
 	$self->start_the_file_over;
 	$self->next_element( 'numFmts' );
 	my	$number_ref = $self->parse_element;
-	if( ref $number_ref ){
-		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"Adding sheet defined translations:", $number_ref ] );
-		my	$translations;
-		for my $format ( @{$number_ref->{list}} ){
-			$translations->[$format->{numFmtId}] = "$format->{formatCode}";
+	my	$translations;
+	if( is_HashRef($number_ref) ){
+		if( exists $number_ref->{list} ){
 			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		'loaded format: ' . $translations->[$format->{numFmtId}] ] );
+			###LogSD		"Adding sheet defined translations:", $number_ref ] );
+			for my $format ( @{$number_ref->{list}} ){
+				$translations->[$format->{numFmtId}] = "$format->{formatCode}";
+				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD		'loaded format: ' . $translations->[$format->{numFmtId}] ] );
+			}
+		}else{
+			$translations->[$number_ref->{numFmt}->{numFmtId}] = "$number_ref->{numFmt}->{formatCode}";
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		'loaded format: ', $translations, $number_ref] );
 		}
-		$self->set_defined_excel_formats( $translations );
+	}else{
+		return undef;
 	}
+	$self->set_defined_excel_formats( $translations );
 }
 
 sub _get_header_and_position{
@@ -282,7 +291,10 @@ sub _get_header_and_position{
 	if( !$test_ref ){
 		$self->set_error( "Target header -$target_header- not found in the loaded Styles sheet" );
 		return undef;
-	}elsif( $test_ref->{count} < $target_position + 1 ){
+	}elsif( !exists $test_ref->{count} and $target_position > 0 ){
+		$self->set_error( "Header -$target_header- does not extend to position: $target_position" );
+		return undef;
+	}elsif( exists $test_ref->{count} and  $test_ref->{count} < $target_position + 1 ){
 		$self->set_error( "Header -$target_header- does not extend to position: $target_position" );
 		return undef;
 	}

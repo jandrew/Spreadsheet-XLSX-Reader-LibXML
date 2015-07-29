@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet;
-use version; our $VERSION = qv('v0.38.6');
+use version; our $VERSION = qv('v0.38.7');
 
 use	5.010;
 use	Moose;
@@ -15,11 +15,6 @@ use lib	'../../../../../../lib';
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
 extends	'Spreadsheet::XLSX::Reader::LibXML::XMLReader';
-with	'Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow',
-		'Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData',
-		;
-###LogSD	use Log::Shiras::UnhideDebug;
-with	'Spreadsheet::XLSX::Reader::LibXML::GetCell';
 
 #########1 Dispatch Tables & Package Variables    5#########6#########7#########8#########9
 
@@ -55,6 +50,41 @@ has sheet_name =>(
 		isa		=> Str,
 		reader	=> 'get_name',
 	);
+	
+has workbook_instance =>(
+		isa		=> HasMethods[qw(
+						counting_from_zero			boundary_flag_setting
+						change_boundary_flag		_has_shared_strings_file
+						get_shared_string_position	_has_styles_file
+						get_format_position			set_empty_is_end
+						is_empty_the_end			_starts_at_the_edge
+						get_group_return_type		set_group_return_type
+						get_epoch_year				change_output_encoding
+						get_date_behavior			set_date_behavior
+						get_empty_return_type		set_error
+						get_values_only				set_values_only
+						parse_excel_format_string
+					)],
+		handles	=> [qw(
+						counting_from_zero			boundary_flag_setting
+						change_boundary_flag		_has_shared_strings_file
+						get_shared_string_position	_has_styles_file
+						get_format_position			set_empty_is_end
+						is_empty_the_end			_starts_at_the_edge
+						get_group_return_type		set_group_return_type
+						get_epoch_year				change_output_encoding
+						get_date_behavior			set_date_behavior
+						get_empty_return_type		set_error
+						get_values_only				set_values_only
+						parse_excel_format_string
+					)],
+		required => 1,
+	);
+###LogSD	use Log::Shiras::UnhideDebug;
+with	'Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow',
+		'Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData',
+		;
+with	'Spreadsheet::XLSX::Reader::LibXML::GetCell';
 
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
 
