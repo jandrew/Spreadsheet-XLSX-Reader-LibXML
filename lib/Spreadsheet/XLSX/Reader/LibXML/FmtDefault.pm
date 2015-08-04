@@ -1,6 +1,6 @@
 package Spreadsheet::XLSX::Reader::LibXML::FmtDefault;
 use version; our $VERSION = qv('v0.38.7');
-###LogSD	warn "You uncovered logging statements for Spreadsheet::XLSX::Reader::LibXML::FmtDefault-$VERSION";
+###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::FmtDefault-$VERSION";
 
 use	5.010;
 use	Moose;

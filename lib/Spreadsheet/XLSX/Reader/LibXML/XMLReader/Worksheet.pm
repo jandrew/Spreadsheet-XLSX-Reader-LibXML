@@ -314,6 +314,14 @@ sub _get_next_value_cell{
 		CHECKVALUECELLS: while( !$sub_ref or $self->get_values_only ){
 			$sub_ref = $self->parse_element;
 			@$sub_ref{qw( col row )} = $self->_parse_column_row( $sub_ref->{r} );
+			#~ if( exists $sub_ref->{t} and exists $sub_ref->{s} ){# special old magic for cell formatting from the formula bar
+				#~ $sub_ref->{f}->{raw_text} =
+					#~ $sub_ref->{s} eq '1' ? "'" :
+					#~ $sub_ref->{s} eq '2' ? "^" :
+					#~ $sub_ref->{s} eq '3' ? '"' : undef ;
+				#~ delete $sub_ref->{s};
+				#~ delete $sub_ref->{f}->{raw_text} if !$sub_ref->{f}->{raw_text};
+			#~ }
 			###LogSD	$phone->talk( level => 'trace', message => [
 			###LogSD		'The next cell with data is:', $sub_ref,] );
 			if( exists $sub_ref->{v} or !$self->get_values_only ){### Other text or value call outs here?

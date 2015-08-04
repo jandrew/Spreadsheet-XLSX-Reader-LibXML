@@ -32,6 +32,13 @@ has	error_inst =>(
 		) ],
 	);
 
+has cell_xml_value =>(
+		isa			=> Maybe[Str],
+		reader		=> 'xml_value',
+		predicate	=> 'has_xml_value',
+		#~ default		=> '',
+	);
+
 has cell_unformatted =>(
 		isa			=> Maybe[Str],
 		reader		=> '_unformatted',
@@ -67,6 +74,12 @@ has cell_fill =>(
 		isa		=> HashRef,
 		reader	=> 'get_fill',
 		predicate	=> 'has_fill',
+	);
+	
+has cell_alignment =>(
+		isa		=> HashRef,
+		reader	=> 'get_alignment',
+		predicate	=> 'has_alignment',
 	);
 
 has cell_type =>(
@@ -222,7 +235,7 @@ sub _return_value_only{
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space => 
 	###LogSD					($log_space .  '::_return_value_only' ), );
 	###LogSD		$phone->talk( level => 'debug', message =>[  
-	###LogSD			 "Returning the coerced value of: " . ($unformatted ? $unformatted : ''),
+	###LogSD			 "Returning the coerced value of -" . ($unformatted ? $unformatted : '') . '-',
 	###LogSD			 ($coercion ? ( '..using coercion:' , $coercion ) : ''), ] );
 	my	$formatted = $unformatted;
 	if( !$coercion ){
@@ -314,7 +327,7 @@ B<Definition:> Returns the unformatted value of the cell
 
 B<Accepts:>Nothing
 
-B<Returns:> the raw cell value
+B<Returns:> the raw L<Excel visible|/xml_value> cell value
 
 =back
 
@@ -347,6 +360,37 @@ retrieved with L<$self-E<gt>error|/error>.
 B<Accepts:>Nothing
 
 B<Returns:> the cell value processed by the set conversion
+
+=back
+
+=head3 xml_value
+
+=over
+
+B<Definition:> L<Tux|https://metacpan.org/author/HMBRAND>Pointed out with a test case that the 
+underlying xml and the visible unformatted data can differ even when no formal format is applied.  
+I'm not sure where this performance comes from but I suspect legacy behaviour inheritance.  In any 
+case the variation appears to occur only in the case of stored scientific notiation at very detailed 
+precision.  To support the access of both I have left the 'unformatted' representing the visible 
+data in the spreadsheet with the 
+
+B<Accepts:>Nothing
+
+B<Returns:> the raw xml cell value
+
+=back
+
+=head3 has_xml_value
+
+=over
+
+B<Definition:> This is a predicate method to determine if the cell had any value stored in it.  
+This method and L<has_unformatted|/has_unformatted> should return exactly the same result in all 
+cases. See that method for more explanation.
+
+B<Accepts:>Nothing
+
+B<Returns:> True if the cell xml holds a value (even if it is just a space or empty string)
 
 =back
 

@@ -19,13 +19,14 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 30;
+use	Test::Most tests => 29;
 use	Test::Moose;
 use Data::Dumper;
 use	lib	'../../../../../Log-Shiras/lib',
+		'../../../../../p5-spreadsheet-xlsx-reader-libxml/lib',
 		$lib,
 	;
-use Log::Shiras::Switchboard v0.21 qw( :debug );#
+#~ use Log::Shiras::Switchboard v0.21 qw( :debug );#
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(
 ###LogSD			name_space_bounds =>{
 ###LogSD				UNBLOCK =>{
@@ -44,7 +45,7 @@ use Log::Shiras::Switchboard v0.21 qw( :debug );#
 ###LogSD				Test =>{
 ###LogSD					SharedStringsInstance =>{
 ###LogSD						UNBLOCK =>{
-###LogSD							log_file => 'warn',
+###LogSD							log_file => 'trace5',
 ###LogSD						},
 ###LogSD					},
 ###LogSD					StylesInstance =>{
@@ -94,13 +95,22 @@ my	$answer_ref = [
 		['', undef,],
 		['Spreadsheet::XLSX::Reader::LibXML::Cell', 0,],
 		['Spreadsheet::XLSX::Reader::LibXML::Cell', 1,],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', 'help',],
+		['Spreadsheet::XLSX::Reader::LibXML::Cell', '',],
+		['Spreadsheet::XLSX::Reader::LibXML::Cell', 'label'],
+		['Spreadsheet::XLSX::Reader::LibXML::Cell', 'space',],
+		['Spreadsheet::XLSX::Reader::LibXML::Cell', 'empty',],
+		['Spreadsheet::XLSX::Reader::LibXML::Cell', 'nul',],
+		['Spreadsheet::XLSX::Reader::LibXML::Cell', 'one',],
+		['Spreadsheet::XLSX::Reader::LibXML::Cell', 'quote',],					
+
 	];
 ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space => 'main', );
 ###LogSD		$phone->talk( level => 'info', message => [ "harder questions ..." ] );
 lives_ok{
-			$parser = Spreadsheet::XLSX::Reader::LibXML->new->parse($test_file);
-			$parser->set_warnings( 1 );
+			$parser = Spreadsheet::XLSX::Reader::LibXML->new(
+							###LogSD log_space => 'Test'
+						)->parse($test_file);
+			$parser->set_warnings( 0 );
 }										"Prep a test parser instance";
 ###LogSD		$phone->talk( level => 'trace', message => [ "$parser:", $parser ] );
 is			$parser->error(), undef,	"Write any error messages from the file load";
@@ -120,7 +130,7 @@ is_deeply	[@row_range], $answer_ref->[$x++],
 			for my $col ( $column_range[0] .. $column_range[1] ){
 			my $cell;
 is			ref( $cell = $worksheet->get_cell( $row, $col ) ), $answer_ref->[$x]->[0],
-										"Attempt to get the cell for row -$row- and -$col-";
+										"Attempt to get the cell for row -$row- and column -$col-";
 #~ is			ref( $cell ), 
 										#~ "make sure it returns a cell - if it should";
 			if( $answer_ref->[$x]->[0] ){

@@ -369,7 +369,7 @@ sub worksheet{
 	$args{sheet_name}			= $worksheet_name;
 	$args{workbook_instance}	= $self;
 	$args{error_inst}			= $self->get_error_inst;
-	$args{package}				= $parser_type->{package};;
+	$args{package}				= $parser_type->{package};
 	###LogSD $args{log_space} = $self->get_log_space . "::Worksheet";# FUTURE COMMON DECISION
 	###LogSD	$phone->talk( level => 'debug', message =>[
 	###LogSD		'Finalized build info:', %args, ] );
@@ -690,12 +690,17 @@ sub _build_reader{
 		###LogSD		$phone->talk( level => 'debug', message => [
 		###LogSD			"Working on a zip file targeting: $build_target->{zip}",] );
 		my $zip_member = $workbook_file->memberNamed( $build_target->{zip} );
-		delete $build_target->{zip};
 		###LogSD	$phone->talk( level => 'debug', message =>[ 'zip member:', $zip_member	] );
-		$workbook_fh = IO::File->new_tmpfile;
-		$workbook_fh->binmode();
-		$zip_member->extractToFileHandle( $workbook_fh );
-		$workbook_fh->seek( 0, 0 );
+		if( $zip_member ){
+			$workbook_fh = IO::File->new_tmpfile;
+			$workbook_fh->binmode();
+			$zip_member->extractToFileHandle( $workbook_fh );
+			$workbook_fh->seek( 0, 0 );
+		}else{
+			###LogSD	$phone->talk( level => 'debug', message =>[ "no zip file for: $build_target->{zip}"	] );
+			return undef;
+		}
+		delete $build_target->{zip};
 	}else{
 		confess "I don't know how to handle file type: " . $self->_get_file_type;
 	}
@@ -830,41 +835,47 @@ sub _set_shared_worksheet_files{
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD		"Attempting to load the file: ${file}\.xml",
 		###LogSD		"With translation method: $translation_method" ], );
-		my %args = $self->$translation_method( $build_ref->{$file}, $zip_workbook );
-		if( !$args{file} and !$args{dom} ){
-			$self->set_error( "Unable to load XML::LibXML with the element: $file" );
-			next;
+		my %args;
+		my @list = $self->$translation_method( $build_ref->{$file}, $zip_workbook );
+		###LogSD	$phone->talk( level => 'debug', message => [ $translation_method . " returned args:", @list ], );
+		if( scalar( @list ) < 2 ){
+			if( !$args{file} and !$args{dom} ){
+				$self->set_error( "Unable to load XML::LibXML with the element: $file" );
+			}
+		}else{
+			%args = @list;
+			###LogSD	$phone->talk( level => 'debug', message =>[ "Built an xml_object", ], );
+			$args{package} = $object_ref->{$file}->{package} if exists $object_ref->{$file}->{package};
+			###LogSD	$args{log_space} = $self->get_log_space;
+			$args{superclasses} = $object_ref->{$file}->{superclasses} if exists $object_ref->{$file}->{superclasses};
+			for my $attribute ( @{$object_ref->{$file}->{attributes}} ){
+				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD		"Loading attribute: $attribute", ], );
+				my $method = 'get_' . $attribute;
+				$args{$attribute} = $self->$method;
+			}
+			my $role_ref;
+			for my $role ( @{$object_ref->{$file}->{add_roles_in_sequence}} ){
+				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD		"collecting the role for: $role", ], );
+				my $method = 'get_' . $role;
+				push @$role_ref, $self->$method;
+			}
+			$args{add_roles_in_sequence} = $role_ref if $role_ref;
+			###LogSD	$args{log_space} = $self->get_log_space . "::$args{package}";
+			my $method = $object_ref->{$file}->{store};
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD		"Final args for building the instance:", %args,
+			###LogSD		"Loading -$method- with build_instance( 'args' )"	], );
+			my $object = build_instance( %args );
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD		"Finished building instance for: $file",
+			###LogSD		"Loading to the worbook with method: $method", # $object	
+			###LogSD		], );
+			$self->$method( $object );
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD		"Finished building and installing: $file", ], );
 		}
-		###LogSD	$phone->talk( level => 'debug', message =>[ "Built an xml_object", ], );
-		$args{package} = $object_ref->{$file}->{package} if exists $object_ref->{$file}->{package};
-		$args{superclasses} = $object_ref->{$file}->{superclasses} if exists $object_ref->{$file}->{superclasses};
-		for my $attribute ( @{$object_ref->{$file}->{attributes}} ){
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"Loading attribute: $attribute", ], );
-			my $method = 'get_' . $attribute;
-			$args{$attribute} = $self->$method;
-		}
-		my $role_ref;
-		for my $role ( @{$object_ref->{$file}->{add_roles_in_sequence}} ){
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"collecting the role for: $role", ], );
-			my $method = 'get_' . $role;
-			push @$role_ref, $self->$method;
-		}
-		$args{add_roles_in_sequence} = $role_ref if $role_ref;
-		###LogSD	$args{log_space} = $self->get_log_space . "::$args{package}";
-		my $method = $object_ref->{$file}->{store};
-		###LogSD	$phone->talk( level => 'debug', message =>[
-		###LogSD		"Final args for building the instance:", %args,
-		###LogSD		"Loading -$method- with build_instance( 'args' )"	], );
-		my $object = build_instance( %args );
-		###LogSD	$phone->talk( level => 'debug', message =>[
-		###LogSD		"Finished building instance for: $file",
-		###LogSD		"Loading to the worbook with method: $method", # $object	
-		###LogSD		], );
-		$self->$method( $object );
-		###LogSD	$phone->talk( level => 'debug', message =>[
-		###LogSD		"Finished building and installing: $file", ], );
 	}
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		"All shared files that can be built are built!"	], );

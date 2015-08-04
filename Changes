@@ -11,6 +11,11 @@ be method matched to Spreadsheet::ParseExcel prior to the 1.0 release.
 
 {{$NEXT}}
 	
+	! Closes #51 in github
+	+ Added the cell_xml_value attribute and methods to give access to the base scientific notiation data where
+		Excel would mangle it or make it potentially less precise even in an unformtted raw value thanks @Tux for the test case
+	+ Added support for the old(old) Excel style single quote in the formula bar representing left justification
+	! Closes #49 in github
 	+ Expanded the file type allowance to include capitalized file extentions
 
 v0.38.6   2015-06-30 06:13:36-07:00 America/Los_Angeles
