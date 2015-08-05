@@ -35,8 +35,8 @@ my	$args ={
 			workbook_test				=>[ $dir . 'test_files/' ],
 			types_test					=>[ $dir . 'test_files/' ],
 			empty_sharedstrings_bug		=>[ $dir . 'test_files/' ],
-			shared_strings_hang			=>[ $dir . 'test_files/' ],
-			percent_file_hang			=>[ $dir . 'test_files/' ],
+			shared_strings_bug			=>[ $dir . 'test_files/' ],
+			percent_file_bug			=>[ $dir . 'test_files/' ],
 			generic_reader_test			=>[ $dir . 'test_files/xl/' ],
 			get_cell_test				=>[ $dir . 'test_files/xl/' ],
 			xml_to_perl_test			=>[ $dir . 'test_files/xl/' ],
@@ -70,8 +70,8 @@ my	@tests =(
 		[  $dir . $tests . '04-no_pivot_bug.t', 'no_pivot_bug' ],
 		[  $dir . $tests . '03-temp_dir_bug.t', 'temp_dir_bug' ],
 		[  $dir . $tests . '02-open_by_worksheet_bug.t', 'open_by_worksheet_bug' ],
-		[  $dir . $tests . '06-shared_strings_hang.t', 'shared_strings_hang' ],
-		[  $dir . $tests . '07-percent_file_hang.t', 'percent_file_hang' ],
+		[  $dir . $tests . '49-shared_strings_bug.t', 'shared_strings_bug' ],
+		[  $dir . $tests . '51-percent_file_bug.t', 'percent_file_bug' ],
 	);
 use	TAP::Harness;
 use	TAP::Parser::Aggregator;

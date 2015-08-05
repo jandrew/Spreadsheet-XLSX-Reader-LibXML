@@ -33,6 +33,8 @@ t/Spreadsheet/XLSX/Reader/02-open_by_worksheet_bug.t
 t/Spreadsheet/XLSX/Reader/03-temp_dir_bug.t
 t/Spreadsheet/XLSX/Reader/04-no_pivot_bug.t
 t/Spreadsheet/XLSX/Reader/05-chart_bug.t
+t/Spreadsheet/XLSX/Reader/49-shared_strings_bug.t
+t/Spreadsheet/XLSX/Reader/51-percent_file_bug.t
 t/Spreadsheet/XLSX/Reader/LibXML/01-types.t
 t/Spreadsheet/XLSX/Reader/LibXML/02-error.t
 t/Spreadsheet/XLSX/Reader/LibXML/04-xml_reader.t

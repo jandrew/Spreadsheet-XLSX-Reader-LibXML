@@ -1,9 +1,9 @@
 #gitignore file
+*.tar.gz
+*.zip
 .build/*
 lib/Moose*
 Spreadsheet-XLSX-Reader-LibXML*
-*.tar.gz
-*.zip
 DevelopmentNotes.txt
 Makefile.old
 Supporting_Documentation/*

@@ -10,8 +10,15 @@ NOTE: This software is designated as beta quality until this notice is removed. 
 be method matched to Spreadsheet::ParseExcel prior to the 1.0 release.
 
 {{$NEXT}}
+
+	* Another cool change
+
+v0.38.8   2015-08-05 05:33:51-07:00 America/Los_Angeles
 	
 	! Closes #51 in github
+		This includes autoformatting of scientific numbers to the least significant digit in 9 positions
+		scientific number autoformatting is an excel application function that occurs even in the absence of applied formats
+		This includes some exclusion of scientific number like strings
 	+ Added the cell_xml_value attribute and methods to give access to the base scientific notiation data where
 		Excel would mangle it or make it potentially less precise even in an unformtted raw value thanks @Tux for the test case
 	+ Added support for the old(old) Excel style single quote in the formula bar representing left justification
