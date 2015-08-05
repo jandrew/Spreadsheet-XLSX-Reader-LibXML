@@ -1,5 +1,6 @@
 package Spreadsheet::XLSX::Reader::LibXML::GetCell;
-use version; our $VERSION = qv('v0.38.6');
+use version; our $VERSION = qv('v0.38.8');
+###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::GetCell-$VERSION";
 
 use Carp 'confess';
 use	Moose::Role;
@@ -28,6 +29,7 @@ my $format_headers ={
 		cellStyleXfs	=> 'cell_style',
 		fills			=> 'cell_fill',
 		numFmts			=> 'cell_coercion',
+		alignment		=> 'cell_alignment', 
 	};
 
 #########1 Public Attributes  3#########4#########5#########6#########7#########8#########9
@@ -56,35 +58,6 @@ has max_header_col =>(
 		predicate	=> 'has_max_header_col'
 	);
 #################################################
-has workbook_instance =>(
-		isa		=> HasMethods[qw(
-						counting_from_zero			boundary_flag_setting
-						change_boundary_flag		_has_shared_strings_file
-						get_shared_string_position	_has_styles_file
-						get_format_position			set_empty_is_end
-						is_empty_the_end			_starts_at_the_edge
-						get_group_return_type		set_group_return_type
-						get_epoch_year				change_output_encoding
-						get_date_behavior			set_date_behavior
-						get_empty_return_type		set_error
-						get_values_only				set_values_only
-						parse_excel_format_string
-					)],
-		handles	=> [qw(
-						counting_from_zero			boundary_flag_setting
-						change_boundary_flag		_has_shared_strings_file
-						get_shared_string_position	_has_styles_file
-						get_format_position			set_empty_is_end
-						is_empty_the_end			_starts_at_the_edge
-						get_group_return_type		set_group_return_type
-						get_epoch_year				change_output_encoding
-						get_date_behavior			set_date_behavior
-						get_empty_return_type		set_error
-						get_values_only				set_values_only
-						parse_excel_format_string
-					)],
-		required => 1,
-	);
 
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
 
@@ -444,21 +417,71 @@ sub _build_out_the_cell{
 			###LogSD	$phone->talk( level => 'debug', message =>[
 			###LogSD		"Setting unformatted from:", $result ] );
 			$return->{cell_unformatted} = $result->{v}->{raw_text};
-			$return->{cell_type} = 'Numeric' if $return->{cell_unformatted} and $return->{cell_unformatted} ne '';
+			$return->{cell_type} = 'Numeric' if defined $return->{cell_unformatted} and $return->{cell_unformatted} ne '';
 		}
-		if( !$return->{cell_unformatted} and $self->get_empty_return_type eq 'empty_string' ){
+		if( !defined( $return->{cell_unformatted} ) and $self->get_empty_return_type eq 'empty_string' ){
 			###LogSD	$phone->talk( level => 'debug', message =>[ "(Re)setting undef to ''"] );
 			$return->{cell_unformatted} = '';
 		}
 		###LogSD	$phone->talk( level => 'debug', message =>[
 		###LogSD		"Cell raw text is:", $return->{cell_unformatted}] );
-		$return->{cell_unformatted} = $self->change_output_encoding( $return->{cell_unformatted} );
-		###LogSD	$phone->talk( level => 'debug', message =>[
-		###LogSD		"With output encoding changed: " . $return->{cell_unformatted} ] ) if $return->{cell_unformatted};
+		if( $return->{cell_unformatted} and length( $return->{cell_unformatted} ) > 0 ){#Implement user defined changes in encoding
+			$return->{cell_unformatted} = $self->change_output_encoding( $return->{cell_unformatted} );
+			$return->{cell_xml_value} = $return->{cell_unformatted};
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD		"With output encoding changed: " . $return->{cell_unformatted} ] );# if defined $return->{cell_unformatted};
+		}
+		if( defined $return->{cell_unformatted} and $return->{cell_unformatted} =~ /^-?\d*\.?\d*[Ee]-?\d+$/ ){#Implement implied output formatting intrensic to Excel for scientific notiation
+			###LogSD	$phone->talk( level => 'trace', message =>[
+			###LogSD		"Found special scientific notation case were stored values and visible values possibly differ" ] );
+			my $test_value = sprintf '%.9f', $return->{cell_unformatted};
+			###LogSD	$phone->talk( level => 'trace', message =>[
+			###LogSD		"Initial test value: $test_value" ] );
+			if( $test_value =~ /(-)?(\d+)(\.?)(\d{1,9})(\d)?\d*/ ){
+				my $sign = $1 ? $1 : '';
+				my $start_digits = $2;
+				my $decimal = $3 ? $3 : '';
+				my $left_nine = $4 ? $4 : '';
+				if( defined $start_digits or defined $left_nine ){
+					my $tenth = $5 ? $5 : '';
+					###LogSD	$phone->talk( level => 'trace', message =>[
+					###LogSD		"Important elements are:", $sign, $start_digits, $decimal, $left_nine, $tenth ] );
+					if( $left_nine =~/(0+)$/ ){
+						my $zero_length = length $1;
+						###LogSD	$phone->talk( level => 'trace', message =>[
+						###LogSD		"Length of trailing zeros: $zero_length", ] );
+						$return->{cell_unformatted} = "$sign$start_digits$decimal" . substr( $left_nine, 0, ( length( $left_nine ) - $zero_length ) );
+					}else{
+						if( $tenth and $tenth > 4 ){
+							###LogSD	$phone->talk( level => 'trace', message =>[
+							###LogSD		"Need to round the left nine up on place for: $tenth", ] );
+							$left_nine++;
+							if( length( $left_nine ) > 9 ){
+								###LogSD	$phone->talk( level => 'trace', message =>[
+								###LogSD		"Rounding the left nine caused the integers to round for: $left_nine", ] );
+								$left_nine = substr( $left_nine, 1, 9);
+								$start_digits++;
+							}
+						}
+						$return->{cell_unformatted}= "$sign$start_digits$decimal$left_nine";
+					}
+					if( $return->{cell_unformatted} == 0 ){
+						###LogSD	$phone->talk( level => 'trace', message =>[
+						###LogSD		"Unable to resolve the scientific number to a decimal with nine or less significant digits", ] );
+						$return->{cell_unformatted}= sprintf '%.3e', $return->{cell_xml_value};
+					}
+				}else{
+					###LogSD	$phone->talk( level => 'trace', message =>[
+					###LogSD		"Not really scientific notation: ", $return->{cell_xml_value} ] );
+				}
+			}
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD		"The stored number is: $return->{cell_unformatted}", "Re-unformatted is: $return->{cell_xml_value}" ] );
+		}
 		if( $self->get_group_return_type eq 'unformatted' ){
 			###LogSD	$phone->talk( level => 'debug', message =>[
 			###LogSD		"Sending back just the unformatted value: " . ($return->{cell_unformatted}//'') ] ) ;
-			return $return->{cell_unformatted}
+			return $return->{cell_unformatted};
 		}
 		# Get any relevant custom format
 		my	$custom_format;
@@ -501,7 +524,7 @@ sub _build_out_the_cell{
 			$return->{cell_type} = 'Custom';
 		}
 		# handle the formula
-		if( exists $result->{f} ){
+		if( exists $result->{f} and exists $result->{f}->{raw_text} ){
 			$return->{cell_formula} = $result->{f}->{raw_text};
 		}
 		###LogSD	$phone->talk( level => 'debug', message =>[
@@ -516,6 +539,8 @@ sub _build_out_the_cell{
 				
 				###LogSD	$phone->talk( level => 'trace', message =>[
 				###LogSD		"format position is:", $format ] );
+			}else{
+				confess "'s' element called out but the style file is not available!";
 			}
 			# Second check for value only
 			if( $self->get_group_return_type eq 'value' ){
@@ -529,6 +554,8 @@ sub _build_out_the_cell{
 						);
 			}
 			if( $self->_has_styles_file ){
+				###LogSD	$phone->talk( level => 'debug', message =>[
+				###LogSD		"Format headers are:", $format_headers ] );
 				for my $header ( keys %$format_headers ){
 					if( exists $format->{$header} ){
 						###LogSD	$phone->talk( level => 'trace', message =>[
@@ -546,14 +573,24 @@ sub _build_out_the_cell{
 						}
 					}
 				}
+				###LogSD	$phone->talk( level => 'trace', message =>[
+				###LogSD		"Practice special old spreadsheet magic here - for now only single quote in the formula bar",  ] );
+				if( exists $format_headers->{quotePrefix} ){
+					###LogSD	$phone->talk( level => 'debug', message =>[
+					###LogSD		"Found the single quote in the formula bar case",  ] );# Other similar cases include carat and double quote in the formula bar (middle and right justified)
+					$return->{cell_alignment} = { horizontal => 'left' };
+					$return->{cell_formula} = $return->{cell_formula} ? ("'" . $return->{cell_formula}) : "'";
+				}
+					
 			}
 		}
+			
 		###LogSD	$phone->talk( level => 'trace', message =>[
 		###LogSD		"Checking return type: " . $self->get_group_return_type,  ] );
 		# Final check for value only
 		if( $self->get_group_return_type eq 'value' ){
 			###LogSD	$phone->talk( level => 'debug', message =>[
-			###LogSD		'Applying (a possible) regular format to: ' .  $return->{cell_unformatted} ] );
+			###LogSD		'Applying (a possible) regular format to: |' .  $return->{cell_unformatted} . '|' ] );
 			return	Spreadsheet::XLSX::Reader::LibXML::Cell->_return_value_only(
 						$return->{cell_unformatted}, 
 						$return->{cell_coercion},

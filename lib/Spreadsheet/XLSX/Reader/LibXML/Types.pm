@@ -1,5 +1,6 @@
 package Spreadsheet::XLSX::Reader::LibXML::Types;
-use version; our $VERSION = qv('v0.38.6');
+use version; our $VERSION = qv('v0.38.8');
+###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::Types-$VERSION";
 		
 use strict;
 use warnings;
@@ -33,9 +34,9 @@ if( $try_xs and exists $INC{'Type/Tiny/XS.pm'} ){
 	
 declare XMLFile,
 	as Str,
-	where{ $_ =~ /\.xml$/ and -r $_},
+	where{ $_ =~ /\.xml$/i and -r $_},
 	message{
-		( $_ !~ /\.xml$/ ) ?
+		( $_ !~ /\.xml$/i ) ?
 			"The string -$_- does not have an xml file extension" :
 		( !-r $_ ) ?
 			"Could not find / read the file: $_" :
@@ -44,7 +45,7 @@ declare XMLFile,
 
 declare XLSXFile,
 	as Str,
-	where{ $_ =~ /\.xlsx$/ and -r $_ },
+	where{ $_ =~ /\.xlsx$/i and -r $_ },
 	message{
 		my $test = $_;
 		my $return =
@@ -52,7 +53,7 @@ declare XLSXFile,
 				"Empty filename" :
 			( ref $test ) ?
 				"'" . $test . "' is not a string value" :
-			( $test !~ /\.xlsx$/ ) ?
+			( $test !~ /\.xlsx$/i ) ?
 				"The string -$test- does not have an xlsx file extension" :
 			( -r $test) ?
 				"Could not find / read the file: $test" :

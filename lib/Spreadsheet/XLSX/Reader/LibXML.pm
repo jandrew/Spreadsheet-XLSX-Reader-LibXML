@@ -1,5 +1,6 @@
 package Spreadsheet::XLSX::Reader::LibXML;
-use version 0.77; our $VERSION = qv('v0.38.6');
+use version 0.77; our $VERSION = qv('v0.38.8');
+###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML-$VERSION";
 
 use 5.010;
 use	List::Util 1.33;
@@ -328,7 +329,11 @@ sub worksheet{
 	
 	# Deal with chartsheet requests
 	my $worksheet_info = $self->_get_sheet_info( $worksheet_name );
-	if( $worksheet_info->{sheet_type} eq 'chartsheet' ){
+	# Check for sheet existence
+	if( !$worksheet_info or !$worksheet_info->{sheet_type} ){
+		$self->set_error( "The worksheet -$worksheet_name- could not be located!" );
+		return undef;
+	}elsif( $worksheet_info->{sheet_type} and $worksheet_info->{sheet_type} eq 'chartsheet' ){
 		$self->set_error( "You have requested -$worksheet_name- which is a 'chartsheet' using a worksheet focused method" );
 		return undef;
 	}
@@ -365,7 +370,7 @@ sub worksheet{
 	$args{sheet_name}			= $worksheet_name;
 	$args{workbook_instance}	= $self;
 	$args{error_inst}			= $self->get_error_inst;
-	$args{package}				= $parser_type->{package};;
+	$args{package}				= $parser_type->{package};
 	###LogSD $args{log_space} = $self->get_log_space . "::Worksheet";# FUTURE COMMON DECISION
 	###LogSD	$phone->talk( level => 'debug', message =>[
 	###LogSD		'Finalized build info:', %args, ] );
@@ -686,12 +691,17 @@ sub _build_reader{
 		###LogSD		$phone->talk( level => 'debug', message => [
 		###LogSD			"Working on a zip file targeting: $build_target->{zip}",] );
 		my $zip_member = $workbook_file->memberNamed( $build_target->{zip} );
-		delete $build_target->{zip};
 		###LogSD	$phone->talk( level => 'debug', message =>[ 'zip member:', $zip_member	] );
-		$workbook_fh = IO::File->new_tmpfile;
-		$workbook_fh->binmode();
-		$zip_member->extractToFileHandle( $workbook_fh );
-		$workbook_fh->seek( 0, 0 );
+		if( $zip_member ){
+			$workbook_fh = IO::File->new_tmpfile;
+			$workbook_fh->binmode();
+			$zip_member->extractToFileHandle( $workbook_fh );
+			$workbook_fh->seek( 0, 0 );
+		}else{
+			###LogSD	$phone->talk( level => 'debug', message =>[ "no zip file for: $build_target->{zip}"	] );
+			return undef;
+		}
+		delete $build_target->{zip};
 	}else{
 		confess "I don't know how to handle file type: " . $self->_get_file_type;
 	}
@@ -826,41 +836,47 @@ sub _set_shared_worksheet_files{
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD		"Attempting to load the file: ${file}\.xml",
 		###LogSD		"With translation method: $translation_method" ], );
-		my %args = $self->$translation_method( $build_ref->{$file}, $zip_workbook );
-		if( !$args{file} and !$args{dom} ){
-			$self->set_error( "Unable to load XML::LibXML with the element: $file" );
-			next;
+		my %args;
+		my @list = $self->$translation_method( $build_ref->{$file}, $zip_workbook );
+		###LogSD	$phone->talk( level => 'debug', message => [ $translation_method . " returned args:", @list ], );
+		if( scalar( @list ) < 2 ){
+			if( !$args{file} and !$args{dom} ){
+				$self->set_error( "Unable to load XML::LibXML with the element: $file" );
+			}
+		}else{
+			%args = @list;
+			###LogSD	$phone->talk( level => 'debug', message =>[ "Built an xml_object", ], );
+			$args{package} = $object_ref->{$file}->{package} if exists $object_ref->{$file}->{package};
+			###LogSD	$args{log_space} = $self->get_log_space;
+			$args{superclasses} = $object_ref->{$file}->{superclasses} if exists $object_ref->{$file}->{superclasses};
+			for my $attribute ( @{$object_ref->{$file}->{attributes}} ){
+				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD		"Loading attribute: $attribute", ], );
+				my $method = 'get_' . $attribute;
+				$args{$attribute} = $self->$method;
+			}
+			my $role_ref;
+			for my $role ( @{$object_ref->{$file}->{add_roles_in_sequence}} ){
+				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD		"collecting the role for: $role", ], );
+				my $method = 'get_' . $role;
+				push @$role_ref, $self->$method;
+			}
+			$args{add_roles_in_sequence} = $role_ref if $role_ref;
+			###LogSD	$args{log_space} = $self->get_log_space . "::$args{package}";
+			my $method = $object_ref->{$file}->{store};
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD		"Final args for building the instance:", %args,
+			###LogSD		"Loading -$method- with build_instance( 'args' )"	], );
+			my $object = build_instance( %args );
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD		"Finished building instance for: $file",
+			###LogSD		"Loading to the worbook with method: $method", # $object	
+			###LogSD		], );
+			$self->$method( $object );
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD		"Finished building and installing: $file", ], );
 		}
-		###LogSD	$phone->talk( level => 'debug', message =>[ "Built an xml_object", ], );
-		$args{package} = $object_ref->{$file}->{package} if exists $object_ref->{$file}->{package};
-		$args{superclasses} = $object_ref->{$file}->{superclasses} if exists $object_ref->{$file}->{superclasses};
-		for my $attribute ( @{$object_ref->{$file}->{attributes}} ){
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"Loading attribute: $attribute", ], );
-			my $method = 'get_' . $attribute;
-			$args{$attribute} = $self->$method;
-		}
-		my $role_ref;
-		for my $role ( @{$object_ref->{$file}->{add_roles_in_sequence}} ){
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"collecting the role for: $role", ], );
-			my $method = 'get_' . $role;
-			push @$role_ref, $self->$method;
-		}
-		$args{add_roles_in_sequence} = $role_ref if $role_ref;
-		###LogSD	$args{log_space} = $self->get_log_space . "::$args{package}";
-		my $method = $object_ref->{$file}->{store};
-		###LogSD	$phone->talk( level => 'debug', message =>[
-		###LogSD		"Final args for building the instance:", %args,
-		###LogSD		"Loading -$method- with build_instance( 'args' )"	], );
-		my $object = build_instance( %args );
-		###LogSD	$phone->talk( level => 'debug', message =>[
-		###LogSD		"Finished building instance for: $file",
-		###LogSD		"Loading to the worbook with method: $method", # $object	
-		###LogSD		], );
-		$self->$method( $object );
-		###LogSD	$phone->talk( level => 'debug', message =>[
-		###LogSD		"Finished building and installing: $file", ], );
 	}
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		"All shared files that can be built are built!"	], );
@@ -964,7 +980,7 @@ Spreadsheet::XLSX::Reader::LibXML - Read xlsx spreadsheet files with LibXML
 </a>
 
 <a>
-	<img src="https://img.shields.io/badge/this version-0.38.6-brightgreen.svg" alt="this version">
+	<img src="https://img.shields.io/badge/this version-0.38.8-brightgreen.svg" alt="this version">
 </a>
 
 <a href="https://metacpan.org/pod/Spreadsheet::XLSX::Reader::LibXML">
@@ -1131,15 +1147,17 @@ in L<Spreadsheet::XLSX::Reader::LibXML::Chartsheet> (still under construction). 
 classes do not provide access to cells.
 
 B<4.> L<HMBRAND|https://metacpan.org/author/HMBRAND> pointed out that the formatter portion of 
-this package does not follow the L<Spreadsheet::ParseExcel API|Spreadsheet::ParseExcel/Formatter-Class> 
-for the formatter class.  I suppose this was, in part, laziness.  In an effort to partially 
-comply with goal #2 of this sheet I have updated the API so that it the formatter is a stand-alone 
-class.  For details of the implemenation see L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/CLASS DESCRIPTION> 
-This more closely follows Spreadsheet::ParseExcel, and incidentally probably makes building alternate 
-formatting modules easier.  I<The formatters will still not exchange back and forth between 
+this package for versions older than v0.38 do not follow the L<Spreadsheet::ParseExcel API
+|Spreadsheet::ParseExcel/Formatter-Class> for the formatter class.  (I always welcome feeback) 
+I suppose the original implementation was, in part, laziness.  In an effort to comply with goal 
+#2 of this package I have updated the API so that in versions starting with v0.38 the formatter 
+is a stand-alone class.  For details of the implemenation see 
+L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/CLASS DESCRIPTION> This more closely follows 
+Spreadsheet::ParseExcel, and incidentally probably makes building alternate formatting modules 
+easier.  I<The formatters will still not exchange back and forth between 
 L<Spreadsheet::ParseExcel::FmtDefault> and back since they are both built to interface with 
-fundamentally different architecture.>  This also affects the role 
-L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings> and how it is consumed.  If 
+fundamentally different architecture.>  This change also affects how the role 
+L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings> is consumed.  If 
 you wrote your own formatter for this package for the old way I would be willing 
 to provide troubleshooting support for the transition to the the new API.  However if you are 
 setting specific formats today using set_defined_excel_format_list you should be able to switch to
@@ -1160,8 +1178,8 @@ B<Example>
 	$workbook_instance = Spreadsheet::XLSX::Reader::LibXML->new( %attributes )
 
 I<note: if a file name or file handle for an .xlsx file are not included in the initial 
-%attributes then one of them must be set by L<method|/set_file_name> before the rest of 
-the package can be used.>
+%attributes then one of them must be set by one of the attribute setter methods below 
+before the rest of the package can be used.>
 
 =head3 file_name
 
@@ -1585,8 +1603,6 @@ B<attribute methods> Methods provided to adjust this attribute
 =over
 
 B<set_format_inst>
-
->
 
 =over
 

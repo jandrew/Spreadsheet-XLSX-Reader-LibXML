@@ -64,7 +64,8 @@ lives_ok{
 						);
 			#~ $parser->set_warnings( 1 );
 }										"Prep a test parser instance";
-is			$parser->error(), undef,	"Write any error messages from the file load";
+is			$parser->error(), undef,
+							"Write any error messages from the file load";
 ok			$worksheet = $parser->worksheet( 'Sheet1' ),
 										"Load 'Sheet1' ok";
 			$value_position = 0;

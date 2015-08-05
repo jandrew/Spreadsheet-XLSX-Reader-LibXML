@@ -19,10 +19,11 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 30;
+use	Test::Most tests => 29;
 use	Test::Moose;
 use Data::Dumper;
 use	lib	'../../../../../Log-Shiras/lib',
+		'../../../../../p5-spreadsheet-xlsx-reader-libxml/lib',
 		$lib,
 	;
 #~ use Log::Shiras::Switchboard v0.21 qw( :debug );#
@@ -44,7 +45,7 @@ use	lib	'../../../../../Log-Shiras/lib',
 ###LogSD				Test =>{
 ###LogSD					SharedStringsInstance =>{
 ###LogSD						UNBLOCK =>{
-###LogSD							log_file => 'warn',
+###LogSD							log_file => 'trace5',
 ###LogSD						},
 ###LogSD					},
 ###LogSD					StylesInstance =>{
@@ -80,45 +81,64 @@ use	lib	'../../../../../Log-Shiras/lib',
 ###LogSD	use MooseX::ShortCut::BuildInstance;
 use Spreadsheet::XLSX::Reader::LibXML;
 $test_file = ( @ARGV ) ? $ARGV[0] : $test_file;
-$test_file .= 'ChartSheet.xlsx';
+$test_file .= 'values.xlsx';
 	#~ print "Test file is: $test_file\n";
 my  ( 
 		$parser, @worksheets, $value,
 	);
 my	$answer_ref = [
-		'Sheet1',
-		'A',	'B',
-		1,		2,
-		2,		4,
-		3,		5,
-		4,		7,
-		'EOF',
-		[ 'Sheet1',],
-		qr/You have requested -Chart1- which is a 'chartsheet' using a worksheet focused method/,
+		'Blad1',
+		[0,5],
+		[0,1],
+		['Spreadsheet::XLSX::Reader::LibXML::Cell', 'A1'],
+		['Spreadsheet::XLSX::Reader::LibXML::Cell', ' ',],
+		['', undef,],
+		['Spreadsheet::XLSX::Reader::LibXML::Cell', 0,],
+		['Spreadsheet::XLSX::Reader::LibXML::Cell', 1,],
+		['Spreadsheet::XLSX::Reader::LibXML::Cell', '',],
+		['Spreadsheet::XLSX::Reader::LibXML::Cell', 'label'],
+		['Spreadsheet::XLSX::Reader::LibXML::Cell', 'space',],
+		['Spreadsheet::XLSX::Reader::LibXML::Cell', 'empty',],
+		['Spreadsheet::XLSX::Reader::LibXML::Cell', 'nul',],
+		['Spreadsheet::XLSX::Reader::LibXML::Cell', 'one',],
+		['Spreadsheet::XLSX::Reader::LibXML::Cell', 'quote',],					
+
 	];
 ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space => 'main', );
 ###LogSD		$phone->talk( level => 'info', message => [ "harder questions ..." ] );
 lives_ok{
-			$parser =	Spreadsheet::XLSX::Reader::LibXML->new(
-			###LogSD		log_space => 'Test',
-							file_name => $test_file,
-							group_return_type => 'unformatted',
-							empty_return_type => 'empty_string',
-						);
-			#~ $parser->set_warnings( 1 );
+			$parser = Spreadsheet::XLSX::Reader::LibXML->new(
+							###LogSD log_space => 'Test'
+						)->parse($test_file);
+			$parser->set_warnings( 0 );
 }										"Prep a test parser instance";
 ###LogSD		$phone->talk( level => 'trace', message => [ "$parser:", $parser ] );
-is			$parser->error(), undef,
-										"Write any error messages from the file load";
+is			$parser->error(), undef,	"Write any error messages from the file load";
 ok			@worksheets = $parser->worksheets(),
 										"Loaded worksheet objects ok";
 			my	$x = 0;
 			for my $worksheet ( @worksheets ){
 is			$worksheet->get_name, $answer_ref->[$x],
 										'Check that the next opened worksheet name is: ' . $answer_ref->[$x++];
-is			$worksheet->get_sheet_type, 'worksheet',
-										"..and that it is a 'worksheet' type";
-			while( !$value or $value ne 'EOF' ){
+			my @column_range = $worksheet->col_range;
+is_deeply	[@column_range], $answer_ref->[$x++],
+										"Check for the correct column range";
+			my @row_range = $worksheet->row_range;
+is_deeply	[@row_range], $answer_ref->[$x++],
+										"Check for the correct row range";
+			for my $row ( $row_range[0] .. $row_range[1] ){
+			for my $col ( $column_range[0] .. $column_range[1] ){
+			my $cell;
+is			ref( $cell = $worksheet->get_cell( $row, $col ) ), $answer_ref->[$x]->[0],
+										"Attempt to get the cell for row -$row- and column -$col-";
+#~ is			ref( $cell ), 
+										#~ "make sure it returns a cell - if it should";
+			if( $answer_ref->[$x]->[0] ){
+is			$cell->value, $answer_ref->[$x]->[1],
+										"And check the returned value: " . $answer_ref->[$x]->[1];
+			}
+			$x++;
+			#~ while( !$value or $value ne 'EOF' ){
 #~ ###LogSD	if( $value_position == 0 ){
 #~ ###LogSD		$operator->add_name_space_bounds( {
 #~ ###LogSD			Test =>{
@@ -131,22 +151,23 @@ is			$worksheet->get_sheet_type, 'worksheet',
 #~ ###LogSD	elsif( $value_position == 1 ){
 #~ ###LogSD		exit 1;
 #~ ###LogSD	}
-ok			$value = ($worksheet->get_next_value//'undef'),
-										"Get the next value position:$x";
-my			$return = ref( $value ) ? $value->value : $value;
-is			$return, $answer_ref->[$x],
-										"With value: " . $answer_ref->[$x];
+#~ ok			$value = ($worksheet->get_next_value//'undef'),
+										#~ "Get the next value position:$x";
+#~ my			$return = ref( $value ) ? $value->value : $value;
+#~ is			$return, $answer_ref->[$x],
+										#~ "With value: " . $answer_ref->[$x];
 #~ explain		$value_position;
-			$x++;
+			#~ $x++;
 			}
 			}
-is_deeply	$parser->get_worksheet_names, $answer_ref->[$x++],
-										"Check that the overall worksheet list does not contains the chartsheet element";
-is			$parser->worksheet( 'Chart1' ), undef,
-										"Try to return the chartsheet: Chart1";
-like		$parser->error, $answer_ref->[$x],
-										"..and check for the correct error: " . $answer_ref->[$x++];
-explain 								"...Test Done";
+			}
+#~ is_deeply	$parser->get_worksheet_names, $answer_ref->[$x++],
+										#~ "Check that the overall worksheet list does not contains the chartsheet element";
+#~ is			$parser->worksheet( 'Chart1' ), undef,
+										#~ "Try to return the chartsheet: Chart1";
+#~ like		$parser->error, $answer_ref->[$x],
+										#~ "..and check for the correct error: " . $answer_ref->[$x++];
+#~ explain 								"...Test Done";
 done_testing();
 
 ###LogSD	package Print::Log;

@@ -1,5 +1,6 @@
 package Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow;
-use version; our $VERSION = qv('v0.38.6');
+use version; our $VERSION = qv('v0.38.8');
+###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow-$VERSION";
 
 use	Moose::Role;
 requires

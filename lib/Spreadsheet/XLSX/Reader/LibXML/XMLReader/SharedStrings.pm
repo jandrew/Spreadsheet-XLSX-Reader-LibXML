@@ -1,5 +1,6 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings;
-use version; our $VERSION = qv('v0.38.6');
+use version; our $VERSION = qv('v0.38.8');
+###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings-$VERSION";
 
 use 5.010;
 use Moose;
@@ -113,24 +114,24 @@ sub get_shared_string_position{
 		###LogSD		"Pulling the next cell: " . ($self->where_am_i + 1) ] );
 		my $found_it;
 		if( !$self->_should_cache_positions ){######################
-		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"Advancing to the next position with the XMLReader" ] );
-		eval '$found_it = $self->next_element( "si" )';
-		if( $@ ){
 			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"Found an unexpected end of file: ", $@] );
-			$self->set_error( 'libxml2 error message' . $@ );
-			$self->_set_end_of_file( $self->where_am_i );
-			$self->_i_am_here( 0 );
-			return undef;
-		}elsif( defined $found_it and $found_it < 1 ){
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"Found an unexpected end of file: $found_it" ] );
-			$self->set_error( "Unexpected end of file found" );
-			$self->_set_end_of_file( $self->where_am_i );
-			$self->_i_am_here( 0 );
-			return undef;
-		}
+			###LogSD		"Advancing to the next position with the XMLReader" ] );
+			eval '$found_it = $self->next_element( "si" )';
+			if( $@ ){
+				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD		"Found an unexpected end of file: ", $@] );
+				$self->set_error( 'libxml2 error message' . $@ );
+				$self->_set_end_of_file( $self->where_am_i );
+				$self->_i_am_here( 0 );
+				return undef;
+			}elsif( defined $found_it and $found_it < 1 ){
+				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD		"Found an unexpected end of file: $found_it" ] );
+				$self->set_error( "Unexpected end of file found" );
+				$self->_set_end_of_file( $self->where_am_i );
+				$self->_i_am_here( 0 );
+				return undef;
+			}
 		}############################################################
 		my $current = $self->where_am_i + 1;
 		###LogSD	$phone->talk( level => 'debug', message => [
