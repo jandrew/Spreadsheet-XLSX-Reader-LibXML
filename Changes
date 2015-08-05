@@ -11,10 +11,11 @@ be method matched to Spreadsheet::ParseExcel prior to the 1.0 release.
 
 {{$NEXT}}
 
-	* Another cool change
+	*Another cool change
 
-v0.38.8   2015-08-05 05:33:51-07:00 America/Los_Angeles
+v0.38.8   2015-08-05 11:15:01-07:00 America/Los_Angeles
 	
+	! Re-Dist::Zilla build with the version badge corrected
 	! Closes #51 in github
 		This includes autoformatting of scientific numbers to the least significant digit in 9 positions
 		scientific number autoformatting is an excel application function that occurs even in the absence of applied formats
