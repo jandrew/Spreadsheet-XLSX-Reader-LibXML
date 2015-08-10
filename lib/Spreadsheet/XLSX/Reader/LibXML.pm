@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML;
-use version 0.77; our $VERSION = qv('v0.38.9');
+use version 0.77; our $VERSION = qv('v0.38.10');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML-$VERSION";
 
 use 5.010;
@@ -100,6 +100,14 @@ my	$flag_settings ={
 			empty_is_end      => 1,
 		},
 		just_the_data =>{
+			count_from_zero   => 0,
+			values_only       => 1,
+			empty_is_end      => 1,
+			group_return_type => 'value',
+			cache_positions   => 1,
+			from_the_edge     => 0,
+		},
+		like_ParseExcel =>{
 			count_from_zero   => 0,
 			values_only       => 1,
 			empty_is_end      => 1,
@@ -215,7 +223,7 @@ has format_string_parser =>(
 	);
 
 has group_return_type =>(
-		isa		=> Enum[qw( unformatted value instance )],
+		isa		=> Enum[qw( unformatted value instance xml_value )],
 		reader	=> 'get_group_return_type',
 		writer	=> 'set_group_return_type',
 	);
@@ -980,7 +988,7 @@ Spreadsheet::XLSX::Reader::LibXML - Read xlsx spreadsheet files with LibXML
 </a>
 
 <a>
-	<img src="https://img.shields.io/badge/this version-0.38.8-brightgreen.svg" alt="this version">
+	<img src="https://img.shields.io/badge/this version-0.38.10-brightgreen.svg" alt="this version">
 </a>
 
 <a href="https://metacpan.org/pod/Spreadsheet::XLSX::Reader::LibXML">
@@ -1645,17 +1653,19 @@ L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings//get_date_behavior>
 B<Definition:> Traditionally ParseExcel returns a cell object with lots of methods 
 to reveal information about the cell.  In reality the extra information is not used very 
 much (witness the popularity of L<Spreadsheet::XLSX>).  Because many users don't need or 
-want the extra cell formatting information it is possible to get either the raw cell value 
-or the formatted cell value returned either the way the Excel file specified or the way you 
-specify instead of a Cell instance with all the data. .  See 
+want the extra cell formatting information it is possible to get either the raw xml value, 
+the raw visible cell value (seen in the Excel format bar), or the formatted cell value 
+returned either the way the Excel file specified or the way you specify instead of a Cell 
+instance with all the data. .  See 
 L<Spreadsheet::XLSX::Reader::LibXML::Worksheet/custom_formats> to insert custom targeted 
 formats for use with the parser.  All empty cells return undef no matter what.
 
 B<Default> instance
 
 B<Range> instance = returns a populated L<Spreadsheet::XLSX::Reader::LibXML::Cell> instance,
-unformatted = returns just the raw value of the cell with no modifications, value = returns 
-just the formatted value stored in the excel cell
+unformatted = returns just the raw visible value of the cell shown in the Excel formula bar, 
+value = returns just the formatted value stored in the excel cell, xml_value = the raw value 
+for the cell as stored in the sub-xml files
 
 B<attribute methods> Methods provided to adjust this attribute
 		

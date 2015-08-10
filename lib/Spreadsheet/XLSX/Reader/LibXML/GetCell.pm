@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::GetCell;
-use version; our $VERSION = qv('v0.38.9');
+use version; our $VERSION = qv('v0.38.10');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::GetCell-$VERSION";
 
 use Carp 'confess';
@@ -20,6 +20,12 @@ use lib	'../../../../../lib',;
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
 use	Spreadsheet::XLSX::Reader::LibXML::Cell;
+use	Spreadsheet::XLSX::Reader::LibXML::Types qw(
+		SpecialDecimal					SpecialZeroScientific
+		SpecialOneScientific			SpecialTwoScientific
+		SpecialThreeScientific			SpecialFourScientific
+		SpecialFiveScientific
+	);
 
 #########1 Dispatch Tables    3#########4#########5#########6#########7#########8#########9
 
@@ -398,10 +404,81 @@ sub _build_out_the_cell{
 	###LogSD					($self->get_log_space .  '::_build_out_the_cell' ), );
 	###LogSD		$phone->talk( level => 'debug', message =>[  
 	###LogSD			 "Building out the cell ref:", $result, "..with results as: ". $self->get_group_return_type ] );
-	my $return;
+	my ( $return, $hidden_format );
 	if( is_HashRef( $result ) ){
 		###LogSD	$phone->talk( level => 'debug', message =>[
 		###LogSD		"processing cell object from cell ref:", $result ] );
+		my $scientific_format;
+		$return->{cell_xml_value} = $result->{v}->{raw_text} if exists $result->{v} and exists $result->{v}->{raw_text};
+		if( exists $return->{cell_xml_value} and defined $return->{cell_xml_value} and $return->{cell_xml_value} =~ /^-?(\d+)?\.?(\d+)?[Ee](-)?(\d+)$/ and ( $1 or $2 ) ){#Implement implied output formatting intrensic to Excel for scientific notiation
+			###LogSD	$phone->talk( level => 'trace', message =>[
+			###LogSD		"Found special scientific notation case were stored values and visible values possibly differ" ] );
+			my ( $mid_sig_digits, $short_sig_digits );
+			my	$long_test_decimal = sprintf '%.30f', $return->{cell_xml_value};
+				$long_test_decimal =~ /\.(0*)(.*[1-9])(0*)$/;
+			my	$long_sig_digits = defined $3 ? ( 30 - length( $3 ) ) : 30;
+			my	$start_significant = defined $1 ? (length( $1 ) + 1) : 1;
+			my	$mid_test_decimal = sprintf '%.19f', $return->{cell_xml_value};
+			my	$short_test_decimal = sprintf '%.15f', $return->{cell_xml_value};
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD		"Initial test decimals:", $long_test_decimal, $mid_test_decimal, $short_test_decimal,] );
+			if( $mid_test_decimal =~ /([\-\d]*(\.)?(0*)(.*[1-9]))(0*)$/ ){
+				$mid_test_decimal = $1;
+				$mid_sig_digits = defined $5 ? ( 19 - length( $5 ) ) : 19;
+			}else{
+				$mid_sig_digits = 0;
+			}
+			if( $short_test_decimal =~ /([\-\d]*(\.)?(0*)(.*[1-9]))(0*)$/ ){
+				$short_test_decimal = $1;
+				$short_sig_digits = defined $5 ? ( 15 - length( $5 ) ) : 15;
+			}else{
+				$short_sig_digits = 0;
+			}
+			my 	$absolute_delta = abs( $long_test_decimal - $short_test_decimal );
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD		"The raw value decimal has -$long_sig_digits- significant digits past the decimal: $long_test_decimal",
+			###LogSD		"..with starting significant digits at: $start_significant",
+			###LogSD		"When rounding inside 15 significant digits it is: $short_test_decimal",
+			###LogSD		"..with final significant digits at: $short_sig_digits",
+			###LogSD		"When rounding inside 19 it is: $mid_test_decimal",
+			###LogSD		"..and the final significant digit at position: $mid_sig_digits",
+			###LogSD		"..the delta between short and long is: " . $absolute_delta,] );
+			if( $start_significant < 20 and ( $long_sig_digits < 20 or $absolute_delta < 1e-24 ) ){#
+				my $mid_to_short_delta = abs($short_test_decimal - $mid_test_decimal);
+				###LogSD	$phone->talk( level => 'trace', message =>[
+				###LogSD		"The number can acceptably be represented by a decimal with 19 or fewer significant digits",
+				###LogSD		"The delta between the mid option and the short option is: $mid_to_short_delta" ] );
+				if( $mid_to_short_delta < 1e-19 ){
+					$return->{cell_unformatted} = $short_test_decimal;
+					$mid_sig_digits = $short_sig_digits;
+				}else{
+					$return->{cell_unformatted} = $mid_test_decimal;
+				}
+			}else{
+				###LogSD	$phone->talk( level => 'trace', message =>[
+				###LogSD		"Unable to resolve the scientific number to representative decimal with ninteen or less significant digits", ] );
+				$return->{cell_unformatted} = sprintf '%.14e', $return->{cell_xml_value};
+				$return->{cell_unformatted} =~ /^([\d\-]+)(\.)?(\d*[1-9])?(0*)[Ee](-)?(\d+)$/;
+				$return->{cell_unformatted} = $1;
+				$return->{cell_unformatted} .= $3 ? "$2$3" : '';
+				$return->{cell_unformatted} .= 'E' . sprintf '%s%02u', $5, $6;
+				$mid_sig_digits = $long_sig_digits if $long_sig_digits < 24;
+			}
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD		"The stored representation of the number is: $return->{cell_unformatted}", "The actual xml is: $return->{cell_xml_value}" ] );
+			my $additional_significance = $mid_sig_digits - $start_significant;
+			$scientific_format =
+				( $mid_sig_digits <= 9 and $absolute_delta <= 1e-23) ? SpecialDecimal :
+				( $additional_significance == 0 ) ? SpecialZeroScientific :
+				( $additional_significance  == 1 ) ? SpecialOneScientific :
+				( $additional_significance  == 2 ) ? SpecialTwoScientific :
+				( $additional_significance  == 3 ) ? SpecialThreeScientific :
+				( $additional_significance  == 4 ) ? SpecialFourScientific :
+				( $additional_significance  == 5 ) ? SpecialFiveScientific :
+					SpecialZeroScientific ;
+			###LogSD	$phone->talk( level => 'info', message =>[
+			###LogSD		"Based on mid sig digits -$mid_sig_digits- absolute delta -$absolute_delta- and additional significance -$additional_significance- the selected custom format is: " . $scientific_format->display_name ] );
+		}
 		$return->{cell_type} = 'Text';
 		$return->{r} = $result->{r};
 		$return->{cell_merge} = $result->{cell_merge} if exists $result->{cell_merge};
@@ -409,79 +486,49 @@ sub _build_out_the_cell{
 			my $position = $self->get_shared_string_position( $result->{v}->{raw_text} );
 			###LogSD	$phone->talk( level => 'debug', message =>[
 			###LogSD		"Shared strings returned:",  $position] );
-			@$return{qw( cell_unformatted rich_text )} = ( $position->{raw_text}, $position->{rich_text} );
+			@$return{qw( cell_xml_value cell_unformatted rich_text )} = ( $position->{raw_text}, $position->{raw_text}, $position->{rich_text} );
 			delete $return->{rich_text} if !$return->{rich_text};
 			###LogSD	$phone->talk( level => 'debug', message =>[
 			###LogSD		"Updated return:",  $return] );
 		}else{
 			###LogSD	$phone->talk( level => 'debug', message =>[
 			###LogSD		"Setting unformatted from:", $result ] );
-			$return->{cell_unformatted} = $result->{v}->{raw_text};
+			$return->{cell_unformatted} = $return->{cell_xml_value} if !exists $return->{cell_unformatted};
 			$return->{cell_type} = 'Numeric' if defined $return->{cell_unformatted} and $return->{cell_unformatted} ne '';
 		}
-		if( !defined( $return->{cell_unformatted} ) and $self->get_empty_return_type eq 'empty_string' ){
-			###LogSD	$phone->talk( level => 'debug', message =>[ "(Re)setting undef to ''"] );
-			$return->{cell_unformatted} = '';
-		}
-		###LogSD	$phone->talk( level => 'debug', message =>[
-		###LogSD		"Cell raw text is:", $return->{cell_unformatted}] );
-		if( $return->{cell_unformatted} and length( $return->{cell_unformatted} ) > 0 ){#Implement user defined changes in encoding
-			$return->{cell_unformatted} = $self->change_output_encoding( $return->{cell_unformatted} );
-			$return->{cell_xml_value} = $return->{cell_unformatted};
-			###LogSD	$phone->talk( level => 'debug', message =>[
-			###LogSD		"With output encoding changed: " . $return->{cell_unformatted} ] );# if defined $return->{cell_unformatted};
-		}
-		if( defined $return->{cell_unformatted} and $return->{cell_unformatted} =~ /^-?\d*\.?\d*[Ee]-?\d+$/ ){#Implement implied output formatting intrensic to Excel for scientific notiation
-			###LogSD	$phone->talk( level => 'trace', message =>[
-			###LogSD		"Found special scientific notation case were stored values and visible values possibly differ" ] );
-			my $test_value = sprintf '%.9f', $return->{cell_unformatted};
-			###LogSD	$phone->talk( level => 'trace', message =>[
-			###LogSD		"Initial test value: $test_value" ] );
-			if( $test_value =~ /(-)?(\d+)(\.?)(\d{1,9})(\d)?\d*/ ){
-				my $sign = $1 ? $1 : '';
-				my $start_digits = $2;
-				my $decimal = $3 ? $3 : '';
-				my $left_nine = $4 ? $4 : '';
-				if( defined $start_digits or defined $left_nine ){
-					my $tenth = $5 ? $5 : '';
-					###LogSD	$phone->talk( level => 'trace', message =>[
-					###LogSD		"Important elements are:", $sign, $start_digits, $decimal, $left_nine, $tenth ] );
-					if( $left_nine =~/(0+)$/ ){
-						my $zero_length = length $1;
-						###LogSD	$phone->talk( level => 'trace', message =>[
-						###LogSD		"Length of trailing zeros: $zero_length", ] );
-						$return->{cell_unformatted} = "$sign$start_digits$decimal" . substr( $left_nine, 0, ( length( $left_nine ) - $zero_length ) );
-					}else{
-						if( $tenth and $tenth > 4 ){
-							###LogSD	$phone->talk( level => 'trace', message =>[
-							###LogSD		"Need to round the left nine up on place for: $tenth", ] );
-							$left_nine++;
-							if( length( $left_nine ) > 9 ){
-								###LogSD	$phone->talk( level => 'trace', message =>[
-								###LogSD		"Rounding the left nine caused the integers to round for: $left_nine", ] );
-								$left_nine = substr( $left_nine, 1, 9);
-								$start_digits++;
-							}
-						}
-						$return->{cell_unformatted}= "$sign$start_digits$decimal$left_nine";
-					}
-					if( $return->{cell_unformatted} == 0 ){
-						###LogSD	$phone->talk( level => 'trace', message =>[
-						###LogSD		"Unable to resolve the scientific number to a decimal with nine or less significant digits", ] );
-						$return->{cell_unformatted}= sprintf '%.3e', $return->{cell_xml_value};
-					}
-				}else{
-					###LogSD	$phone->talk( level => 'trace', message =>[
-					###LogSD		"Not really scientific notation: ", $return->{cell_xml_value} ] );
-				}
+		if( $self->get_empty_return_type eq 'empty_string' ){
+			if( !defined( $return->{cell_unformatted} ) ){
+				###LogSD	$phone->talk( level => 'debug', message =>[ "(Re)setting cell_unformatted undef to ''"] );
+				$return->{cell_unformatted} = '';
+			}
+			if( !defined( $return->{cell_xml_value} ) ){
+				###LogSD	$phone->talk( level => 'debug', message =>[ "(Re)setting xml_value undef to ''"] );
+				$return->{cell_xml_value} = '';
 			}
 			###LogSD	$phone->talk( level => 'debug', message =>[
-			###LogSD		"The stored number is: $return->{cell_unformatted}", "Re-unformatted is: $return->{cell_xml_value}" ] );
+			###LogSD		"Cell raw text is:", @$return{qw( cell_unformatted cell_xml_value )}, ] );
+		}
+		
+		#Implement user defined changes in encoding
+		if( $return->{cell_unformatted} and length( $return->{cell_unformatted} ) > 0 ){
+			$return->{cell_unformatted} = $self->change_output_encoding( $return->{cell_unformatted} );
+			$return->{cell_xml_value} = $self->change_output_encoding( $return->{cell_xml_value} );
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD		"Unformatted with output encoding changed: " . $return->{cell_unformatted} ] );# if defined $return->{cell_unformatted};
+		}
+		if( $return->{cell_xml_value} and length( $return->{cell_xml_value} ) > 0 ){#Implement user defined changes in encoding
+			$return->{cell_xml_value} = $self->change_output_encoding( $return->{cell_xml_value} );
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD		"XML with output encoding changed: " . $return->{cell_xml_value} ] );# if defined $return->{cell_unformatted};
 		}
 		if( $self->get_group_return_type eq 'unformatted' ){
 			###LogSD	$phone->talk( level => 'debug', message =>[
 			###LogSD		"Sending back just the unformatted value: " . ($return->{cell_unformatted}//'') ] ) ;
 			return $return->{cell_unformatted};
+		}elsif( $self->get_group_return_type eq 'xml_value' ){
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD		"Sending back just the unformatted value: " . ($return->{cell_xml_value}//'') ] ) ;
+			return $return->{cell_xml_value};
 		}
 		# Get any relevant custom format
 		my	$custom_format;
@@ -535,6 +582,8 @@ sub _build_out_the_cell{
 			my $exclude_header = ($custom_format) ? 'numFmts' : undef;
 			my $format;
 			if( $self->_has_styles_file ){
+				###LogSD	$phone->talk( level => 'debug', message =>[
+				###LogSD		"Pulling formats with:", $result->{s}, $header, $exclude_header ] );
 				$format = $self->get_format_position( $result->{s}, $header, $exclude_header );
 				
 				###LogSD	$phone->talk( level => 'trace', message =>[
@@ -542,13 +591,29 @@ sub _build_out_the_cell{
 			}else{
 				confess "'s' element called out but the style file is not available!";
 			}
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD		"Checking if the defined number format needs replacing with:", $custom_format, $scientific_format] );
+			if( $custom_format ){
+				###LogSD	$phone->talk( level => 'debug', message =>[
+				###LogSD		"Custom formats override this cell", $custom_format->display_name] );
+				$return->{cell_coercion} = $custom_format;
+				delete $format->{numFmts};
+			}elsif( $scientific_format and
+						(	!exists $format->{numFmts} or 
+							$format->{numFmts}->display_name eq 'Excel_number_0' or 
+							$format->{numFmts}->display_name eq 'Excel_text_0'		) ){
+				###LogSD	$phone->talk( level => 'debug', message =>[
+				###LogSD		"The generic number case will implement a hidden scientific format", $scientific_format] );
+				$return->{cell_coercion} = $scientific_format;
+				delete $format->{numFmts};
+			}
 			# Second check for value only
 			if( $self->get_group_return_type eq 'value' ){
 				###LogSD	$phone->talk( level => 'debug', message =>[
 				###LogSD		'Applying (a possible) regular format to: ' .  $return->{cell_unformatted} ] );
 				return	Spreadsheet::XLSX::Reader::LibXML::Cell->_return_value_only(
 							$return->{cell_unformatted}, 
-							$format->{numFmts},
+							$return->{cell_coercion} // $format->{numFmts},
 							$self->_get_error_inst,
 				###LogSD	$self->get_log_space,
 						);
@@ -574,7 +639,7 @@ sub _build_out_the_cell{
 					}
 				}
 				###LogSD	$phone->talk( level => 'trace', message =>[
-				###LogSD		"Practice special old spreadsheet magic here - for now only single quote in the formula bar",  ] );
+				###LogSD		"Practice special old spreadsheet magic here as needed - for now only single quote in the formula bar",  ] );
 				if( exists $format_headers->{quotePrefix} ){
 					###LogSD	$phone->talk( level => 'debug', message =>[
 					###LogSD		"Found the single quote in the formula bar case",  ] );# Other similar cases include carat and double quote in the formula bar (middle and right justified)
@@ -583,6 +648,13 @@ sub _build_out_the_cell{
 				}
 					
 			}
+		}
+		###LogSD	$phone->talk( level => 'debug', message =>[
+		###LogSD		"Checking if a scientific format should be used", $scientific_format] );
+		if( $scientific_format and !exists $return->{cell_coercion} ){
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD		"The generic number case will implement a hidden scientific format", $scientific_format] );
+			$return->{cell_coercion} = $scientific_format;
 		}
 			
 		###LogSD	$phone->talk( level => 'trace', message =>[

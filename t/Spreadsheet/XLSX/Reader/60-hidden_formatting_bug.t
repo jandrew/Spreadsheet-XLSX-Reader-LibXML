@@ -19,7 +19,8 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 119;
+use	Test::Most tests => 78
+;
 use	Test::Moose;
 use Data::Dumper;
 use	lib	'../../../../../Log-Shiras/lib',
@@ -42,72 +43,32 @@ use	lib	'../../../../../Log-Shiras/lib',
 ###LogSD	use MooseX::ShortCut::BuildInstance;
 use Spreadsheet::XLSX::Reader::LibXML;
 $test_file = ( @ARGV ) ? $ARGV[0] : $test_file;
-$test_file .= 'perc.xlsx';
+$test_file .= 'hidden_format_test.xlsx';
 	#~ print "Test file is: $test_file\n";
 my  ( 
 		$parser, @worksheets, $value, $workbook,
 	);
 my	$answer_ref = [
-		'Blad1',
-		[0,2],
-		[0,18],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', 1000],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', '1000%'],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', '1000.000%'],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', 500],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', '500%'],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', '500.000%'],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', 200],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', '200%'],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', '200.000%'],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', 100],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', '100%'],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', '100.000%'],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', 50],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', '50%'],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', '50.000%'],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', 20],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', '20%'],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', '20.000%'],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', 10],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', '10%'],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', '10.000%'],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', 5],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', '5%'],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', '5.000%'],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', 2],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', '2%'],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', '2.000%'],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', 1],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', '1%'],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', '1.000%'],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', 0.5],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', '1%'],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', '0.500%'],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', 0.2],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', '0%'],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', '0.200%'],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', 0.1],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', '0%'],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', '0.100%'],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', 0.05],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', '0%'],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', '0.050%'],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', 0.02],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', '0%'],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', '0.020%'],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', 0.01],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', '0%'],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', '0.010%'],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', 0.005],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', '0%'],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', '0.005%'],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', 0.002],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', '0%'],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', '0.002%'],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', 0.001],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', '0%'],
-		['Spreadsheet::XLSX::Reader::LibXML::Cell', '0.001%'],
+		'Sheet1',
+		[0,1],
+		[0,10],
+		['Spreadsheet::XLSX::Reader::LibXML::Cell', undef, 'E421745', 'E421745', 'E421745'],[''],
+		['Spreadsheet::XLSX::Reader::LibXML::Cell', undef, '5.0000000000000001E-9', '0.000000005', '0.000000005'],[''],
+		['Spreadsheet::XLSX::Reader::LibXML::Cell', undef, '5.0000000000000003E-10', '0.0000000005', '5E-10'],[''],
+		['Spreadsheet::XLSX::Reader::LibXML::Cell', undef, '5.1000000000000002E-9', '0.0000000051', '5.1E-09'],
+		['Spreadsheet::XLSX::Reader::LibXML::Cell', undef, '0', '0', '0'],
+		['Spreadsheet::XLSX::Reader::LibXML::Cell', undef, '5.00001E-9', '0.00000000500001', '5.00001E-09'],
+		['Spreadsheet::XLSX::Reader::LibXML::Cell', undef, '4', '4', '4'],
+		['Spreadsheet::XLSX::Reader::LibXML::Cell', undef, '5.0000009999999996E-9', '0.000000005000001', '5E-09'],
+		['Spreadsheet::XLSX::Reader::LibXML::Cell', undef, '12', '12', '12'],
+		['Spreadsheet::XLSX::Reader::LibXML::Cell', undef, '5.0010000000000997E-9', '5.0010000000001E-09', '5.001E-09'],
+		['Spreadsheet::XLSX::Reader::LibXML::Cell', undef, '13', '13', '13'],
+		['Spreadsheet::XLSX::Reader::LibXML::Cell', undef, '5.00000000000001E-9', '5.00000000000001E-09', '5E-09'],
+		['Spreadsheet::XLSX::Reader::LibXML::Cell', undef, '14', '14', '14'],
+		['Spreadsheet::XLSX::Reader::LibXML::Cell', undef, '5.0000000000000001E-9', '0.000000005', '0.000000005'],
+		['Spreadsheet::XLSX::Reader::LibXML::Cell', undef, '15', '15', '15'],
+		['Spreadsheet::XLSX::Reader::LibXML::Cell', undef, '4.9999999999999999E-20', '5E-20', '5E-20'],[''],
+		['Spreadsheet::XLSX::Reader::LibXML::Cell', undef, '5.0000000000000004E-19', '0.0000000000000000005', '5E-19'],[''],
 	];
 ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space => 'main', );
 ###LogSD		$phone->talk( level => 'info', message => [ "harder questions ..." ] );
@@ -119,8 +80,9 @@ my	$answer_ref = [
 			$parser->set_warnings( 1 );
 #~ }										"Prep a test parser instance";
 ###LogSD		$phone->talk( level => 'trace', message => [ "$parser:", $parser ] );
-like			$parser->error(), qr/Unable to load XML::LibXML with the element: sharedStrings/,
+is			$parser->error(), undef,
 										"Write any error messages from the file load";
+			$parser->clear_error;
 ok			@worksheets = $workbook->worksheets(),
 										"Loaded worksheet objects ok";
 			my	$x = 0;
@@ -135,7 +97,7 @@ is_deeply	[@row_range], $answer_ref->[$x++],
 										"Check for the correct row range";
 			for my $row ( $row_range[0] .. $row_range[1] ){
 			for my $col ( $column_range[0] .. $column_range[1] ){
-###LogSD	my $reveal = 16;
+###LogSD	my $reveal = 4;
 ###LogSD	if( $row == $reveal and $col == 0 ){
 ###LogSD		$operator->add_name_space_bounds( {
 ###LogSD			Test =>{
@@ -167,9 +129,16 @@ is			ref( $cell = $worksheet->get_cell( $row, $col ) ), $answer_ref->[$x]->[0],
 										"Attempt to get the cell for row -$row- and column -$col-";
 #~ is			ref( $cell ), 
 										#~ "make sure it returns a cell - if it should";
-			if( $answer_ref->[$x]->[0] ){
-is			$cell->value, $answer_ref->[$x]->[1],
-										"And check the returned value: " . $answer_ref->[$x]->[1];
+			if( $answer_ref->[$x]->[0] ne '' ){
+like		$parser->error(), $answer_ref->[$x]->[1],
+										"Check for an expected error messages from the cell load" if $answer_ref->[$x]->[1];
+is			$cell->xml_value, $answer_ref->[$x]->[2],
+										"Check the underlying xml value: " . $answer_ref->[$x]->[2];
+is			$cell->unformatted, $answer_ref->[$x]->[3],
+										"And check the unformatted value: " . $answer_ref->[$x]->[3];
+is			$cell->value, $answer_ref->[$x]->[4],
+										"And check the returned value: " . $answer_ref->[$x]->[4];
+			$parser->clear_error;
 			}
 			$x++;
 			}

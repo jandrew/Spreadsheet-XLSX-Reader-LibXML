@@ -19,7 +19,7 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 38;
+use	Test::Most tests => 52;
 use	Test::TypeTiny;
 #~ use	Test::Moose;
 use Data::Dumper;
@@ -46,8 +46,13 @@ use Spreadsheet::XLSX::Reader::LibXML::Types v0.1 qw(
 		XMLFile						XLSXFile					ParserType
 		NegativeNum					ZeroOrUndef					NotNegativeNum
 		IOFileType					ErrorString					CellID
-		PositiveNum					Excel_number_0
-	);#PassThroughType FileName EpochYear
+		PositiveNum					Excel_number_0				SpecialZeroScientific
+		to_SpecialZeroScientific	SpecialOneScientific		to_SpecialOneScientific
+		SpecialTwoScientific		to_SpecialTwoScientific		SpecialThreeScientific
+		to_SpecialThreeScientific	SpecialFourScientific		to_SpecialFourScientific
+		SpecialFiveScientific		to_SpecialFiveScientific	SpecialDecimal
+		to_SpecialDecimal
+	);#PassThroughType FileName EpochYear 
 my	@types_list = (
 		XLSXFile,					XMLFile	,					ParserType,					
 		CellID,						PositiveNum,				NegativeNum,
@@ -136,6 +141,34 @@ is			$type_error, undef,
 			}
 ok			Excel_number_0->assert_coerce( 'jabberwoky' ),
 							"A run on the Excel_number_0 coercion";
+is			to_SpecialZeroScientific( 5.00000000000001e-006 ), '5E-06',
+							"Test the processing of SpecialZeroScientific";
+is			SpecialZeroScientific->assert_coerce( 5.00000000000001e-006 ), '5E-06',
+							"Test the processing of SpecialZeroScientific";
+is			to_SpecialOneScientific( 5.00000000000001e-006 ), '5.0E-06',
+							"Test the processing of SpecialOneScientific";
+is			SpecialOneScientific->assert_coerce( 5.00000000000001e-006 ), '5.0E-06',
+							"Test the processing of SpecialOneScientific";
+is			to_SpecialTwoScientific( 5.00000000000001e-006 ), '5.00E-06',
+							"Test the processing of SpecialTwoScientific";
+is			SpecialTwoScientific->assert_coerce( 5.00000000000001e-006 ), '5.00E-06',
+							"Test the processing of SpecialTwoScientific";
+is			to_SpecialThreeScientific( 5.00000000000001e-006 ), '5.000E-06',
+							"Test the processing of SpecialThreScientific";
+is			SpecialThreeScientific->assert_coerce( 5.00000000000001e-006 ), '5.000E-06',
+							"Test the processing of SpecialThreeScientific";
+is			to_SpecialFourScientific( 5.00000000000001e-006 ), '5.0000E-06',
+							"Test the processing of SpecialFourScientific";
+is			SpecialFourScientific->assert_coerce( 5.00000000000001e-006 ), '5.0000E-06',
+							"Test the processing of SpecialFourScientific";
+is			to_SpecialFiveScientific( 5.00000000000001e-006 ), '5.00000E-06',
+							"Test the processing of SpecialFiveScientific";
+is			SpecialFiveScientific->assert_coerce( 5.00000000000001e-006 ), '5.00000E-06',
+							"Test the processing of SpecialFiveScientific";
+is			to_SpecialDecimal( 5.0000000000000099E-4 ), '0.0005',
+							"Test the processing of SpecialDecimal";
+is			SpecialDecimal->assert_coerce( 5.0000000000000002E-5 ), '0.00005',
+							"Test the processing of SpecialDecimal";
 explain 								"...Test Done";
 done_testing();
 

@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::Types;
-use version; our $VERSION = qv('v0.38.9');
+use version; our $VERSION = qv('v0.38.10');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::Types-$VERSION";
 		
 use strict;
@@ -12,7 +12,10 @@ use Type::Library 1.000
 		NegativeNum					ZeroOrUndef					NotNegativeNum
 		IOFileType					ErrorString					SubString
 		CellID						PositiveNum					Excel_number_0
-	);
+		SpecialZeroScientific		SpecialOneScientific		SpecialTwoScientific
+		SpecialThreeScientific		SpecialFourScientific		SpecialFiveScientific
+		SpecialDecimal
+	);#
 use IO::File;
 BEGIN{ extends "Types::Standard" };
 my $try_xs =
@@ -127,6 +130,136 @@ coerce ErrorString,
 	my	$tmp = to_SubString($_);
 		$tmp =~ s/\)\n;/\);/g;
 		return $tmp;
+	};
+
+declare SpecialZeroScientific,
+	as Str,
+	where{ return $_ =~ /^\-?[0-9]+E-?\d{2,50}/i };#print "--$_\n"; 
+	
+coerce SpecialZeroScientific,
+	from Str,
+	via{ 
+		my	$string = $_;
+		$string =~ /([\-\d\.]+)[Ee](-)?(\d+)/i;#
+		#~ print "$1\n";
+		#~ print "$2\n";
+		#~ print "$3\n";
+		my	$return = sprintf '%.0f', $1;
+		#~ print "$return\n";
+			$return .= 'E' . sprintf '%s%02d', $2, $3;
+		#~ print "$return\n";
+		return $return;
+	};
+
+declare SpecialOneScientific,
+	as Str,
+	where{ return $_ =~ /^\-?[0-9]+\.\dE-?\d{2,50}/i };#print "--$_\n"; 
+	
+coerce SpecialOneScientific,
+	from Str,
+	via{ 
+		my	$string = $_;
+		$string =~ /([\-\d\.]+)[Ee](-)?(\d+)/i;#
+		#~ print "$1\n";
+		#~ print "$2\n";
+		#~ print "$3\n";
+		my	$return = sprintf '%.1f', $1;
+		#~ print "$return\n";
+			$return .= 'E' . sprintf '%s%02d', $2, $3;
+		#~ print "$return\n";
+		return $return;
+	};
+
+declare SpecialTwoScientific,
+	as Str,
+	where{ return $_ =~ /^\-?[0-9]+\.\d{2}E-?\d{2,50}/i };#print "--$_\n"; 
+	
+coerce SpecialTwoScientific,
+	from Str,
+	via{ 
+		my	$string = $_;
+		$string =~ /([\-\d\.]+)[Ee](-)?(\d+)/i;#
+		#~ print "$1\n";
+		#~ print "$2\n";
+		#~ print "$3\n";
+		my	$return = sprintf '%.2f', $1;
+		#~ print "$return\n";
+			$return .= 'E' . sprintf '%s%02d', $2, $3;
+		#~ print "$return\n";
+		return $return;
+	};
+
+declare SpecialThreeScientific,
+	as Str,
+	where{ return $_ =~ /^\-?[0-9]+\.\d{3}E-?\d{2,50}/i };#print "--$_\n"; 
+	
+coerce SpecialThreeScientific,
+	from Str,
+	via{ 
+		my	$string = $_;
+		$string =~ /([\-\d\.]+)[Ee](-)?(\d+)/i;#
+		#~ print "$1\n";
+		#~ print "$2\n";
+		#~ print "$3\n";
+		my	$return = sprintf '%.3f', $1;
+		#~ print "$return\n";
+			$return .= 'E' . sprintf '%s%02d', $2, $3;
+		#~ print "$return\n";
+		return $return;
+	};
+
+declare SpecialFourScientific,
+	as Str,
+	where{ return $_ =~ /^\-?[0-9]+\.\d{4}E-?\d{2,50}/i };#print "--$_\n"; 
+	
+coerce SpecialFourScientific,
+	from Str,
+	via{ 
+		my	$string = $_;
+		$string =~ /([\-\d\.]+)[Ee](-)?(\d+)/i;#
+		#~ print "$1\n";
+		#~ print "$2\n";
+		#~ print "$3\n";
+		my	$return = sprintf '%.4f', $1;
+		#~ print "$return\n";
+			$return .= 'E' . sprintf '%s%02d', $2, $3;
+		#~ print "$return\n";
+		return $return;
+	};
+
+declare SpecialFiveScientific,
+	as Str,
+	where{ return $_ =~ /^\-?[0-9]+\.\d{5}E-?\d{2,50}/i };#print "--$_\n"; 
+	
+coerce SpecialFiveScientific,
+	from Str,
+	via{ 
+		my	$string = $_;
+		$string =~ /([\-\d\.]+)[Ee](-)?(\d+)/i;#
+		#~ print "$1\n";
+		#~ print "$2\n";
+		#~ print "$3\n";
+		my	$return = sprintf '%.5f', $1;
+		#~ print "$return\n";
+			$return .= 'E' . sprintf '%s%02d', $2, $3;
+		#~ print "$return\n";
+		return $return;
+	};
+
+declare SpecialDecimal,
+	as Str,
+	where{ return $_ =~ /\.\d{1,9}$/i };#print "--$_\n"; 
+	
+coerce SpecialDecimal,
+	from Str,
+	via{ 
+		my	$string = $_;
+		my	$return = sprintf '%.9f', $string;
+		#~ print "$return\n";
+			$return =~ /(.*[1-9])(0*)$/;
+		my	$significant_decimal = $1;
+		#~ print "$significant_decimal\n";
+		return $significant_decimal;
 	};
 
 
