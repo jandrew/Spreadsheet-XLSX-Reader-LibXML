@@ -468,7 +468,7 @@ sub _build_out_the_cell{
 			###LogSD		"The stored representation of the number is: $return->{cell_unformatted}", "The actual xml is: $return->{cell_xml_value}" ] );
 			my $additional_significance = $mid_sig_digits - $start_significant;
 			$scientific_format =
-				( $mid_sig_digits <= 9 and $absolute_delta <= 1e-23) ? SpecialDecimal :
+				( $mid_sig_digits <= 9 and $absolute_delta <= 9e-25) ? SpecialDecimal :
 				( $additional_significance == 0 ) ? SpecialZeroScientific :
 				( $additional_significance  == 1 ) ? SpecialOneScientific :
 				( $additional_significance  == 2 ) ? SpecialTwoScientific :
