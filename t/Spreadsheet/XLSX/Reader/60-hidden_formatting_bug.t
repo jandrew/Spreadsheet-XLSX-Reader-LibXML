@@ -133,11 +133,11 @@ is			ref( $cell = $worksheet->get_cell( $row, $col ) ), $answer_ref->[$x]->[0],
 like		$parser->error(), $answer_ref->[$x]->[1],
 										"Check for an expected error messages from the cell load" if $answer_ref->[$x]->[1];
 is			$cell->xml_value, $answer_ref->[$x]->[2],
-										"Check the underlying xml value: " . $answer_ref->[$x]->[2];
+										"|$row|$col|Check the underlying xml value: " . $answer_ref->[$x]->[2];
 is			$cell->unformatted, $answer_ref->[$x]->[3],
-										"And check the unformatted value: " . $answer_ref->[$x]->[3];
+										"|$row|$col|And check the unformatted value: " . $answer_ref->[$x]->[3];
 is			$cell->value, $answer_ref->[$x]->[4],
-										"And check the returned value: " . $answer_ref->[$x]->[4];
+										"|$row|$col|And check the returned value: " . $answer_ref->[$x]->[4];
 			$parser->clear_error;
 			}
 			$x++;
