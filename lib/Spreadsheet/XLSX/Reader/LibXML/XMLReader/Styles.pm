@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles;
-use version; our $VERSION = qv('v0.38.9');
+use version; our $VERSION = qv('v0.38.10');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles-$VERSION";
 
 use 5.010;
@@ -81,7 +81,11 @@ sub get_format_position{
 		###LogSD		"Already collected this general format at position: $position"  ] );
 		$already_got_it = 1;
 	}
-	return $self->_get_sub_position_ref if $already_got_it;
+	if( $already_got_it ){
+		my $ref = $self->_get_sub_position_ref;
+		delete $ref->{$exclude_header} if $exclude_header;
+		return $ref;
+	}
 	
 	# build from scratch	
 	my	$result = $self->_get_header_and_position( 'cellXfs', $position );

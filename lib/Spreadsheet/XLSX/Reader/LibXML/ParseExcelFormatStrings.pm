@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings;
-use version; our $VERSION = qv('v0.38.9');
+use version; our $VERSION = qv('v0.38.10');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings-$VERSION";
 
 use 5.010;
@@ -146,12 +146,12 @@ sub parse_excel_format_string{
 	###LogSD	my	$phone = Log::Shiras::Telephone->new(
 	###LogSD			name_space 	=> $self->get_log_space .  '::parse_excel_format_string', );
 	if( !defined $format_strings ){
-		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD	$phone->talk( level => 'info', message => [
 		###LogSD		"Nothing passed to convert",] );
 		return Excel_number_0;
 	}
 	$format_strings =~ s/\\//g;
-	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD	$phone->talk( level => 'info', message => [
 	###LogSD		"parsing the custom excel format string: $format_strings",] );
 	my $conversion_type = 'number';
 	# Check the cache

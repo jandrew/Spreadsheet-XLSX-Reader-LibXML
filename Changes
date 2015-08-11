@@ -11,9 +11,17 @@ be method matched to Spreadsheet::ParseExcel prior to the 1.0 release.
 
 {{$NEXT}}
 
+	! Fix TravisCI build fail on test 60-hidden_format_strings.t
+
+v0.38.10  2015-08-10 15:26:25-07:00 America/Los_Angeles
+
+	! Closes #60 in github
+	! Exclude text to sprintf number test bug
+	! Added a return the 'xml_value' only option to the 'group_return_type' attribute
+
 v0.38.9   2015-08-06 13:45:36-07:00 America/Los_Angeles
 
-	! Closes #57 missing LICENSE file
+	! Closes #57 in github missing LICENSE file
 
 v0.38.8   2015-08-05 11:15:01-07:00 America/Los_Angeles
 	

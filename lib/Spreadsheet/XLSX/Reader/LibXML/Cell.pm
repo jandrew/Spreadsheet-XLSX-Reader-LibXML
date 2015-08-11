@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::Cell;
-use version; our $VERSION = qv('v0.38.9');
+use version; our $VERSION = qv('v0.38.10');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::Cell-$VERSION";
 
 $| = 1;
@@ -175,7 +175,8 @@ sub value{
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			'Reached the -value- function' ] );
 	###LogSD		$phone->talk( level => 'trace', message => [ "Cell:", $self ] );
-	my	$unformatted = $self->unformatted;
+	my	$unformatted = $self->has_xml_value ? $self->xml_value : undef;
+	#~ my	$unformatted = $self->unformatted;
 	return	$self->_return_value_only(
 				$unformatted, 
 				$self->get_coercion,
@@ -272,7 +273,7 @@ sub DEMOLISH{
 	###LogSD	my	$phone = Log::Shiras::Telephone->new(
 	###LogSD					name_space 	=> $self->get_log_space .  '::Cell::DEMOLISH', );
 	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"clearing the cell for cell ID:" . $self->cell_id, ] );
+	###LogSD			"clearing the cell for cell-ID:" . $self->cell_id, ] );
 	#~ print "Clearing coercion\n";
 	$self->clear_coercion;
 	#~ print "Clearing error instance\n";

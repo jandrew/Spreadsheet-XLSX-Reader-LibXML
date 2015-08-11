@@ -35,6 +35,7 @@ t/Spreadsheet/XLSX/Reader/04-no_pivot_bug.t
 t/Spreadsheet/XLSX/Reader/05-chart_bug.t
 t/Spreadsheet/XLSX/Reader/49-shared_strings_bug.t
 t/Spreadsheet/XLSX/Reader/51-percent_file_bug.t
+t/Spreadsheet/XLSX/Reader/60-hidden_formatting_bug.t
 t/Spreadsheet/XLSX/Reader/LibXML/01-types.t
 t/Spreadsheet/XLSX/Reader/LibXML/02-error.t
 t/Spreadsheet/XLSX/Reader/LibXML/04-xml_reader.t
@@ -60,6 +61,7 @@ t/Spreadsheet/XLSX/Reader/LibXML/fmt_default_example.pl
 t/Spreadsheet/XLSX/Reader/LibXML/parse_excel_fmt_string_example.pl
 t/Spreadsheet/XLSX/Reader/libxml_example.pl
 t/Spreadsheet/XLSX/Reader/libxml_example_alt.pl
+'t/test_files/130304_WW_FIR_Detail - Filter by DPS Date - Call Logs - FX - Barbera, Basil, Burgundy MLK and MLK Refresh.xlsx'
 t/test_files/ChartSheet.xls
 t/test_files/ChartSheet.xlsx
 t/test_files/HelloWorld.xlsx
@@ -74,6 +76,7 @@ t/test_files/badfile.is
 t/test_files/docProps/app.xml
 t/test_files/docProps/core.xml
 t/test_files/emptySharedStringsBug.xml
+t/test_files/hidden_format_test.xlsx
 t/test_files/perc.xlsx
 t/test_files/values.xlsx
 t/test_files/xl/_rels/workbook.xml.rels

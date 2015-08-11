@@ -37,6 +37,7 @@ my	$args ={
 			empty_sharedstrings_bug		=>[ $dir . 'test_files/' ],
 			shared_strings_bug			=>[ $dir . 'test_files/' ],
 			percent_file_bug			=>[ $dir . 'test_files/' ],
+			hidden_formatting_bug		=>[ $dir . 'test_files/' ],
 			generic_reader_test			=>[ $dir . 'test_files/xl/' ],
 			get_cell_test				=>[ $dir . 'test_files/xl/' ],
 			xml_to_perl_test			=>[ $dir . 'test_files/xl/' ],
@@ -72,6 +73,7 @@ my	@tests =(
 		[  $dir . $tests . '02-open_by_worksheet_bug.t', 'open_by_worksheet_bug' ],
 		[  $dir . $tests . '49-shared_strings_bug.t', 'shared_strings_bug' ],
 		[  $dir . $tests . '51-percent_file_bug.t', 'percent_file_bug' ],
+		[  $dir . $tests . '60-hidden_formatting_bug.t', 'hidden_formatting_bug' ],
 	);
 use	TAP::Harness;
 use	TAP::Parser::Aggregator;
