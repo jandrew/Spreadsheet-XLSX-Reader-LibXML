@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet;
-use version; our $VERSION = qv('v0.38.10');
+use version; our $VERSION = qv('v0.38.12');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet-$VERSION";
 
 use	5.010;
@@ -10,7 +10,7 @@ use Carp qw( confess );
 use Types::Standard qw(
 		Int				Str				ArrayRef
 		HashRef			HasMethods		Bool
-		Enum
+		Enum			is_Int
     );
 use lib	'../../../../../../lib';
 ###LogSD	use Log::Shiras::Telephone;
@@ -50,6 +50,11 @@ has sheet_position =>(# XML position
 has sheet_name =>(
 		isa		=> Str,
 		reader	=> 'get_name',
+	);
+
+has is_hidden =>(
+		isa		=> Bool,
+		reader	=> 'is_sheet_hidden',
 	);
 	
 has workbook_instance =>(
@@ -143,6 +148,112 @@ sub col_range{
 	return( $self->_min_col, $self->_max_col );
 }
 
+sub get_merged_areas{
+	my( $self, ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new(
+	###LogSD					name_space 	=> ($self->get_log_space . '::get_merged_areas' ), );
+	###LogSD		$phone->talk( level => 'debug', message => [
+	###LogSD			'Pulling the merge map ParseExcel style' ] );
+	
+	# Get the raw merge map
+	my $raw_map = $self->_get_merge_map;
+	###LogSD	$phone->talk( level => 'trace', message =>[
+	###LogSD		"Raw merge row map;", $raw_map] );
+	my ( $new_map, $dup_ref );
+	#parse out the empty rows
+	for my $row ( @$raw_map ){
+		next if !$row;
+		###LogSD	$phone->talk( level => 'trace', message =>[
+		###LogSD		"Processing the merge row data:", $row] );
+		for my $merge_cell ( @$row ){
+			next if !$merge_cell;
+			next if exists $dup_ref->{$merge_cell};
+			###LogSD	$phone->talk( level => 'trace', message =>[
+			###LogSD		"Processing the merge row data: $merge_cell"] );
+			my $merge_ref;
+			for my $cell ( split /:/, $merge_cell ){
+				my ( $column, $row ) = $self->parse_column_row( $cell );
+				push @$merge_ref, $row, $column;
+				###LogSD	$phone->talk( level => 'trace', message =>[
+				###LogSD		"Updated merge ref:", $merge_ref] );
+			}
+			$dup_ref->{$merge_cell} = 1;
+			push @$new_map, $merge_ref;
+			###LogSD	$phone->talk( level => 'trace', message =>[
+			###LogSD		"Updated merge areas:", $new_map] );
+		}
+	}
+	###LogSD	$phone->talk( level => 'info', message =>[
+	###LogSD		"Final merge areas:", $new_map] );
+	return $new_map;
+}
+
+sub is_column_hidden{
+	my( $self, @column_requests ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new(
+	###LogSD					name_space 	=> ($self->get_log_space . '::is_column_hidden' ), );
+	###LogSD		$phone->talk( level => 'debug', message => [
+	###LogSD			'Pulling the hidden state for the columns:', @column_requests ] );
+	
+	my @number_list;
+	for my $item ( @column_requests ){
+		if( is_Int( $item ) ){
+			push @number_list, $item;
+		}else{
+			my ( $column, $dummy_row ) =  $self->parse_column_row( $item );
+			###LogSD	$phone->talk( level => 'trace', message => [
+			###LogSD		"Parsed -$item- to column number: $column" ] );
+			push @number_list, $column;
+		}
+	}
+	my @tru_dat = $self->_is_column_hidden( @number_list );
+	my $true = 0;
+	map{ $true = 1 if $_ } @tru_dat;
+	###LogSD	$phone->talk( level => 'info', message =>[
+	###LogSD		"Final column hidden state is -$true- with list:", @tru_dat] );
+	return wantarray ? @tru_dat : $true;
+}
+
+sub is_row_hidden{
+	my( $self, @row_requests ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new(
+	###LogSD					name_space 	=> ($self->get_log_space . '::is_row_hidden' ), );
+	###LogSD		$phone->talk( level => 'debug', message => [
+	###LogSD			'Pulling the hidden state for the rows:', @row_requests ] );
+	
+	my @tru_dat;
+	my $true = 0;
+	for my $row ( @row_requests ){
+		my $row_format = $self->_get_custom_row_data( $row );
+		###LogSD	$phone->talk( level => 'trace', message =>[
+		###LogSD		"Row formats for row -$row- are:", $row_format ] );
+		if( $row_format and $row_format->{hidden} ){
+				push @tru_dat, 1;
+				$true = 1;
+		}else{
+			if( $row_format ){
+				###LogSD	$phone->talk( level => 'trace', message =>[
+				###LogSD		"Row -$row- has a format but the hidden flag is not on" ] );
+				push @tru_dat, 0;
+			}elsif( $row < $self->min_row ){
+				###LogSD	$phone->talk( level => 'trace', message =>[
+				###LogSD		"Row -$row- is less than the minimum row" ] );
+				push @tru_dat, undef;
+			}elsif( $row > $self->max_row ){
+				###LogSD	$phone->talk( level => 'trace', message =>[
+				###LogSD		"Row -$row- is greater than the maximum row" ] );
+				push @tru_dat, undef;
+			}else{
+				###LogSD	$phone->talk( level => 'trace', message =>[
+				###LogSD		"Row -$row- is a catchall row ( 0 )" ] );
+				push @tru_dat, 0;
+			}
+		}
+	}
+	###LogSD	$phone->talk( level => 'info', message =>[
+	###LogSD		"Final row hidden state is -$true- with list:", @tru_dat] );
+	return wantarray ? @tru_dat : $true;
+}
 
 #########1 Private Attributes 3#########4#########5#########6#########7#########8#########9
 
@@ -208,21 +319,45 @@ has	_merge_map =>(
 		isa		=> ArrayRef,
 		traits	=> ['Array'],
 		writer	=> '_set_merge_map',
+		reader	=> '_get_merge_map',
 		handles	=>{
 			_get_row_merge_map => 'get',
 		},
 	);
 
 has _reported_col =>(
-		isa			=> Int,
-		writer		=> '_set_reported_col',
-		reader		=> '_get_reported_col',
+		isa		=> Int,
+		writer	=> '_set_reported_col',
+		reader	=> '_get_reported_col',
 	);
 
 has _reported_row =>(
-		isa			=> Int,
-		writer		=> '_set_reported_row',
-		reader		=> '_get_reported_row',
+		isa		=> Int,
+		writer	=> '_set_reported_row',
+		reader	=> '_get_reported_row',
+	);
+
+has _column_formats =>(
+		isa		=> ArrayRef,
+		traits	=> ['Array'],
+		writer	=> '_set_column_formats',
+		reader	=> '_get_column_formats',
+		default	=> sub{ [] },
+		handles	=>{
+			_get_custom_column_data => 'get',
+		},
+	);
+
+has _row_formats =>(
+		isa		=> ArrayRef,
+		traits	=> ['Array'],
+		writer	=> '_set_row_formats',
+		reader	=> '_get_row_formats',
+		default	=> sub{ [] },
+		handles	=>{
+			_get_custom_row_data => 'get',
+			_set_custom_row_data => 'set',
+		},
 	);
 
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
@@ -265,11 +400,50 @@ sub _load_unique_bits{
 		confess "No sheet dimensions provided";# Shouldn't the error instance be loaded already?
 	}
 	
+	#pull column stats
+	my	$has_column_data = 1;
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		"Loading the column configuration" ] );
+	if( $self->node_name eq 'cols' or $self->next_element('cols') ){
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Already arrived at the column data" ] );
+	}else{
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Restart the sheet to find the column data" ] );
+		$self->start_the_file_over;
+		if( !$self->next_element( 'cols' ) ){
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"It doesn't look like this worksheet has column data" ] );
+			$has_column_data = 0;
+		}
+	}
+	if( $has_column_data ){
+		my $column_data = $self->parse_element;
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"parsed column elements to:", $column_data ] );
+		my $column_store = [];
+		for my $definition ( @{$column_data->{list}} ){
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"Processing:", $definition ] );
+			my $row_ref;
+			@$row_ref{qw( width customWidth bestFit hidden )} =
+				( @$definition{qw( width customWidth bestFit hidden )} );
+			for my $col ( $definition->{min} .. $definition->{max} ){
+				$column_store->[$col] = $row_ref;
+				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD		"Updated column store is:", $column_store ] );
+			}
+		}
+		###LogSD	$phone->talk( level => 'trace', message => [
+		###LogSD		"Final column store is:", $column_store ] );
+		$self->_set_column_formats( $column_store );
+	}
+	
 	#build a merge map
 	my	$merge_ref = [];
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		"Loading the mergeCell" ] );
-	while( $self->node_name eq 'mergeCell' or $self->next_element('mergeCell') ){
+	while( ($self->node_name and $self->node_name eq 'mergeCell') or $self->next_element('mergeCell') ){
 		my $merge_range = $self->parse_element;
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD		"parsed merge element to:", $merge_range ] );
@@ -304,7 +478,45 @@ sub _get_next_value_cell{
 	###LogSD			'Loading the next cell with value after [row, column]: [' .
 	###LogSD			join( ', ', @{$self->_get_next_row_col} ) . ']'] );
 	my	$result = 1;
-		$result = $self->next_element( 'c' ) if !$self->node_name or $self->node_name ne 'c';
+	while( $result and ( !$self->node_name or $self->node_name ne 'c' ) ){
+		$result = $self->next_element if $self->node_name ne 'row';
+		if( $self->node_name and $self->node_name eq 'row' ){
+			# Load the attributes
+			my $current_ref;
+			my $result = $self->move_to_first_att;
+			###LogSD	$phone->talk( level => 'trace', message => [
+			###LogSD		"Result of the first attribute move: $result",
+			###LogSD		'..for node name: ' . ($self->node_name//'')	] );
+			my $one_more = 0;
+			ATTRIBUTELIST: while( $result > 0 ){
+				my $att_name = $self->node_name;
+				my $att_value = $self->node_value;
+				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD		"Reading attribute: $att_name", "..and value: $att_value" ] );
+				if( $att_name eq 'val' ){
+					$current_ref = $att_value;
+					###LogSD	$phone->talk( level => 'debug', message => [
+					###LogSD		"Assuming we are at the bottom of the attribute list with a found attribute val: $current_ref"] );
+					last ATTRIBUTELIST;
+				}else{
+					$current_ref->{$att_name} = "$att_value";
+				}
+				$result = $self->move_to_next_att;
+				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD		"Result of the move: $result", ] );
+				$one_more = 1;
+			}
+			$result = $self->next_element if $one_more;
+			###LogSD	$phone->talk( level => 'info', message => [
+			###LogSD		"Result of row attribute collection:", $current_ref,
+			###LogSD		'..with cued up node: ' . ($self->node_name//'')	] );
+			my $row = $current_ref->{r};
+			delete $current_ref->{r};
+			###LogSD	$phone->talk( level => 'info', message => [
+			###LogSD		"Set custom row data: $row => ", $current_ref,] );
+			$self->_set_custom_row_data( $row => $current_ref );
+		}
+	}
 	my	$sub_ref = 'EOF';
 	if( !$result ){
 		###LogSD	$phone->talk( level => 'debug', message => [
@@ -349,6 +561,30 @@ sub _get_next_value_cell{
 		}
 	}
 	###LogSD	$phone->talk( level => 'trace', message => [
+	###LogSD		'Ref to this point:', $sub_ref,] );
+	
+	# Check for hiddenness (This logic needs a deep rewrite when adding the skip_hidden attribute to the workbook)
+	if( $self->is_sheet_hidden ){
+		###LogSD	$phone->talk( level => 'trace', message => [
+		###LogSD		'This cell is from a hidden sheet',] );
+		$sub_ref->{cell_hidden} = 'sheet';
+	}elsif( ref $sub_ref ){
+		my $column_attributes	= $self->_get_custom_column_data( $sub_ref->{col} );
+		my $row_attributes		= $self->_get_custom_row_data( $sub_ref->{row} );
+		###LogSD	$phone->talk( level => 'trace', message => [
+		###LogSD		"Column -$sub_ref->{col}- has attributes:", $column_attributes,
+		###LogSD		"Row    -$sub_ref->{row}- has attributes:", $row_attributes,] );
+		if( $column_attributes and $column_attributes->{hidden} ){
+			###LogSD	$phone->talk( level => 'trace', message => [
+			###LogSD		'This cell is from a hidden column',] );
+			$sub_ref->{cell_hidden} = 'column';
+		}elsif( $row_attributes and $row_attributes->{hidden} ){
+			###LogSD	$phone->talk( level => 'trace', message => [
+			###LogSD		'This cell is from a hidden row',] );
+			$sub_ref->{cell_hidden} = 'row';
+		}
+	}
+	###LogSD	$phone->talk( level => 'info', message => [
 	###LogSD		'Ref to this point:', $sub_ref,] );
 	
 	# move current to prior
@@ -665,6 +901,25 @@ sub _get_row_all{
 	###LogSD	$phone->talk( level => 'debug', message =>[
 	###LogSD		'Final answer:', $answer_ref ] );
 	return $answer_ref;
+}
+
+sub _is_column_hidden{
+	my( $self, @column_requests ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new(
+	###LogSD					name_space 	=> ($self->get_log_space . '::is_column_hidden::subsub' ), );
+	###LogSD		$phone->talk( level => 'debug', message => [
+	###LogSD			'Pulling the hidden state for the columns:', @column_requests ] );
+	
+	my @tru_dat;
+	for my $column ( @column_requests ){
+		my $column_format = $self->_get_custom_column_data( $column );
+		###LogSD	$phone->talk( level => 'trace', message =>[
+		###LogSD		"Column formats for column -$column- are:", $column_format ] );
+		push @tru_dat, (( $column_format and $column_format->{hidden} ) ? 1 : 0);
+	}
+	###LogSD	$phone->talk( level => 'info', message =>[
+	###LogSD		"Final column hidden state is list:", @tru_dat] );
+	return @tru_dat;
 }
 
 #########1 Phinish            3#########4#########5#########6#########7#########8#########9
@@ -1229,6 +1484,75 @@ output between the functions to match the attribute L<Spreadsheet::XLSX::Reader:
 B<Accepts:> nothing
 
 B<Returns:> ( $min_col, $max_col ) as a list
+
+=back
+
+=head3 get_merged_areas
+
+=over
+
+B<Definition:> This method returns an array ref of cells that are merged.  This method does 
+respond to the attribute L<Spreadsheet::XLSX::Reader::LibXML/count_from_zero>
+
+B<Accepts:> nothing
+
+B<Returns:> An arrayref of arrayrefs of merged areas or undef if no merged areas
+
+	[ [ $start_row_1, $start_col_1, $end_row_1, $end_col_1], etc.. ]
+
+=back
+
+=head3 is_sheet_hidden
+
+=over
+
+B<Definition:> Method indicates if the excel program would hide the sheet or show it if the 
+file were opened in the Microsoft Excel application
+
+B<Accepts:> nothing
+
+B<Returns:> a boolean value indicating if the sheet is hidden or not 1 = hidden
+
+=back
+
+=head3 is_column_hidden
+
+=over
+
+B<Definition:> Method indicates if the excel program would hide the identified column(s) or show 
+it|them if the file were opened in the Microsoft Excel application.  If more than one column is 
+passed then it returns true if any of the columns are hidden in scalar context and a list of 
+1 and 0 values for each of the requested positions in array (list) context.  This method (input) 
+does respond to the attribute L<Spreadsheet::XLSX::Reader::LibXML/count_from_zero>.  Unlike the 
+method 'is_row_hidden' this method will always 'know' the correct answer since the information is 
+stored outside of the dataa table in the xml file.
+
+B<Accepts:> integer values or column letter values selecting the columns in question
+
+B<Returns:> in scalar context it returns a boolean value indicating if any of the requested 
+columns would be hidden by Excel.  In array/list context it returns a list of boolean values 
+for each requested column indicating it's hidden state for Excel. (1 = hidden)
+
+=back
+
+=head3 is_row_hidden
+
+=over
+
+B<Definition:> Method indicates if the excel program would hide the identified row(s) or show 
+it|them if the file were opened in the Microsoft Excel application.  If more than one row is 
+passed then it returns true if any of the rows are hidden in scalar context and a list of 
+1 and 0 values for each of the requested positions in array (list) context.  This method (input) 
+does respond to the attribute L<Spreadsheet::XLSX::Reader::LibXML/count_from_zero>.  B<Warning: 
+THIS METHOD WILL ONLY BE ACCURATE AFTER THE SHEET HAS READ AT LEAST ONE CELL FROM THE ROW 
+NUMBER REQUESTED.  THIS ALLOWS THE SHEET TO AVOID READING ALL THE WAY THROUGH ONCE BEFORE STARTING 
+THE CELL PARSING.>
+
+B<Accepts:> integer values selecting the rows in question
+
+B<Returns:> in scalar context it returns a boolean value indicating if any of the requested 
+rows would be hidden by Excel.  In array/list context it returns a list of boolean values 
+for each requested row indicating it's hidden state for Excel. (1 = hidden)
 
 =back
 

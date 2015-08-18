@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML;
-use version 0.77; our $VERSION = qv('v0.38.10');
+use version 0.77; our $VERSION = qv('v0.38.12');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML-$VERSION";
 
 use 5.010;
@@ -108,12 +108,9 @@ my	$flag_settings ={
 			from_the_edge     => 0,
 		},
 		like_ParseExcel =>{
-			count_from_zero   => 0,
-			values_only       => 1,
-			empty_is_end      => 1,
-			group_return_type => 'value',
-			cache_positions   => 1,
-			from_the_edge     => 0,
+			count_from_zero => 1,
+			cache_positions	=> 1,
+			group_return_type => 'instance',
 		},
 	};
 
@@ -243,19 +240,24 @@ has cache_positions =>(
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
 
 sub import{# Flags handled here!
-    my ( $self, $flag ) = @_;
-	if( $flag ){
-		#~ print "Arrived at import with flag: $flag\n";
-		if( $flag =~ /^:(\w*)$/ ){
-			my $default_choice = $1;
-			#~ print "Attempting to change the default group type to: $default_choice\n";
-			if( exists $flag_settings->{$default_choice} ){
-				map{ $attribute_defaults->{$_} = $flag_settings->{$default_choice}->{$_} } keys %{$flag_settings->{$default_choice}};
+    my ( $self, @flag_list ) = @_;
+	if( exists $INC{ 'Spreadsheet/Read.pm' } ){
+		push @flag_list, ':like_ParseExcel';
+	}
+	if( scalar( @flag_list ) ){
+		for my $flag ( @flag_list ){
+			#~ print "Arrived at import with flag: $flag\n";
+			if( $flag =~ /^:(\w*)$/ ){
+				my $default_choice = $1;
+				#~ print "Attempting to change the default group type to: $default_choice\n";
+				if( exists $flag_settings->{$default_choice} ){
+					map{ $attribute_defaults->{$_} = $flag_settings->{$default_choice}->{$_} } keys %{$flag_settings->{$default_choice}};
+				}else{
+					confess "No settings available for the flag: $flag";
+				}
 			}else{
-				confess "No settings available for the flag: $flag";
+				confess "Passed attribute default flag -$flag- does not comply with the correct format";
 			}
-		}else{
-			confess "Passed attribute default flag -$flag- does not comply with the correct format";
 		}
 	}
 }
@@ -722,7 +724,7 @@ sub _load_top_level_workbook{
 	my( $self, $dom ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new(
 	###LogSD					name_space 	=> $self->get_log_space .  '::Workbook::_load_workbook_file', );
-	###LogSD		$phone->talk( level => 'debug', message => [
+	###LogSD		$phone->talk( level => 'info', message => [
 	###LogSD			"Building the top level data for the workbook", ] );
 	my ( $list, $sheet_ref, $rel_lookup, $id_lookup );
 	my	$position = 0;
@@ -731,10 +733,11 @@ sub _load_top_level_workbook{
 	for my $sheet ( $dom->getElementsByTagName( 'sheet' ) ){
 		my	$sheet_name = $sheet->getAttribute( 'name' );
 		push @$list, $sheet_name;
-		@{$sheet_ref->{$sheet_name}}{ 'sheet_id', 'sheet_rel_id', 'sheet_position' } = (
+		@{$sheet_ref->{$sheet_name}}{ 'sheet_id', 'sheet_rel_id', 'sheet_position', 'is_hidden' } = (
 				$sheet->getAttribute( 'sheetId' ),
 				$sheet->getAttribute( 'r:id' ),
 				$position++,
+				($sheet->getAttribute( 'state' ) ? 1 : 0), 
 		);
 		$rel_lookup->{$sheet->getAttribute( 'r:id' )} = $sheet_name;
 		$id_lookup->{$sheet->getAttribute( 'sheetId' )} = $sheet_name;
@@ -988,7 +991,7 @@ Spreadsheet::XLSX::Reader::LibXML - Read xlsx spreadsheet files with LibXML
 </a>
 
 <a>
-	<img src="https://img.shields.io/badge/this version-0.38.10-brightgreen.svg" alt="this version">
+	<img src="https://img.shields.io/badge/this version-0.38.12-brightgreen.svg" alt="this version">
 </a>
 
 <a href="https://metacpan.org/pod/Spreadsheet::XLSX::Reader::LibXML">

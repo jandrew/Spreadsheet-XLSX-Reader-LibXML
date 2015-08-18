@@ -28,11 +28,13 @@ lib/Spreadsheet/XLSX/Reader/LibXML/XMLReader/SharedStrings.pm
 lib/Spreadsheet/XLSX/Reader/LibXML/XMLReader/Styles.pm
 lib/Spreadsheet/XLSX/Reader/LibXML/XMLReader/Worksheet.pm
 lib/Spreadsheet/XLSX/Reader/LibXML/XMLReader/XMLToPerlData.pm
+place.txt
 t/Spreadsheet/XLSX/Reader/01-libxml.t
 t/Spreadsheet/XLSX/Reader/02-open_by_worksheet_bug.t
 t/Spreadsheet/XLSX/Reader/03-temp_dir_bug.t
 t/Spreadsheet/XLSX/Reader/04-no_pivot_bug.t
 t/Spreadsheet/XLSX/Reader/05-chart_bug.t
+t/Spreadsheet/XLSX/Reader/06-stacked_flags.t
 t/Spreadsheet/XLSX/Reader/49-shared_strings_bug.t
 t/Spreadsheet/XLSX/Reader/51-percent_file_bug.t
 t/Spreadsheet/XLSX/Reader/60-hidden_formatting_bug.t
@@ -50,6 +52,7 @@ t/Spreadsheet/XLSX/Reader/LibXML/XMLReader/02-worksheet.t
 t/Spreadsheet/XLSX/Reader/LibXML/XMLReader/03-sharedstrings.t
 t/Spreadsheet/XLSX/Reader/LibXML/XMLReader/04-calcchain.t
 t/Spreadsheet/XLSX/Reader/LibXML/XMLReader/05-styles.t
+t/Spreadsheet/XLSX/Reader/LibXML/XMLReader/52-merge_function_alignment.t
 t/Spreadsheet/XLSX/Reader/LibXML/XMLReader/calcchain_example.pl
 t/Spreadsheet/XLSX/Reader/LibXML/XMLReader/sharedstrings_example.pl
 t/Spreadsheet/XLSX/Reader/LibXML/XMLReader/styles_example.pl
@@ -61,7 +64,6 @@ t/Spreadsheet/XLSX/Reader/LibXML/fmt_default_example.pl
 t/Spreadsheet/XLSX/Reader/LibXML/parse_excel_fmt_string_example.pl
 t/Spreadsheet/XLSX/Reader/libxml_example.pl
 t/Spreadsheet/XLSX/Reader/libxml_example_alt.pl
-'t/test_files/130304_WW_FIR_Detail - Filter by DPS Date - Call Logs - FX - Barbera, Basil, Burgundy MLK and MLK Refresh.xlsx'
 t/test_files/ChartSheet.xls
 t/test_files/ChartSheet.xlsx
 t/test_files/HelloWorld.xlsx
@@ -90,6 +92,7 @@ t/test_files/xl/sharedStrings.xml
 t/test_files/xl/styles.xml
 t/test_files/xl/theme/theme1.xml
 t/test_files/xl/workbook.xml
+t/test_files/xl/worksheets/_rels/sheet1.xml.rels
 t/test_files/xl/worksheets/_rels/sheet2.xml.rels
 t/test_files/xl/worksheets/_rels/sheet3.xml.rels
 t/test_files/xl/worksheets/sheet1.xml

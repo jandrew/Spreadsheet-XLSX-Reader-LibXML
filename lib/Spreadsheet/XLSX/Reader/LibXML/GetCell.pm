@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::GetCell;
-use version; our $VERSION = qv('v0.38.10');
+use version; our $VERSION = qv('v0.38.12');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::GetCell-$VERSION";
 
 use Carp 'confess';
@@ -340,7 +340,7 @@ has _header_ref =>(
 
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
 
-around [ qw( build_cell_label get_col_row get_row_all ) ] => sub{
+around [ qw( build_cell_label get_col_row get_row_all _is_column_hidden is_row_hidden ) ] => sub{
 	my ( $method, $self, @input_list ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
 	###LogSD					($self->get_log_space .  '::scrubbing_input' ), );
@@ -468,7 +468,7 @@ sub _build_out_the_cell{
 			###LogSD		"The stored representation of the number is: $return->{cell_unformatted}", "The actual xml is: $return->{cell_xml_value}" ] );
 			my $additional_significance = $mid_sig_digits - $start_significant;
 			$scientific_format =
-				( $mid_sig_digits <= 9 and $absolute_delta <= 9e-25) ? SpecialDecimal :
+				( $mid_sig_digits <= 9 and $absolute_delta <= 1e-16) ? SpecialDecimal :
 				( $additional_significance == 0 ) ? SpecialZeroScientific :
 				( $additional_significance  == 1 ) ? SpecialOneScientific :
 				( $additional_significance  == 2 ) ? SpecialTwoScientific :

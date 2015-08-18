@@ -28,6 +28,7 @@ my	$args ={
 			cell_to_column_row_test		=>[],
 			default_format_test			=>[],
 			excel_format_string_test	=>[],
+			stacked_flag_test			=>[],
 			no_pivot_bug				=>[ $dir . 'test_files/' ],
 			temp_dir_bug				=>[ $dir . 'test_files/' ],
 			open_by_worksheet_bug		=>[ $dir . 'test_files/' ],
@@ -46,6 +47,7 @@ my	$args ={
 			styles_sheet_test			=>[ $dir . 'test_files/xl/' ],
 			shared_strings_reader_test	=>[ $dir . 'test_files/xl/' ],
 			worksheet_test				=>[ $dir . 'test_files/xl/worksheets/' ],
+			merged_areas_test			=>[ $dir . 'test_files/xl/worksheets/' ],
 		},
 		formatter => $formatter,
 	};
@@ -63,6 +65,7 @@ my	@tests =(
 		[  $dir . $tests . 'LibXML/XMLReader/03-sharedstrings.t', 'shared_strings_reader_test' ],
 		[  $dir . $tests . 'LibXML/XMLReader/04-calcchain.t', 'calc_chain_reader_test' ],
 		[  $dir . $tests . 'LibXML/XMLReader/05-styles.t', 'styles_sheet_test' ],
+		[  $dir . $tests . 'LibXML/XMLReader/52-merge_function_alignment.t', 'merged_areas_test' ],
 		[  $dir . $tests . 'LibXML/20-empty_sharedstrings_bug.t', 'empty_sharedstrings_bug' ],
 		[  $dir . $tests . 'LibXML/10-get_cell.t', 'get_cell_test' ],
 		[  $dir . $tests . 'LibXML/09-cell.t', 'cell_test' ],
@@ -74,6 +77,7 @@ my	@tests =(
 		[  $dir . $tests . '49-shared_strings_bug.t', 'shared_strings_bug' ],
 		[  $dir . $tests . '51-percent_file_bug.t', 'percent_file_bug' ],
 		[  $dir . $tests . '60-hidden_formatting_bug.t', 'hidden_formatting_bug' ],
+		[  $dir . $tests . '06-stacked_flags.t', 'stacked_flag_test' ],
 	);
 use	TAP::Harness;
 use	TAP::Parser::Aggregator;

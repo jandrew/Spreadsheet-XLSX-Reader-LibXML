@@ -20,7 +20,7 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 126;
+use	Test::Most tests => 129;
 use	Test::Moose;
 use Data::Dumper;
 use	lib	'../../../../../Log-Shiras/lib',
@@ -113,6 +113,7 @@ my  (
 		$error_instance, $parser, $workbook, $row_ref,
 	);
 my	$answer_ref = [
+		0,
 		[qw( Category Total Date )],
 		[qw( Red 5 2017-02-14 )],
 		[qw( Blue 7 2017-02-14 )],
@@ -121,6 +122,7 @@ my	$answer_ref = [
 		[qw( Red 30 2016-02-06 )],
 		[qw( Blue 10 2016-02-06 )],
 		'EOF',
+		1,
 		[ 'Superbowl Audibles', 'Column Labels', undef, undef, undef, ],
 		[ 'Row Labels', '2016-02-06', '2017-02-14', '2018-02-03', 'Grand Total' ],
 		[ 'Blue', 10, 7, undef, 17 ,],
@@ -128,6 +130,7 @@ my	$answer_ref = [
 		[ 'Red', 30, 5, 3, 38, ],
 		[ 'Grand Total', 40, 12, 5, 57, ],
 		'EOF',
+		0,
 		[undef,undef,undef,undef,undef,undef,],
 		['Hello',undef,undef,'my',undef,undef,],
 		[undef,undef,undef,undef,undef,undef,],
@@ -214,12 +217,14 @@ is			$parser->error(), 'Workbook failed to load',
 ok			1,							"The file unzipped and the parser set up without issues";
 			}
 
-			my	$offset_ref = [ 0, 8, 15 ];
+			my	$offset_ref = [ 0, 9, 17 ];
 			my	$y = 0;
 			for my $worksheet ( $workbook->worksheets() ) {
 explain		'testing worksheet: ' . $worksheet->get_name;
 				$row_ref = undef;
 			my	$x = 0;
+is			$worksheet->is_sheet_hidden, $answer_ref->[$offset_ref->[$y] + $x],
+									'Check that the sheet knows correctly if it is hidden (' . ($answer_ref->[$offset_ref->[$y] + $x++] ? 'Is' : 'Not') .')';
 			SHEETDATA: while( $x < 50 and !$row_ref or $row_ref ne 'EOF' ){
 #~ ###LogSD	if( $x == 0 ){
 #~ ###LogSD		$operator->add_name_space_bounds( {

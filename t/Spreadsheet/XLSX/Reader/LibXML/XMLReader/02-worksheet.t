@@ -19,7 +19,7 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 1330;
+use	Test::Most tests => 1338;
 use	Test::Moose;
 use	MooseX::ShortCut::BuildInstance qw( build_instance );
 use Types::Standard qw( Bool HasMethods );
@@ -31,11 +31,11 @@ use	lib
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(
 ###LogSD						name_space_bounds =>{
 ###LogSD							UNBLOCK =>{
-###LogSD								log_file => 'trace',
+###LogSD								log_file => 'warn',
 ###LogSD							},
 ###LogSD							main =>{
 ###LogSD								UNBLOCK =>{
-###LogSD									log_file => 'debug',
+###LogSD									log_file => 'info',
 ###LogSD								},
 ###LogSD							},
 ###LogSD							Test =>{
@@ -111,122 +111,126 @@ my  		@instance_methods = qw(
 				_get_next_cell
 				_get_col_row
 				_get_row_all
+				get_merged_areas
+				is_sheet_hidden
+				is_row_hidden
+				is_column_hidden
 			);
 my			$answer_ref = [
 				{ r => 'A2', row => 2, col => 1, v =>{ raw_text => '0' }, t => 's' },
-				{ r => 'D2', row => 2, col => 4, v =>{ raw_text => '2' }, t => 's' },
-				{ r => 'C4', row => 4, col => 3, v =>{ raw_text => '1' }, s => '7', t => 's' },
+				{ r => 'D2', row => 2, col => 4, v =>{ raw_text => '2' }, t => 's', cell_hidden => 'column', },#
+				{ r => 'C4', row => 4, col => 3, v =>{ raw_text => '1' }, s => '7', t => 's', cell_hidden => 'column', },
 				{ r => 'A6', row => 6, col => 1, v =>{ raw_text => '15' }, s => '11', t => 's', cell_merge => 'A6:B6' },
 				{ r => 'B6', row => 6, col => 2, s => '11', cell_merge => 'A6:B6', },
-				{ r => 'B7', row => 7, col => 2, v =>{ raw_text => '69' }, },
-				{ r => 'B8', row => 8, col => 2, v =>{ raw_text => '27' }, },
-				{ r => 'E8', row => 8, col => 5, v =>{ raw_text => '37145' }, s => 2 },
-				{ r => 'B9', row => 9, col => 2, v =>{ raw_text => '42' }, f =>{ raw_text => 'B7-B8' }, },
-				{ r => 'D10', row => 10, col => 4, s => 1, },
-				{ r => 'E10', row => 10, col => 5, v =>{ raw_text => '14' }, t => 's', s => 6, },
-				{ r => 'F10', row => 10, col => 6, v =>{ raw_text => '14' }, s => 2, t => 's', },
-				{ r => 'A11', row => 11, col => 1, v =>{ raw_text => '2.1345678901' }, s => 8, },
+				{ r => 'B7', row => 7, col => 2, v =>{ raw_text => '69' }, cell_hidden => 'row', },
+				{ r => 'B8', row => 8, col => 2, v =>{ raw_text => '27' }, cell_hidden => 'row', },
+				{ r => 'E8', row => 8, col => 5, v =>{ raw_text => '37145' }, s => 2, cell_hidden => 'row', },
+				{ r => 'B9', row => 9, col => 2, v =>{ raw_text => '42' }, f =>{ raw_text => 'B7-B8' }, cell_hidden => 'row', },
+				{ r => 'D10', row => 10, col => 4, v =>{ raw_text => '3' }, t => 's', s => 1, cell_hidden => 'column', },
+				{ r => 'E10', row => 10, col => 5, v =>{ raw_text => '14' }, t => 's', s => 6, cell_hidden => 'row', },
+				{ r => 'F10', row => 10, col => 6, v =>{ raw_text => '14' }, s => 2, t => 's', cell_hidden => 'row', },
+				{ r => 'A11', row => 11, col => 1, v =>{ raw_text => '2.1345678901' }, s => 8, cell_hidden => 'row', },
 				{ r => 'B12', row => 12, col => 2, v =>{ raw_text => undef }, f =>{ raw_text => 'IF(B11>0,"Hello","")' }, },
-				{ r => 'D12', row => 12, col => 4, v =>{ raw_text => '39118' }, f =>{ raw_text => 'DATEVALUE(E10)' }, s => 10, cell_merge => 'D12:E12' },
+				{ r => 'D12', row => 12, col => 4, v =>{ raw_text => '39118' }, f =>{ raw_text => 'DATEVALUE(E10)' }, s => 10, cell_merge => 'D12:E12', cell_hidden => 'column', },
 				{ r => 'E12', row => 12, col => 5, s => 10, cell_merge => 'D12:E12', },
-				{ r => 'C14', row => 14, col => 3, v =>{ raw_text => '3' }, t => 's', },
-				{ r => 'D14', row => 14, col => 4, v =>{ raw_text => '39118' }, f =>{ raw_text => 'D12' }, s => 9, },
+				{ r => 'C14', row => 14, col => 3, v =>{ raw_text => '3' }, t => 's', cell_hidden => 'column', },
+				{ r => 'D14', row => 14, col => 4, v =>{ raw_text => '39118' }, f =>{ raw_text => 'D12' }, s => 9, cell_hidden => 'column', },
 				{ r => 'E14', row => 14, col => 5, v =>{ raw_text => '39118' }, f =>{ raw_text => 'D14' }, s => 2, },
 				'EOF',
 				undef, undef, undef, undef, undef, undef,
 				{ r => 'A2', row => 2, col => 1, v =>{ raw_text => '0' }, t => 's' },
 				undef, undef,
-				{ r => 'D2', row => 2, col => 4, v =>{ raw_text => '2' }, t => 's' },
+				{ r => 'D2', row => 2, col => 4, v =>{ raw_text => '2' }, t => 's', cell_hidden => 'column', },
 				undef, undef,
 				undef, undef, undef, undef, undef, undef,
 				undef, undef,
-				{ r => 'C4', row => 4, col => 3, v =>{ raw_text => '1' }, s => '7', t => 's' },
+				{ r => 'C4', row => 4, col => 3, v =>{ raw_text => '1' }, s => '7', t => 's', cell_hidden => 'column', },
 				undef, undef, undef,
 				undef, undef, undef, undef, undef, undef,
 				{ r => 'A6', row => 6, col => 1, v =>{ raw_text => '15' }, s => '11', t => 's', cell_merge => 'A6:B6' },
 				{ r => 'B6', row => 6, col => 2, s => '11', cell_merge => 'A6:B6', },
 				undef, undef, undef, undef,
 				undef,
-				{ r => 'B7', row => 7, col => 2, v =>{ raw_text => '69' }, },
+				{ r => 'B7', row => 7, col => 2, v =>{ raw_text => '69' }, cell_hidden => 'row', },
 				undef, undef, undef, undef,
 				undef,
-				{ r => 'B8', row => 8, col => 2, v =>{ raw_text => '27' }, },
+				{ r => 'B8', row => 8, col => 2, v =>{ raw_text => '27' }, cell_hidden => 'row', },
 				undef, undef,
-				{ r => 'E8', row => 8, col => 5, v =>{ raw_text => '37145' }, s => 2 },
+				{ r => 'E8', row => 8, col => 5, v =>{ raw_text => '37145' }, s => 2, cell_hidden => 'row', },
 				undef,
 				undef,
-				{ r => 'B9', row => 9, col => 2, v =>{ raw_text => '42' }, f =>{ raw_text => 'B7-B8' }, },
+				{ r => 'B9', row => 9, col => 2, v =>{ raw_text => '42' }, f =>{ raw_text => 'B7-B8' }, cell_hidden => 'row', },
 				undef, undef, undef, undef,
 				undef, undef, undef,
-				{ r => 'D10', row => 10, col => 4, s => 1, },
-				{ r => 'E10', row => 10, col => 5, v =>{ raw_text => '14' }, t => 's', s => 6, },
-				{ r => 'F10', row => 10, col => 6, v =>{ raw_text => '14' }, s => 2, t => 's', },
-				{ r => 'A11', row => 11, col => 1, v =>{ raw_text => '2.1345678901' }, s => 8, },
+				{ r => 'D10', row => 10, col => 4, v =>{ raw_text => '3' }, t => 's', s => 1, cell_hidden => 'column', },
+				{ r => 'E10', row => 10, col => 5, v =>{ raw_text => '14' }, t => 's', s => 6, cell_hidden => 'row', },
+				{ r => 'F10', row => 10, col => 6, v =>{ raw_text => '14' }, s => 2, t => 's', cell_hidden => 'row', },
+				{ r => 'A11', row => 11, col => 1, v =>{ raw_text => '2.1345678901' }, s => 8, cell_hidden => 'row', },
 				undef, undef, undef, undef, undef,
 				undef,
 				{ r => 'B12', row => 12, col => 2, v =>{ raw_text => undef }, f =>{ raw_text => 'IF(B11>0,"Hello","")' }, },
 				undef,
-				{ r => 'D12', row => 12, col => 4, v =>{ raw_text => '39118' }, f =>{ raw_text => 'DATEVALUE(E10)' }, s => 10, cell_merge => 'D12:E12' },
+				{ r => 'D12', row => 12, col => 4, v =>{ raw_text => '39118' }, f =>{ raw_text => 'DATEVALUE(E10)' }, s => 10, cell_merge => 'D12:E12', cell_hidden => 'column', },
 				{ r => 'E12', row => 12, col => 5, s => 10, cell_merge => 'D12:E12', },
 				undef,
 				undef, undef, undef, undef, undef, undef,
 				undef, undef,
-				{ r => 'C14', row => 14, col => 3, v =>{ raw_text => '3' }, t => 's', },
-				{ r => 'D14', row => 14, col => 4, v =>{ raw_text => '39118' }, f =>{ raw_text => 'D12' }, s => 9, },
+				{ r => 'C14', row => 14, col => 3, v =>{ raw_text => '3' }, t => 's', cell_hidden => 'column', },
+				{ r => 'D14', row => 14, col => 4, v =>{ raw_text => '39118' }, f =>{ raw_text => 'D12' }, s => 9, cell_hidden => 'column', },
 				{ r => 'E14', row => 14, col => 5, v =>{ raw_text => '39118' }, f =>{ raw_text => 'D14' }, s => 2, },
 				undef,
 				'EOF',
 				undef, undef, undef, undef, undef, undef,'EOR',
 				{ r => 'A2', row => 2, col => 1, v =>{ raw_text => '0' }, t => 's' },
 				undef, undef,
-				{ r => 'D2', row => 2, col => 4, v =>{ raw_text => '2' }, t => 's' },
+				{ r => 'D2', row => 2, col => 4, v =>{ raw_text => '2' }, t => 's', cell_hidden => 'column', },
 				undef, undef,'EOR',
 				undef, undef, undef, undef, undef, undef,'EOR',
 				undef, undef,
-				{ r => 'C4', row => 4, col => 3, v =>{ raw_text => '1' }, s => '7', t => 's' },
+				{ r => 'C4', row => 4, col => 3, v =>{ raw_text => '1' }, s => '7', t => 's', cell_hidden => 'column', },
 				undef, undef, undef,'EOR',
 				undef, undef, undef, undef, undef, undef,'EOR',
 				{ r => 'A6', row => 6, col => 1, v =>{ raw_text => '15' }, s => '11', t => 's', cell_merge => 'A6:B6' },
 				{ r => 'B6', row => 6, col => 2, s => '11', cell_merge => 'A6:B6', },
 				undef, undef, undef, undef,'EOR',
 				undef,
-				{ r => 'B7', row => 7, col => 2, v =>{ raw_text => '69' }, },
+				{ r => 'B7', row => 7, col => 2, v =>{ raw_text => '69' }, cell_hidden => 'row', },
 				undef, undef, undef, undef,'EOR',
 				undef,
-				{ r => 'B8', row => 8, col => 2, v =>{ raw_text => '27' }, },
+				{ r => 'B8', row => 8, col => 2, v =>{ raw_text => '27' }, cell_hidden => 'row', },
 				undef, undef,
-				{ r => 'E8', row => 8, col => 5, v =>{ raw_text => '37145' }, s => 2 },
+				{ r => 'E8', row => 8, col => 5, v =>{ raw_text => '37145' }, s => 2, cell_hidden => 'row', },
 				undef,'EOR',
 				undef,
-				{ r => 'B9', row => 9, col => 2, v =>{ raw_text => '42' }, f =>{ raw_text => 'B7-B8' }, },
+				{ r => 'B9', row => 9, col => 2, v =>{ raw_text => '42' }, f =>{ raw_text => 'B7-B8' }, cell_hidden => 'row', },
 				undef, undef, undef, undef,'EOR',
 				undef, undef, undef,
-				{ r => 'D10', row => 10, col => 4, s => 1, },
-				{ r => 'E10', row => 10, col => 5, v =>{ raw_text => '14' }, t => 's', s => 6, },
-				{ r => 'F10', row => 10, col => 6, v =>{ raw_text => '14' }, s => 2, t => 's', },
+				{ r => 'D10', row => 10, col => 4, v =>{ raw_text => '3' }, t => 's', s => 1, cell_hidden => 'column', },
+				{ r => 'E10', row => 10, col => 5, v =>{ raw_text => '14' }, t => 's', s => 6, cell_hidden => 'row', },
+				{ r => 'F10', row => 10, col => 6, v =>{ raw_text => '14' }, s => 2, t => 's', cell_hidden => 'row', },
 				'EOR',
-				{ r => 'A11', row => 11, col => 1, v =>{ raw_text => '2.1345678901' }, s => 8, },
+				{ r => 'A11', row => 11, col => 1, v =>{ raw_text => '2.1345678901' }, s => 8, cell_hidden => 'row', },
 				undef, undef, undef, undef, undef,'EOR',
 				undef,
 				{ r => 'B12', row => 12, col => 2, v =>{ raw_text => undef }, f =>{ raw_text => 'IF(B11>0,"Hello","")' }, },
 				undef,
-				{ r => 'D12', row => 12, col => 4, v =>{ raw_text => '39118' }, f =>{ raw_text => 'DATEVALUE(E10)' }, s => 10, cell_merge => 'D12:E12' },
+				{ r => 'D12', row => 12, col => 4, v =>{ raw_text => '39118' }, f =>{ raw_text => 'DATEVALUE(E10)' }, s => 10, cell_merge => 'D12:E12', cell_hidden => 'column', },
 				{ r => 'E12', row => 12, col => 5, s => 10, cell_merge => 'D12:E12', },
 				undef,'EOR',
 				undef, undef, undef, undef, undef, undef,'EOR',
 				undef, undef,
-				{ r => 'C14', row => 14, col => 3, v =>{ raw_text => '3' }, t => 's', },
-				{ r => 'D14', row => 14, col => 4, v =>{ raw_text => '39118' }, f =>{ raw_text => 'D12' }, s => 9, },
+				{ r => 'C14', row => 14, col => 3, v =>{ raw_text => '3' }, t => 's', cell_hidden => 'column', },
+				{ r => 'D14', row => 14, col => 4, v =>{ raw_text => '39118' }, f =>{ raw_text => 'D12' }, s => 9, cell_hidden => 'column', },
 				{ r => 'E14', row => 14, col => 5, v =>{ raw_text => '39118' }, f =>{ raw_text => 'D14' }, s => 2, },
 				undef,'EOF',
 				[undef, undef, undef, undef, undef, undef,],
 				[
 					{ r => 'A2', row => 2, col => 1, v =>{ raw_text => '0' }, t => 's' },undef, undef,
-					{ r => 'D2', row => 2, col => 4, v =>{ raw_text => '2' }, t => 's' },undef, undef,
+					{ r => 'D2', row => 2, col => 4, v =>{ raw_text => '2' }, t => 's', cell_hidden => 'column', },undef, undef,
 				],
 				[undef, undef, undef, undef, undef, undef,],
 				[
-					undef, undef,{ r => 'C4', row => 4, col => 3, v =>{ raw_text => '1' }, s => '7', t => 's' }, undef, undef, undef,
+					undef, undef,{ r => 'C4', row => 4, col => 3, v =>{ raw_text => '1' }, s => '7', t => 's', cell_hidden => 'column', }, undef, undef, undef,
 				],
 				[undef, undef, undef, undef, undef, undef,],
 				[
@@ -234,118 +238,118 @@ my			$answer_ref = [
 					{ r => 'B6', row => 6, col => 2, s => '11', cell_merge => 'A6:B6', }, undef, undef, undef, undef,
 				],
 				[
-					undef,{ r => 'B7', row => 7, col => 2, v =>{ raw_text => '69' }, }, undef, undef, undef, undef,
+					undef,{ r => 'B7', row => 7, col => 2, v =>{ raw_text => '69' }, cell_hidden => 'row', }, undef, undef, undef, undef,
 				],
 				[
-					undef,{ r => 'B8', row => 8, col => 2, v =>{ raw_text => '27' }, },undef, undef,
-					{ r => 'E8', row => 8, col => 5, v =>{ raw_text => '37145' }, s => 2 }, undef,
+					undef,{ r => 'B8', row => 8, col => 2, v =>{ raw_text => '27' }, cell_hidden => 'row', },undef, undef,
+					{ r => 'E8', row => 8, col => 5, v =>{ raw_text => '37145' }, s => 2, cell_hidden => 'row', }, undef,
 				],
 				[
-					undef,{ r => 'B9', row => 9, col => 2, v =>{ raw_text => '42' }, f =>{ raw_text => 'B7-B8' }, }, undef, undef, undef, undef,
+					undef,{ r => 'B9', row => 9, col => 2, v =>{ raw_text => '42' }, f =>{ raw_text => 'B7-B8' }, cell_hidden => 'row', }, undef, undef, undef, undef,
 				],
 				[
-					undef, undef, undef,{ r => 'D10', row => 10, col => 4, s => 1, },
-					{ r => 'E10', row => 10, col => 5, v =>{ raw_text => '14' }, t => 's', s => 6, },
-					{ r => 'F10', row => 10, col => 6, v =>{ raw_text => '14' }, s => 2, t => 's', },
+					undef, undef, undef,{ r => 'D10', row => 10, col => 4, v =>{ raw_text => '3' }, t => 's', s => 1, cell_hidden => 'column', },
+					{ r => 'E10', row => 10, col => 5, v =>{ raw_text => '14' }, t => 's', s => 6, cell_hidden => 'row', },
+					{ r => 'F10', row => 10, col => 6, v =>{ raw_text => '14' }, s => 2, t => 's', cell_hidden => 'row', },
 				],
 				[
-					{ r => 'A11', row => 11, col => 1, v =>{ raw_text => '2.1345678901' }, s => 8, }, undef, undef, undef, undef, undef,
+					{ r => 'A11', row => 11, col => 1, v =>{ raw_text => '2.1345678901' }, s => 8, cell_hidden => 'row', }, undef, undef, undef, undef, undef,
 				],
 				[
 					undef,
 					{ r => 'B12', row => 12, col => 2, v =>{ raw_text => undef }, f =>{ raw_text => 'IF(B11>0,"Hello","")' }, }, undef,
-					{ r => 'D12', row => 12, col => 4, v =>{ raw_text => '39118' }, f =>{ raw_text => 'DATEVALUE(E10)' }, s => 10, cell_merge => 'D12:E12' },
+					{ r => 'D12', row => 12, col => 4, v =>{ raw_text => '39118' }, f =>{ raw_text => 'DATEVALUE(E10)' }, s => 10, cell_merge => 'D12:E12', cell_hidden => 'column', },
 					{ r => 'E12', row => 12, col => 5, s => 10, cell_merge => 'D12:E12', }, undef,
 				],
 				[undef, undef, undef, undef, undef, undef,],
 				[
-					undef, undef,{ r => 'C14', row => 14, col => 3, v =>{ raw_text => '3' }, t => 's', },
-					{ r => 'D14', row => 14, col => 4, v =>{ raw_text => '39118' }, f =>{ raw_text => 'D12' }, s => 9, },
+					undef, undef,{ r => 'C14', row => 14, col => 3, v =>{ raw_text => '3' }, t => 's', cell_hidden => 'column', },
+					{ r => 'D14', row => 14, col => 4, v =>{ raw_text => '39118' }, f =>{ raw_text => 'D12' }, s => 9, cell_hidden => 'column', },
 					{ r => 'E14', row => 14, col => 5, v =>{ raw_text => '39118' }, f =>{ raw_text => 'D14' }, s => 2, }, undef,
 				],	
 				'EOF',
 				{ r => 'A2', row => 2, col => 1, v =>{ raw_text => '0' }, t => 's' },
 				undef, undef,
-				{ r => 'D2', row => 2, col => 4, v =>{ raw_text => '2' }, t => 's' },
+				{ r => 'D2', row => 2, col => 4, v =>{ raw_text => '2' }, t => 's', cell_hidden => 'column', },
 				undef,
 				undef, undef,
-				{ r => 'C4', row => 4, col => 3, v =>{ raw_text => '1' }, s => '7', t => 's' },
+				{ r => 'C4', row => 4, col => 3, v =>{ raw_text => '1' }, s => '7', t => 's', cell_hidden => 'column', },
 				undef,
 				{ r => 'A6', row => 6, col => 1, v =>{ raw_text => '15' }, s => '11', t => 's', cell_merge => 'A6:B6' },
 				{ r => 'B6', row => 6, col => 2, s => '11', cell_merge => 'A6:B6', },
 				undef,
-				{ r => 'B7', row => 7, col => 2, v =>{ raw_text => '69' }, },
+				{ r => 'B7', row => 7, col => 2, v =>{ raw_text => '69' }, cell_hidden => 'row', },
 				undef,
-				{ r => 'B8', row => 8, col => 2, v =>{ raw_text => '27' }, },
+				{ r => 'B8', row => 8, col => 2, v =>{ raw_text => '27' }, cell_hidden => 'row', },
 				undef, undef,
-				{ r => 'E8', row => 8, col => 5, v =>{ raw_text => '37145' }, s => 2 },
+				{ r => 'E8', row => 8, col => 5, v =>{ raw_text => '37145' }, s => 2, cell_hidden => 'row', },
 				undef,
-				{ r => 'B9', row => 9, col => 2, v =>{ raw_text => '42' }, f =>{ raw_text => 'B7-B8' }, },
+				{ r => 'B9', row => 9, col => 2, v =>{ raw_text => '42' }, f =>{ raw_text => 'B7-B8' }, cell_hidden => 'row', },
 				undef, undef, undef,
-				{ r => 'D10', row => 10, col => 4, s => 1, },
-				{ r => 'E10', row => 10, col => 5, v =>{ raw_text => '14' }, t => 's', s => 6, },
-				{ r => 'F10', row => 10, col => 6, v =>{ raw_text => '14' }, s => 2, t => 's', },
-				{ r => 'A11', row => 11, col => 1, v =>{ raw_text => '2.1345678901' }, s => 8, },
+				{ r => 'D10', row => 10, col => 4, v =>{ raw_text => '3' }, t => 's', s => 1, cell_hidden => 'column', },
+				{ r => 'E10', row => 10, col => 5, v =>{ raw_text => '14' }, t => 's', s => 6, cell_hidden => 'row', },
+				{ r => 'F10', row => 10, col => 6, v =>{ raw_text => '14' }, s => 2, t => 's', cell_hidden => 'row', },
+				{ r => 'A11', row => 11, col => 1, v =>{ raw_text => '2.1345678901' }, s => 8, cell_hidden => 'row', },
 				undef,
 				{ r => 'B12', row => 12, col => 2, v =>{ raw_text => undef }, f =>{ raw_text => 'IF(B11>0,"Hello","")' }, }, undef,
-				{ r => 'D12', row => 12, col => 4, v =>{ raw_text => '39118' }, f =>{ raw_text => 'DATEVALUE(E10)' }, s => 10, cell_merge => 'D12:E12' },
+				{ r => 'D12', row => 12, col => 4, v =>{ raw_text => '39118' }, f =>{ raw_text => 'DATEVALUE(E10)' }, s => 10, cell_merge => 'D12:E12', cell_hidden => 'column', },
 				{ r => 'E12', row => 12, col => 5, s => 10, cell_merge => 'D12:E12', },
 				undef,
 				undef, undef,
-				{ r => 'C14', row => 14, col => 3, v =>{ raw_text => '3' }, t => 's', },
-				{ r => 'D14', row => 14, col => 4, v =>{ raw_text => '39118' }, f =>{ raw_text => 'D12' }, s => 9, },
-				{ r => 'E14', row => 14, col => 5, v =>{ raw_text => '39118' }, f =>{ raw_text => 'D14' }, s => 2, },
+				{ r => 'C14', row => 14, col => 3, v =>{ raw_text => '3' }, t => 's', cell_hidden => 'column', },
+				{ r => 'D14', row => 14, col => 4, v =>{ raw_text => '39118' }, f =>{ raw_text => 'D12' }, s => 9, cell_hidden => 'column', },
+				{ r => 'E14', row => 14, col => 5, v =>{ raw_text => '39118' }, f =>{ raw_text => 'D14' }, s => 2 },
 				'EOF',
 				'EOR',
 				{ r => 'A2', row => 2, col => 1, v =>{ raw_text => '0' }, t => 's' },
 				undef, undef,
-				{ r => 'D2', row => 2, col => 4, v =>{ raw_text => '2' }, t => 's' },
+				{ r => 'D2', row => 2, col => 4, v =>{ raw_text => '2' }, t => 's', cell_hidden => 'column', },
 				'EOR',
 				'EOR',
 				undef, undef,
-				{ r => 'C4', row => 4, col => 3, v =>{ raw_text => '1' }, s => '7', t => 's' },
+				{ r => 'C4', row => 4, col => 3, v =>{ raw_text => '1' }, s => '7', t => 's', cell_hidden => 'column', },
 				'EOR',
 				'EOR',
 				{ r => 'A6', row => 6, col => 1, v =>{ raw_text => '15' }, s => '11', t => 's', cell_merge => 'A6:B6' },
 				{ r => 'B6', row => 6, col => 2, s => '11', cell_merge => 'A6:B6', },
 				'EOR',
 				undef,
-				{ r => 'B7', row => 7, col => 2, v =>{ raw_text => '69' }, },
+				{ r => 'B7', row => 7, col => 2, v =>{ raw_text => '69' }, cell_hidden => 'row', },
 				'EOR',
 				undef,
-				{ r => 'B8', row => 8, col => 2, v =>{ raw_text => '27' }, },
+				{ r => 'B8', row => 8, col => 2, v =>{ raw_text => '27' }, cell_hidden => 'row', },
 				undef, undef,
-				{ r => 'E8', row => 8, col => 5, v =>{ raw_text => '37145' }, s => 2 },
+				{ r => 'E8', row => 8, col => 5, v =>{ raw_text => '37145' }, s => 2, cell_hidden => 'row', },
 				'EOR',
 				undef,
-				{ r => 'B9', row => 9, col => 2, v =>{ raw_text => '42' }, f =>{ raw_text => 'B7-B8' }, },
+				{ r => 'B9', row => 9, col => 2, v =>{ raw_text => '42' }, f =>{ raw_text => 'B7-B8' }, cell_hidden => 'row', },
 				'EOR',
 				undef, undef, undef,
-				{ r => 'D10', row => 10, col => 4, s => 1, },
-				{ r => 'E10', row => 10, col => 5, v =>{ raw_text => '14' }, t => 's', s => 6, },
-				{ r => 'F10', row => 10, col => 6, v =>{ raw_text => '14' }, s => 2, t => 's', },
+				{ r => 'D10', row => 10, col => 4, v =>{ raw_text => '3' }, t => 's', s => 1, cell_hidden => 'column', },
+				{ r => 'E10', row => 10, col => 5, v =>{ raw_text => '14' }, t => 's', s => 6, cell_hidden => 'row', },
+				{ r => 'F10', row => 10, col => 6, v =>{ raw_text => '14' }, s => 2, t => 's', cell_hidden => 'row', },
 				'EOR',
-				{ r => 'A11', row => 11, col => 1, v =>{ raw_text => '2.1345678901' }, s => 8, },
+				{ r => 'A11', row => 11, col => 1, v =>{ raw_text => '2.1345678901' }, s => 8, cell_hidden => 'row', },
 				'EOR',
 				undef,
 				{ r => 'B12', row => 12, col => 2, v =>{ raw_text => undef }, f =>{ raw_text => 'IF(B11>0,"Hello","")' }, }, undef,
-				{ r => 'D12', row => 12, col => 4, v =>{ raw_text => '39118' }, f =>{ raw_text => 'DATEVALUE(E10)' }, s => 10, cell_merge => 'D12:E12' },
+				{ r => 'D12', row => 12, col => 4, v =>{ raw_text => '39118' }, f =>{ raw_text => 'DATEVALUE(E10)' }, s => 10, cell_merge => 'D12:E12', cell_hidden => 'column', },
 				{ r => 'E12', row => 12, col => 5, s => 10, cell_merge => 'D12:E12', },
 				'EOR',
 				'EOR',
 				undef, undef,
-				{ r => 'C14', row => 14, col => 3, v =>{ raw_text => '3' }, t => 's', },
-				{ r => 'D14', row => 14, col => 4, v =>{ raw_text => '39118' }, f =>{ raw_text => 'D12' }, s => 9, },
-				{ r => 'E14', row => 14, col => 5, v =>{ raw_text => '39118' }, f =>{ raw_text => 'D14' }, s => 2, },
+				{ r => 'C14', row => 14, col => 3, v =>{ raw_text => '3' }, t => 's', cell_hidden => 'column', },
+				{ r => 'D14', row => 14, col => 4, v =>{ raw_text => '39118' }, f =>{ raw_text => 'D12' }, s => 9, cell_hidden => 'column', },
+				{ r => 'E14', row => 14, col => 5, v =>{ raw_text => '39118' }, f =>{ raw_text => 'D14' }, s => 2 },
 				'EOF',
 				[],
 				[
 					{ r => 'A2', row => 2, col => 1, v =>{ raw_text => '0' }, t => 's' },undef, undef,
-					{ r => 'D2', row => 2, col => 4, v =>{ raw_text => '2' }, t => 's' },
+					{ r => 'D2', row => 2, col => 4, v =>{ raw_text => '2' }, t => 's', cell_hidden => 'column', },
 				],
 				[],
 				[
-					undef, undef,{ r => 'C4', row => 4, col => 3, v =>{ raw_text => '1' }, s => '7', t => 's' },
+					undef, undef,{ r => 'C4', row => 4, col => 3, v =>{ raw_text => '1' }, s => '7', t => 's', cell_hidden => 'column', },
 				],
 				[],
 				[
@@ -353,33 +357,33 @@ my			$answer_ref = [
 					{ r => 'B6', row => 6, col => 2, s => '11', cell_merge => 'A6:B6', },
 				],
 				[
-					undef,{ r => 'B7', row => 7, col => 2, v =>{ raw_text => '69' }, },
+					undef,{ r => 'B7', row => 7, col => 2, v =>{ raw_text => '69' }, cell_hidden => 'row', },
 				],
 				[
-					undef,{ r => 'B8', row => 8, col => 2, v =>{ raw_text => '27' }, },undef, undef,
-					{ r => 'E8', row => 8, col => 5, v =>{ raw_text => '37145' }, s => 2 },
+					undef,{ r => 'B8', row => 8, col => 2, v =>{ raw_text => '27' }, cell_hidden => 'row', },undef, undef,
+					{ r => 'E8', row => 8, col => 5, v =>{ raw_text => '37145' }, s => 2, cell_hidden => 'row', },
 				],
 				[
-					undef,{ r => 'B9', row => 9, col => 2, v =>{ raw_text => '42' }, f =>{ raw_text => 'B7-B8' }, },
+					undef,{ r => 'B9', row => 9, col => 2, v =>{ raw_text => '42' }, f =>{ raw_text => 'B7-B8' }, cell_hidden => 'row', },
 				],
 				[
-					undef, undef, undef,{ r => 'D10', row => 10, col => 4, s => 1, },
-					{ r => 'E10', row => 10, col => 5, v =>{ raw_text => '14' }, t => 's', s => 6, },
-					{ r => 'F10', row => 10, col => 6, v =>{ raw_text => '14' }, s => 2, t => 's', },
+					undef, undef, undef,{ r => 'D10', row => 10, col => 4, v =>{ raw_text => '3' }, t => 's', s => 1, cell_hidden => 'column', },
+					{ r => 'E10', row => 10, col => 5, v =>{ raw_text => '14' }, t => 's', s => 6, cell_hidden => 'row', },
+					{ r => 'F10', row => 10, col => 6, v =>{ raw_text => '14' }, s => 2, t => 's', cell_hidden => 'row', },
 				],
 				[
-					{ r => 'A11', row => 11, col => 1, v =>{ raw_text => '2.1345678901' }, s => 8, },
+					{ r => 'A11', row => 11, col => 1, v =>{ raw_text => '2.1345678901' }, s => 8, cell_hidden => 'row', },
 				],
 				[
 					undef,
 					{ r => 'B12', row => 12, col => 2, v =>{ raw_text => undef }, f =>{ raw_text => 'IF(B11>0,"Hello","")' }, }, undef,
-					{ r => 'D12', row => 12, col => 4, v =>{ raw_text => '39118' }, f =>{ raw_text => 'DATEVALUE(E10)' }, s => 10, cell_merge => 'D12:E12' },
+					{ r => 'D12', row => 12, col => 4, v =>{ raw_text => '39118' }, f =>{ raw_text => 'DATEVALUE(E10)' }, s => 10, cell_merge => 'D12:E12', cell_hidden => 'column', },
 					{ r => 'E12', row => 12, col => 5, s => 10, cell_merge => 'D12:E12', },
 				],
 				[],
 				[
-					undef, undef,{ r => 'C14', row => 14, col => 3, v =>{ raw_text => '3' }, t => 's', },
-					{ r => 'D14', row => 14, col => 4, v =>{ raw_text => '39118' }, f =>{ raw_text => 'D12' }, s => 9, },
+					undef, undef,{ r => 'C14', row => 14, col => 3, v =>{ raw_text => '3' }, t => 's', cell_hidden => 'column', },
+					{ r => 'D14', row => 14, col => 4, v =>{ raw_text => '39118' }, f =>{ raw_text => 'D12' }, s => 9, cell_hidden => 'column', },
 					{ r => 'E14', row => 14, col => 5, v =>{ raw_text => '39118' }, f =>{ raw_text => 'D14' }, s => 2, },
 				],	
 				'EOF',
@@ -464,6 +468,7 @@ lives_ok{
 				error_inst			=> $error_instance,
 				sheet_name			=> 'Sheet3',
 				workbook_instance	=> $workbook_instance,
+				is_hidden 			=> 0,
 			###LogSD	log_space	=> 'Test',
 			);
 			###LogSD	$phone->talk( level => 'info', message =>[ "Loaded test instance" ] );
@@ -491,6 +496,24 @@ explain									"read through value cells ...";
 explain									"Running cycle: $y";
 			my $x = 0;
 			while( $x < 20 and (!$result or $result ne 'EOF') ){
+				
+#~ ###LogSD	my $expose = 15;
+#~ ###LogSD	if( $x == $expose and $y == 1 ){
+#~ ###LogSD		$operator->add_name_space_bounds( {
+#~ ###LogSD			Test =>{
+#~ ###LogSD				_get_next_value_cell =>{
+#~ ###LogSD					UNBLOCK =>{
+#~ ###LogSD						log_file => 'trace',
+#~ ###LogSD					},
+#~ ###LogSD				},
+#~ ###LogSD			},
+#~ ###LogSD		} );
+#~ ###LogSD	}
+
+#~ ###LogSD	elsif( $x > ($expose +2) and $y > 0 ){
+#~ ###LogSD		exit 1;
+#~ ###LogSD	}
+
 lives_ok{	$result = $test_instance->_get_next_value_cell }
 										"Collecting data from position: $x";
 ###LogSD	$phone->talk( level => 'debug', message => [ "result at position -$x- is:", $result,
@@ -498,7 +521,7 @@ lives_ok{	$result = $test_instance->_get_next_value_cell }
 is_deeply	$result, $answer_ref->[$x++],"..and see if it has good info";
 			}
 			}
-			
+		
 explain									"read through all cells in sequence...";
 			for my $y (1..2){
 			my $result = undef;
@@ -518,7 +541,7 @@ explain									"read row columns through cells in sequence...";
 			for my $y (1..2){
 explain									"Running cycle: $y";
 			my $y_dim = 1;
-			my $x = 105;
+			my $x = 105;#############################################################
 			my	$result = undef;
 			while( $x < 203 and (!$result or $result ne 'EOF') ){
 			my	$x_dim = 1;
@@ -559,6 +582,7 @@ lives_ok{
 				error_inst			=> $error_instance,
 				sheet_name			=> 'Sheet3',
 				workbook_instance	=> $workbook_instance,
+				is_hidden			=> 0,
 			###LogSD	log_space	=> 'Test',
 			);
 ###LogSD	$phone->talk( level => 'trace', message =>[ "Loaded new test instance - without the edges" ] );
@@ -615,7 +639,23 @@ is_deeply	$result, $answer_ref->[$x++],"..and see if it has good info";
 			$y_dim++;
 			}
 			}
-
+is			$test_instance->is_sheet_hidden, 0,
+										'Check if the sheet is hidden (Not)';
+is_deeply	[ $test_instance->is_column_hidden( 1 .. 6 ) ], [ 0, 0, 1, 1, 0, 0 ],
+										'Check that the sheet knows which columns are hidden - by number';
+is_deeply	[ $test_instance->is_column_hidden( 'A', 'B', 'C', 'D', 'E', 'F' ) ], [ 0, 0, 1, 1, 0, 0 ],
+										'Check that the sheet knows which columns are hidden - by letter';
+###LogSD		$operator->add_name_space_bounds( {
+###LogSD			Test =>{
+###LogSD				is_row_hidden =>{
+###LogSD					UNBLOCK =>{
+###LogSD						log_file => 'trace',
+###LogSD					},
+###LogSD				},
+###LogSD			},
+###LogSD		} );
+is_deeply	[ $test_instance->is_row_hidden( 0 .. 15 ) ], [ undef, undef, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, undef ],
+										'Check that the sheet knows which rows are hidden - by number';
 explain 								"...Test Done";
 done_testing();
 

@@ -19,7 +19,7 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 727;
+use	Test::Most tests => 735;
 use	Test::Moose;
 use IO::File;
 use XML::LibXML::Reader;
@@ -38,9 +38,9 @@ use	lib
 #~ use Log::Shiras::Switchboard qw( :debug );
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(#
 ###LogSD						name_space_bounds =>{
-#~ ###LogSD							UNBLOCK =>{
-#~ ###LogSD								log_file => 'trace',
-#~ ###LogSD							},
+###LogSD							UNBLOCK =>{
+###LogSD								log_file => 'trace',
+###LogSD							},
 ###LogSD							main =>{
 ###LogSD								UNBLOCK =>{
 ###LogSD									log_file => 'info',
@@ -108,7 +108,7 @@ my			$answer_list =[
 				{},{ cell_id => 'B8', row => 7, col => 1, type => 'Numeric', unformatted => '27', value => '27' },{},{},
 				{ cell_id => 'E8', row => 7, col => 4, type => 'Date', unformatted => '37145', value => '12-Sep-05', coercion_name => 'Excel_date_164' },{},
 				{},{ cell_id => 'B9', row => 8, col => 1, type => 'Numeric', unformatted => '42', value => '42', formula => 'B7-B8' },{},{},{},{},
-				{},{},{},{ cell_id => 'D10', row => 9, col => 3, type => 'Custom', unformatted => undef, value => undef, coercion_name => 'YYYYMMDD' },
+				{},{},{},{ cell_id => 'D10', row => 9, col => 3, type => 'Custom', unformatted => ' ', value => ' ', coercion_name => 'YYYYMMDD' },
 				{ cell_id => 'E10', row => 9, col => 4, type => 'Custom', unformatted => '2/6/2011', value => '2011-02-06T00:00:00', coercion_name => 'Custom_date_type' },
 				{ cell_id => 'F10', row => 9, col => 5, type => 'Custom', unformatted => '2/6/2011', value => '2011-02-06', coercion_name => 'YYYYMMDD' },
 				{ cell_id => 'A11', row => 10, col => 0, type => 'Numeric', unformatted => '2.1345678901', value => '2.13', coercion_name => 'Excel_number_2' },{},{},{},{},{},
@@ -134,6 +134,7 @@ my			$answer_list =[
 				{ cell_id => 'B8', row => 7, col => 1, type => 'Numeric', unformatted => '27', value => '27' },
 				{ cell_id => 'E8', row => 7, col => 4, type => 'Date', unformatted => '37145', value => '12-Sep-05', coercion_name => 'Excel_date_164' },
 				{ cell_id => 'B9', row => 8, col => 1, type => 'Numeric', unformatted => '42', value => '42', formula => 'B7-B8' },
+				{ cell_id => 'D10', row => 9, col => 3, type => 'Custom', unformatted => ' ', value => ' ', coercion_name => 'YYYYMMDD' },
 				{ cell_id => 'E10', row => 9, col => 4, type => 'Custom', unformatted => '2/6/2011', value => '2011-02-06T00:00:00', coercion_name => 'Custom_date_type' },
 				{ cell_id => 'F10', row => 9, col => 5, type => 'Custom', unformatted => '2/6/2011', value => '2011-02-06', coercion_name => 'YYYYMMDD' },
 				{ cell_id => 'A11', row => 10, col => 0, type => 'Numeric', unformatted => '2.1345678901', value => '2.13', coercion_name => 'Excel_number_2' },
@@ -180,7 +181,7 @@ my			$answer_list =[
 					{},{ cell_id => 'B9', row => 8, col => 1, type => 'Numeric', unformatted => '42', value => '42', formula => 'B7-B8' },{},{},{},{},
 				],
 				[
-					{},{},{},{ cell_id => 'D10', row => 9, col => 3, type => 'Custom', unformatted => undef, value => undef, coercion_name => 'YYYYMMDD' },
+					{},{},{},{ cell_id => 'D10', row => 9, col => 3, type => 'Custom', unformatted => ' ', value => ' ', coercion_name => 'YYYYMMDD' },
 					{ cell_id => 'E10', row => 9, col => 4, type => 'Custom', unformatted => '2/6/2011', value => '2011-02-06T00:00:00', coercion_name => 'Custom_date_type' },
 					{ cell_id => 'F10', row => 9, col => 5, type => 'Custom', unformatted => '2/6/2011', value => '2011-02-06', coercion_name => 'YYYYMMDD' },
 				],
@@ -210,7 +211,7 @@ my			$answer_list =[
 				[undef,'69',undef,undef,undef,undef,],
 				[undef,'27',undef,undef,'37145',undef,],
 				[undef,'42',,undef,undef,undef,undef,],
-				[undef,undef,undef,undef,'2/6/2011','2/6/2011',],
+				[undef,undef,undef,' ','2/6/2011','2/6/2011',],
 				['2.1345678901',undef,undef,undef,undef,undef,],
 				[undef,undef,undef,'39118',undef,undef,],
 				[undef,undef,undef,undef,undef,undef,],
@@ -479,7 +480,7 @@ ok			$test_instance->set_values_only( 1 ),
 explain									"Test get_next_value with values_only = 1";
 			$cell = undef;
 			$x = 0;
-			VALUERUN: while( $x < 105 and (!$cell or ref $cell eq 'Spreadsheet::XLSX::Reader::LibXML::Cell' ) ){
+			VALUERUN: while( $x < 106 and (!$cell or ref $cell eq 'Spreadsheet::XLSX::Reader::LibXML::Cell' ) ){
 				my $position = $x + 85;
 
 #~ ###LogSD	if( $x == 3 ){
@@ -522,8 +523,8 @@ is			$test_instance->set_values_only( 0 ), 0,
 explain									"Test fetchrow_arrayref";
 			$row_ref = undef;
 			$x = 0;
-			$offset = 102;
-			ROWREFRUN: while( $x < 117 and ( !$row_ref or ref $row_ref eq 'ARRAY' ) ){
+			$offset = 103;
+			ROWREFRUN: while( $x < 118 and ( !$row_ref or ref $row_ref eq 'ARRAY' ) ){
 				my $position = $x + $offset;
 
 #~ ###LogSD	if( $x == 1 ){
@@ -586,8 +587,8 @@ ok			$test_instance->change_boundary_flag( 1 ),
 ok			$workbook_instance->set_group_return_type( 'unformatted' ),
 										"Return just the cell coerced values rather than a Cell instance";
 			$x = 0;
-			$offset = 117;
-			ROWARRAYRUN: while( $x < 133 and ( !$row_ref or !$row_ref->[0] or $row_ref->[0] ne 'EOF' ) ){
+			$offset = 118;
+			ROWARRAYRUN: while( $x < 134 and ( !$row_ref or !$row_ref->[0] or $row_ref->[0] ne 'EOF' ) ){
 				my $position = $x + $offset;
 
 #~ ###LogSD	if( $x == 1 ){
@@ -658,15 +659,15 @@ is			$test_instance->error, 		"Headers must be set prior to calling fetchrow_has
 ###LogSD				log_file => 'trace',
 ###LogSD			},
 ###LogSD		} );
-is_deeply	$test_instance->set_headers( 1 ), $answer_list->[132],
+is_deeply	$test_instance->set_headers( 1 ), $answer_list->[133],
 										"Set the headers for building a hashref";
 ###LogSD	exit 1;
 ok			$test_instance->set_max_header_col( 3 ),,
 										"Set the maximum header column";
 			$row_ref = undef;
 			$x = 0;
-			$offset = 133;
-			HASHREFRUN: while( $x < 138 and ( !$row_ref or ref $row_ref eq 'HASH' ) ){
+			$offset = 134;
+			HASHREFRUN: while( $x < 139 and ( !$row_ref or ref $row_ref eq 'HASH' ) ){
 				my $position = $x + $offset;
 
 #~ ###LogSD	if( $x == 0 ){

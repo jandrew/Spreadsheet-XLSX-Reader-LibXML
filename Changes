@@ -11,10 +11,28 @@ be method matched to Spreadsheet::ParseExcel prior to the 1.0 release.
 
 {{$NEXT}}
 
+	* Another cool change
+
+v0.38.12  2015-08-18 05:35:36-07:00 America/Los_Angeles
+	
+	+ Make the decimal vs scientific choice for hidden formatting more robust( issue 65 on github )
+	+ Adding tests for hidden tabs rows columns and cells in the worksheet and cell
+	+ Adding the method 'get_merged_areas' to match ~::ParseExcel
+	+ For compatability purposes this package will now test (during import) to see if it's being 
+		used in Spreadsheet::Read (potential future) and automatically push the :like_ParseExcel 
+		tag on the end of the tag list so that it will behave consistently to ParseExcel for a common 
+		reader. (This is a beta feature and not guaranteed to remain)
+	+ This package now supports stacked flags (not that there exists so many already)
+		The purpose of this is as I run into additional use cases the intersection of 
+		the flags I support and the flags that are desired by the user may require some juggling.
+		Where flags disagree in their defaults the last flag passed will be used.  This should allow 
+		for the proliferation of flags for specialty cases without having to explicitly build one 
+		for each use case. (At some point though you may just want to use the attributes).
+		The test for this is t/Spreadsheet/XLSX/Reader/06-stacked_flags.t
+
+v0.38.10  2015-08-10 21:43:11-07:00 America/Los_Angeles
+
 	! Fix TravisCI build fail on test 60-hidden_format_strings.t
-
-v0.38.10  2015-08-10 15:26:25-07:00 America/Los_Angeles
-
 	! Closes #60 in github
 	! Exclude text to sprintf number test bug
 	! Added a return the 'xml_value' only option to the 'group_return_type' attribute
