@@ -410,74 +410,56 @@ sub _build_out_the_cell{
 		###LogSD		"processing cell object from cell ref:", $result ] );
 		my $scientific_format;
 		$return->{cell_xml_value} = $result->{v}->{raw_text} if exists $result->{v} and exists $result->{v}->{raw_text};
-		if( exists $return->{cell_xml_value} and defined $return->{cell_xml_value} and $return->{cell_xml_value} =~ /^-?(\d+)?\.?(\d+)?[Ee](-)?(\d+)$/ and ( $1 or $2 ) ){#Implement implied output formatting intrensic to Excel for scientific notiation
+		if( exists $return->{cell_xml_value} and defined $return->{cell_xml_value} and $return->{cell_xml_value} =~ /^(\-)?((\d+)?\.?(\d+)?)[Ee](\-)?(\d+)$/ and $2 and $6 ){#Implement implied output formatting intrensic to Excel for scientific notiation
 			###LogSD	$phone->talk( level => 'trace', message =>[
 			###LogSD		"Found special scientific notation case were stored values and visible values possibly differ" ] );
-			my ( $mid_sig_digits, $short_sig_digits );
-			my	$long_test_decimal = sprintf '%.30f', $return->{cell_xml_value};
-				$long_test_decimal =~ /\.(0*)(.*[1-9])(0*)$/;
-			my	$long_sig_digits = defined $3 ? ( 30 - length( $3 ) ) : 30;
-			my	$start_significant = defined $1 ? (length( $1 ) + 1) : 1;
-			my	$mid_test_decimal = sprintf '%.19f', $return->{cell_xml_value};
-			my	$short_test_decimal = sprintf '%.15f', $return->{cell_xml_value};
+			my	$dec_sign = $1 ? $1 : '';
+			my	$decimal = $2;
+			my	$exp_sign = $5 ? $5 : '';
+			my	$exponent = $6;
+				$decimal = sprintf '%.14f', $decimal;
+			$decimal =~ /([1-9])?\.(.*[1-9])?(0*)$/;
+			my	$last_sig_digit = 
+					!$2         ? 0 :
+					defined $3 ? 14 - length( $3 ) : 14 ;
+			my $initial_significant_digits = length( $exp_sign ) > 0 ? ($last_sig_digit + $exponent) : ($last_sig_digit - $exponent);
+			#~ my $sig_digit_delta = 
 			###LogSD	$phone->talk( level => 'debug', message =>[
-			###LogSD		"Initial test decimals:", $long_test_decimal, $mid_test_decimal, $short_test_decimal,] );
-			if( $mid_test_decimal =~ /([\-\d]*(\.)?(0*)(.*[1-9]))(0*)$/ ){
-				$mid_test_decimal = $1;
-				$mid_sig_digits = defined $5 ? ( 19 - length( $5 ) ) : 19;
-			}else{
-				$mid_sig_digits = 0;
-			}
-			if( $short_test_decimal =~ /([\-\d]*(\.)?(0*)(.*[1-9]))(0*)$/ ){
-				$short_test_decimal = $1;
-				$short_sig_digits = defined $5 ? ( 15 - length( $5 ) ) : 15;
-			}else{
-				$short_sig_digits = 0;
-			}
-			my 	$absolute_delta = abs( $long_test_decimal - $short_test_decimal );
-			###LogSD	$phone->talk( level => 'debug', message =>[
-			###LogSD		"The raw value decimal has -$long_sig_digits- significant digits past the decimal: $long_test_decimal",
-			###LogSD		"..with starting significant digits at: $start_significant",
-			###LogSD		"When rounding inside 15 significant digits it is: $short_test_decimal",
-			###LogSD		"..with final significant digits at: $short_sig_digits",
-			###LogSD		"When rounding inside 19 it is: $mid_test_decimal",
-			###LogSD		"..and the final significant digit at position: $mid_sig_digits",
-			###LogSD		"..the delta between short and long is: " . $absolute_delta,] );
-			if( $start_significant < 20 and ( $long_sig_digits < 20 or $absolute_delta < 1e-24 ) ){#
-				my $mid_to_short_delta = abs($short_test_decimal - $mid_test_decimal);
-				###LogSD	$phone->talk( level => 'trace', message =>[
-				###LogSD		"The number can acceptably be represented by a decimal with 19 or fewer significant digits",
-				###LogSD		"The delta between the mid option and the short option is: $mid_to_short_delta" ] );
-				if( $mid_to_short_delta < 1e-19 ){
-					$return->{cell_unformatted} = $short_test_decimal;
-					$mid_sig_digits = $short_sig_digits;
-				}else{
-					$return->{cell_unformatted} = $mid_test_decimal;
-				}
+			###LogSD		"Processing decimal                          : $decimal",
+			###LogSD		"Final significant digit of the decimal is at: $last_sig_digit",
+			###LogSD		"Total significant digits                    : $initial_significant_digits", ] );
+			if( $initial_significant_digits > 19 ){
+				###LogSD	$phone->talk( level => 'debug', message =>[
+				###LogSD		"Attempting to use sprintf: %.${last_sig_digit}f", ] );
+				$return->{cell_unformatted}  = $dec_sign . sprintf "%.${last_sig_digit}f", $decimal;
+				$return->{cell_unformatted} .= 'E' . $exp_sign . sprintf '%02d', $exponent;
+				###LogSD	$phone->talk( level => 'debug', message =>[
+				###LogSD		"Found the unformatted scientific notation case with result: $return->{cell_unformatted}"] );
 			}else{
 				###LogSD	$phone->talk( level => 'trace', message =>[
-				###LogSD		"Unable to resolve the scientific number to representative decimal with ninteen or less significant digits", ] );
-				$return->{cell_unformatted} = sprintf '%.14e', $return->{cell_xml_value};
-				$return->{cell_unformatted} =~ /^([\d\-]+)(\.)?(\d*[1-9])?(0*)[Ee](-)?(\d+)$/;
-				$return->{cell_unformatted} = $1;
-				$return->{cell_unformatted} .= $3 ? "$2$3" : '';
-				$return->{cell_unformatted} .= 'E' . sprintf '%s%02u', $5, $6;
-				$mid_sig_digits = $long_sig_digits if $long_sig_digits < 24;
+				###LogSD		"Attempting to use sprintf: %.${initial_significant_digits}f", ] );
+				$return->{cell_unformatted} = sprintf "%.${initial_significant_digits}f", $return->{cell_xml_value};
+				###LogSD	$phone->talk( level => 'debug', message =>[
+				###LogSD		"Found the unformatted decimal case with output: $return->{cell_unformatted}"] );
 			}
-			###LogSD	$phone->talk( level => 'debug', message =>[
-			###LogSD		"The stored representation of the number is: $return->{cell_unformatted}", "The actual xml is: $return->{cell_xml_value}" ] );
-			my $additional_significance = $mid_sig_digits - $start_significant;
+			
+			my	$short_decimal = sprintf '%.5f', $decimal;
+				$short_decimal =~ /([1-9])?\.(.*[1-9])?(0*)$/;
+			my	$short_sig_digit = 
+					!$2         ? 0 :
+					defined $3 ? 5 - length( $3 ) : 5 ;
+			
 			$scientific_format =
-				( $mid_sig_digits <= 9 and $absolute_delta <= 1e-16) ? SpecialDecimal :
-				( $additional_significance == 0 ) ? SpecialZeroScientific :
-				( $additional_significance  == 1 ) ? SpecialOneScientific :
-				( $additional_significance  == 2 ) ? SpecialTwoScientific :
-				( $additional_significance  == 3 ) ? SpecialThreeScientific :
-				( $additional_significance  == 4 ) ? SpecialFourScientific :
-				( $additional_significance  == 5 ) ? SpecialFiveScientific :
+				( $initial_significant_digits < 10  ) ? SpecialDecimal :
+				( $short_sig_digit == 0 ) ? SpecialZeroScientific :
+				( $short_sig_digit == 1 ) ? SpecialOneScientific :
+				( $short_sig_digit == 2 ) ? SpecialTwoScientific :
+				( $short_sig_digit == 3 ) ? SpecialThreeScientific :
+				( $short_sig_digit == 4 ) ? SpecialFourScientific :
+				( $short_sig_digit == 5 ) ? SpecialFiveScientific :
 					SpecialZeroScientific ;
-			###LogSD	$phone->talk( level => 'info', message =>[
-			###LogSD		"Based on mid sig digits -$mid_sig_digits- absolute delta -$absolute_delta- and additional significance -$additional_significance- the selected custom format is: " . $scientific_format->display_name ] );
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD		"Resolved the final formatted output to formatter: " . $scientific_format->display_name ] );
 		}
 		$return->{cell_type} = 'Text';
 		$return->{r} = $result->{r};

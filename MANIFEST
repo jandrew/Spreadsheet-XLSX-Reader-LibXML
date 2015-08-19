@@ -78,7 +78,25 @@ t/test_files/badfile.is
 t/test_files/docProps/app.xml
 t/test_files/docProps/core.xml
 t/test_files/emptySharedStringsBug.xml
+'t/test_files/hidden_format_test - Copy/[Content_Types].xml'
+'t/test_files/hidden_format_test - Copy/docProps/app.xml'
+'t/test_files/hidden_format_test - Copy/docProps/core.xml'
+'t/test_files/hidden_format_test - Copy/xl/_rels/workbook.xml.rels'
+'t/test_files/hidden_format_test - Copy/xl/sharedStrings.xml'
+'t/test_files/hidden_format_test - Copy/xl/styles.xml'
+'t/test_files/hidden_format_test - Copy/xl/theme/theme1.xml'
+'t/test_files/hidden_format_test - Copy/xl/workbook.xml'
+'t/test_files/hidden_format_test - Copy/xl/worksheets/_rels/sheet1.xml.rels'
+'t/test_files/hidden_format_test - Copy/xl/worksheets/sheet1.xml'
 t/test_files/hidden_format_test.xlsx
+'t/test_files/perc - Copy/[Content_Types].xml'
+'t/test_files/perc - Copy/docProps/app.xml'
+'t/test_files/perc - Copy/docProps/core.xml'
+'t/test_files/perc - Copy/xl/_rels/workbook.xml.rels'
+'t/test_files/perc - Copy/xl/styles.xml'
+'t/test_files/perc - Copy/xl/theme/theme1.xml'
+'t/test_files/perc - Copy/xl/workbook.xml'
+'t/test_files/perc - Copy/xl/worksheets/sheet1.xml'
 t/test_files/perc.xlsx
 t/test_files/values.xlsx
 t/test_files/xl/_rels/workbook.xml.rels

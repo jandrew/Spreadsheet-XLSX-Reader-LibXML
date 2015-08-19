@@ -59,7 +59,7 @@ is 			eval 'use Spreadsheet::XLSX::Reader::LibXML "like_ParseExcel"', undef,
 like 		$@, qr/Passed attribute default flag -like_ParseExcel- does not comply with the correct format/,		
 						'.. and test for the correct error message';
 			for my $good_flag ( keys %$test_ref ){
-lives_ok{		delete $INC{Spreadsheet::XLSX::Reader::LibXML}; }
+lives_ok{		delete $INC{'Spreadsheet::XLSX::Reader::LibXML'}; }
 						'Remove the last load of Spreadsheet::XLSX::Reader::LibXML';
 				my $eval_string = 'use Spreadsheet::XLSX::Reader::LibXML qw( :' . join( ' :', split( /~\|~/, $good_flag ) ) . ");\n";
 				

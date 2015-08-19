@@ -97,7 +97,7 @@ is_deeply	[@row_range], $answer_ref->[$x++],
 										"Check for the correct row range";
 			for my $row ( $row_range[0] .. $row_range[1] ){
 			for my $col ( $column_range[0] .. $column_range[1] ){
-###LogSD	my $reveal = 4;
+###LogSD	my $reveal = 7;
 ###LogSD	if( $row == $reveal and $col == 0 ){
 ###LogSD		$operator->add_name_space_bounds( {
 ###LogSD			Test =>{
