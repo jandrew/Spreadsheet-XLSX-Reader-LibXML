@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings;
-use version; our $VERSION = qv('v0.38.10');
+use version; our $VERSION = qv('v0.38.12');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings-$VERSION";
 
 use 5.010;
@@ -1009,7 +1009,7 @@ sub _build_scientific_sub{
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
 	###LogSD					$self->get_log_space .  '::_build_number::_build_scientific_sub', );
 	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"Building an anonymous sub to return decimal values",
+	###LogSD			"Building an anonymous sub to return scientific values",
 	###LogSD			'With type constraint: ' . $type_filter->name,
 	###LogSD			'..using list ref:' , $list_ref, '..and code hash ref:', $conversion_defs	] );
 	

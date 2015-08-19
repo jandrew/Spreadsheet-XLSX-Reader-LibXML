@@ -296,6 +296,75 @@ B<Returns:> ( $minimum_column, $maximum_column )
 
 =back
 
+=head3 get_merged_areas
+
+=over
+
+B<Definition:> This method returns an array ref of cells that are merged.  This method does 
+respond to the attribute L<Spreadsheet::XLSX::Reader::LibXML/count_from_zero>
+
+B<Accepts:> nothing
+
+B<Returns:> An arrayref of arrayrefs of merged areas or undef if no merged areas
+
+	[ [ $start_row_1, $start_col_1, $end_row_1, $end_col_1], etc.. ]
+
+=back
+
+=head3 is_sheet_hidden
+
+=over
+
+B<Definition:> Method indicates if the excel program would hide the sheet or show it if the 
+file were opened in the Microsoft Excel application
+
+B<Accepts:> nothing
+
+B<Returns:> a boolean value indicating if the sheet is hidden or not 1 = hidden
+
+=back
+
+=head3 is_column_hidden
+
+=over
+
+B<Definition:> Method indicates if the excel program would hide the identified column(s) or show 
+it|them if the file were opened in the Microsoft Excel application.  If more than one column is 
+passed then it returns true if any of the columns are hidden in scalar context and a list of 
+1 and 0 values for each of the requested positions in array (list) context.  This method (input) 
+does respond to the attribute L<Spreadsheet::XLSX::Reader::LibXML/count_from_zero>.  Unlike the 
+method 'is_row_hidden' this method will always 'know' the correct answer since the information is 
+stored outside of the dataa table in the xml file.
+
+B<Accepts:> integer values or column letter values selecting the columns in question
+
+B<Returns:> in scalar context it returns a boolean value indicating if any of the requested 
+columns would be hidden by Excel.  In array/list context it returns a list of boolean values 
+for each requested column indicating it's hidden state for Excel. (1 = hidden)
+
+=back
+
+=head3 is_row_hidden
+
+=over
+
+B<Definition:> Method indicates if the excel program would hide the identified row(s) or show 
+it|them if the file were opened in the Microsoft Excel application.  If more than one row is 
+passed then it returns true if any of the rows are hidden in scalar context and a list of 
+1 and 0 values for each of the requested positions in array (list) context.  This method (input) 
+does respond to the attribute L<Spreadsheet::XLSX::Reader::LibXML/count_from_zero>.  B<Warning: 
+THIS METHOD WILL ONLY BE ACCURATE AFTER THE SHEET HAS READ AT LEAST ONE CELL FROM THE ROW 
+NUMBER REQUESTED.  THIS ALLOWS THE SHEET TO AVOID READING ALL THE WAY THROUGH ONCE BEFORE STARTING 
+THE CELL PARSING.>
+
+B<Accepts:> integer values selecting the rows in question
+
+B<Returns:> in scalar context it returns a boolean value indicating if any of the requested 
+rows would be hidden by Excel.  In array/list context it returns a list of boolean values 
+for each requested row indicating it's hidden state for Excel. (1 = hidden)
+
+=back
+
 =head2 Attributes
 
 These are attributes that affect the behaviour of the returned data in the worksheet 

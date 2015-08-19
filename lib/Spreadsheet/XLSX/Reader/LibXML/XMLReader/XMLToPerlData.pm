@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData;
-use version; our $VERSION = qv('v0.38.10');
+use version; our $VERSION = qv('v0.38.12');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData-$VERSION";
 
 use	Moose::Role;
@@ -80,7 +80,7 @@ sub _parse_element{
 		return ( $self->start_reading, $node_text );
 	}
 	
-	# Load the attributes
+	# Load the attributes ########### This needs to be extracted to it's own place (Worksheet.pm line 484)
 	my $current_ref;
 	my $result = $self->move_to_first_att;
 	###LogSD	$phone->talk( level => 'trace', message => [

@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::Cell;
-use version; our $VERSION = qv('v0.38.10');
+use version; our $VERSION = qv('v0.38.12');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::Cell-$VERSION";
 
 $| = 1;
@@ -121,8 +121,8 @@ has cell_col =>(
 	);
 
 has r =>(
-		isa		=> CellID,
-		reader	=> 'cell_id',
+		isa			=> CellID,
+		reader		=> 'cell_id',
 		predicate	=> 'has_cell_id',
 	);
 
@@ -132,11 +132,11 @@ has cell_hyperlink =>(
 		predicate	=> 'has_hyperlink',
 	);
 
-#~ has unformatted_converter =>(
-		#~ isa			=> CodeRef,
-		#~ reader		=> '_convert_output',
-		#~ required	=> 1,
-	#~ );
+has is_hidden =>(
+		isa			=> Enum[qw( sheet column row 0 )],
+		reader		=> 'is_hidden',
+		default		=> 0,
+	);
 
 has cell_coercion =>(
 		isa			=> HasMethods[ 'assert_coerce', 'display_name' ],
@@ -184,38 +184,6 @@ sub value{
 	###LogSD	$self->get_log_space,
 			);
 }
-
-#~ sub get_merge_range{
-	#~ my( $self, $modifier ) 	= @_;
-	#~ ###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	#~ ###LogSD					name_space 	=> $self->get_log_space .  '::get_merge_range', );
-	#~ if( !$self->is_merged ){
-		#~ $self->set_error( 
-			#~ "Attempted to collect merge range but the cell is not merged with any others" 
-		#~ );
-		#~ return undef;
-	#~ }
-	#~ my	$merge_range = $self->merge_range;
-	#~ ###LogSD	$phone->talk( level => 'debug', message => [
-	#~ ###LogSD		"Returning merge_range:  $merge_range",
-	#~ ###LogSD		(( $modifier ) ? "Modified by: $modifier" : ''),
-	#~ ###LogSD	] );
-	#~ if( $modifier ){
-		#~ if( $modifier eq 'array' ){
-			#~ my ( $start, $end ) = split /:/, $merge_range;
-			#~ my ( $start_col, $start_row, $end_col, $end_row ) =
-				#~ ( $self->parse_column_row( $start ), $self->parse_column_row( $end ) );
-			#~ $merge_range = [ [ $start_col, $start_row ], [ $end_col, $end_row ] ];
-		#~ }else{
-			#~ $self->set_error( 
-				#~ "Un-recognized modifier -$modifier- passed to 'get_merge_range' - it only accepts 'array'" 
-			#~ );
-		#~ }
-	#~ }
-	#~ ###LogSD	$phone->talk( level => 'info', message => [
-	#~ ###LogSD		"Final merge range:", $merge_range ] );
-	#~ return $merge_range;
-#~ }
 
 #########1 Private Attributes 3#########4#########5#########6#########7#########8#########9
 
@@ -370,11 +338,13 @@ B<Returns:> the cell value processed by the set conversion
 =over
 
 B<Definition:> L<Tux|https://metacpan.org/author/HMBRAND>Pointed out with a test case that the 
-underlying xml and the visible unformatted data can differ even when no formal format is applied.  
-I'm not sure where this performance comes from but I suspect legacy behaviour inheritance.  In any 
-case the variation appears to occur only in the case of stored scientific notiation at very detailed 
-precision.  To support the access of both I have left the 'unformatted' representing the visible 
-data in the spreadsheet with the 
+underlying xml and the visible unformatted data (in the formula bar of the excel application) can 
+differ even when no formal format is applied.  I'm not sure where this performance comes from but 
+I suspect legacy behaviour inheritance.  In any case the variation appears to occur only in the 
+case of stored scientific notiation at very detailed precision.  To support the access of both 
+I have left the 'unformatted' representing the visible data in the spreadsheet with the 'xml_value' 
+method returning the stored value in xml.  I would welcome any additional nuance that you are aware 
+of in this area L<SUPPORT|/SUPPORT>.
 
 B<Accepts:>Nothing
 
@@ -1033,6 +1003,34 @@ B<coercion_name>
 =over
 
 B<Definition:> calls 'display_name' on the code in the background
+		
+=back
+		
+=back
+		
+=back
+
+=head3 cell_hidden
+
+=over
+
+B<Definition:> if the cell would not be visible when this file is parsed by a the 
+Microsoft Excel application then this attribute is true.
+
+B<Default:> 0 = Not hidden
+
+B<Range:> sheet = the sheet is hidden, column = the column is hidden, row = the row is hidden. 
+When two or more of these conditions is true the leftmost in the list is displayed.
+
+B<attribute methods> Methods provided to adjust this attribute
+		
+=over
+
+B<is_hidden>
+
+=over
+
+B<Definition:> returns the attribute value
 		
 =back
 		
