@@ -163,67 +163,81 @@ can_ok		$test_instance, $_,
 			if( $answer_list->[$position] ){
 is			$test_instance->get_defined_excel_format( $position ), $answer_list->[$position]->[0],
 										,"Check that excel default position -$position- contains: $answer_list->[$position]->[0]";
+###LogSD	my $start_pos = 35;
+###LogSD	if( $position == $start_pos ){
+###LogSD		$operator->add_name_space_bounds( {
+###LogSD			UNBLOCK =>{
+###LogSD				log_file => 'trace',
+###LogSD			},
+###LogSD		} );
+###LogSD	}
 ok			my $coercion = $test_instance->parse_excel_format_string( $test_instance->get_defined_excel_format( $position ) ),
 										,"..and try to turn it into a Type::Tiny coercion";
-			for my $row_pos ( 1 .. $#{$answer_list->[$position]} ){
-###LogSD	if( $position == 42 and $row_pos == 8 ){
 ###LogSD		$operator->add_name_space_bounds( {
 ###LogSD			UNBLOCK =>{
 ###LogSD				log_file => 'warn',
 ###LogSD			},
-###LogSD			Test =>{
-###LogSD				_build_number =>{
-###LogSD					_build_elements =>{
-###LogSD						UNBLOCK =>{
-###LogSD							log_file => 'trace',
-###LogSD						},
-###LogSD						_split_decimal_integer =>{
-###LogSD							UNBLOCK =>{
-###LogSD								log_file => 'trace',
-###LogSD							},
-###LogSD						},
-###LogSD						_move_decimal_point =>{
-###LogSD							UNBLOCK =>{
-###LogSD								log_file => 'trace',
-###LogSD							},
-###LogSD						},
-###LogSD						_round_decimal =>{
-###LogSD							UNBLOCK =>{
-###LogSD								log_file => 'trace',
-###LogSD							},
-###LogSD						},
-###LogSD					},
-###LogSD				},
-###LogSD				change_output_encoding =>{
-###LogSD					UNBLOCK =>{
-###LogSD						log_file => 'warn',
-###LogSD					},
-###LogSD				},
-###LogSD				parse_excel_format_string =>{
-###LogSD					UNBLOCK =>{
-###LogSD						log_file => 'warn',
-###LogSD					},
-###LogSD				},
-###LogSD				_util_function =>{
-###LogSD					_gcd =>{
-###LogSD						BLOCK=>{
-###LogSD							log_file => 'fatal',
-###LogSD						},
-###LogSD					},
-###LogSD					_integer_and_decimal =>{
-###LogSD						BLOCK=>{
-###LogSD							log_file => 'fatal',
-###LogSD						},
-###LogSD					},
-###LogSD					_best_fraction =>{
-###LogSD						BLOCK=>{
-###LogSD							log_file => 'fatal',
-###LogSD						},
-###LogSD					},
-###LogSD				},
-###LogSD			},
 ###LogSD		} );
-###LogSD	}elsif( $position == 43 ){
+			for my $row_pos ( 1 .. $#{$answer_list->[$position]} ){
+###LogSD	my $start_row = 9;
+###LogSD	if( $position == $start_pos and $row_pos == $start_row ){
+###LogSD		$operator->add_name_space_bounds( {
+###LogSD			UNBLOCK =>{
+###LogSD				log_file => 'trace',
+###LogSD			},
+#~ ###LogSD			Test =>{
+#~ ###LogSD				_build_number =>{
+#~ ###LogSD					_build_elements =>{
+#~ ###LogSD						UNBLOCK =>{
+#~ ###LogSD							log_file => 'trace',
+#~ ###LogSD						},
+#~ ###LogSD						_split_decimal_integer =>{
+#~ ###LogSD							UNBLOCK =>{
+#~ ###LogSD								log_file => 'trace',
+#~ ###LogSD							},
+#~ ###LogSD						},
+#~ ###LogSD						_move_decimal_point =>{
+#~ ###LogSD							UNBLOCK =>{
+#~ ###LogSD								log_file => 'trace',
+#~ ###LogSD							},
+#~ ###LogSD						},
+#~ ###LogSD						_round_decimal =>{
+#~ ###LogSD							UNBLOCK =>{
+#~ ###LogSD								log_file => 'trace',
+#~ ###LogSD							},
+#~ ###LogSD						},
+#~ ###LogSD					},
+#~ ###LogSD				},
+#~ ###LogSD				change_output_encoding =>{
+#~ ###LogSD					UNBLOCK =>{
+#~ ###LogSD						log_file => 'warn',
+#~ ###LogSD					},
+#~ ###LogSD				},
+#~ ###LogSD				parse_excel_format_string =>{
+#~ ###LogSD					UNBLOCK =>{
+#~ ###LogSD						log_file => 'warn',
+#~ ###LogSD					},
+#~ ###LogSD				},
+#~ ###LogSD				_util_function =>{
+#~ ###LogSD					_gcd =>{
+#~ ###LogSD						BLOCK=>{
+#~ ###LogSD							log_file => 'fatal',
+#~ ###LogSD						},
+#~ ###LogSD					},
+#~ ###LogSD					_integer_and_decimal =>{
+#~ ###LogSD						BLOCK=>{
+#~ ###LogSD							log_file => 'fatal',
+#~ ###LogSD						},
+#~ ###LogSD					},
+#~ ###LogSD					_best_fraction =>{
+#~ ###LogSD						BLOCK=>{
+#~ ###LogSD							log_file => 'fatal',
+#~ ###LogSD						},
+#~ ###LogSD					},
+#~ ###LogSD				},
+#~ ###LogSD			},
+###LogSD		} );
+###LogSD	}elsif( $position == $start_pos + 1 ){
 ###LogSD		exit 1;
 ###LogSD	}
 ###LogSD		$phone->talk( level => 'info', message => [ "Group position: $position", "Test position: $row_pos" ] );

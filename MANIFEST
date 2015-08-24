@@ -35,6 +35,7 @@ t/Spreadsheet/XLSX/Reader/03-temp_dir_bug.t
 t/Spreadsheet/XLSX/Reader/04-no_pivot_bug.t
 t/Spreadsheet/XLSX/Reader/05-chart_bug.t
 t/Spreadsheet/XLSX/Reader/06-stacked_flags.t
+t/Spreadsheet/XLSX/Reader/07-losing_is_hidden_bug.t
 t/Spreadsheet/XLSX/Reader/49-shared_strings_bug.t
 t/Spreadsheet/XLSX/Reader/51-percent_file_bug.t
 t/Spreadsheet/XLSX/Reader/60-hidden_formatting_bug.t
@@ -74,29 +75,15 @@ t/test_files/TestBook.xls
 t/test_files/TestBook.xlsx
 t/test_files/ValueFormatExample.xlsx
 t/test_files/[Content_Types].xml
+t/test_files/attr.xlsx
 t/test_files/badfile.is
 t/test_files/docProps/app.xml
 t/test_files/docProps/core.xml
 t/test_files/emptySharedStringsBug.xml
-'t/test_files/hidden_format_test - Copy/[Content_Types].xml'
-'t/test_files/hidden_format_test - Copy/docProps/app.xml'
-'t/test_files/hidden_format_test - Copy/docProps/core.xml'
-'t/test_files/hidden_format_test - Copy/xl/_rels/workbook.xml.rels'
-'t/test_files/hidden_format_test - Copy/xl/sharedStrings.xml'
-'t/test_files/hidden_format_test - Copy/xl/styles.xml'
-'t/test_files/hidden_format_test - Copy/xl/theme/theme1.xml'
-'t/test_files/hidden_format_test - Copy/xl/workbook.xml'
-'t/test_files/hidden_format_test - Copy/xl/worksheets/_rels/sheet1.xml.rels'
-'t/test_files/hidden_format_test - Copy/xl/worksheets/sheet1.xml'
 t/test_files/hidden_format_test.xlsx
-'t/test_files/perc - Copy/[Content_Types].xml'
-'t/test_files/perc - Copy/docProps/app.xml'
-'t/test_files/perc - Copy/docProps/core.xml'
-'t/test_files/perc - Copy/xl/_rels/workbook.xml.rels'
-'t/test_files/perc - Copy/xl/styles.xml'
-'t/test_files/perc - Copy/xl/theme/theme1.xml'
-'t/test_files/perc - Copy/xl/workbook.xml'
-'t/test_files/perc - Copy/xl/worksheets/sheet1.xml'
+t/test_files/merged.xlsx
+t/test_files/misc.xlsx
+t/test_files/perc.xls
 t/test_files/perc.xlsx
 t/test_files/values.xlsx
 t/test_files/xl/_rels/workbook.xml.rels

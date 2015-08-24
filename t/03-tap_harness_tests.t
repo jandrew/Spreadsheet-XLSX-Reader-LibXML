@@ -39,6 +39,8 @@ my	$args ={
 			shared_strings_bug			=>[ $dir . 'test_files/' ],
 			percent_file_bug			=>[ $dir . 'test_files/' ],
 			hidden_formatting_bug		=>[ $dir . 'test_files/' ],
+			losing_is_hidden_bug		=>[ $dir . 'test_files/' ],
+			merged_areas_test			=>[ $dir . 'test_files/' ],
 			generic_reader_test			=>[ $dir . 'test_files/xl/' ],
 			get_cell_test				=>[ $dir . 'test_files/xl/' ],
 			xml_to_perl_test			=>[ $dir . 'test_files/xl/' ],
@@ -47,7 +49,6 @@ my	$args ={
 			styles_sheet_test			=>[ $dir . 'test_files/xl/' ],
 			shared_strings_reader_test	=>[ $dir . 'test_files/xl/' ],
 			worksheet_test				=>[ $dir . 'test_files/xl/worksheets/' ],
-			merged_areas_test			=>[ $dir . 'test_files/xl/worksheets/' ],
 		},
 		formatter => $formatter,
 	};
@@ -78,6 +79,7 @@ my	@tests =(
 		[  $dir . $tests . '51-percent_file_bug.t', 'percent_file_bug' ],
 		[  $dir . $tests . '60-hidden_formatting_bug.t', 'hidden_formatting_bug' ],
 		[  $dir . $tests . '06-stacked_flags.t', 'stacked_flag_test' ],
+		[  $dir . $tests . '07-losing_is_hidden_bug.t', 'losing_is_hidden_bug' ],
 	);
 use	TAP::Harness;
 use	TAP::Parser::Aggregator;

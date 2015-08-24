@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML;
-use version 0.77; our $VERSION = qv('v0.38.12');
+use version 0.77; our $VERSION = qv('v0.38.14');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML-$VERSION";
 
 use 5.010;
@@ -241,7 +241,8 @@ has cache_positions =>(
 
 sub import{# Flags handled here!
     my ( $self, @flag_list ) = @_;
-	if( exists $INC{ 'Spreadsheet/Read.pm' } ){
+	if( exists $ENV{SPREADSHEET_READ_XLSX} and 
+		$ENV{SPREADSHEET_READ_XLSX} == "Spreadsheet::XLSX::Reader::LibXML" ){
 		push @flag_list, ':like_ParseExcel';
 	}
 	if( scalar( @flag_list ) ){
@@ -991,7 +992,7 @@ Spreadsheet::XLSX::Reader::LibXML - Read xlsx spreadsheet files with LibXML
 </a>
 
 <a>
-	<img src="https://img.shields.io/badge/this version-0.38.12-brightgreen.svg" alt="this version">
+	<img src="https://img.shields.io/badge/this version-0.38.14-brightgreen.svg" alt="this version">
 </a>
 
 <a href="https://metacpan.org/pod/Spreadsheet::XLSX::Reader::LibXML">

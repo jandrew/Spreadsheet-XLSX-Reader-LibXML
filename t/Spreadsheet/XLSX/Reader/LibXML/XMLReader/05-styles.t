@@ -156,7 +156,7 @@ ok			$coercion = $format_instance->parse_excel_format_string( '[$-409]d-mmm-yy;@
 			my $answer = '12-Sep-05';
 is			$coercion->assert_coerce( 37145 ), $answer, #coercecoerce
 										"... and see if it returns: $answer";
-is			$test_instance->get_format_position( 2, 'numFmts' )->{numFmts}->name, 'DATESTRING_0',
+is			$test_instance->get_format_position( 2, 'numFmts' )->{numFmts}->display_name, 'DATESTRING_0',
 										"Check that the excel number coercion at format position 2 is named: DATESTRING_0";
 ###LogSD		$phone->talk( level => 'debug', message => [ $test_instance->get_format_position( 7, 'fonts' ) ] );
 is			$test_instance->get_default_format_position->{fills}->{patternFill}->{patternType}, 'none',

@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::Cell;
-use version; our $VERSION = qv('v0.38.12');
+use version; our $VERSION = qv('v0.38.14');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::Cell-$VERSION";
 
 $| = 1;
@@ -132,7 +132,7 @@ has cell_hyperlink =>(
 		predicate	=> 'has_hyperlink',
 	);
 
-has is_hidden =>(
+has cell_hidden =>(
 		isa			=> Enum[qw( sheet column row 0 )],
 		reader		=> 'is_hidden',
 		default		=> 0,

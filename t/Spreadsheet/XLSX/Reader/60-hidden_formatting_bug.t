@@ -19,8 +19,7 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 78
-;
+use	Test::Most tests => 78;
 use	Test::Moose;
 use Data::Dumper;
 use	lib	'../../../../../Log-Shiras/lib',
