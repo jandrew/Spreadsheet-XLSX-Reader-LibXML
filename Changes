@@ -11,7 +11,15 @@ be method matched to Spreadsheet::ParseExcel prior to the 1.0 release.
 
 {{$NEXT}}
 
-	*Another cool change
+	* Another cool change
+
+v0.38.14  2015-08-24 16:49:04-07:00 America/Los_Angeles
+
+	! re-closes #52 in github with the addtional testing suggested
+	! Fixed a bug with 'is_hidden' reporting at the cell level tested by 07-losing_is_hidden_bug.t
+	! Changed the %INC test to an %ENV test and turn on the like_ParseExcel flag with
+		$ENV{SPREADSHEET_READ_XLSX} == "Spreadsheet::XLSX::Reader::LibXML"
+		This is a more accurate flag test for use by Spreadsheet::Read
 
 v0.38.12  2015-08-19 05:19:28-07:00 America/Los_Angeles
 

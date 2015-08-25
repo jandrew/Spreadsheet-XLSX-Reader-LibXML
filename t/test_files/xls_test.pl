@@ -32,3 +32,13 @@ $worksheet = $workbook->worksheet( 'Sheet1' );
 $cell = $worksheet->get_cell( 1, 0 );
 print "Rich text test value: " . $cell->value . "\n";
 print	Dumper( $cell->get_rich_text );
+
+$workbook = $parser->parse('perc.xls');
+
+if ( !defined $workbook ) {
+	die $parser->error(), ".\n";
+}
+
+$worksheet = $workbook->worksheet( 'Blad1' );
+$cell = $worksheet->get_cell( 0, 02 );
+print "Cell type: " . $cell->type . "\n";

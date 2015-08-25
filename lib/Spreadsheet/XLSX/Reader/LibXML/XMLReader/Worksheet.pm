@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet;
-use version; our $VERSION = qv('v0.38.12');
+use version; our $VERSION = qv('v0.38.14');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet-$VERSION";
 
 use	5.010;
@@ -367,7 +367,7 @@ sub _load_unique_bits{
 	###LogSD	my	$phone = Log::Shiras::Telephone->new(
 	###LogSD					name_space 	=> ($self->get_log_space . '::_load_unique_bits' ), );
 	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"Setting the Worksheet unique bits", "Byte position: " . $self->byte_consumed ] );
+	###LogSD			"Setting the Worksheet unique bits", ] );
 	
 	# Read the sheet dimensions
 	if( $self->next_element( 'dimension' ) ){
@@ -443,29 +443,41 @@ sub _load_unique_bits{
 	my	$merge_ref = [];
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		"Loading the mergeCell" ] );
-	while( ($self->node_name and $self->node_name eq 'mergeCell') or $self->next_element('mergeCell') ){
-		my $merge_range = $self->parse_element;
-		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"parsed merge element to:", $merge_range ] );
-		my ( $start, $end ) = split /:/, $merge_range->{ref};
-		my ( $start_col, $start_row ) = $self->_parse_column_row( $start );
-		my ( $end_col, $end_row ) = $self->_parse_column_row( $end );
-		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"Start column: $start_col", "Start row: $start_row",
-		###LogSD		"End column: $end_col", "End row: $end_row" ] );
-		my 	$min_col = $start_col;
-		while ( $start_row <= $end_row ){
-			$merge_ref->[$start_row]->[$start_col] = $merge_range->{ref};
-			$start_col++;
-			if( $start_col > $end_col ){
-				$start_col = $min_col;
-				$start_row++;
-			}
+	my $found_merges = 0;
+	if( ($self->node_name and $self->node_name eq 'mergeCells') or $self->next_element('mergeCells') ){
+		$found_merges = 1;
+	}else{
+		$self->start_the_file_over;
+		$self->next_element('mergeCells');
+		if( $self->node_name and $self->node_name eq 'mergeCells' ){
+			$found_merges = 1;
 		}
 	}
-	###LogSD	$phone->talk( level => 'debug', message => [
-	###LogSD		"Final merge ref:", $merge_ref ] );
-	$self->_set_merge_map( $merge_ref );
+	if( $found_merges ){
+		while( ($self->node_name and $self->node_name eq 'mergeCell') or $self->next_element('mergeCell') ){
+			my $merge_range = $self->parse_element;
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"parsed merge element to:", $merge_range ] );
+			my ( $start, $end ) = split /:/, $merge_range->{ref};
+			my ( $start_col, $start_row ) = $self->_parse_column_row( $start );
+			my ( $end_col, $end_row ) = $self->_parse_column_row( $end );
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"Start column: $start_col", "Start row: $start_row",
+			###LogSD		"End column: $end_col", "End row: $end_row" ] );
+			my 	$min_col = $start_col;
+			while ( $start_row <= $end_row ){
+				$merge_ref->[$start_row]->[$start_col] = $merge_range->{ref};
+				$start_col++;
+				if( $start_col > $end_col ){
+					$start_col = $min_col;
+					$start_row++;
+				}
+			}
+		}
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Final merge ref:", $merge_ref ] );
+		$self->_set_merge_map( $merge_ref );
+	}
 	$self->start_the_file_over;
 	return 1;
 }

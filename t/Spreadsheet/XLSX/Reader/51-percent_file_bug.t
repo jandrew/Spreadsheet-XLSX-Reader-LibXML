@@ -135,8 +135,8 @@ is_deeply	[@row_range], $answer_ref->[$x++],
 										"Check for the correct row range";
 			for my $row ( $row_range[0] .. $row_range[1] ){
 			for my $col ( $column_range[0] .. $column_range[1] ){
-###LogSD	my $reveal = 16;
-###LogSD	if( $row == $reveal and $col == 0 ){
+###LogSD	my $reveal = 0;
+###LogSD	if( $row == $reveal and $col == 2 ){
 ###LogSD		$operator->add_name_space_bounds( {
 ###LogSD			Test =>{
 ###LogSD				Worksheet =>{
@@ -149,7 +149,7 @@ is_deeply	[@row_range], $answer_ref->[$x++],
 ###LogSD			},
 ###LogSD		} );
 ###LogSD	}
-###LogSD	elsif( $row == $reveal and $col == 1 ){
+###LogSD	elsif( $row == ($reveal + 1) and $col == 0 ){
 ###LogSD		$operator->add_name_space_bounds( {
 ###LogSD			Test =>{
 ###LogSD				Worksheet =>{

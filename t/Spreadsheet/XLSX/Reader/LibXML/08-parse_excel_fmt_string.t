@@ -106,9 +106,9 @@ can_ok		$test_instance, $_,
 ###LogSD		$phone->talk( level => 'debug', message => [ 'processing excel format string: ' . $question_list->[$position]->[0]  ] );
 ok			my $coercion = $test_instance->parse_excel_format_string( $question_list->[$position]->[0] ),
 										"Build a coercion with excel format string: $question_list->[$position]->[0]";
-###LogSD		$phone->talk( level => 'debug', message => [ 'Built a coercion named : ' . $coercion->name  ] );
+###LogSD		$phone->talk( level => 'debug', message => [ 'Built a coercion named : ' . $coercion->display_name  ] );
 			for my $row_pos ( 1 .. $#{$question_list->[$position]} ){
-###LogSD	if( $position == 3 and $row_pos == 12 ){
+###LogSD	if( $position == 0 and $row_pos == 0 ){
 ###LogSD		$operator->add_name_space_bounds( {
 ###LogSD			UNBLOCK =>{
 ###LogSD				log_file => 'warn',
@@ -178,7 +178,7 @@ ok			my $coercion = $test_instance->parse_excel_format_string( $question_list->[
 ###LogSD				},
 ###LogSD			},
 ###LogSD		} );
-###LogSD	}elsif( $position == 4	 ){
+###LogSD	}elsif( $position == 1	 ){
 ###LogSD		exit 1;
 ###LogSD	}
 ###LogSD		$phone->talk( level => 'info', message => [ "Group position: $position", "Test position: $row_pos" ] );

@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::GetCell;
-use version; our $VERSION = qv('v0.38.12');
+use version; our $VERSION = qv('v0.38.14');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::GetCell-$VERSION";
 
 use Carp 'confess';
@@ -464,6 +464,7 @@ sub _build_out_the_cell{
 		$return->{cell_type} = 'Text';
 		$return->{r} = $result->{r};
 		$return->{cell_merge} = $result->{cell_merge} if exists $result->{cell_merge};
+		$return->{cell_hidden} = $result->{cell_hidden} if exists $result->{cell_hidden};
 		if( exists $result->{t} and $result->{t} eq 's' ){# Test for all in one sheet here!(future)
 			my $position = $self->get_shared_string_position( $result->{v}->{raw_text} );
 			###LogSD	$phone->talk( level => 'debug', message =>[

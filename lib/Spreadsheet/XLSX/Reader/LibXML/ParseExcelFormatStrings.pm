@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings;
-use version; our $VERSION = qv('v0.38.12');
+use version; our $VERSION = qv('v0.38.14');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings-$VERSION";
 
 use 5.010;
@@ -194,8 +194,9 @@ sub parse_excel_format_string{
 		###LogSD		"Building format for: $format_string", ] );
 		
 		# Pull out all the straight through stuff
-		my @deconstructed_list;
-		my $x = 0;
+		my	@deconstructed_list;
+		my	$x = 0;
+			#~ $action_type = undef;
 		while( defined $format_string and my @result = $format_string =~
 					/^(													# Collect any formatting stuff first
 						(AM\/PM|										# Date 12 hr flag
@@ -243,7 +244,8 @@ sub parse_excel_format_string{
 						( $text ) ? 'TEXT' : 'BAD' ;
 					$is_date = 1 if $date;
 				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		"Current action from -$pre_action- is: $current_action" ] );
+				###LogSD		"Current action from -$pre_action- is: $current_action",
+				###LogSD		"..now testing against: " . ($action_type//'')					] );
 				if( $action_type and $current_action and ($current_action ne $action_type) ){
 					###LogSD	$phone->talk( level => 'info', message => [
 					###LogSD		"General action type: $action_type",
@@ -269,10 +271,18 @@ sub parse_excel_format_string{
 						}
 					}elsif( $action_type eq 'NUMBER' ){
 						###LogSD	$phone->talk( level => 'info', message => [
-						###LogSD		"Checking for possible text in a number field for a pass throug", ] );
+						###LogSD		"Checking for possible number field exceptions", ] );
 						if( $current_action eq 'TEXT' ){
 							###LogSD	$phone->talk( level => 'info', message => [
 							###LogSD		"Special case of text following a number", ] );
+							$fail = 0;
+						}
+					}elsif( $action_type eq 'INTEGER' or $action_type eq 'DECIMAL'){
+						###LogSD	$phone->talk( level => 'info', message => [
+						###LogSD		"Checking for possible sub-Number generalities", ] );
+						if( $current_action eq 'NUMBER' ){
+							###LogSD	$phone->talk( level => 'info', message => [
+							###LogSD		"Integers are numbers", ] );
 							$fail = 0;
 						}
 					}
@@ -303,17 +313,26 @@ sub parse_excel_format_string{
 		}
 		push @deconstructed_list, [ $format_string, undef ] if $format_string;
 		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"Current segment type: $action_type", 
 		###LogSD		"List with fixed values separated:", @deconstructed_list ] );
-		my $method = '_build_' . lc($action_type);
-		my $filter = ( $action_type eq 'TEXT' ) ? Str : $used_type_list[$format_position++];
-		if( $action_type eq 'DATESTRING' ){
+		my $method = '_build_' . ( $action_type =~ /^(NUMBER|SCIENTIFIC|INTEGER|PERCENT|FRACTION|DECIMAL)$/ ? 'number' : lc($action_type) );
+		###LogSD	$phone->talk( level => 'info', message => [ "Method: $method",  ] );
+		my $filter = ( $action_type and $action_type eq 'TEXT' ) ? Str : $used_type_list[$format_position++];
+		if( $action_type and $action_type eq 'DATESTRING' ){
 			$date_text = 1;
 			$filter = Str;
 		}
-		push @coercion_list, $self->$method( $filter, \@deconstructed_list );
+		( my $intermediate_action, my @intermediate_coercions ) = $self->$method( $filter, \@deconstructed_list );
+		###LogSD	$phone->talk( level => 'trace', message => [ "Returning from: $method", $intermediate_action, @intermediate_coercions ] );
+		push @coercion_list, @intermediate_coercions;
+		$action_type = $intermediate_action =~ /^(NUMBER|SCIENTIFIC|INTEGER|PERCENT|FRACTION|DECIMAL|DATE|DATESTRING)$/ ? $intermediate_action : $action_type;
+		###LogSD	$phone->talk( level => 'trace', message => [ "Action type: $action_type", $intermediate_action, @coercion_list ] );
 	}
-	push @coercion_list, $self->_build_datestring( Str, [ [ '@', '' ] ] ) if $is_date and !$date_text;
+	if( $is_date and !$date_text ){
+		( my $intermediate_action, my @intermediate_coercions ) = $self->_build_datestring( Str, [ [ '@', '' ] ] );
+		push @coercion_list, @intermediate_coercions;
+		$action_type = $intermediate_action =~ /^(NUMBER|SCIENTIFIC|INTEGER|PERCENT|FRACTION|DECIMAL|DATE|DATESTRING)$/ ? $intermediate_action : $action_type;
+		###LogSD	$phone->talk( level => 'info', message => [ "Action type: $action_type", @coercion_list ] );
+	}
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		'Length of coersion list: ' . scalar( @coercion_list ),
 	###LogSD		"Action type: $action_type", "Conversion type: $conversion_type",
@@ -322,15 +341,17 @@ sub parse_excel_format_string{
 	# Build the final format
 	$conversion_type = 'text' if $action_type eq 'TEXT'; 
 	$coercion_name =~ s/__/_${conversion_type}_/ if $coercion_name;
+	###LogSD	$phone->talk( level => 'info', message => [ "Action type: $action_type" ] );
 	my	%args = (
-			name		=> ($coercion_name // ($action_type . '_' . $coercion_index++)),
-			coercion	=>	Type::Coercion->new(
+			name			=> $action_type,
+			display_name	=> ($coercion_name // ($action_type . '_' . $coercion_index++)),
+			coercion		=>	Type::Coercion->new(
 								type_coercion_map => [ @coercion_list ],
 							),
 			#~ coerce		=> 1,
 		);
 	my	$final_type = Type::Tiny->new( %args );
-	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD	$phone->talk( level => 'trace', message => [
 	###LogSD		"Final type:", $final_type ] );
 	
 	# Save the cache
@@ -381,7 +402,7 @@ sub _build_text{
 			###LogSD		"Updated Input: $_[0]" ] );
 			return sprintf( $sprintf_string, $_[0] );
 		};
-	return( Str, $return_sub );
+	return( 'TEXT', Str, $return_sub );
 }
 
 sub _build_date{
@@ -563,7 +584,7 @@ sub _build_date{
 			}
 			return $return_string;
 		};
-	return( $type_filter, $conversion_sub );
+	return( 'DATE', $type_filter, $conversion_sub );
 }
 
 sub _build_datestring{
@@ -640,7 +661,9 @@ sub _build_datestring{
 			}
 			return $return_string;
 		};
-	return( $type_filter, $conversion_sub );
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		"returning:",  'DATESTRING', $type_filter, $conversion_sub ] );
+	return( 'DATESTRING', $type_filter, $conversion_sub );
 }
 
 sub _build_duration{
@@ -719,7 +742,7 @@ sub _build_number{
 			$return_string .= $piece->[1];
 		}
 		$return_string =~ s/"\-"/\-/;
-		return( $type_filter, sub{ $return_string } );
+		return( 'NUMBER', $type_filter, sub{ $return_string } );
 	}
 	
 	# Process once to determine what to do
@@ -782,7 +805,7 @@ sub _build_number{
 						$code_hash_ref->{fraction}->{divisor} = $divisor;
 					}
 				}
-				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD	$phone->talk( level => 'trace', message => [
 				###LogSD		"Current number type: $number_type", 'updated settings:', $code_hash_ref] );
 			}elsif( $piece->[0] =~ /^((\.)|([Ee][+\-])|(%))$/ ){
 				if( $2 ){
@@ -794,7 +817,7 @@ sub _build_number{
 				}else{
 					$number_type = 'PERCENT';
 				}
-				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD	$phone->talk( level => 'info', message => [
 				###LogSD		"Number type now: $number_type" ] );
 			}else{
 				confess "badly formed number format passed: $piece->[0]";
@@ -808,12 +831,12 @@ sub _build_number{
 	}
 	
 	my $method = '_build_' . lc( $number_type ) . '_sub';
-	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD	$phone->talk( level => 'trace', message => [
 	###LogSD		"Resolved the number type to: $number_type",
 	###LogSD		'Working with settings:', $code_hash_ref ] );
 	my $conversion_sub = $self->$method( $type_filter, $list_ref, $code_hash_ref );
 		
-	return( $type_filter, $conversion_sub );
+	return( $number_type, $type_filter, $conversion_sub );
 }
 
 sub _build_integer_sub{
