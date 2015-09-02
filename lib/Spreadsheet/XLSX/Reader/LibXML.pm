@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML;
-use version 0.77; our $VERSION = qv('v0.38.14');
+use version 0.77; our $VERSION = qv('v0.38.16');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML-$VERSION";
 
 use 5.010;
@@ -106,6 +106,16 @@ my	$flag_settings ={
 			group_return_type => 'value',
 			cache_positions   => 1,
 			from_the_edge     => 0,
+			empty_return_type => 'undef_string',
+		},
+		just_raw_data =>{
+			count_from_zero   => 0,
+			values_only       => 1,
+			empty_is_end      => 1,
+			group_return_type => 'unformatted',
+			cache_positions   => 1,
+			from_the_edge     => 0,
+			empty_return_type => 'undef_string',
 		},
 		like_ParseExcel =>{
 			count_from_zero => 1,
@@ -992,7 +1002,7 @@ Spreadsheet::XLSX::Reader::LibXML - Read xlsx spreadsheet files with LibXML
 </a>
 
 <a>
-	<img src="https://img.shields.io/badge/this version-0.38.14-brightgreen.svg" alt="this version">
+	<img src="https://img.shields.io/badge/this version-0.38.16-brightgreen.svg" alt="this version">
 </a>
 
 <a href="https://metacpan.org/pod/Spreadsheet::XLSX::Reader::LibXML">
@@ -1177,6 +1187,14 @@ L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/set_defined_excel_formats( %args
 attribute L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/defined_excel_translations>.    B<This warning 
 will be removed on 2/1/2016.>
 
+B<5.> This package now supports reading xlsm files (Macro enabled Excel 2007+ workbooks).  
+xlsm files allow for binaries to be embedded that may contain malicious code.  However, other 
+than unzipping the excel file no work is done by this package with the sub-file 'vbaProject.bin' 
+containing the binaries.  This update does not provide an API to that sub-file and I have no 
+intention of doing so.  Therefore my research indicates there should be no risk of virus activation 
+while parsing even an infected xlsm file with this package but I encourage you to use your own 
+judgement in this area.
+
 =head2 Attributes
 
 Data passed to new when creating an instance.  For modification of these attributes see the 
@@ -1197,13 +1215,13 @@ before the rest of the package can be used.>
 
 =over
 
-B<Definition:> This attribute holds the full file name and path for the xlsx file to be 
+B<Definition:> This attribute holds the full file name and path for the xlsx|xlsm file to be 
 parsed.
 
 B<Default> no default - either this or a L<file handle|/file_handle> must be provided to 
 read a file
 
-B<Range> any unencrypted xlsx file that can be opened in Microsoft Excel
+B<Range> any unencrypted xlsx|xlsm file that can be opened in Microsoft Excel.
 
 B<attribute methods> Methods provided to adjust this attribute
 		
@@ -2216,12 +2234,42 @@ L<from_the_edge|/from_the_edge> => 0,
 
 =back
 
+=head2 :just_raw_data
+
+This is intended for a shallow look at raw text and skips all formatting including number formats.
+
+=over
+
+B<Default attribute differences>
+
+=over
+
+L<values_only|/values_only> => 1
+
+L<count_from_zero|/count_from_zero> => 0
+
+L<empty_is_end|/empty_is_end> => 1
+
+L<group_return_type|/group_return_type> => 'unformatted'
+
+L<cache_positions|/cache_positions> => 1
+
+L<from_the_edge|/from_the_edge> => 0,
+
+=back
+
+=back
+
 =head1 BUILD / INSTALL from Source
 
 B<0.> Please note that using L<cpanm|https://metacpan.org/pod/App::cpanminus> is much easier 
 than a source build! (but it will not always give the latest github version)
 
-	cpanm Spreadsheet-XLSX-Reader-LibXML
+	cpanm Spreadsheet::XLSX::Reader::LibXML
+	
+And then if you feel kindly
+
+	cpanm-reporter
 
 B<1.> This package uses L<Alien::LibXML> to try and ensure that the mandatory prerequisite 
 L<XML::LibXML> will load.  The biggest gotcha here is that older (<5.20.0.2) versions of 

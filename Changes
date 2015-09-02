@@ -11,7 +11,11 @@ be method matched to Spreadsheet::ParseExcel prior to the 1.0 release.
 
 {{$NEXT}}
 
-	* Another cool change
+	+ Added support for .xlsm files
+		This does not include any reading or handling of 'vbaProject.bin'
+		It should be safe even with viruses if the reader doesn't mess with it
+	! Changed the %ENV test to a caller test run at ->new or ->parse
+		This should handle all useage by Spreadsheet::Read
 
 v0.38.14  2015-08-24 16:49:04-07:00 America/Los_Angeles
 
@@ -24,7 +28,7 @@ v0.38.14  2015-08-24 16:49:04-07:00 America/Los_Angeles
 v0.38.12  2015-08-19 05:19:28-07:00 America/Los_Angeles
 
 	+ Fix yet another bug in the hidden formatting (hopefully)
-	+ Make the decimal vs scientific choice for hidden formatting more robust( issue 65 on github )
+	+ Make the decimal vs scientific choice for hidden formatting more robust( issue #65 on github )
 	+ Adding tests for hidden tabs rows columns and cells in the worksheet and cell
 	+ Adding the method 'get_merged_areas' to match ~::ParseExcel
 	+ For compatability purposes this package will now test (during import) to see if it's being 
@@ -79,7 +83,7 @@ v0.38.4   2015-06-29 17:17:07-07:00 America/Los_Angeles
 v0.38.2   2015-06-29 16:45:47-07:00 America/Los_Angeles
 
 	+ Added a cache_positions flag to the Workbook level
-		For now this only populates to cache built number conversion and the shared strings file
+		For now this only populates to cache built number conversions and the shared strings file
 	+ 'set_custom_formats' now has built in coercion to change Excel strings to coercion objects
 		This allows for you to define custom excel column formatting (Not already defined in the file)
 		using excel strings without building an intermediate coersion before loading it to the worksheet.

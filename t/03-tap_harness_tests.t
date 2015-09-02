@@ -41,6 +41,7 @@ my	$args ={
 			hidden_formatting_bug		=>[ $dir . 'test_files/' ],
 			losing_is_hidden_bug		=>[ $dir . 'test_files/' ],
 			merged_areas_test			=>[ $dir . 'test_files/' ],
+			read_xlsm_feature			=>[ $dir . 'test_files/' ],
 			generic_reader_test			=>[ $dir . 'test_files/xl/' ],
 			get_cell_test				=>[ $dir . 'test_files/xl/' ],
 			xml_to_perl_test			=>[ $dir . 'test_files/xl/' ],
@@ -80,6 +81,7 @@ my	@tests =(
 		[  $dir . $tests . '60-hidden_formatting_bug.t', 'hidden_formatting_bug' ],
 		[  $dir . $tests . '06-stacked_flags.t', 'stacked_flag_test' ],
 		[  $dir . $tests . '07-losing_is_hidden_bug.t', 'losing_is_hidden_bug' ],
+		[  $dir . $tests . '68-read_xlsm_feature.t', 'read_xlsm_feature' ],
 	);
 use	TAP::Harness;
 use	TAP::Parser::Aggregator;

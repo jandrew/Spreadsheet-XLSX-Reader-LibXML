@@ -300,6 +300,14 @@ has _last_cell_ref =>(
 		predicate	=> '_has_last_cell_ref',
 	);
 
+has _last_row_ref =>(
+		isa			=> HashRef,
+		reader		=> '_get_last_row_ref',
+		writer		=> '_set_last_row_ref',
+		clearer		=> '_clear_last_row_ref',
+		predicate	=> '_has_last_row_ref',
+	);
+
 has _next_row_col =>(
 		isa			=> ArrayRef[Int],
 		reader		=> '_get_next_row_col',
@@ -313,6 +321,14 @@ has _next_cell_ref =>(
 		writer		=> '_set_next_cell_ref',
 		clearer		=> '_clear_next_cell_ref',
 		predicate	=> '_has_next_cell_ref',
+	);
+
+has _next_row_ref =>(
+		isa			=> HashRef,
+		reader		=> '_get_next_row_ref',
+		writer		=> '_set_next_row_ref',
+		clearer		=> '_clear_next_row_ref',
+		predicate	=> '_has_next_row_ref',
 	);
 
 has	_merge_map =>(
@@ -392,7 +408,9 @@ sub _load_unique_bits{
 		$self->_set_max_row( $end_row );
 		$self->_set_last_row_col( [$start_row, ($start_column - 1)] );
 		$self->_clear_last_cell_ref;
+		$self->_clear_last_row_ref;
 		$self->_set_next_row_col( [$start_row, ($start_column - 1)] );
+		$self->_clear_next_cell_ref;
 		$self->_clear_next_cell_ref;
 		$self->_set_reported_row( $start_row );
 		$self->_set_reported_col( $start_column - 1 );
@@ -489,10 +507,16 @@ sub _get_next_value_cell{
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			'Loading the next cell with value after [row, column]: [' .
 	###LogSD			join( ', ', @{$self->_get_next_row_col} ) . ']'] );
+	
+	#Read/lookup the relevant row as needed
 	my	$result = 1;
-	while( $result and ( !$self->node_name or $self->node_name ne 'c' ) ){
-		$result = $self->next_element if $self->node_name ne 'row';
+	my	$row_ref = undef;# Pull active saved row as available here
+	while( !$row_ref and $result and ( !$self->node_name or $self->node_name ne 'row' ) ){
+		$result = $self->next_element;
 		if( $self->node_name and $self->node_name eq 'row' ){
+			$row_ref = $self->parse_element;
+			###LogSD	$phone->talk( level => 'fatal', message => [
+			###LogSD		"Result of the row parse:', $row_ref	] );
 			# Load the attributes
 			my $current_ref;
 			my $result = $self->move_to_first_att;
@@ -529,40 +553,50 @@ sub _get_next_value_cell{
 			$self->_set_custom_row_data( $row => $current_ref );
 		}
 	}
+	
+	#Read lookup the relevant cell as needed
 	my	$sub_ref = 'EOF';
 	if( !$result ){
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD			'Reached the end of the file',] );
 		$self->start_the_file_over;
 	}else{
-		$sub_ref = undef;
-		CHECKVALUECELLS: while( !$sub_ref or $self->get_values_only ){
-			$sub_ref = $self->parse_element;
-			@$sub_ref{qw( col row )} = $self->_parse_column_row( $sub_ref->{r} );
-			#~ if( exists $sub_ref->{t} and exists $sub_ref->{s} ){# special old magic for cell formatting from the formula bar
-				#~ $sub_ref->{f}->{raw_text} =
-					#~ $sub_ref->{s} eq '1' ? "'" :
-					#~ $sub_ref->{s} eq '2' ? "^" :
-					#~ $sub_ref->{s} eq '3' ? '"' : undef ;
-				#~ delete $sub_ref->{s};
-				#~ delete $sub_ref->{f}->{raw_text} if !$sub_ref->{f}->{raw_text};
+		#~ $sub_ref = undef;
+		#~ CHECKVALUECELLS: while( !$sub_ref or $self->get_values_only ){
+			#~ $sub_ref = $self->parse_element;
+			#~ @$sub_ref{qw( col row )} = $self->_parse_column_row( $sub_ref->{r} );
+			#~ ###LogSD	$phone->talk( level => 'trace', message => [
+			#~ ###LogSD		'The next cell with data is:', $sub_ref,] );
+			#~ if( exists $sub_ref->{v} or !$self->get_values_only ){### Other text or value call outs here?
+				#~ $sub_ref->{cell_xml_value} = 
+					#~ ( exists $sub_ref->{v} and exists $sub_ref->{v}->{raw_text} ) ? $result->{v}->{raw_text} : undef;
+				#~ if( exists $sub_ref->{t} and $sub_ref->{t} eq 's' ){# Test for all in one sheet here!(future)
+					#~ my $position = $self->get_shared_string_position( $sub_ref->{v}->{raw_text} );
+					#~ ###LogSD	$phone->talk( level => 'debug', message =>[
+					#~ ###LogSD		"Shared strings returned:",  $position] );
+					#~ @$return{qw( cell_xml_value cell_unformatted rich_text )} = ( $position->{raw_text}, $position->{raw_text}, $position->{rich_text} );
+					#~ delete $return->{rich_text} if !$return->{rich_text};
+					#~ ###LogSD	$phone->talk( level => 'debug', message =>[
+					#~ ###LogSD		"Updated return:",  $return] );
+				#~ }else{
+					#~ ###LogSD	$phone->talk( level => 'debug', message =>[
+					#~ ###LogSD		"Setting unformatted from:", $result ] );
+					#~ $return->{cell_unformatted} = $return->{cell_xml_value} if !exists $return->{cell_unformatted};
+					#~ $return->{cell_type} = 'Numeric' if defined $return->{cell_unformatted} and $return->{cell_unformatted} ne '';
+				#~ }
+				#~ ###LogSD	$phone->talk( level => 'trace', message => [
+				#~ ###LogSD		'Found a cell with a value no additional work is needed' ,] );
+				#~ last CHECKVALUECELLS;
 			#~ }
-			###LogSD	$phone->talk( level => 'trace', message => [
-			###LogSD		'The next cell with data is:', $sub_ref,] );
-			if( exists $sub_ref->{v} or !$self->get_values_only ){### Other text or value call outs here?
-				###LogSD	$phone->talk( level => 'trace', message => [
-				###LogSD		'Found a cell with a value no additional work is needed' ,] );
-				last CHECKVALUECELLS;
-			}
-			$result = $self->next_element( 'c' ) if !$self->node_name or $self->node_name ne 'c';
-			if( !$result ){
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD			'Reached the end of the file',] );
-				$sub_ref = 'EOF';
-				$self->start_the_file_over;
-				last CHECKVALUECELLS;
-			}
-		}
+			#~ $result = $self->next_element( 'c' ) if !$self->node_name or $self->node_name ne 'c';
+			#~ if( !$result ){
+				#~ ###LogSD	$phone->talk( level => 'debug', message => [
+				#~ ###LogSD			'Reached the end of the file',] );
+				#~ $sub_ref = 'EOF';
+				#~ $self->start_the_file_over;
+				#~ last CHECKVALUECELLS;
+			#~ }
+		#~ }
 	}
 	
 	#Add merge value
@@ -649,6 +683,7 @@ sub _get_next_cell{
 		$self->_set_next_row_col( [ $self->_min_row, ($self->_min_col - 1) ] );
 		$self->_set_last_row_col( [ @{$self->_get_next_row_col} ] );
 		$self->_clear_last_cell_ref;
+		$self->_clear_last_row_ref;
 		( $next_row, $next_col ) = @{$self->_get_next_row_col} ;
 	}
 	###LogSD	$phone->talk( level => 'debug', message => [
@@ -748,6 +783,8 @@ sub _get_col_row{
 		$self->_set_last_row_col( [ @{$self->_get_next_row_col} ] );
 		$self->_clear_last_cell_ref;
 		$self->_clear_next_cell_ref;
+		$self->_clear_last_row_ref;
+		$self->_clear_next_row_ref;
 		$self->start_the_file_over;
 		$self->_set_reported_row( $self->_min_row );
 		$self->_set_reported_col( $self->_min_col - 1 );
@@ -827,6 +864,8 @@ sub _get_row_all{
 		$self->_set_last_row_col( [ @{$self->_get_next_row_col} ] );
 		$self->_clear_last_cell_ref;
 		$self->_clear_next_cell_ref;
+		$self->_clear_last_row_ref;
+		$self->_clear_next_row_ref;
 		$self->start_the_file_over;
 		$self->_set_reported_row( $self->_min_row );
 		$self->_set_reported_col( $self->_min_col - 1 );
@@ -842,6 +881,8 @@ sub _get_row_all{
 		$self->_set_last_row_col( [ @{$self->_get_next_row_col} ] );
 		$self->_clear_last_cell_ref;
 		$self->_clear_next_cell_ref;
+		$self->_clear_last_row_ref;
+		$self->_clear_next_row_ref;
 		$self->start_the_file_over;
 		$self->_set_reported_row( $self->_min_row );
 		$self->_set_reported_col( $self->_min_col - 1 );
@@ -875,6 +916,8 @@ sub _get_row_all{
 			$self->_set_last_row_col( [ @{$self->_get_next_row_col} ] );
 			$self->_clear_last_cell_ref;
 			$self->_clear_next_cell_ref;
+			$self->_clear_last_row_ref;
+			$self->_clear_next_row_ref;
 			$self->start_the_file_over;
 			$self->_set_reported_row( $self->_min_row );
 			$self->_set_reported_col( $self->_min_col - 1 );

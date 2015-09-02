@@ -465,6 +465,7 @@ sub _build_out_the_cell{
 		$return->{r} = $result->{r};
 		$return->{cell_merge} = $result->{cell_merge} if exists $result->{cell_merge};
 		$return->{cell_hidden} = $result->{cell_hidden} if exists $result->{cell_hidden};
+		$return->{cell_xml_value} = $result->{v}->{raw_text} if exists $result->{v} and exists $result->{v}->{raw_text};
 		if( exists $result->{t} and $result->{t} eq 's' ){# Test for all in one sheet here!(future)
 			my $position = $self->get_shared_string_position( $result->{v}->{raw_text} );
 			###LogSD	$phone->talk( level => 'debug', message =>[
