@@ -88,7 +88,7 @@ has workbook_instance =>(
 	);
 ###LogSD	use Log::Shiras::UnhideDebug;
 with	'Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow',
-		'Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData',
+		'Spreadsheet::XLSX::Reader::LibXML::XMLToPerlData',# XMLReader::
 		;
 with	'Spreadsheet::XLSX::Reader::LibXML::GetCell';
 
