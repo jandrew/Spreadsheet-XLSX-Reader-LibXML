@@ -5,7 +5,7 @@ use version; our $VERSION = qv('v0.38.14');
 use 5.010;
 use Moose::Role;
 requires	'get_excel_region', 'set_error', 'get_defined_excel_format',
-###LogSD		'get_log_space',
+###LogSD		'get_all_space',
 		;
 use Types::Standard qw(
 		Int							Str						Maybe
@@ -33,7 +33,7 @@ use	Spreadsheet::XLSX::Reader::LibXML::Types qw(
 
 my	$coercion_index		= 0;
 my	@type_list			= ( PositiveNum, NegativeNum, ZeroOrUndef, Str );
-my	$last_date_cldr		= 'yyyy-m-d';
+my	$last_date_cldr		= 'yyyy-mm-dd';# This is critical to getting the next string to date conversion right
 my	$last_duration		= 0;
 my	$last_sub_seconds	= 0;
 my	$last_format_rem	= 0;
@@ -114,8 +114,8 @@ has	datetime_dates =>(
 
 sub get_defined_conversion{
 	my( $self, $position, $target_name ) = @_;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	###LogSD			name_space 	=> $self->get_log_space .  '::get_defined_conversion', );
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::get_defined_conversion', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			"Searching for the coercion for position: $position", ($target_name ? "With suggested name: $target_name" : '') ] );
 	my	$coercion_string = $self->get_defined_excel_format( $position );
@@ -124,27 +124,24 @@ sub get_defined_conversion{
 		return undef;
 	}
 	###LogSD	$phone->talk( level => 'debug', message => [
-	###LogSD		"Returned the string: $coercion_string",] );
-	my	$coercion;
-	$coercion = $self->_get_cached_format( $coercion_string ) if $self->get_cache_behavior;
+	###LogSD		"Position -$position- is associated with the string: $coercion_string", ] );
+	my	$coercion = $self->parse_excel_format_string( $coercion_string, ($target_name//"Excel__$position") );
 	if( !$coercion ){
-		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"Attempting to generate the coersion for string: $coercion_string",] );
-		$coercion = $self->parse_excel_format_string( $coercion_string, ($target_name//"Excel__$position") );
-		if( !$coercion ){
-			$self->set_error( "Unparsable conversion string at position -$position- found: $coercion_string" );
-			return undef;
-		}
+		$self->set_error( "Unparsable conversion string at position -$position- found: $coercion_string" );
+		return undef;
 	}
-	###LogSD	$phone->talk( level => 'trace', message => [
+	###LogSD	my $level = 
+	#~ ###LogSD		$position == 164 ? 'fatal' : 
+	###LogSD				'trace';
+	###LogSD	$phone->talk( level => $level, message => [
 	###LogSD		'Returning coercion:', $coercion,] );
 	return $coercion;
 }
  
 sub parse_excel_format_string{
 	my( $self, $format_strings, $coercion_name ) = @_;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	###LogSD			name_space 	=> $self->get_log_space .  '::parse_excel_format_string', );
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::parse_excel_format_string', );
 	if( !defined $format_strings ){
 		###LogSD	$phone->talk( level => 'info', message => [
 		###LogSD		"Nothing passed to convert",] );
@@ -157,6 +154,9 @@ sub parse_excel_format_string{
 	# Check the cache
 	my	$cache_key;
 	if( $self->get_cache_behavior ){
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"checking stored cache of the key: $format_strings",
+		###LogSD		'..searching in stored keys:', keys %{$self->_get_all_format_cache} ] ); 
 		$cache_key	= $format_strings; # TODO fix the non-hashkey character issues;
 		if( $self->_has_cached_format( $cache_key ) ){
 			###LogSD		$phone->talk( level => 'debug', message => [
@@ -321,6 +321,9 @@ sub parse_excel_format_string{
 			$date_text = 1;
 			$filter = Str;
 		}
+		
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Running method -$method- for list:", @deconstructed_list ] );
 		( my $intermediate_action, my @intermediate_coercions ) = $self->$method( $filter, \@deconstructed_list );
 		###LogSD	$phone->talk( level => 'trace', message => [ "Returning from: $method", $intermediate_action, @intermediate_coercions ] );
 		push @coercion_list, @intermediate_coercions;
@@ -331,11 +334,12 @@ sub parse_excel_format_string{
 		( my $intermediate_action, my @intermediate_coercions ) = $self->_build_datestring( Str, [ [ '@', '' ] ] );
 		push @coercion_list, @intermediate_coercions;
 		$action_type = $intermediate_action =~ /^(NUMBER|SCIENTIFIC|INTEGER|PERCENT|FRACTION|DECIMAL|DATE|DATESTRING)$/ ? $intermediate_action : $action_type;
-		###LogSD	$phone->talk( level => 'info', message => [ "Action type: $action_type", @coercion_list ] );
+		###LogSD	$phone->talk( level => 'info', message => [ "Adjusted action type: $action_type", ] );
 	}
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		'Length of coersion list: ' . scalar( @coercion_list ),
-	###LogSD		"Action type: $action_type", "Conversion type: $conversion_type",
+	###LogSD		"Action type: $action_type", "Conversion type: $conversion_type", ] );
+	###LogSD	$phone->talk( level => 'trace', message => [
 	###LogSD		($coercion_name ? "Initial coercion name: $coercion_name" : ''), @coercion_list, ] );
 	
 	# Build the final format
@@ -355,7 +359,11 @@ sub parse_excel_format_string{
 	###LogSD		"Final type:", $final_type ] );
 	
 	# Save the cache
-	$self->_set_cashed_format( $cache_key => $final_type ) if $self->get_cache_behavior;
+	if( $self->get_cache_behavior ){
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"setting cache for key:", $cache_key ] );
+		$self->_set_cashed_format( $cache_key => $final_type );
+	}
 	
 	return $final_type;
 }
@@ -366,6 +374,7 @@ sub parse_excel_format_string{
 has	_format_cash =>(
 		isa		=> HashRef,
 		traits	=> ['Hash'],
+		reader	=> '_get_all_format_cache',
 		handles =>{
 			_has_cached_format => 'exists',
 			_get_cached_format => 'get',
@@ -376,10 +385,15 @@ has	_format_cash =>(
 
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
 
+###LogSD	sub BUILD {
+###LogSD	    my $self = shift;
+###LogSD			$self->set_class_space( 'ExcelFmtDefault' );
+###LogSD	}
+
 sub _build_text{
 	my( $self, $type_filter, $list_ref ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD					$self->get_log_space .  '::_build_text', );
+	###LogSD			$self->get_all_space . '::hidden::_build_text', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			"Building an anonymous sub to process text values" ] );
 	my $sprintf_string;
@@ -398,7 +412,12 @@ sub _build_text{
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		"Final sprintf string: $sprintf_string" ] );
 	my	$return_sub = sub{
-			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD	my $sub_phone = $phone;
+			###LogSD	if( length( $Spreadsheet::XLSX::Reader::LibXML::Cell::all_space ) > 0 ){
+			###LogSD		$sub_phone = Log::Shiras::Telephone->new( name_space =>
+			###LogSD			$Spreadsheet::XLSX::Reader::LibXML::Cell::all_space . '::hidden::_return_value_only' . '::_build_text', );
+			###LogSD	}
+			###LogSD	$sub_phone->talk( level => 'debug', message => [
 			###LogSD		"Updated Input: $_[0]" ] );
 			return sprintf( $sprintf_string, $_[0] );
 		};
@@ -408,9 +427,9 @@ sub _build_text{
 sub _build_date{
 	my( $self, $type_filter, $list_ref ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD					$self->get_log_space .  '::_build_date', );
+	###LogSD			$self->get_all_space . '::hidden::_build_date', );
 	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"Building an anonymous sub to process date values" ] );
+	###LogSD			"Building an anonymous sub to process date values", $list_ref ] );
 	
 	my ( $cldr_string, $format_remainder );
 	my	$is_duration = 0;
@@ -525,19 +544,26 @@ sub _build_date{
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD		"Updated CLDR string: $cldr_string",
 		###LogSD		(($is_duration) ? ('...and duration:', $is_duration) : undef )	] );
-		$last_date_cldr 	= $cldr_string;
+		$last_date_cldr 	= $cldr_string;# This is critical to getting the next string to date conversion right
 		$last_duration		= $is_duration;
 		$last_sub_seconds	= $sub_seconds;
 		$last_format_rem	= $format_remainder;
 	}
 	my	@args_list = ( $self->get_epoch_year == 1904 ) ? ( system_type => 'apple_excel' ) : ();
 	my	$converter = DateTimeX::Format::Excel->new( @args_list );
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		"Building sub with:", @args_list, "And get_date_behavior set to: " . $self->get_date_behavior	] );
 	my	$conversion_sub = sub{ 
 			my	$num = $_[0];
 			if( !defined $num ){
 				return undef;
 			}
-			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD	my $sub_phone = $phone;
+			###LogSD	if( length( $Spreadsheet::XLSX::Reader::LibXML::Cell::all_space ) > 0 ){
+			###LogSD		$sub_phone = Log::Shiras::Telephone->new( name_space =>
+			###LogSD			$Spreadsheet::XLSX::Reader::LibXML::Cell::all_space . '::hidden::_return_value_only' . '::_build_date', );
+			###LogSD	}
+			###LogSD	$sub_phone->talk( level => 'debug', message => [
 			###LogSD		"Processing date number: $num",
 			###LogSD		'..with duration:', $is_duration,
 			###LogSD		"..and sub-seconds: $sub_seconds",
@@ -556,15 +582,17 @@ sub _build_date{
 				my $delta_seconds	= $di->seconds;
 				my $delta_nanosecs	= $di->nanoseconds;
 				$return_string .= $self->_build_duration( $is_duration, $delta_seconds, $delta_nanosecs );
-				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD	$sub_phone->talk( level => 'debug', message => [
 				###LogSD		"Duration return string: $return_string" ] );
 			}else{
 				if( $self->get_date_behavior ){
+					###LogSD	$sub_phone->talk( level => 'debug', message => [
+					###LogSD		"Returning the DateTime object rather than the format string" ] );
 					return $dt;
 				}
 				if( $sub_seconds ){
 					$calc_sub_secs = $dt->format_cldr( $sub_seconds );
-					###LogSD	$phone->talk( level => 'debug', message => [
+					###LogSD	$sub_phone->talk( level => 'debug', message => [
 					###LogSD		"Processing sub-seconds: $calc_sub_secs" ] );
 					if( "0.$calc_sub_secs" >= 0.5 ){
 						###LogSD	$phone->talk( level => 'debug', message => [
@@ -572,16 +600,16 @@ sub _build_date{
 						$dt->subtract( seconds => 1 );
 					}
 				}
-				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD	$sub_phone->talk( level => 'debug', message => [
 				###LogSD		"Converting it with CLDR string: $cldr_string" ] );
 				$return_string .= $dt->format_cldr( $cldr_string );
 				if( $sub_seconds and $sub_seconds ne '1' ){
 					$return_string .= $calc_sub_secs;
 				}
 				$return_string .= $dt->format_cldr( $format_remainder ) if $format_remainder;
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		"returning: $return_string" ] );
 			}
+			###LogSD	$sub_phone->talk( level => 'debug', message => [
+			###LogSD		"returning: $return_string" ] );
 			return $return_string;
 		};
 	return( 'DATE', $type_filter, $conversion_sub );
@@ -589,10 +617,11 @@ sub _build_date{
 
 sub _build_datestring{
 	my( $self, $type_filter, $list_ref ) = @_;
+	my $this_date_cldr = $last_date_cldr;# This is critical to getting the string to date conversion right (matching the number to date equivalent)
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD					$self->get_log_space .  '::_build_datestring', );
+	###LogSD			$self->get_all_space . '::hidden::_build_datestring', );
 	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"Building an anonymous sub to process date strings" ] );
+	###LogSD			"Building an anonymous sub to process date strings", $this_date_cldr ] );
 	
 	my ( $cldr_string, $format_remainder );
 	my	$conversion_sub = sub{ 
@@ -611,7 +640,12 @@ sub _build_datestring{
 							$date, lang =>[ $self->get_excel_region ]
 						);
 			$dt->add( nanoseconds => $calc_sub_secs ) if $calc_sub_secs;
-			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD	my $sub_phone = $phone;
+			###LogSD	if( length( $Spreadsheet::XLSX::Reader::LibXML::Cell::all_space ) > 0 ){
+			###LogSD		$sub_phone = Log::Shiras::Telephone->new( name_space =>
+			###LogSD			$Spreadsheet::XLSX::Reader::LibXML::Cell::all_space . '::hidden::_return_value_only' . '::_build_datestring', );
+			###LogSD	}
+			###LogSD	$sub_phone->talk( level => 'debug', message => [
 			###LogSD		"Processing date string: $date",
 			###LogSD		"..with duration:", $last_duration,
 			###LogSD		"..and sub-seconds: $last_sub_seconds",
@@ -629,7 +663,7 @@ sub _build_datestring{
 				my $key = $last_duration->[0];
 				my $delta_seconds	= $di->seconds;
 				my $delta_nanosecs	= $di->nanoseconds;;
-				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD	$sub_phone->talk( level => 'debug', message => [
 				###LogSD		"Delta seconds: $delta_seconds",
 				###LogSD		(($delta_nanosecs) ? "Delta nanoseconds: $delta_nanosecs" : undef) ] );
 				$return_string .= $self->_build_duration( $last_duration, $delta_seconds, $delta_nanosecs );
@@ -641,27 +675,27 @@ sub _build_datestring{
 				}
 				if( $last_sub_seconds ){
 					$calc_sub_secs = $dt->format_cldr( $last_sub_seconds );
-					###LogSD	$phone->talk( level => 'debug', message => [
+					###LogSD	$sub_phone->talk( level => 'debug', message => [
 					###LogSD		"Processing sub-seconds: $calc_sub_secs" ] );
 					if( "0.$calc_sub_secs" >= 0.5 ){
-						###LogSD	$phone->talk( level => 'debug', message => [
+						###LogSD	$sub_phone->talk( level => 'debug', message => [
 						###LogSD		"Rounding seconds back down" ] );
 						$dt->subtract( seconds => 1 );
 					}
 				}
-				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD	$sub_phone->talk( level => 'debug', message => [
 				###LogSD		"Converting it with CLDR string: $last_date_cldr" ] );
-				$return_string .= $dt->format_cldr( $last_date_cldr );
+				$return_string .= $dt->format_cldr( $this_date_cldr );
 				if( $last_sub_seconds and $last_sub_seconds ne '1' ){
 					$return_string .= $calc_sub_secs;
 				}
 				$return_string .= $dt->format_cldr( $last_format_rem ) if $last_format_rem;
-				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD	$sub_phone->talk( level => 'debug', message => [
 				###LogSD		"returning: $return_string" ] );
 			}
 			return $return_string;
 		};
-	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD	$phone->talk( level => 'trace', message => [
 	###LogSD		"returning:",  'DATESTRING', $type_filter, $conversion_sub ] );
 	return( 'DATESTRING', $type_filter, $conversion_sub );
 }
@@ -669,7 +703,7 @@ sub _build_datestring{
 sub _build_duration{
 	my( $self, $duration_ref, $delta_seconds, $delta_nanosecs ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD					$self->get_log_space .  '::_build_date::_build_duration', );
+	###LogSD			$self->get_all_space . '::hidden::_build_date::_build_duration', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			'Building a duration string with duration ref:', $duration_ref,
 	###LogSD			"With delta seconds: $delta_seconds",
@@ -725,7 +759,7 @@ sub _build_duration{
 sub _build_number{
 	my( $self, $type_filter, $list_ref ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD					$self->get_log_space .  '::_build_number', );
+	###LogSD			$self->get_all_space . '::hidden::_build_number', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			"Processing a number list to see how it should be converted",
 	###LogSD			'With type constraint: ' . $type_filter->name,
@@ -842,7 +876,7 @@ sub _build_number{
 sub _build_integer_sub{
 	my( $self, $type_filter, $list_ref, $conversion_defs ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD					$self->get_log_space .  '::_build_number::_build_integer_sub', );
+	###LogSD			$self->get_all_space . '::hidden::_build_number::_build_integer_sub', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			"Building an anonymous sub to return integer values",
 	###LogSD			'With type constraint: ' . $type_filter->name,
@@ -869,19 +903,24 @@ sub _build_integer_sub{
 	my $dispatch_sequence = $number_build_dispatch->{decimal};
 	
 	my 	$conversion_sub = sub{
+			###LogSD	my $sub_phone = $phone;
+			###LogSD	if( length( $Spreadsheet::XLSX::Reader::LibXML::Cell::all_space ) > 0 ){
+			###LogSD		$sub_phone = Log::Shiras::Telephone->new( name_space =>
+			###LogSD			$Spreadsheet::XLSX::Reader::LibXML::Cell::all_space . '::hidden::_return_value_only' . '::_build_number::_build_integer_sub', );
+			###LogSD	}
 			my $adjusted_input = $_[0];
 			if( !defined $adjusted_input or $adjusted_input eq '' ){
-				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD	$sub_phone->talk( level => 'debug', message => [
 				###LogSD		"Return undef for empty strings" ] );
 				return undef;
 			}
 			my	$value_definitions = clone( $conversion_defs );
 				$value_definitions->{initial_value} = $adjusted_input;
-			###LogSD	$phone->talk( level => 'trace', message => [
+			###LogSD	$sub_phone->talk( level => 'trace', message => [
 			###LogSD		'Building scientific output with:',  $conversion_defs,
 			###LogSD		'..and dispatch sequence:', $dispatch_sequence ] );
 			my $built_ref = $self->_build_elements( $dispatch_sequence, $value_definitions );
-			###LogSD	$phone->talk( level => 'trace', message => [
+			###LogSD	$sub_phone->talk( level => 'trace', message => [
 			###LogSD		"Received built ref:", $built_ref ] );
 			my	$return .= sprintf(
 					$built_ref->{sprintf_string},
@@ -899,7 +938,7 @@ sub _build_integer_sub{
 sub _build_decimal_sub{
 	my( $self, $type_filter, $list_ref, $conversion_defs ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD					$self->get_log_space .  '::_build_number::_build_decimal_sub', );
+	###LogSD			$self->get_all_space . '::hidden::_build_number::_build_decimal_sub', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			"Building an anonymous sub to return decimal values",
 	###LogSD			'With type constraint: ' . $type_filter->name,
@@ -927,6 +966,11 @@ sub _build_decimal_sub{
 	my $dispatch_sequence = $number_build_dispatch->{decimal};
 	
 	my 	$conversion_sub = sub{
+			###LogSD	my $sub_phone = $phone;
+			###LogSD	if( length( $Spreadsheet::XLSX::Reader::LibXML::Cell::all_space ) > 0 ){
+			###LogSD		$sub_phone = Log::Shiras::Telephone->new( name_space =>
+			###LogSD			$Spreadsheet::XLSX::Reader::LibXML::Cell::all_space . '::hidden::_return_value_only' . '::_build_number::_build_decimal_sub', );
+			###LogSD	}
 			my $adjusted_input = $_[0];
 			if( !defined $adjusted_input or $adjusted_input eq '' ){
 				###LogSD	$phone->talk( level => 'debug', message => [
@@ -935,11 +979,11 @@ sub _build_decimal_sub{
 			}
 			my	$value_definitions = clone( $conversion_defs );
 				$value_definitions->{initial_value} = $adjusted_input;
-			###LogSD	$phone->talk( level => 'trace', message => [
+			###LogSD	$sub_phone->talk( level => 'trace', message => [
 			###LogSD		'Building scientific output with:',  $conversion_defs,
 			###LogSD		'..and dispatch sequence:', $dispatch_sequence ] );
 			my $built_ref = $self->_build_elements( $dispatch_sequence, $value_definitions );
-			###LogSD	$phone->talk( level => 'trace', message => [
+			###LogSD	$sub_phone->talk( level => 'trace', message => [
 			###LogSD		"Received built ref:", $built_ref ] );
 			my	$return .= sprintf(
 					$built_ref->{sprintf_string},
@@ -958,7 +1002,7 @@ sub _build_decimal_sub{
 sub _build_percent_sub{
 	my( $self, $type_filter, $list_ref, $conversion_defs ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD					$self->get_log_space .  '::_build_number::_build_percent_sub', );
+	###LogSD			$self->get_all_space . '::hidden::_build_number::_build_percent_sub', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			"Building an anonymous sub to return decimal values",
 	###LogSD			'With type constraint: ' . $type_filter->name,
@@ -991,19 +1035,24 @@ sub _build_percent_sub{
 	my $dispatch_sequence = $number_build_dispatch->{percent};
 	
 	my 	$conversion_sub = sub{
+			###LogSD	my $sub_phone = $phone;
+			###LogSD	if( length( $Spreadsheet::XLSX::Reader::LibXML::Cell::all_space ) > 0 ){
+			###LogSD		$sub_phone = Log::Shiras::Telephone->new( name_space =>
+			###LogSD			$Spreadsheet::XLSX::Reader::LibXML::Cell::all_space . '::hidden::_return_value_only' . '::_build_number::_build_percent_sub', );
+			###LogSD	}
 			my $adjusted_input = $_[0];
 			if( !defined $adjusted_input or $adjusted_input eq '' ){
-				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD	$sub_phone->talk( level => 'debug', message => [
 				###LogSD		"Return undef for empty strings" ] );
 				return undef;
 			}
 			my	$value_definitions = clone( $conversion_defs );
 				$value_definitions->{initial_value} = $adjusted_input;
-			###LogSD	$phone->talk( level => 'trace', message => [
+			###LogSD	$sub_phone->talk( level => 'trace', message => [
 			###LogSD		'Building scientific output with:',  $conversion_defs,
 			###LogSD		'..and dispatch sequence:', $dispatch_sequence ] );
 			my $built_ref = $self->_build_elements( $dispatch_sequence, $value_definitions );
-			###LogSD	$phone->talk( level => 'trace', message => [
+			###LogSD	$sub_phone->talk( level => 'trace', message => [
 			###LogSD		"Received built ref:", $built_ref ] );
 			my $return;
 			if( $decimal_count < 2 ){
@@ -1030,7 +1079,7 @@ sub _build_percent_sub{
 sub _build_scientific_sub{
 	my( $self, $type_filter, $list_ref, $conversion_defs ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD					$self->get_log_space .  '::_build_number::_build_scientific_sub', );
+	###LogSD			$self->get_all_space . '::hidden::_build_number::_build_scientific_sub', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			"Building an anonymous sub to return scientific values",
 	###LogSD			'With type constraint: ' . $type_filter->name,
@@ -1070,19 +1119,24 @@ sub _build_scientific_sub{
 	my $dispatch_sequence = $number_build_dispatch->{scientific};
 	
 	my 	$conversion_sub = sub{
+			###LogSD	my $sub_phone = $phone;
+			###LogSD	if( length( $Spreadsheet::XLSX::Reader::LibXML::Cell::all_space ) > 0 ){
+			###LogSD		$phone = Log::Shiras::Telephone->new( name_space =>
+			###LogSD			$Spreadsheet::XLSX::Reader::LibXML::Cell::all_space . '::hidden::_return_value_only' . '::_build_number::_build_scientific_sub', );
+			###LogSD	}
 			my $adjusted_input = $_[0];
 			if( !defined $adjusted_input or $adjusted_input eq '' ){
-				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD	$sub_phone->talk( level => 'debug', message => [
 				###LogSD		"Return undef for empty strings" ] );
 				return undef;
 			}
 			my	$value_definitions = clone( $conversion_defs );
 				$value_definitions->{initial_value} = $adjusted_input;
-			###LogSD	$phone->talk( level => 'trace', message => [
+			###LogSD	$sub_phone->talk( level => 'trace', message => [
 			###LogSD		'Building scientific output with:',  $conversion_defs,
 			###LogSD		'..and dispatch sequence:', $dispatch_sequence ] );
 			my $built_ref = $self->_build_elements( $dispatch_sequence, $value_definitions );
-			###LogSD	$phone->talk( level => 'trace', message => [
+			###LogSD	$sub_phone->talk( level => 'trace', message => [
 			###LogSD		"Received built ref:", $built_ref ] );
 			my $return;
 			if( $built_ref->{no_decimal} ){
@@ -1111,7 +1165,7 @@ sub _build_scientific_sub{
 sub _build_fraction_sub{
 	my( $self, $type_filter, $list_ref, $conversion_defs ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD					$self->get_log_space .  '::_build_number::_build_fraction_sub', );
+	###LogSD			$self->get_all_space . '::hidden::_build_number::_build_fraction_sub', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			"Building an anonymous sub to return integer and fraction strings",
 	###LogSD			'With type constraint: ' . $type_filter->name,
@@ -1121,36 +1175,41 @@ sub _build_fraction_sub{
 	
 	my $dispatch_sequence = $number_build_dispatch->{fraction};
 	my $conversion_sub = sub{
-		my $adjusted_input = $_[0];
-		if( !defined $adjusted_input or $adjusted_input eq '' ){
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"Return undef for empty strings" ] );
-			return undef;
-		}
-		my	$value_definitions = clone( $conversion_defs );
-			$value_definitions->{initial_value} = $adjusted_input;
-		###LogSD	$phone->talk( level => 'trace', message => [
-		###LogSD		'Building scientific output with:',  $conversion_defs,
-		###LogSD		'..and dispatch sequence:', $dispatch_sequence ] );
-		my $built_ref = $self->_build_elements( $dispatch_sequence, $value_definitions );
-		###LogSD	$phone->talk( level => 'trace', message => [
-		###LogSD		"Received built ref:", $built_ref ] );
-		my $return;
-		if( $built_ref->{integer}->{value} ){
-			$return = sprintf( '%s', $built_ref->{integer}->{value} );
-			if( $built_ref->{fraction}->{value} ){
-				$return .= ' ';
+			###LogSD	my $sub_phone = $phone;
+			###LogSD	if( length( $Spreadsheet::XLSX::Reader::LibXML::Cell::all_space ) > 0 ){
+			###LogSD		$sub_phone = Log::Shiras::Telephone->new( name_space =>
+			###LogSD			$Spreadsheet::XLSX::Reader::LibXML::Cell::all_space . '::hidden::_return_value_only' . '::_build_number::_build_fraction_sub', );
+			###LogSD	}
+			my $adjusted_input = $_[0];
+			if( !defined $adjusted_input or $adjusted_input eq '' ){
+				###LogSD	$sub_phone->talk( level => 'debug', message => [
+				###LogSD		"Return undef for empty strings" ] );
+				return undef;
 			}
-		}
-		if( $built_ref->{fraction}->{value} ){
-			$return .= $built_ref->{fraction}->{value};
-		}
-		if( !$return and $built_ref->{initial_value} ){
-			$return = 0;
-		}
-		$return = $built_ref->{sign} . $return if $built_ref->{sign} and $return;
-		return $return;
-	};
+			my	$value_definitions = clone( $conversion_defs );
+				$value_definitions->{initial_value} = $adjusted_input;
+			###LogSD	$sub_phone->talk( level => 'trace', message => [
+			###LogSD		'Building scientific output with:',  $conversion_defs,
+			###LogSD		'..and dispatch sequence:', $dispatch_sequence ] );
+			my $built_ref = $self->_build_elements( $dispatch_sequence, $value_definitions );
+			###LogSD	$sub_phone->talk( level => 'trace', message => [
+			###LogSD		"Received built ref:", $built_ref ] );
+			my $return;
+			if( $built_ref->{integer}->{value} ){
+				$return = sprintf( '%s', $built_ref->{integer}->{value} );
+				if( $built_ref->{fraction}->{value} ){
+					$return .= ' ';
+				}
+			}
+			if( $built_ref->{fraction}->{value} ){
+				$return .= $built_ref->{fraction}->{value};
+			}
+			if( !$return and $built_ref->{initial_value} ){
+				$return = 0;
+			}
+			$return = $built_ref->{sign} . $return if $built_ref->{sign} and $return;
+			return $return;
+		};
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		"Conversion sub for filter name: " . $type_filter->name, $conversion_sub ] );
 	
@@ -1160,7 +1219,7 @@ sub _build_fraction_sub{
 sub _build_elements{
 	my( $self, $dispatch_ref, $value_definitions, ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD					$self->get_log_space .  '::_build_number::_build_elements', );
+	###LogSD			$self->get_all_space . '::hidden::_build_number::_build_elements', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			'Reached the dispatcher for number building with:', $value_definitions,
 	###LogSD			'..using dispatch list', $dispatch_ref	] );
@@ -1175,7 +1234,7 @@ sub _build_elements{
 sub _convert_negative{
 	my( $self, $value_definitions, ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD					$self->get_log_space .  '::_build_number::_build_elements::_convert_negative', );
+	###LogSD			$self->get_all_space . '::hidden::_build_number::_build_elements::_convert_negative', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			'Reached _convert_negative with:', $value_definitions,	] );
 	
@@ -1190,7 +1249,7 @@ sub _convert_negative{
 sub _divide_by_thousands{
 	my( $self, $value_definitions, ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD					$self->get_log_space .  '::_build_number::_build_elements::_divide_by_thousands', );
+	###LogSD			$self->get_all_space . '::hidden::_build_number::_build_elements::_divide_by_thousands', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			'Reached _convert_to_percent with:', $value_definitions,	] );
 	if(	$value_definitions->{initial_value} and
@@ -1207,7 +1266,7 @@ sub _divide_by_thousands{
 sub _convert_to_percent{
 	my( $self, $value_definitions, ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD					$self->get_log_space .  '::_build_number::_build_elements::_convert_to_percent', );
+	###LogSD			$self->get_all_space . '::hidden::_build_number::_build_elements::_convert_to_percent', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			'Reached _convert_to_percent with:', $value_definitions,	] );
 	
@@ -1220,7 +1279,7 @@ sub _convert_to_percent{
 sub _split_decimal_integer{
 	my( $self, $value_definitions, ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD					$self->get_log_space .  '::_build_number::_build_elements::_split_decimal_integer', );
+	###LogSD			$self->get_all_space . '::hidden::_build_number::_build_elements::_split_decimal_integer', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			'Reached _split_decimal_integer with:', $value_definitions,	] );
 	
@@ -1242,7 +1301,7 @@ sub _split_decimal_integer{
 sub _move_decimal_point{
 	my( $self, $value_definitions, ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD					$self->get_log_space .  '::_build_number::_build_elements::_move_decimal_point', );
+	###LogSD			$self->get_all_space . '::hidden::_build_number::_build_elements::_move_decimal_point', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			'Reached _move_decimal_point with:', $value_definitions,	] );
 	my ( $exponent, $stopped );
@@ -1298,7 +1357,7 @@ sub _move_decimal_point{
 sub _round_decimal{
 	my( $self, $value_definitions, ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD					$self->get_log_space .  '::_build_number::_build_elements::_round_decimal', );
+	###LogSD			$self->get_all_space . '::hidden::_build_number::_build_elements::_round_decimal', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			'Reached _round_decimal with:', $value_definitions,	] );
 	if( $value_definitions->{no_decimal} ){
@@ -1342,7 +1401,7 @@ sub _round_decimal{
 sub _add_commas{
 	my( $self, $value_definitions, ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD					$self->get_log_space .  '::_build_number::_build_elements::_add_commas', );
+	###LogSD			$self->get_all_space . '::hidden::_build_number::_build_elements::_add_commas', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			'Reached _add_commas with:', $value_definitions,	] );
 	if( exists $value_definitions->{integer}->{comma} ){
@@ -1361,7 +1420,7 @@ sub _add_commas{
 sub _pad_exponent{
 	my( $self, $value_definitions, ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD					$self->get_log_space .  '::_build_number::_build_elements::_pad_exponent', );
+	###LogSD			$self->get_all_space . '::hidden::_build_number::_build_elements::_pad_exponent', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			'Reached _pad_exponent with:', $value_definitions,	] );
 	if(	$value_definitions->{exponent}->{leading_zeros} ){
@@ -1377,7 +1436,7 @@ sub _pad_exponent{
 sub _build_fraction{
 	my( $self, $value_definitions, ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD					$self->get_log_space .  '::_build_number::_build_elements::_build_fraction', );
+	###LogSD			$self->get_all_space . '::hidden::_build_number::_build_elements::_build_fraction', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			'Reached _build_fraction with:', $value_definitions,	] );
 	if( $value_definitions->{decimal}->{value} ){
@@ -1404,7 +1463,7 @@ sub _build_fraction{
 sub _build_divisor_fraction{
 	my( $self, $divisor, $decimal ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD					$self->get_log_space .  '::_build_number::_build_elements::_build_divisor_fraction', );
+	###LogSD			$self->get_all_space . '::hidden::_build_number::_build_elements::_build_divisor_fraction', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			'Reached _build_divisor_fraction with:', $divisor, $decimal	] );
 	my $low_numerator = int( $divisor * $decimal );
@@ -1432,11 +1491,11 @@ sub _build_divisor_fraction{
 
 sub _add_integer_separator{
 	my ( $self, $int, $comma, $frequency ) = @_;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	###LogSD				name_space 	=> $self->get_log_space . '::_util_function::_add_integer_separator', );
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::hidden::_util_function::_add_integer_separator', );
 	###LogSD		$phone->talk( level => 'info', message => [
-	###LogSD				"Attempting to add the separator -$comma- to " . 
-	###LogSD				"the integer portion of: $int" ] );
+	###LogSD			"Attempting to add the separator -$comma- to " . 
+	###LogSD			"the integer portion of: $int" ] );
 		$comma //= ',';
 	my	@number_segments;
 	if( is_Int( $int ) ){
@@ -1457,12 +1516,12 @@ sub _add_integer_separator{
 
 sub _continued_fraction{# http://www.perlmonks.org/?node_id=41961
 	my ( $self, $decimal, $max_iterations, $max_digits ) = @_;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	###LogSD				name_space 	=> $self->get_log_space . '::_util_function::_continued_fraction', );
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::hidden::_util_function::_continued_fraction', );
 	###LogSD		$phone->talk( level => 'info', message => [
-	###LogSD				"Attempting to build an integer fraction with decimal: $decimal",
-	###LogSD				"Using max iterations: $max_iterations",
-	###LogSD				"..and max digits: $max_digits",			] );
+	###LogSD			"Attempting to build an integer fraction with decimal: $decimal",
+	###LogSD			"Using max iterations: $max_iterations",
+	###LogSD			"..and max digits: $max_digits",			] );
 	my	@continuous_integer_list;
 	my	$start_decimal = $decimal;
 	confess "Passed bad decimal: $decimal" if !is_Num( $decimal );
@@ -1546,11 +1605,11 @@ sub _continued_fraction{# http://www.perlmonks.org/?node_id=41961
 # into a fraction.
 sub _integers_to_fraction {# ints_to_frac
 	my ( $self, $numerator, $denominator) = (shift, 0, 1); # Seed with 0 (not all elements read here!)
-	###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	###LogSD				name_space 	=> $self->get_log_space . '::_util_function::_integers_to_fraction', );
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::hidden::_util_function::_integers_to_fraction', );
 	###LogSD		$phone->talk( level => 'info', message => [
-	###LogSD				"Attempting to build an integer fraction with the continuous fraction list: " .
-	###LogSD				join( ' - ', @_ ), "With a seed numerator of -0- and seed denominator of -1-" ] );
+	###LogSD			"Attempting to build an integer fraction with the continuous fraction list: " .
+	###LogSD			join( ' - ', @_ ), "With a seed numerator of -0- and seed denominator of -1-" ] );
 	for my $integer( reverse @_ ){# Get remaining elements
 		###LogSD	$phone->talk( level => 'info', message => [ "Now processing: $integer" ] );
 		($numerator, $denominator) =
@@ -1571,8 +1630,8 @@ sub _integers_to_fraction {# ints_to_frac
 # denominator
 sub _best_fraction{#frac_standard 
 	my ($self, $n, $m) = @_;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	###LogSD				name_space 	=> $self->get_log_space . '::_util_function::_best_fraction', );
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::hidden::_util_function::_best_fraction', );
 	###LogSD		$phone->talk( level => 'info', message => [
 	###LogSD				"Finding the best fraction", "Start numerator: $n", "Start denominator: $m" ] );
 	$n = $self->_integer_and_decimal($n);
@@ -1606,10 +1665,10 @@ sub _best_fraction{#frac_standard
 #	(in list context) the error.
 sub _integer_and_decimal {# In the future see if this will merge with _split_decimal_integer
 	my ( $self, $decimal ) = @_;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	###LogSD				name_space 	=> $self->get_log_space . '::_util_function::_integer_and_decimal', );
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::hidden::_util_function::_integer_and_decimal', );
 	###LogSD		$phone->talk( level => 'info', message => [ 
-	###LogSD				"Splitting integer from decimal for: $decimal" ] );
+	###LogSD			"Splitting integer from decimal for: $decimal" ] );
 	my $integer = int( $decimal );
 	###LogSD		$phone->talk( level => 'info', message => [ "Integer: $integer" ] );
 	if(wantarray){
@@ -1623,10 +1682,10 @@ sub _integer_and_decimal {# In the future see if this will merge with _split_dec
 # Takes two integers, returns the greatest common divisor.
 sub _gcd {
 	my ($self, $n, $m) = @_;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	###LogSD				name_space 	=> $self->get_log_space . '::_util_function::_gcd', );
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::hidden::_util_function::_gcd', );
 	###LogSD		$phone->talk( level => 'info', message => [ 
-	###LogSD				"Finding the greatest common divisor for ( $n and $m )" ] );
+	###LogSD			"Finding the greatest common divisor for ( $n and $m )" ] );
 	while ($m) {
 		my $k = $n % $m;
 		###LogSD	$phone->talk( level => 'info', message => [ 

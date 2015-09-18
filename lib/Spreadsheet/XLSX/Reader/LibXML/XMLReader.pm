@@ -1,14 +1,13 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader;
-use version; our $VERSION = qv('v0.38.14');
-###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::XMLReader-$VERSION";
+use version; our $VERSION = qv('v0.38.16');
 
 use 5.010;
 use Moose;
 use MooseX::StrictConstructor;
 use MooseX::HasDefaults::RO;
 use Types::Standard qw(
-		Int				Str				HasMethods
-		Bool
+		Int				HasMethods			Bool
+		Num				Str
     );
 use XML::LibXML::Reader;
 use lib	'../../../../../lib',;
@@ -30,7 +29,7 @@ has file =>(
 		coerce		=> 1,
 		required	=> 1,
 		trigger		=> \&_build_xml_reader,
-		handles		=>[qw( tell getpos seek )],
+		handles 	=> [ 'close' ],
 	);
 
 has	error_inst =>(
@@ -45,32 +44,173 @@ has	error_inst =>(
 		) ],
 	);
 
+has	xml_version =>(
+		isa			=> 	Num,
+		reader		=> 'version',
+		writer		=> '_set_xml_version',
+		clearer		=> '_clear_xml_version',
+	);
+
+has	xml_encoding =>(
+		isa			=> 	Str,
+		reader		=> 'encoding',
+		predicate	=> 'has_encoding',
+		writer		=> '_set_xml_encoding',
+		clearer		=> '_clear_xml_encoding',
+	);
+
+has	xml_header =>(
+		isa			=> 	Str,
+		reader		=> 'get_header',
+		writer		=> '_set_xml_header',
+	);
+
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
 
 
 sub start_the_file_over{
 	my( $self, ) = @_;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	###LogSD					name_space => $self->get_log_space . '::start_the_file_over', );
-	###LogSD		$phone->talk( level => 'debug', message =>[ "Resetting the XML file" ] );
-	if( eval '$self->_go_to_the_end' ){
-		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"made it to the end", ] );
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::XMLReader::FromFile::start_the_file_over', );
+	if( $self->has_file ){
+		###LogSD		$phone->talk( level => 'debug', message =>[ "Resetting the XML file" ] );
+		#~ $self->_go_to_the_end;
+		$self->_close_the_sheet;
+		#~ $self->_clear_xml_parser;
+		$self->_clear_location;
+		my $fh = $self->get_file;
+		$fh->seek( 0, 0 );
+		$self->_set_xml_parser( XML::LibXML::Reader->new( IO => $fh ) );
+		return 1;
+	}else{
+		###LogSD		$phone->talk( level => 'info', message =>[ "No file to reset" ] );
+		return undef;
 	}
-	if( $@ ){
-		$self->set_error( $@ );
-	}
-	$self->_close_the_sheet;
-	###LogSD	$phone->talk( level => 'debug', message => [
-	###LogSD		"closed the sheet", ] );
-	#~ $self->_clear_xml_parser;
-	$self->_clear_location;
-	###LogSD	$phone->talk( level => 'debug', message => [
-	###LogSD		"cleared the current location", ] );
-	$self->seek( 0, 0 );
-	$self->_set_xml_parser( XML::LibXML::Reader->new( IO => $self->get_file ) );
-	$self->start_reading;
 }
+
+sub get_text_node{
+	my ( $self, ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::XMLReader::get_text_node', );
+	###LogSD		$phone->talk( level => 'debug', message => [
+	###LogSD			"getting the text value of the node", ] );
+	
+	# Check for a text node type (and return immediatly if so)
+	if( $self->has_value ){
+		my $node_text = $self->node_value;
+		###LogSD	$phone->talk( level => 'debug', message =>[
+		###LogSD		"This is a text node - returning value: $node_text",] );
+		return ( 1, $node_text, );
+	}
+	# Return undef for no value
+	return ( undef,);
+}
+
+sub get_attribute_hash_ref{
+	my ( $self, ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::XMLReader::get_attribute_hash_ref', );
+	###LogSD		$phone->talk( level => 'debug', message => [
+	###LogSD			"Extract all attributes as a hash ref", ] );
+	
+	my $attribute_ref = {};
+	my $result = $self->move_to_first_att;
+	###LogSD	$phone->talk( level => 'trace', message =>[
+	###LogSD		"Result of the first attribute move: $result",] );
+	ATTRIBUTELIST: while( $result > 0 ){
+		my $att_name = $self->node_name;
+		my $att_value = $self->node_value;
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Reading attribute: $att_name", "..and value: $att_value" ] );
+		if( $att_name eq 'val' ){
+			$attribute_ref = $att_value;
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"Assuming we are at the bottom of the attribute list with a found attribute val: $att_value"] );
+			last ATTRIBUTELIST;
+		}else{
+			$attribute_ref->{$att_name} = "$att_value";
+		}
+		$result = $self->move_to_next_att;
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Result of the move: $result", ] );
+	}
+	$result = ( ref $attribute_ref ) ? (keys %$attribute_ref) : 1;
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		"Returning attribute ref:", $attribute_ref ] );
+	return ( $result, $attribute_ref );
+}
+
+sub advance_element_position{
+	my ( $self, $element, $position ) = @_;
+	if( $position and $position < 1 ){
+		confess "You can only advance element position in a positive direction, |$position| is not correct.";
+	}
+	$position ||= 1;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::XMLReader::advance_element_position', );
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		"Advancing to element -" . ($element//'') . "- -$position- times", ] );
+	my ( $result, $node_depth, $node_name, $node_type, $byte_count );
+	my $x = 0;
+	for my $y ( 1 .. $position ){
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Advancing position case: $y", ] );
+		if( defined $element ){
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"Searching for element: $element", ] );
+			$result = $self->_next_element( $element );
+		}else{
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"Indexing one more generic node", ] );
+			( $result, my( $node_depth, $node_name, $node_type ) ) = $self->_next_node;
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"Received the result: $result", "..at depth: $node_depth",
+			###LogSD		"..and node named: $node_name", "..of node type: $node_type" ] );
+			
+			# Climb out of end tags
+			while( $result and $node_type == 15 ){
+				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD		"Advancing from end node", ] );
+				( $result, $node_depth, $node_name, $node_type ) = $self->_next_node;
+				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD		"Received the result: $result", "..at depth: $node_depth",
+				###LogSD		"..and node named: $node_name", "..of node type: $node_type" ] );
+			}
+		}
+		last if !$result;
+		$x++;
+	}
+	if( defined $node_type and $node_type == 0 ){
+		###LogSD	$phone->talk( level => 'info', message =>[ "Reached the end of the file!" ] );
+	}elsif( !$result ){
+		###LogSD	$phone->talk( level => 'info', message =>[
+		###LogSD		"Unable to location position -$position- for element: " . ($element//'') ] );
+	}else{
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Actually advanced -$x- positions with result: $result",
+		###LogSD		"..indicated by:", $self->location_status ] );
+	}
+	return $result;
+}
+
+sub location_status{
+	my ( $self, ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::XMLReader::location_status', );
+	###LogSD		$phone->talk( level => 'debug', message => [
+	###LogSD			"Getting the status for the current position", ] );
+	my ( $node_depth, $node_name, $node_type ) = ( $self->node_depth, $self->node_name, $self->node_type );
+	$node_name	= 
+		( $node_type == 0 ) ? 'EOF' :
+		( $node_name eq '#text') ? 'raw_text' :
+		$node_name;
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		"Currently at libxml2 level: $node_depth",
+	###LogSD		"Current node name: $node_name",
+	###LogSD		"..for type: $node_type" ] );
+	return ( $node_depth, $node_name, $node_type );
+}
+	
 
 #########1 Private Attributes 3#########4#########5#########6#########7#########8#########9
 
@@ -82,9 +222,9 @@ has _xml_reader =>(
 	clearer		=> '_clear_xml_parser',
 	handles	=>{
 		copy_current_node	=> 'copyCurrentNode',
-		byte_consumed		=> 'byteConsumed',
-		start_reading		=> 'read',
-		next_element		=> 'nextElement',
+		#~ byte_consumed		=> 'byteConsumed',
+		_read_next_node		=> 'read',
+		_next_element		=> 'nextElement',
 		node_type			=> 'nodeType',
 		node_name			=> 'name',
 		node_value			=> 'value',
@@ -92,9 +232,11 @@ has _xml_reader =>(
 		node_depth			=> 'depth',
 		move_to_first_att	=> 'moveToFirstAttribute',
 		move_to_next_att	=> 'moveToNextAttribute',
-		encoding			=> 'encoding',
+		_encoding			=> 'encoding',
+		_version			=> 'xmlVersion',
 		_go_to_the_end		=> 'finish',
 		_close_the_sheet	=> 'close',
+		#~ get_node_all		=> 'readOuterXml',
 	},
 	trigger => \&_reader_init,
 );
@@ -117,10 +259,85 @@ has _read_unique_bits =>(
 
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
 
+sub _next_node{
+	my( $self, ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::XMLReader::_next_node', );
+	###LogSD		$phone->talk( level => 'debug', message => [
+	###LogSD			"Reading the next node in the xml document", ] );
+	my $result = eval{ $self->_read_next_node } ? 1 : 0 ;
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		"Result of the read: $result", ] );
+	my ( $node_depth, $node_name, $node_type ) = $self->location_status;
+	if( $node_name eq '#document' and $node_depth == 0 ){
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Reached the unexpected end of the document", ] );
+		$result = 0;
+	}
+	
+	if( wantarray ){
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Returning the result: $result", "..at depth: $node_depth",
+		###LogSD		"..to node named: $node_name", "..and node type: $node_type" ] );
+		return( $result, $node_depth, $node_name, $node_type );
+	}else{
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Returning the result: $result", ] );
+		return $result;
+	}
+}
+
+sub _reader_init{
+	my( $self, $reader ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::XMLReader::_reader_init', );
+	###LogSD		$phone->talk( level => 'debug', message => [
+	###LogSD			"loading any file specific settings", ] );
+	
+	if( $self->_get_unique_bits ){
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"loading any file specific settings - since this is the first open", ] );
+		$self->_need_unique_bits( 0 );
+		
+		# Set basic xml values
+		my	$xml_string = '<?xml version="';
+		$self->_next_node;
+		if( $self->_version ){
+			$self->_set_xml_version( $self->_version );
+			$xml_string .= $self->version . '"';
+		}else{
+			confess "Could not find the version of this xml document!";
+		}
+		if( $self->_encoding ){
+			$self->_set_xml_encoding( $self->_encoding );
+			$xml_string = ' encoding="' . $self->encoding . '"'
+		}else{
+			$self->_clear_xml_encoding;
+		}
+		$xml_string .= '?>';
+		$self->_set_xml_header( $xml_string );
+	
+		# Set the file unique bits
+		###LogSD	$phone->talk( level => 'debug', message =>[
+		###LogSD		"Check if this type of file has unique settings" ], );
+		if( $self->can( '_load_unique_bits' ) ){
+			###LogSD	$phone->talk( level => 'debug', message =>[ "Loading unique bits" ], );
+			$self->_load_unique_bits;
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD		"Finished loading unique bits" 			], );
+		}
+		$self->start_the_file_over;
+	}else{
+		###LogSD	$phone->talk( level => 'debug', message =>[ 
+		###LogSD		"This is not the first time the file has been opened - don't reload settings" ], );
+	}
+	###LogSD	$phone->talk( level => 'debug', message => [ "Finished the file initialization" ], );
+}
+
 sub _build_xml_reader{
 	my( $self, $file_handle ) = @_;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	###LogSD					name_space 	=> $self->get_log_space .  '::_build_xml_reader', );
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::XMLReader::_build_xml_reader', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			"turning a file handle into an xml reader", ] );
 	
@@ -133,36 +350,10 @@ sub _build_xml_reader{
 	###LogSD	$phone->talk( level => 'debug', message => [ "Finished loading XML reader" ], );
 }
 
-sub _reader_init{
-	my( $self, $reader ) = @_;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	###LogSD					name_space 	=> $self->get_log_space .  '::_reader_init', );
-	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"loading any file specific settings", ] );
-	
-	# Set the file unique bits
-	if( $self->_get_unique_bits ){
-		###LogSD	$phone->talk( level => 'debug', message =>[
-		###LogSD		"Opening the file for the first time" ], );
-		$self->_need_unique_bits( 0 );
-		if( $self->can( '_load_unique_bits' ) ){
-			###LogSD	$phone->talk( level => 'debug', message =>[ "Loading unique bits" ], );
-			$self->_load_unique_bits;
-			###LogSD	$phone->talk( level => 'debug', message =>[
-			###LogSD		"Finished loading unique bits" 			], );
-		}
-		$self->start_the_file_over;
-	}else{
-		###LogSD	$phone->talk( level => 'debug', message =>[ 
-		###LogSD		"This is not the first time the file has been opened - don't seek unique" ], );
-	}
-	###LogSD	$phone->talk( level => 'debug', message => [ "Finished loading unique bits BLOCK" ], );
-}
-
 sub DEMOLISH{
 	my ( $self ) = @_;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	###LogSD					name_space 	=> $self->get_log_space .  '::XMLReader::DEMOLISH', );
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::XMLReader::DEMOLISH', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			"clearing the reader for log space:" . $self->get_log_space, ] );
 	if( $self->_get_xml_parser ){
@@ -170,15 +361,6 @@ sub DEMOLISH{
 		###LogSD	$phone->talk( level => 'debug', message =>[ "Disconnecting the file handle from the xml parser", ] );
 		$self->_close_the_sheet;
 		$self->_clear_xml_parser;
-	}
-	if( my $fh = $self->get_file ){
-		#~ print "Clearing file handle\n";
-		###LogSD	$phone->talk( level => 'debug', message =>[ "Closing the system file handle" ] );#, $self->dump(2)
-		$fh->close;
-		###LogSD	$phone->talk( level => 'debug', message =>[ "Clearing the system file handle" ] );#, $self->dump(2)
-		$self->clear_file;
-		###LogSD	$phone->talk( level => 'debug', message =>[ 'All done' ] );
-		###LogSD	$phone->talk( level => 'trace', message =>[ "Final self", $self->dump(2) ] );
 	}
 }
 
@@ -385,7 +567,7 @@ B<Delegated from:> L<XML::LibXML::Reader/byteConsumed ()>
 
 B<Delegated from:> L<XML::LibXML::Reader/read ()>
 
-=head3 next_element
+=head3 _next_element
 
 B<Delegated from:> L<XML::LibXML::Reader/nextElement>
 

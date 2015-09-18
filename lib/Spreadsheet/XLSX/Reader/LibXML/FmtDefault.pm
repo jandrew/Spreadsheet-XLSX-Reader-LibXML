@@ -34,7 +34,7 @@ has excel_region =>(
 		reader	=> 'get_excel_region',
 		writer	=> 'set_excel_region',
 	);
-with 'Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings';#<--- NOTE PLACED HERE FOR PREREQS
+with 'Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings';#<--- NOTE: PLACED HERE FOR PREREQS
 	
 has	target_encoding =>(
 		isa			=> Str,
@@ -102,8 +102,8 @@ has defined_excel_translations =>(
 
 sub	get_defined_excel_format{
 	my ( $self, $position, ) = @_;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	###LogSD				name_space 	=> $self->get_log_space . '::get_defined_excel_format', );
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::get_defined_excel_format', );
 	###LogSD		$phone->talk( level => 'info', message => [
 	###LogSD				"Getting the defined excel format for position: $position", ] );
 	my	$int_value = ( $position =~ /0x/ ) ? hex( $position ) : $position;
@@ -114,10 +114,10 @@ sub	get_defined_excel_format{
 
 sub	set_defined_excel_formats{
 	my ( $self, @args, ) = @_;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	###LogSD				name_space 	=> $self->get_log_space . '::set_defined_excel_format', );
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::set_defined_excel_format', );
 	###LogSD		$phone->talk( level => 'info', message => [
-	###LogSD				"Setting the defined excel format for the elements in ref: ", @args, ] );
+	###LogSD			"Setting the defined excel format for the elements in ref: ", @args, ] );
 	my $position_ref;
 	if( @args > 1 and @args % 2 == 0 ){
 		$position_ref = { @args };
@@ -152,14 +152,14 @@ sub	set_defined_excel_formats{
 sub	change_output_encoding{
 	my ( $self, $string, ) = @_;
 	return undef if !defined $string;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	###LogSD				name_space 	=> $self->get_log_space . '::change_output_encoding', );
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::change_output_encoding', );
 	###LogSD		$phone->talk( level => 'info', message => [
-	###LogSD				"Changing the encoding of: $string",
-	###LogSD				($self->has_target_encoding ? ('..to encoding type: ' . $self->get_target_encoding) : ''), ] );
+	###LogSD			"Changing the encoding of: $string",
+	###LogSD			($self->has_target_encoding ? ('..to encoding type: ' . $self->get_target_encoding) : ''), ] );
 	my $output = $self->has_target_encoding ? decode( $self->get_target_encoding, $string ) : $string;
-	###LogSD		$phone->talk( level => 'info', message => [
-	###LogSD				"Final output: $output", ] );
+	###LogSD	$phone->talk( level => 'info', message => [
+	###LogSD		"Final output: $output", ] );
 	return $output;
 }
 
@@ -169,7 +169,7 @@ sub	change_output_encoding{
 
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
 
- #change_output_encoding( $string ) to TextFmt
+
 
 #########1 Phinish            3#########4#########5#########6#########7#########8#########9
 

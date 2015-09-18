@@ -19,11 +19,12 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 24;
+use	Test::Most tests => 27;
 use	Test::Moose;
 use IO::File;
 use XML::LibXML::Reader;
 use	MooseX::ShortCut::BuildInstance v1.8 qw( build_instance );
+$MooseX::ShortCut::BuildInstance::re_use_classes = 1;;
 use Data::Dumper;
 use	lib
 		'../../../../../../../Log-Shiras/lib',
@@ -33,29 +34,29 @@ use	lib
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(#
 ###LogSD						name_space_bounds =>{
 ###LogSD							UNBLOCK =>{
-###LogSD								log_file => 'trace',
+###LogSD								log_file => 'trace.',
 ###LogSD							},
 ###LogSD							Test =>{
-#~ ###LogSD								_parse_the_file =>{
-#~ ###LogSD									UNBLOCK =>{
-#~ ###LogSD										log_file => 'warn',
-#~ ###LogSD									},
-#~ ###LogSD								},
-#~ ###LogSD								_set_file_name =>{
-#~ ###LogSD									UNBLOCK =>{
-#~ ###LogSD										log_file => 'warn',
-#~ ###LogSD									},
-#~ ###LogSD								},
-#~ ###LogSD								_load_unique_bits =>{
-#~ ###LogSD									UNBLOCK =>{
-#~ ###LogSD										log_file => 'warn',
-#~ ###LogSD									},
-#~ ###LogSD								},
-#~ ###LogSD								_load_data_to_format =>{
-#~ ###LogSD									UNBLOCK =>{
-#~ ###LogSD										log_file => 'warn',
-#~ ###LogSD									},
-#~ ###LogSD								},
+###LogSD								XMLReader =>{
+###LogSD									UNBLOCK =>{
+###LogSD										log_file => 'warn',
+###LogSD									},
+###LogSD								},
+###LogSD								parse_element =>{
+###LogSD									UNBLOCK =>{
+###LogSD										log_file => 'warn',
+###LogSD									},
+###LogSD								},
+###LogSD								get_format_position =>{
+###LogSD									UNBLOCK =>{
+###LogSD										log_file => 'trace',
+###LogSD									},
+###LogSD								},
+###LogSD								_get_header_and_value =>{
+###LogSD									UNBLOCK =>{
+###LogSD										log_file => 'trace',
+###LogSD									},
+###LogSD								},
 #~ ###LogSD								parse_element =>{
 #~ ###LogSD									UNBLOCK =>{
 #~ ###LogSD										log_file => 'warn',
@@ -108,7 +109,6 @@ my 			@class_attributes = qw(
 my  		@class_methods = qw(
 				get_format_position
 				get_default_format_position
-				get_sub_format_position
 				get_file
 				set_file
 				has_file
@@ -124,8 +124,8 @@ my  		@class_methods = qw(
 ###LogSD		$phone->talk( level => 'info', message => [ "easy questions ..." ] );
 lives_ok{
 			$error_instance		= 	Spreadsheet::XLSX::Reader::LibXML::Error->new(
-										should_warn => 1,
-										#~ should_warn => 0,# to turn off cluck when the error is set
+										#~ should_warn => 1,
+										should_warn => 0,# to turn off cluck when the error is set
 									);
 			$format_instance	=  	Spreadsheet::XLSX::Reader::LibXML::FmtDefault->new(
 										epoch_year	=> 1904,
@@ -156,17 +156,35 @@ ok			$coercion = $format_instance->parse_excel_format_string( '[$-409]d-mmm-yy;@
 			my $answer = '12-Sep-05';
 is			$coercion->assert_coerce( 37145 ), $answer, #coercecoerce
 										"... and see if it returns: $answer";
-is			$test_instance->get_format_position( 2, 'numFmts' )->{numFmts}->display_name, 'DATESTRING_0',
-										"Check that the excel number coercion at format position 2 is named: DATESTRING_0";
-###LogSD		$phone->talk( level => 'debug', message => [ $test_instance->get_format_position( 7, 'fonts' ) ] );
-is			$test_instance->get_default_format_position->{fills}->{patternFill}->{patternType}, 'none',
+is			$test_instance->get_format_position( 2, 'cell_coercion' )->{cell_coercion}->display_name, 'Excel_date_164',
+										"Check that the excel number coercion at format position 2 is named: Excel_date_164";
+is			$test_instance->get_default_format_position->{cell_fill}->{patternFill}->{patternType}, 'none',
 										"Check that the default format for fill is: none";
-is			$test_instance->get_format_position( 7, 'fonts' )->{fonts}->{sz}, 14,
+###LogSD		$phone->talk( level => 'debug', message => [ $test_instance->get_format_position( 7, 'cell_font' ) ] );
+is			$test_instance->get_format_position( 7, 'cell_font' )->{cell_font}->{sz}, 14,
 										"Check that number format position 7 has a font size set to: 14";
-is			$test_instance->get_sub_format_position( 2, 'fonts' )->{fonts}->{sz}, 14,
-										"..and that calling the |fonts| sub position -2- gets the same value: 14";
-is			$test_instance->get_sub_format_position( 3, 'fonts' )->{fonts}->{color}->{rgb}, 'FF0070C0',
-										"Check that |fonts| definition position -3- has the 'rgb' color set to: FF0070C0";
+is			$test_instance->get_format_position( 7, 'cell_font' )->{cell_font}->{name}, 'Calibri',
+										"Check that number format position 7 has a font type set to: Calibri";
+lives_ok{
+			$test_instance		=	build_instance(
+										package => 'TestInstance',
+										superclasses => [ 'Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles' ],
+										format_inst  => $format_instance,
+										file		 => $test_file,
+										error_inst	 => $error_instance,
+										cache_positions => 0,
+				###LogSD				log_space	=> 'Test',
+									);
+}										"Prep a new Styles instance - without caching";
+is			$test_instance->get_format_position( 2, 'cell_coercion' )->{cell_coercion}->display_name, 'Excel_date_164',
+										"Check that the excel number coercion at format position 2 is named: Excel_date_164";
+###LogSD		$phone->talk( level => 'debug', message => [ $test_instance->get_format_position( 7, 'cell_font' ) ] );
+is			$test_instance->get_default_format_position->{cell_fill}->{patternFill}->{patternType}, 'none',
+										"Check that the default format for fill is: none";
+is			$test_instance->get_format_position( 7, 'cell_font' )->{cell_font}->{sz}, 14,
+										"Check that number format position 7 has a font size set to: 14";
+is			$test_instance->get_format_position( 7, 'cell_font' )->{cell_font}->{name}, 'Calibri',
+										"Check that number format position 7 has a font type set to: Calibri";
 explain 								"...Test Done";
 done_testing();
 

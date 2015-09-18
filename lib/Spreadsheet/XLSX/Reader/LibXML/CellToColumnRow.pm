@@ -5,7 +5,7 @@ use version; our $VERSION = qv('v0.38.14');
 use	Moose::Role;
 requires
 			'set_error',
-###LogSD	'get_log_space',
+###LogSD	'get_all_space'
 ;
 use Types::Standard qw( Bool );
 ###LogSD	use Log::Shiras::Telephone;
@@ -25,10 +25,10 @@ my	$lookup_list =[ qw( A B C D E F G H I J K L M N O P Q R S T U V W X Y Z ) ];
 
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
 
-sub parse_column_row{
+sub parse_column_row{#? add the manual conversion to used vs excel on the next two
 	my ( $self, $cell ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD					($self->get_log_space .  '::parse_column_row' ), );
+	###LogSD			$self->get_all_space . '::parse_column_row', );
 	###LogSD		$phone->talk( level => 'debug', message =>[
 	###LogSD			"Parsing file row number and file column number from: $cell" ] );
 	my ( $column, $row ) = $self->_parse_column_row( $cell );
@@ -60,7 +60,7 @@ sub _parse_column_row{
 	my ( $self, $cell ) = @_;
 	my ( $column, $error_list_ref );
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD					($self->get_log_space .  '::_parse_column_row' ), );
+	###LogSD			$self->get_all_space . '::_parse_column_row', );
 	###LogSD		$phone->talk( level => 'debug', message =>[
 	###LogSD			"Parsing excel row and column number from: $cell" ] );
 	my	$regex = qr/^([A-Z])?([A-Z])?([A-Z])?([0-9]*)$/;
@@ -115,7 +115,7 @@ sub _parse_column_row{
 sub _build_cell_label{
 	my ( $self, $column, $row ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD					($self->get_log_space .  '::build_cell_label' ), );
+	###LogSD			$self->get_all_space . '::build_cell_label', );
 	###LogSD	no	warnings 'uninitialized';
 	###LogSD		$phone->talk( level => 'debug', message =>[
 	###LogSD			"Converting column -$column- and row -$row- to a cell ID" ] );

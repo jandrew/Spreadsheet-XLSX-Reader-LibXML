@@ -32,8 +32,14 @@ use	lib
 #~ use Log::Shiras::Switchboard qw( :debug );#
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(#
 ###LogSD						name_space_bounds =>{
-###LogSD							UNBLOCK =>{
-###LogSD								log_file => 'trace',
+###LogSD							Test =>{
+###LogSD								SharedStrings =>{
+#~ ###LogSD									parse_element =>{
+###LogSD										UNBLOCK =>{
+###LogSD											log_file => 'trace',
+###LogSD										},
+#~ ###LogSD									},
+###LogSD								},
 ###LogSD							},
 ###LogSD						},
 ###LogSD						reports =>{
@@ -66,7 +72,7 @@ my			$answer_ref = [
 				327,
 				'utf-8',
 				[ 0, { 	
-					raw_text => ' ',
+					raw_text => undef,
 				} ],
 			];
 ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space => 'main', );

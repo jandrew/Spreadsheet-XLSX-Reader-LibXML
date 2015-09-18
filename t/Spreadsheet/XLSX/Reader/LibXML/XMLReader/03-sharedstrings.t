@@ -34,7 +34,19 @@ use	lib
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(#
 ###LogSD						name_space_bounds =>{
 ###LogSD							UNBLOCK =>{
-###LogSD								log_file => 'trace',
+###LogSD								log_file => 'warn',
+###LogSD							},
+###LogSD							Test =>{
+###LogSD								XMLReader =>{
+###LogSD									UNBLOCK =>{
+###LogSD										log_file => 'warn',
+###LogSD									},
+###LogSD								},
+###LogSD								parse_element =>{
+###LogSD									UNBLOCK =>{
+###LogSD										log_file => 'warn',
+###LogSD									},
+###LogSD								},
 ###LogSD							},
 ###LogSD						},
 ###LogSD						reports =>{
@@ -78,6 +90,7 @@ my			$answer_ref = [
 								'rgb' => 'FFFF0000'
 							},
 							'sz' => '11',
+							#~ 'b' => 1,
 							'b' => undef,
 							'scheme' => 'minor',
 							'rFont' => 'Calibri',
@@ -89,6 +102,7 @@ my			$answer_ref = [
 								'rgb' => 'FF0070C0'
 							},
 							'sz' => '20',
+							#~ 'b' => 1,
 							'b' => undef,
 							'scheme' => 'minor',
 							'rFont' => 'Calibri',
@@ -172,7 +186,20 @@ is			$test_instance->_get_unique_count, $answer_ref->[$answer_row++],
 										"Check for correct unique_count";
 is			$test_instance->encoding, $answer_ref->[$answer_row++],
 										"Check for correct encoding";
+###LogSD	my $trigger = 3;
 			for my $x ( 2..14 ){
+###LogSD	print "-----------$x---------\n";
+###LogSD	if( $x == $trigger ){
+###LogSD		$operator->add_name_space_bounds( {
+###LogSD			UNBLOCK =>{
+###LogSD				log_file => 'trace',
+###LogSD			},
+###LogSD		} );
+###LogSD	}
+###LogSD	elsif( $x > $trigger + 1 ){
+###LogSD		exit 1;
+###LogSD	}
+			#~ print "position -$answer_ref->[$x]->[0]- " .Dumper( $test_instance->get_shared_string_position( $answer_ref->[$x]->[0] ) );
 is_deeply	$test_instance->get_shared_string_position( $answer_ref->[$x]->[0] ), $answer_ref->[$x]->[1],
 										"Get the -$answer_ref->[$x]->[0]- sharedStrings 'si' position as:" . Dumper( $answer_ref->[$x]->[1] );
 			}
@@ -181,6 +208,11 @@ lives_ok{	$capture = $test_instance->get_shared_string_position( 20 );
 is		$capture, undef,				'Make sure it returns undef';
 lives_ok{	$capture = $test_instance->get_shared_string_position( 16 ); 
 }										"Attempt a different element past the end of the list";
+###LogSD		$operator->add_name_space_bounds( {
+###LogSD			UNBLOCK =>{
+###LogSD				log_file => 'warn',
+###LogSD			},
+###LogSD		} );
 ###LogSD		$phone->talk( level => 'info', message => [ "Rerun the whole thing without caching" ] );
 lives_ok{
 			$test_instance	=	Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings->new(
@@ -199,7 +231,19 @@ is			$test_instance->_get_unique_count, $answer_ref->[$answer_row++],
 										"Check for correct unique_count";
 is			$test_instance->encoding, $answer_ref->[$answer_row++],
 										"Check for correct encoding";
+###LogSD	$trigger = 15;
 			for my $x ( 2..14 ){
+###LogSD	print "-----------$x---------\n";
+###LogSD	if( $x == $trigger ){
+###LogSD		$operator->add_name_space_bounds( {
+###LogSD			UNBLOCK =>{
+###LogSD				log_file => 'trace',
+###LogSD			},
+###LogSD		} );
+###LogSD	}
+###LogSD	elsif( $x > $trigger + 1 ){
+###LogSD		exit 1;
+###LogSD	}
 is_deeply	$test_instance->get_shared_string_position( $answer_ref->[$x]->[0] ), $answer_ref->[$x]->[1],
 										"Get the -$answer_ref->[$x]->[0]- sharedStrings 'si' position as:" . Dumper( $answer_ref->[$x]->[1] );
 			}
@@ -212,8 +256,8 @@ is		$capture, undef,				'Make sure it returns undef';
 ###LogSD		$phone->talk( level => 'info', message => [ "Rerun the whole as values only" ] );
 lives_ok{
 			$test_instance	=	Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings->new(
-									file		=> $test_file,
-									no_formats	=> 1,
+									group_return_type	=> 'xml_value',
+									file			=> $test_file,
 									error_inst 		=> Spreadsheet::XLSX::Reader::LibXML::Error->new(
 										#~ should_warn		=> 1,
 										should_warn		=> 0,# to turn off cluck when the error is set
@@ -221,6 +265,11 @@ lives_ok{
 			###LogSD				log_space	=> 'Test',
 								);
 }										"Prep a new SharedStrings instance - no_formats => 1";
+###LogSD		$operator->add_name_space_bounds( {
+###LogSD			UNBLOCK =>{
+###LogSD				log_file => 'trace',
+###LogSD			},
+###LogSD		} );
 
 ###LogSD		$phone->talk( level => 'trace', message => [ "The instance", $test_instance ] );
 			for my $x ( 15..27 ){

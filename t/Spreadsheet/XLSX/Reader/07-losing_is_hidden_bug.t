@@ -26,11 +26,11 @@ use	lib	'../../../../../Log-Shiras/lib',
 		'../../../../lib',
 		$lib,
 	;
-#~ use Log::Shiras::Switchboard v0.21 qw( :debug );#
+use Log::Shiras::Switchboard v0.21 qw( :debug );#
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(
 ###LogSD			name_space_bounds =>{
 ###LogSD				UNBLOCK =>{
-###LogSD					log_file => 'warn',
+###LogSD					log_file => 'trace',
 ###LogSD				},
 ###LogSD			},
 ###LogSD			reports =>{

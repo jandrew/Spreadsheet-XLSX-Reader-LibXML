@@ -10,12 +10,35 @@ NOTE: This software is designated as beta quality until this notice is removed. 
 be method matched to Spreadsheet::ParseExcel prior to the 1.0 release.
 
 {{$NEXT}}
-
-	+ Added support for .xlsm files
+	
+	+ Added caching for the styles sub-file which should noticibly speed up parsing
+	+ Added a :debug flag that turns should_warn on.  This is mostly useful to get warns on 
+		build fails since the warnings can be turned on after build as desired.
+	+ Added "5.22"(back) and added "dev" and "5.10.1" to the TravisCI testing
+	! Closes #71 in github with updates to the import statement
+	+ fetchrow_array and fetchrow_arrayref no longer report undef for the positions representing
+		the remaining empty cells in a row ( the list just ends )
+	+ Treat stored empty stings -''- as empty cells for the 'values_only' attribute
+		This will still skip the empty string cells even if 'empty_return_type' is set to empty_string 
+	+ Moved the XMLToPerlData file up one layer since it is more reader agnostic
+		This is a first step to integrating a file type agnostic XMLReader #4 (milestone v0.40.2)
+		with improved XMLtoPerl conversions.  This might break implementations that are built on the guts of this thing.
+		Contact me with questions or concerns.  Top level API implementations should be unaffected.
+		I also moved the test file to reflect this change
+	+ Changed the name of the Worksheet class to WorksheetToRow as a first step in moving this to a role
+		sometime in the future to eliminate inheritance as much as possible. (See the worksheet interface change below)
+		I changed the name of the test to match
+	+ Changed the name of the GetCell role to Worksheet with the intent of treating it as an interface
+		I moved it up one layer in the folder structure
+		I removed the worksheet pod (now in the same folder) since the documentation was duplicated there
+		I moved the test and changed the name to reflect this change
+	+ Re-wrote the worksheet parser to parse whole rows at a time rather than one cell at a time
+		This unkinks some of the cruft created when adding tracking of hidden_columns (v0.38.12)
+	+ Added support for .xlsm files closes #68 in github
 		This does not include any reading or handling of 'vbaProject.bin'
 		It should be safe even with viruses if the reader doesn't mess with it
-	! Changed the %ENV test to a caller test run at ->new or ->parse
-		This should handle all useage by Spreadsheet::Read
+	! Changed the %ENV test to a caller test run in BUILDARGS ( during ->new )
+		This should handle all useage by Spreadsheet::Read (enforces the :like_ParseExcel flag)
 
 v0.38.14  2015-08-24 16:49:04-07:00 America/Los_Angeles
 

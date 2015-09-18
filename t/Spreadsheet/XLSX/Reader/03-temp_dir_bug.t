@@ -16,7 +16,7 @@ BEGIN{
 		$lib		= '../../../../' . $lib;
 		$test_file	= '../../../test_files/'
 	}
-	$SIG{__WARN__} = sub{ die "$_[0]\n" };# Force fail for testing
+	#~ $SIG{__WARN__} = sub{ die "$_[0]\n" };# Force fail for testing
 }
 $| = 1;
 
@@ -38,7 +38,7 @@ use	lib	'../../../../../Log-Shiras/lib',
 ###LogSD					);
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
-use Spreadsheet::XLSX::Reader::LibXML;
+use Spreadsheet::XLSX::Reader::LibXML ':debug';
 $test_file = ( @ARGV ) ? $ARGV[0] : $test_file;
 $test_file .= 'TestBook.xlsx';
 	#~ print "Test file is: $test_file\n";
@@ -53,6 +53,7 @@ lives_ok{
 							file_name => $test_file,
 						);
 }										"Prep a test parser instance";
+			$parser->set_warnings( 1 );
 is			$parser->error(), undef,	"Write any error messages from the file load";
 			for my $worksheet ( $parser->worksheets() ) {
 #~ explain			$worksheet->get_name;

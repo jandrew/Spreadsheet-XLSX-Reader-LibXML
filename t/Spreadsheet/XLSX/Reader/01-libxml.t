@@ -32,7 +32,7 @@ use	lib	'../../../../../Log-Shiras/lib',
 ###LogSD						name_space_bounds =>{
 ###LogSD							main =>{
 ###LogSD								UNBLOCK =>{
-###LogSD									log_file => 'trace',
+###LogSD									log_file => 'info',
 ###LogSD								},
 ###LogSD							},
 ###LogSD							UNBLOCK =>{
@@ -48,57 +48,50 @@ use	lib	'../../../../../Log-Shiras/lib',
 #~ ###LogSD									log_file => 'warn',
 #~ ###LogSD								},
 #~ ###LogSD							},
-#~ ###LogSD							Test =>{
+###LogSD							Test =>{
 #~ ###LogSD								StylesInstance =>{
+#~ ###LogSD									UNBLOCK =>{
+#~ ###LogSD										log_file => 'trace',
+#~ ###LogSD									},
 #~ ###LogSD									XMLReader =>{
-#~ ###LogSD										DEMOLISH =>{
-#~ ###LogSD											UNBLOCK =>{
-#~ ###LogSD												log_file => 'warn',
-#~ ###LogSD											},
-#~ ###LogSD										},
-#~ ###LogSD									},
-#~ ###LogSD								},
-#~ ###LogSD								SharedStringsInstance =>{
-#~ ###LogSD									XMLReader =>{
-#~ ###LogSD										DEMOLISH =>{
-#~ ###LogSD											UNBLOCK =>{
-#~ ###LogSD												log_file => 'warn',
-#~ ###LogSD											},
-#~ ###LogSD										},
-#~ ###LogSD									},
-#~ ###LogSD								},
-#~ ###LogSD								Worksheet =>{
-#~ ###LogSD									XMLReader =>{
-#~ ###LogSD										DEMOLISH =>{
-#~ ###LogSD											UNBLOCK =>{
-#~ ###LogSD												log_file => 'trace',
-#~ ###LogSD											},
-#~ ###LogSD										},
-#~ ###LogSD									},
-#~ ###LogSD								},
-#~ ###LogSD								Workbook =>{
-#~ ###LogSD									worksheet =>{
 #~ ###LogSD										UNBLOCK =>{
 #~ ###LogSD											log_file => 'warn',
 #~ ###LogSD										},
 #~ ###LogSD									},
-#~ ###LogSD									_build_file =>{
+#~ ###LogSD									get_defined_conversion =>{
+#~ ###LogSD										UNBLOCK =>{
+#~ ###LogSD											log_file => 'trace',
+#~ ###LogSD										},
+#~ ###LogSD									},
+#~ ###LogSD									_load_unique_bits =>{
 #~ ###LogSD										UNBLOCK =>{
 #~ ###LogSD											log_file => 'warn',
 #~ ###LogSD										},
 #~ ###LogSD									},
-#~ ###LogSD									_build_dom =>{
-#~ ###LogSD										UNBLOCK =>{
-#~ ###LogSD											log_file => 'warn',
-#~ ###LogSD										},
-#~ ###LogSD									},
-#~ ###LogSD									_build_reader =>{
+#~ ###LogSD									parse_element =>{
 #~ ###LogSD										UNBLOCK =>{
 #~ ###LogSD											log_file => 'warn',
 #~ ###LogSD										},
 #~ ###LogSD									},
 #~ ###LogSD								},
-#~ ###LogSD							},
+###LogSD								ExcelFmtDefault =>{
+###LogSD									get_defined_conversion =>{
+###LogSD										UNBLOCK =>{
+###LogSD											log_file => 'debug',
+###LogSD										},
+###LogSD									},
+###LogSD									parse_excel_format_string =>{
+###LogSD										UNBLOCK =>{
+###LogSD											log_file => 'debug',
+###LogSD										},
+###LogSD									},
+###LogSD									hidden =>{
+###LogSD										UNBLOCK =>{
+###LogSD											log_file => 'trace',
+###LogSD										},
+###LogSD									},
+###LogSD								},
+###LogSD							},
 ###LogSD						},
 ###LogSD						reports =>{
 ###LogSD							log_file =>[ Print::Log->new ],
@@ -123,7 +116,7 @@ my	$answer_ref = [
 		[qw( Blue 10 2016-02-06 )],
 		'EOF',
 		1,
-		[ 'Superbowl Audibles', 'Column Labels', undef, undef, undef, ],
+		[ 'Superbowl Audibles', 'Column Labels' ],
 		[ 'Row Labels', '2016-02-06', '2017-02-14', '2018-02-03', 'Grand Total' ],
 		[ 'Blue', 10, 7, undef, 17 ,],
 		[ 'Omaha', undef, undef, 2, 2, ],
@@ -131,20 +124,20 @@ my	$answer_ref = [
 		[ 'Grand Total', 40, 12, 5, 57, ],
 		'EOF',
 		0,
-		[undef,undef,undef,undef,undef,undef,],
-		['Hello',undef,undef,'my',undef,undef,],
-		[undef,undef,undef,undef,undef,undef,],
-		[undef,undef,'World',undef,undef,undef,],
-		[undef,undef,undef,undef,undef,undef,],
-		['Hello World',undef,undef,undef,undef,undef,],
-		[undef,'69',undef,undef,undef,undef,],
-		[undef,'27',undef,undef,'12-Sep-05',undef,],
-		[undef,'42', undef,undef,undef,undef,],
+		[],
+		['Hello',undef,undef,'my'],
+		[],
+		[undef,undef,'World'],
+		[],
+		['Hello World',undef],
+		[undef,'69'],
+		[undef,'27',undef,undef,'12-Sep-05'],
+		[undef,'42'],
 		[undef,undef,undef,' ','2/6/2011','6-Feb-11',],
-		['2.13',undef,undef,undef,undef,undef,],
-		[undef,undef,undef,'6-Feb-11',undef,undef,],
-		[undef,undef,undef,undef,undef,undef,],
-		[undef,undef,' ','39118','6-Feb-11',undef,],
+		['2.13'],
+		[undef,undef,undef,'6-Feb-11',undef],
+		[],
+		[undef,undef,' ','39118','6-Feb-11'],
 		'EOF',
 	];
 my 			@class_attributes = qw(
@@ -185,26 +178,14 @@ can_ok		'Spreadsheet::XLSX::Reader::LibXML', $_,
 
 ###LogSD		$phone->talk( level => 'info', message => [ "harder questions ..." ] );
 lives_ok{
-			$error_instance	= 	Spreadsheet::XLSX::Reader::LibXML::Error->new(
-			###LogSD				log_space	=> 'ErrorInstance',
-									should_warn => 0,
-								);
 			$parser =	Spreadsheet::XLSX::Reader::LibXML->new(
-							#~ file_name			=> $test_file,
 							count_from_zero		=> 0,
-							error_inst			=> $error_instance,
 							group_return_type	=> 'value',
 							empty_return_type	=> 'undef_string',
 			###LogSD		log_space			=> 'Test',
 						);
 }										"Prep a test parser instance";
 ###LogSD	$phone->talk( level => 'info', message => [ "parser only loaded" ] );
-#~ ###LogSD	$operator->add_name_space_bounds( {
-#~ ###LogSD		UNBLOCK =>{
-#~ ###LogSD			log_file => 'trace',
-#~ ###LogSD		},
-#~ ###LogSD	}, );
-#~ exit 1;
 lives_ok{ 	
 			$workbook = $parser->parse( $test_file );
 }										"Attempt to unzip the file and prepare to read data";
@@ -219,50 +200,78 @@ ok			1,							"The file unzipped and the parser set up without issues";
 
 			my	$offset_ref = [ 0, 9, 17 ];
 			my	$y = 0;
+###LogSD	my	$test_position = 10;
+###LogSD	my	$test_worksheet = 'Sheet1';
+###LogSD	my	$show_worksheet_build = 0;
+###LogSD	if( $show_worksheet_build ){
+###LogSD	$operator->add_name_space_bounds( {
+###LogSD			Test =>{
+###LogSD				ExcelFmtDefault =>{
+###LogSD					_build_datestring =>{
+###LogSD						UNBLOCK =>{
+###LogSD							log_file => 'debug',
+###LogSD						},
+###LogSD					},
+###LogSD				},
+###LogSD			},
+###LogSD	}, );
+###LogSD	}
 			for my $worksheet ( $workbook->worksheets() ) {
-explain		'testing worksheet: ' . $worksheet->get_name;
+			my	$worksheet_name = $worksheet->get_name;
+explain		'testing worksheet: ' . $worksheet_name;
 				$row_ref = undef;
 			my	$x = 0;
 is			$worksheet->is_sheet_hidden, $answer_ref->[$offset_ref->[$y] + $x],
 									'Check that the sheet knows correctly if it is hidden (' . ($answer_ref->[$offset_ref->[$y] + $x++] ? 'Is' : 'Not') .')';
 			SHEETDATA: while( $x < 50 and !$row_ref or $row_ref ne 'EOF' ){
-#~ ###LogSD	if( $x == 0 ){
-#~ ###LogSD		$operator->add_name_space_bounds( {
-#~ ###LogSD			Test =>{
-#~ ###LogSD				Worksheet =>{
-#~ ###LogSD					UNBLOCK =>{
-#~ ###LogSD						log_file => 'trace',
-#~ ###LogSD					},
-#~ ###LogSD					_set_file_name =>{
-#~ ###LogSD						UNBLOCK =>{
-#~ ###LogSD							log_file => 'warn',
-#~ ###LogSD						},
-#~ ###LogSD					},
-#~ ###LogSD					Types =>{
-#~ ###LogSD						UNBLOCK =>{
-#~ ###LogSD							log_file => 'warn',
-#~ ###LogSD						},
-#~ ###LogSD					},
-#~ ###LogSD				},
-#~ ###LogSD			},
-#~ ###LogSD		} );
-#~ ###LogSD	}elsif( $x > 0 ){
-#~ ###LogSD		exit 1;
-#~ ###LogSD	}
+#~ explain		"X is: $x | Worksheet name is: $worksheet_name";
+###LogSD	if( $worksheet_name eq $test_worksheet and $x == $test_position ){
+###LogSD		$operator->add_name_space_bounds( {
+###LogSD			Test =>{
+###LogSD				Cell =>{
+###LogSD					hidden =>{
+###LogSD						_return_value_only =>{
+###LogSD							_build_text =>{
+###LogSD								UNBLOCK =>{
+###LogSD									log_file => 'debug',
+###LogSD								},
+###LogSD							},
+###LogSD							_build_datestring =>{
+###LogSD								UNBLOCK =>{
+###LogSD									log_file => 'debug',
+###LogSD								},
+###LogSD							},
+###LogSD						},
+###LogSD					},
+###LogSD				},
+###LogSD			},
+###LogSD		} );
+###LogSD	}elsif( $worksheet_name eq $test_worksheet and $x > $test_position){# + 1
+###LogSD		exit 1;
+###LogSD	}
 ###LogSD	$phone->talk( level => 'debug', message => [ "getting position: $x" ] );
  
+#~ explain		"Checking answer position: " . ($offset_ref->[$y] + $x);
 lives_ok{	$row_ref = $worksheet->fetchrow_arrayref }
 										'Get the cell values for row: ' . ($x);
-#~ explain		"Checking answer position: " . ($offset_ref->[$y] + $x);
 			if( !ref $row_ref ){
-is			$row_ref, $answer_ref->[$offset_ref->[$y] + $x++],
-										"Check for expected EOF";
+#~ explain		"Checking answer position: " . ($offset_ref->[$y] + $x);
+			if( $row_ref ){
+is			$row_ref, $answer_ref->[$offset_ref->[$y] + $x],
+										"Received EOF - checking for correctness";
 			last SHEETDATA;
+			}else{
+is			$row_ref, $answer_ref->[$offset_ref->[$y] + $x++],
+										"Received an empty row - checking for correctness";
+			}
 			}else{
 is_deeply	$row_ref, $answer_ref->[$offset_ref->[$y] + $x],
 										"..and check that the correct values were returned";
 			}
 			$x++;
+###LogSD	if( $show_worksheet_build and $worksheet_name eq $test_worksheet ){
+###LogSD	exit 1;
+###LogSD	}
 			}
 			$y++;
 			}

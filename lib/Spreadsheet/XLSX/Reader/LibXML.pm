@@ -16,19 +16,20 @@ use Types::Standard qw(
  		InstanceOf			Str       		StrMatch
 		Enum				HashRef			ArrayRef
 		CodeRef				Int				HasMethods
-		Bool
+		Bool				is_Object		is_HashRef
     );
 use	MooseX::ShortCut::BuildInstance 1.032 qw( build_instance should_re_use_classes );
+should_re_use_classes( 1 );
 use lib	'../../../../lib',;
 #~ use Data::Dumper;
 ###LogSD with 'Log::Shiras::LogSpace';
 ###LogSD use Log::Shiras::Telephone;
 ###LogSD use Log::Shiras::UnhideDebug;
-should_re_use_classes( 1 );
 use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles;
 use	Spreadsheet::XLSX::Reader::LibXML::FmtDefault;
 use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings;
-use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet;
+use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow;
+use	Spreadsheet::XLSX::Reader::LibXML::Worksheet;
 use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::Chartsheet;
 use	Spreadsheet::XLSX::Reader::LibXML::Error;
 use	Spreadsheet::XLSX::Reader::LibXML::Types qw( XLSXFile ParserType IOFileType );
@@ -40,18 +41,19 @@ my	$parser_modules ={
 			build_method => '_build_reader',
 			sharedStrings =>{
 				superclasses	=> ['Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings'],
-				attributes		=> [qw( error_inst cache_positions )],
+				attributes		=> [qw( error_inst cache_positions empty_return_type group_return_type )],
 				store			=> '_set_shared_strings_instance',
 				package			=> 'SharedStringsInstance',
 			},
 			styles =>{
 				superclasses	=> ['Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles'],
-				attributes		=> [qw( error_inst format_inst )],
+				attributes		=> [qw( error_inst cache_positions format_inst empty_return_type )],
 				store			=> '_set_styles_instance',
 				package			=> 'StylesInstance',
 			},
 			worksheet =>{
-				superclasses	=> ['Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet'],
+				superclasses	=> ['Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow'],
+				roles			=> ['Spreadsheet::XLSX::Reader::LibXML::Worksheet'],
 				package			=> 'WorksheetInstance',
 			},
 			chartsheet =>{
@@ -82,8 +84,15 @@ my	$build_ref	= {
 		},
 	};
 my	$attribute_defaults ={
-		error_inst			=> Spreadsheet::XLSX::Reader::LibXML::Error->new( should_warn => 0 ),
-		format_inst			=> Spreadsheet::XLSX::Reader::LibXML::FmtDefault->new,
+		error_inst =>{
+			superclasses => ['Spreadsheet::XLSX::Reader::LibXML::Error'],
+			package => 'ErrorInstance',
+			should_warn => 0,
+		},
+		format_inst =>{
+			superclasses => ['Spreadsheet::XLSX::Reader::LibXML::FmtDefault'],
+			package => 'FormatInstance',
+		},
 		sheet_parser		=> 'reader',
 		count_from_zero		=> 1,
 		file_boundary_flags	=> 1,
@@ -122,6 +131,13 @@ my	$flag_settings ={
 			cache_positions	=> 1,
 			group_return_type => 'instance',
 		},
+		debug =>{
+			error_inst =>{
+				superclasses => ['Spreadsheet::XLSX::Reader::LibXML::Error'],
+				package => 'ErrorInstance',
+				should_warn => 1,
+			},
+		},
 	};
 
 #########1 Public Attributes  3#########4#########5#########6#########7#########8#########9
@@ -138,7 +154,7 @@ has error_inst =>(
 			error set_error clear_error set_warnings if_warn
 		) ],
 		trigger => sub{
-			if( $_[0]->_has_formate_inst and !$_[0]->get_format_inst->block_inherit ){
+			if( $_[0]->_has_format_inst and !$_[0]->get_format_inst->block_inherit ){
 				$_[0]->get_format_inst->set_error_inst( $_[1] );
 			}
 		},
@@ -154,7 +170,7 @@ has format_inst =>(
 						parse_excel_format_string							)],	
 		writer	=> 'set_format_inst',
 		reader	=> 'get_format_inst',
-		predicate => '_has_formate_inst',
+		predicate => '_has_format_inst',
 		handles =>[qw(
 						get_defined_excel_format 	parse_excel_format_string
 						change_output_encoding		set_date_behavior
@@ -248,23 +264,30 @@ has cache_positions =>(
 	);
 
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
-
+#~ use Data::Dumper;
 sub import{# Flags handled here!
     my ( $self, @flag_list ) = @_;
-	if( exists $ENV{SPREADSHEET_READ_XLSX} and 
-		$ENV{SPREADSHEET_READ_XLSX} == "Spreadsheet::XLSX::Reader::LibXML" ){
-		push @flag_list, ':like_ParseExcel';
-	}
+	
 	if( scalar( @flag_list ) ){
 		for my $flag ( @flag_list ){
 			#~ print "Arrived at import with flag: $flag\n";
-			if( $flag =~ /^:(\w*)$/ ){
+			if( $flag =~ /^:(\w*)$/ ){# Handle text based flags
 				my $default_choice = $1;
 				#~ print "Attempting to change the default group type to: $default_choice\n";
 				if( exists $flag_settings->{$default_choice} ){
-					map{ $attribute_defaults->{$_} = $flag_settings->{$default_choice}->{$_} } keys %{$flag_settings->{$default_choice}};
+					for my $attribute ( keys %{$flag_settings->{$default_choice}} ){
+						#~ print "Changing flag -$attribute- to:" . Dumper( $flag_settings->{$default_choice}->{$attribute} );
+						$attribute_defaults->{$attribute} = $flag_settings->{$default_choice}->{$attribute};
+					}
 				}else{
 					confess "No settings available for the flag: $flag";
+				}
+			}elsif( $flag =~ /^v?\d+\.?\d*/ ){# Version check may wind up here
+				#~ print "Running version check on version: $flag\n";
+				my $result = $VERSION <=> version->parse( $flag );
+				#~ print "Tested against version -$VERSION- gives result: $result\n";
+				if( $result < 0 ){
+					confess "Version -$flag- required - the installed version is: $VERSION";
 				}
 			}else{
 				confess "Passed attribute default flag -$flag- does not comply with the correct format";
@@ -276,8 +299,8 @@ sub import{# Flags handled here!
 sub parse{
 
     my ( $self, $file, $formatter ) = @_;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	###LogSD					name_space 	=> $self->get_log_space .  '::Workbook::parse', );
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::parse', );
 	###LogSD		$phone->talk( level => 'info', message =>[
 	###LogSD			"Arrived at parse for:", $file,
 	###LogSD			(($formatter) ? "with formatter: $formatter" : '') ] );
@@ -302,8 +325,8 @@ sub parse{
 sub worksheets{
 
     my ( $self, ) = @_;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	###LogSD					name_space 	=> $self->get_log_space .  '::Workbook::worksheets', );
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::worksheets', );
 	###LogSD		$phone->talk( level => 'info', message =>[
 	###LogSD			'Attempting to build all worksheets: ', $self->get_worksheet_names ] );
 	my	@worksheet_array;
@@ -321,8 +344,8 @@ sub worksheet{
 
     my ( $self, $worksheet_name ) = @_;
 	my ( $next_position );
-	###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	###LogSD					name_space 	=> $self->get_log_space .  '::Workbook::worksheet', );
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::worksheet', );
 	###LogSD		$phone->talk( level => 'info', message =>[
 	###LogSD			"Arrived at (build a) worksheet with: ", $worksheet_name ] );
 	
@@ -388,12 +411,13 @@ sub worksheet{
 	
 	confess "No worksheet info for: $worksheet_name" if !exists $worksheet_info->{sheet_position};
 	$args{superclasses}			= $parser_type->{superclasses};
+	$args{roles}				= $parser_type->{roles};
 	$args{sheet_name}			= $worksheet_name;
 	$args{workbook_instance}	= $self;
 	$args{error_inst}			= $self->get_error_inst;
 	$args{package}				= $parser_type->{package};
-	###LogSD $args{log_space} = $self->get_log_space . "::Worksheet";# FUTURE COMMON DECISION
-	###LogSD	$phone->talk( level => 'debug', message =>[
+	###LogSD $args{log_space} = $self->get_log_space;# FUTURE COMMON DECISION
+	###LogSD	$phone->talk( level => 'trace', message =>[
 	###LogSD		'Finalized build info:', %args, ] );
 	my	$worksheet = build_instance( %args );
 	if( $worksheet ){
@@ -445,7 +469,7 @@ has _epoch_year =>(
 		predicate	=> 'has_epoch_year',
 		default		=> 1900,
 		trigger => sub{
-			if( $_[0]->_has_formate_inst and !$_[0]->get_format_inst->block_inherit ){
+			if( $_[0]->_has_format_inst and !$_[0]->get_format_inst->block_inherit ){
 				$_[0]->get_format_inst->set_epoch_year( $_[1] );
 			}
 		},
@@ -476,15 +500,15 @@ has _styles_instance =>(
 	);
 
 has _calc_chain_instance =>(
-	isa	=> 	HasMethods[qw( get_calc_chain_position )],
-	writer	=>'_set_calc_chain_instance',
-	reader	=>'_get_calc_chain_instance',
-	clearer	=> '_clear_calc_chain',
-	predicate => '_has_calc_chain_file',
-	handles =>{
-		_demolish_calc_chain => 'DEMOLISH',
-	},
-);
+		isa	=> 	HasMethods[qw( get_calc_chain_position )],
+		writer	=>'_set_calc_chain_instance',
+		reader	=>'_get_calc_chain_instance',
+		clearer	=> '_clear_calc_chain',
+		predicate => '_has_calc_chain_file',
+		handles =>{
+			_demolish_calc_chain => 'DEMOLISH',
+		},
+	);
 
 has _worksheet_list =>(
 		isa		=> ArrayRef,
@@ -558,35 +582,85 @@ has _zip_file_handle =>(
 		writer	=> '_set_zip_file_handle',
 		reader	=> '_get_zip_file_handle',
 	);
+	
+###LogSD	has '+class_space' =>( default => 'Workbook' );
 
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
 
 around BUILDARGS => sub {
     my ( $orig, $class, %args ) = @_;
+	###LogSD	my $log_space = $args{log_space};
+	###LogSD	$log_space .= '::' if $log_space;
+	###LogSD	$log_space .= 'Workbook::BUILDARGS';
 	###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	###LogSD					name_space 	=> 'Workbook::BUILDARGS', );
+	###LogSD					name_space 	=> $log_space, );
 	###LogSD		$phone->talk( level => 'trace', message =>[
 	###LogSD			'Arrived at BUILDARGS with: ', %args ] );
+	
+	# Check if this was called by Spreadsheet::Read;
+	my $like_ParseExcel = 0;
+	for my $x ( 2 .. 5 ){
+		###LogSD	$phone->talk( level => 'trace', message =>[
+		###LogSD		"Caller is:", caller( $x ) ] );
+		if( (caller( $x ))[0] and (caller( $x ))[0] =~ /Spreadsheet::Read/ ){
+			$like_ParseExcel = 1;
+			###LogSD	$phone->talk( level => 'trace', message =>[
+			###LogSD		"Spreadsheet::XLSX::Reader::LibXML is being called by Spreadsheet::Read - enforcing the :like_ParseExcel flag" ] );
+			last;
+		}
+	}
+		
+	# Add any defaults
 	for my $key ( keys %$attribute_defaults ){
 		if( exists $args{$key} ){
 			###LogSD	$phone->talk( level => 'trace', message =>[
-			###LogSD			"Found user defined -$key- with value: $args{$key}" ] );
+			###LogSD		"Found user defined -$key- with value: $args{$key}" ] );
 		}else{
 			###LogSD	$phone->talk( level => 'trace', message =>[
-			###LogSD			"Setting default -$key- with value: $attribute_defaults->{$key}" ] );
-			$args{$key} = $attribute_defaults->{$key};
+			###LogSD		"Setting default -$key- with value: $attribute_defaults->{$key}" ] );
+			$args{$key} = clone( $attribute_defaults->{$key} );
 		}
 	}
+	
+	# Enforce Spreadsheet::Read requirements
+	if( $like_ParseExcel ){
+		###LogSD	$phone->talk( level => 'trace', message =>[
+		###LogSD		"Enforcing like_ParseExcel defaults" ] );
+		for my $key ( %{$flag_settings->{like_ParseExcel}} ){
+			$args{$key} = clone( $flag_settings->{like_ParseExcel}->{$key} );
+		}
+	}
+	
+	# Build object instances as needed
+	for my $key ( keys %args ){
+		###LogSD	$phone->talk( level => 'trace', message =>[
+		###LogSD		"Checking if an instance needs built for key: $key" ] );
+		if( $key =~ /_inst$/ and !is_Object( $args{$key} ) and is_HashRef( $args{$key} ) ){
+			# Import log_space as needed
+			###LogSD	if( exists $args{log_space} and $args{log_space} ){
+			###LogSD		$args{$key}->{log_space} = $args{log_space};
+			###LogSD	}
+			###LogSD	$phone->talk( level => 'trace', message =>[
+			###LogSD		"Key -$key- requires and instance built from:", $args{$key} ] );
+			$args{$key} = build_instance( $args{$key} );
+		}
+	}
+	
 	###LogSD	$phone->talk( level => 'trace', message =>[
 	###LogSD			"Final BUILDARGS:", %args ] );
     return $class->$orig(%args);
 };
 
+###LogSD	sub BUILD {
+###LogSD	    my $self = shift;
+###LogSD			$self->set_class_space( 'Workbook' );
+###LogSD	}
+
 sub _build_workbook{
 
     my ( $self, $file ) = @_;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	###LogSD					name_space 	=> $self->get_log_space .  '::Workbook::_build_file', );
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::hidden::_build_file', );
 	###LogSD		$phone->talk( level => 'info', message =>[
 	###LogSD			'Arrived at _build_file for: ', $file ] );
 	$self->_clear_shared_strings;
@@ -674,8 +748,8 @@ sub _build_workbook{
 sub _build_dom{
 	my( $self, $target, $workbook_file ) = @_;
 	my $build_target = clone( $target );
-	###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	###LogSD					name_space 	=> $self->get_log_space .  '::Workbook::_build_dom', );
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::hidden::_build_dom', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			'Building DOM object for the target:', $build_target,
 	###LogSD			"With file:", $workbook_file	] );
@@ -702,8 +776,8 @@ sub _build_dom{
 sub _build_reader{
 	my( $self, $target, $workbook_file ) = @_;
 	my $build_target = clone( $target );
-	###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	###LogSD					name_space 	=> $self->get_log_space .  '::Workbook::_build_reader', );
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::hidden::_build_reader', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			'Building Reader object for the target:', $build_target,
 	###LogSD			"With file:", $workbook_file	] );
@@ -733,8 +807,8 @@ sub _build_reader{
 
 sub _load_top_level_workbook{
 	my( $self, $dom ) = @_;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	###LogSD					name_space 	=> $self->get_log_space .  '::Workbook::_load_workbook_file', );
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::hidden::_load_workbook_file', );
 	###LogSD		$phone->talk( level => 'info', message => [
 	###LogSD			"Building the top level data for the workbook", ] );
 	my ( $list, $sheet_ref, $rel_lookup, $id_lookup );
@@ -779,8 +853,8 @@ sub _load_top_level_workbook{
 sub _load_workbook_rels{
 	my( $self, $rel_lookup, $dom ) = @_;
 	my ( $pivot_lookup, );
-	###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	###LogSD					name_space 	=> $self->get_log_space .  '::Workbook::_load_workbook_rels', );
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::hidden::_load_workbook_rels', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			"Adding the rels file data for the workbook with:", $rel_lookup ] );
 	my	$sheet_ref = $self->_get_sheet_lookup;
@@ -828,8 +902,8 @@ sub _load_workbook_rels{
 
 sub _load_doc_props{
 	my( $self, $dom ) = @_;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	###LogSD					name_space 	=> $self->get_log_space .  '::Workbook::_load_doc_props', );
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::hidden::_load_doc_props', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			"Collecting data from the doc props file", ] );
 	$self->_set_creator( ($dom->getElementsByTagName( 'dc:creator' ))[0]->textContent() );
@@ -845,8 +919,8 @@ sub _load_doc_props{
 
 sub _set_shared_worksheet_files{
 	my( $self, $object_ref, $zip_workbook ) = @_;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	###LogSD					name_space 	=> $self->get_log_space .  '::Workbook::_set_shared_worksheet_files', );
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::hidden::_set_shared_worksheet_files', );
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		"Building the shared worksheet files with the lookup ref:", $object_ref, ] );
 	my $translation_method = $object_ref->{build_method};
@@ -890,7 +964,7 @@ sub _set_shared_worksheet_files{
 			###LogSD	$phone->talk( level => 'debug', message =>[
 			###LogSD		"Final args for building the instance:", %args,
 			###LogSD		"Loading -$method- with build_instance( 'args' )"	], );
-			my $object = build_instance( %args );
+			my $object = build_instance( %args );################################  Add a $object build-fail flag
 			###LogSD	$phone->talk( level => 'debug', message =>[
 			###LogSD		"Finished building instance for: $file",
 			###LogSD		"Loading to the worbook with method: $method", # $object	
@@ -908,8 +982,8 @@ sub _set_shared_worksheet_files{
 sub _import_format_settings{
 
     my ( $self, $formatter ) = @_;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	###LogSD					name_space 	=> $self->get_log_space .  '::Workbook::_import_format_settings', );
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::hidden::_import_format_settings', );
 	if( !$formatter->block_inherit ){
 		###LogSD	$phone->talk( level => 'info', message =>[
 		###LogSD		'Arrived at _import_format_settings for: ', $formatter ] );
@@ -931,8 +1005,8 @@ sub _import_format_settings{
 
 sub DEMOLISH{
 	my ( $self ) = @_;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	###LogSD					name_space 	=> $self->get_log_space .  '::Workbook::DEMOLISH', );
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::hidden::DEMOLISH', );
 	if( $self->_has_calc_chain_file ){
 		#~ print "closing calcChain.xml\n";
 		###LogSD	$phone->talk( level => 'debug', message => [
@@ -2181,12 +2255,13 @@ Therefore you may want a shortcut that aggregates some set of attribute settings
 are not the defaults but wind up being boilerplate.  I have provided possible 
 alternate sets like this and am open to providing others that are suggested.  The 
 flags will have a : in front of the identifier and will be passed to the class in the 
-'use' statement for consumption by the import method.  Only the first flag is currently 
-accepted.
+'use' statement for consumption by the import method.  The flags can be stacked and 
+where there is conflict between the flag settings the rightmost passed flag setting is 
+used.
 
 Example;
 
-	use Spreadsheet::XLSX::Reader::LibXML v0.34.4 qw( :alt_default );
+	use Spreadsheet::XLSX::Reader::LibXML v0.34.4 qw( :alt_default :debug );
 
 =head2 :alt_default
 
@@ -2255,6 +2330,22 @@ L<group_return_type|/group_return_type> => 'unformatted'
 L<cache_positions|/cache_positions> => 1
 
 L<from_the_edge|/from_the_edge> => 0,
+
+=back
+
+=back
+
+=head2 :debug
+
+Turn on L<Spreadsheet::XLSX::Reader::LibXML::Error/should_warn> in the Error attribute (instance)
+
+=over
+
+B<Default attribute differences>
+
+=over
+
+L<Spreadsheet::XLSX::Reader::LibXML::Error/should_warn> => 1
 
 =back
 
@@ -2408,6 +2499,8 @@ L<Breno G. de Oliveira|https://github.com/garu>
 L<Bill Baker|https://github.com/wdbaker54>
 
 L<H.Merijin Brand|https://github.com/Tux>
+
+L<Todd Eigenschink|mailto:todd@xymmetrix.com>
 
 =back
 
