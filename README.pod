@@ -19,7 +19,7 @@ Spreadsheet::XLSX::Reader::LibXML - Read xlsx spreadsheet files with LibXML
 </a>
 
 <a>
-	<img src="https://img.shields.io/badge/this version-0.38.14-brightgreen.svg" alt="this version">
+	<img src="https://img.shields.io/badge/this version-0.38.16-brightgreen.svg" alt="this version">
 </a>
 
 <a href="https://metacpan.org/pod/Spreadsheet::XLSX::Reader::LibXML">
@@ -204,6 +204,14 @@ L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/set_defined_excel_formats( %args
 attribute L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/defined_excel_translations>.    B<This warning 
 will be removed on 2/1/2016.>
 
+B<5.> This package now supports reading xlsm files (Macro enabled Excel 2007+ workbooks).  
+xlsm files allow for binaries to be embedded that may contain malicious code.  However, other 
+than unzipping the excel file no work is done by this package with the sub-file 'vbaProject.bin' 
+containing the binaries.  This update does not provide an API to that sub-file and I have no 
+intention of doing so.  Therefore my research indicates there should be no risk of virus activation 
+while parsing even an infected xlsm file with this package but I encourage you to use your own 
+judgement in this area.
+
 =head2 Attributes
 
 Data passed to new when creating an instance.  For modification of these attributes see the 
@@ -224,13 +232,13 @@ before the rest of the package can be used.>
 
 =over
 
-B<Definition:> This attribute holds the full file name and path for the xlsx file to be 
+B<Definition:> This attribute holds the full file name and path for the xlsx|xlsm file to be 
 parsed.
 
 B<Default> no default - either this or a L<file handle|/file_handle> must be provided to 
 read a file
 
-B<Range> any unencrypted xlsx file that can be opened in Microsoft Excel
+B<Range> any unencrypted xlsx|xlsm file that can be opened in Microsoft Excel.
 
 B<attribute methods> Methods provided to adjust this attribute
 		
@@ -1190,12 +1198,13 @@ Therefore you may want a shortcut that aggregates some set of attribute settings
 are not the defaults but wind up being boilerplate.  I have provided possible 
 alternate sets like this and am open to providing others that are suggested.  The 
 flags will have a : in front of the identifier and will be passed to the class in the 
-'use' statement for consumption by the import method.  Only the first flag is currently 
-accepted.
+'use' statement for consumption by the import method.  The flags can be stacked and 
+where there is conflict between the flag settings the rightmost passed flag setting is 
+used.
 
 Example;
 
-	use Spreadsheet::XLSX::Reader::LibXML v0.34.4 qw( :alt_default );
+	use Spreadsheet::XLSX::Reader::LibXML v0.34.4 qw( :alt_default :debug );
 
 =head2 :alt_default
 
@@ -1243,12 +1252,58 @@ L<from_the_edge|/from_the_edge> => 0,
 
 =back
 
+=head2 :just_raw_data
+
+This is intended for a shallow look at raw text and skips all formatting including number formats.
+
+=over
+
+B<Default attribute differences>
+
+=over
+
+L<values_only|/values_only> => 1
+
+L<count_from_zero|/count_from_zero> => 0
+
+L<empty_is_end|/empty_is_end> => 1
+
+L<group_return_type|/group_return_type> => 'unformatted'
+
+L<cache_positions|/cache_positions> => 1
+
+L<from_the_edge|/from_the_edge> => 0,
+
+=back
+
+=back
+
+=head2 :debug
+
+Turn on L<Spreadsheet::XLSX::Reader::LibXML::Error/should_warn> in the Error attribute (instance)
+
+=over
+
+B<Default attribute differences>
+
+=over
+
+L<Spreadsheet::XLSX::Reader::LibXML::Error/should_warn> => 1
+
+=back
+
+=back
+
 =head1 BUILD / INSTALL from Source
 
 B<0.> Please note that using L<cpanm|https://metacpan.org/pod/App::cpanminus> is much easier 
 than a source build! (but it will not always give the latest github version)
 
-	cpanm Spreadsheet-XLSX-Reader-LibXML
+	cpanm Spreadsheet::XLSX::Reader::LibXML
+	
+And then if you feel kindly
+
+	cpanm-reporter
 
 B<1.> This package uses L<Alien::LibXML> to try and ensure that the mandatory prerequisite 
 L<XML::LibXML> will load.  The biggest gotcha here is that older (<5.20.0.2) versions of 
@@ -1387,6 +1442,8 @@ L<Breno G. de Oliveira|https://github.com/garu>
 L<Bill Baker|https://github.com/wdbaker54>
 
 L<H.Merijin Brand|https://github.com/Tux>
+
+L<Todd Eigenschink|mailto:todd@xymmetrix.com>
 
 =back
 

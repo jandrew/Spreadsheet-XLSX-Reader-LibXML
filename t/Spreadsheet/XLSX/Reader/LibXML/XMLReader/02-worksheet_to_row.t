@@ -5,7 +5,7 @@ BEGIN{
 	$ENV{PERL_TYPE_TINY_XS} = 0;
 	my	$start_deeper = 1;
 	$lib		= 'lib';
-	$test_file	= 't/test_files/xl/worksheets/';
+	$test_file	= 't/test_files/xl/';
 	for my $next ( <*> ){
 		if( ($next eq 't') and -d $next ){
 			$start_deeper = 0;
@@ -502,7 +502,8 @@ lives_ok{
 			);
 			###LogSD	$phone->talk( level => 'info', message =>[ "Loaded test instance" ] );
 }										"Prep a new WorksheetToRow instance";
-###LogSD		$phone->talk( level => 'debug', message => [ "Max row is:" . $test_instance->max_row ] );
+
+###LogSD		$phone->talk( level => 'debug', message => [ "Max row is:" . $test_instance->_max_row ] );
 map{
 can_ok		$test_instance, $_,
 } 			@instance_methods;

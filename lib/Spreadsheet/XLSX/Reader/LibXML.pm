@@ -961,7 +961,7 @@ sub _set_shared_worksheet_files{
 				push @$role_ref, $self->$method;
 			}
 			$args{add_roles_in_sequence} = $role_ref if $role_ref;
-			###LogSD	$args{log_space} = $self->get_log_space . "::$args{package}";
+			###LogSD	$args{log_space} = $self->get_log_space;
 			my $method = $object_ref->{$file}->{store};
 			###LogSD	$phone->talk( level => 'debug', message =>[
 			###LogSD		"Final args for building the instance:", %args,
