@@ -829,7 +829,7 @@ sub _build_number{
 						$number_type = 'FRACTION';
 					}else{
 						$number_type = 'DECIMAL';
-						$code_hash_ref->{decimal}->{trailing_zeros} = length( $trailinq_zeros ) if length( $trailinq_zeros );# $trailinq_zeros and length( $trailinq_zeros );
+						$code_hash_ref->{decimal}->{trailing_zeros} = length( $trailinq_zeros ) if $trailinq_zeros and length( $trailinq_zeros );
 						$code_hash_ref->{decimal}->{max_length} = length( $comma_less );
 					}
 				}elsif( ($number_type eq 'SCIENTIFIC') or $number_type eq 'FRACTION' ){

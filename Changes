@@ -11,6 +11,7 @@ be method matched to Spreadsheet::ParseExcel prior to the 1.0 release.
 
 {{$NEXT}}
 	
+	! Closes issue #72 in github (hopefully) with safer testing of length in a variable
 	! Closes issue #75 in github with safer setup of cell instances with empty cell_coercion attributes
 	! Closes issue #74 in github with safer testing for the apple date flag
 	! Closes issue #73 in github with safer coercion assesment of date coercions
