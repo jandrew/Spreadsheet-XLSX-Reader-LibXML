@@ -1114,18 +1114,26 @@ B<Definition:> sets the attribute value
 
 =back
 
+B<_get_merge_map>
+
+=over
+
+B<Definition:> returns the attribute array of arrays
+
+=back
+
+=back
+
 B<delegated methods> This attribute uses the native trait 'Array'
 		
 =over
 
-B<_get_row_merge_map( $int )> => 'get'
+B<_get_row_merge_map( $int )> delgated from 'Array' 'get'
 
 =over
 
 B<Definition:> returns the sub array ref representing any merges for that 
 row.  If no merges are available for that row it returns undef.
-
-=back
 
 =back
 

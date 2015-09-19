@@ -11,6 +11,7 @@ use Clone qw( clone );
 use Types::Standard qw(
 		ArrayRef		HasMethods		Enum
 		Bool			Int				is_Int
+		is_HashRef
     );
 use lib	'../../../../../../lib',;
 ###LogSD	use Log::Shiras::Telephone;
@@ -348,17 +349,21 @@ sub _coalate_perl_style_formats{
 		for my $key ( keys %$position ){
 			###LogSD	$phone->talk( level => 'debug', message => [
 			###LogSD		"Processing key: $key", "..at position: $position->{$key}", ] );
-			next if $key =~ /^apply/;
 			if( $key eq 'numFmtId' ){
 				###LogSD	$phone->talk( level => 'debug', message => [
 				###LogSD		"Pulling the number conversion for position: $position->{$key}", ] );
 				$position->{$cell_attributes->{$key}} = $self->get_defined_conversion( $position->{$key} );
+			}elsif( is_HashRef( $position->{$key} ) ){
+				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD		"Skipping the key -$key- already comes with embedded settings:", $position->{$key}] );
+				next;
 			}elsif( $key =~ /(apply|pivotButton|quotePrefix)/ ){
-				###LogSD	$phone->talk( level => 'info', message => [
-				###LogSD		"Skipping the existence key: $key", ] );
+				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD		"Skipping the key: $key", ] );
 				next;
 			}elsif( !exists $cell_attributes->{$key} ){
 				$self->set_error( "Format key -$key- not yet supported by this package" );
+				exit 1;
 				next;
 			}else{
 				if( is_Int( $position->{$key} ) ){

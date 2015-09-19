@@ -11,8 +11,11 @@ be method matched to Spreadsheet::ParseExcel prior to the 1.0 release.
 
 {{$NEXT}}
 	
+	! Closes issue #75 in github with safer setup of cell instances with empty cell_coercion attributes
+	! Closes issue #74 in github with safer testing for the apple date flag
+	! Closes issue #73 in github with safer coercion assesment of date coercions
 	+ Added caching for the styles sub-file which should noticibly speed up parsing
-	+ Added a :debug flag that turns should_warn on.  This is mostly useful to get warns on 
+	+ Added a :debug flag tgit hat turns should_warn on.  This is mostly useful to get warns on 
 		build fails since the warnings can be turned on after build as desired.
 	+ Added "5.22"(back) and added "dev" and "5.10.1" to the TravisCI testing
 	! Closes #71 in github with updates to the import statement

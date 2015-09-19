@@ -770,7 +770,10 @@ sub _build_out_the_cell{
 						$return->{$header} = $format->{$header};
 						if( $header eq 'cell_coercion' ){
 							if(	$return->{cell_type} eq 'Numeric' and
-								$format->{$header}->name =~ /date/i ){
+								#~ is_Object( $format->{$header} ) and
+								#~ $format->{$header}->can( 'display_name' ) and
+								#~ $format->{$header}->display_name =~ /date/i 
+								$format->{$header}->name =~ /date/i){
 								###LogSD	$phone->talk( level => 'trace', message =>[
 								###LogSD		"Found a -Date- cell", ] );
 								$return->{cell_type} = 'Date';
@@ -820,6 +823,7 @@ sub _build_out_the_cell{
 	}
 
 	# build a cell
+	delete $return->{cell_coercion} if !$return->{cell_coercion};# Fixes github issue # 75
 	my $cell = Spreadsheet::XLSX::Reader::LibXML::Cell->new( %$return );
 	###LogSD		$phone->talk( level => 'debug', message =>[
 	###LogSD			"Cell is:", $cell ] );
@@ -894,37 +898,29 @@ __END__
 
 =head1 NAME
 
-Spreadsheet::XLSX::Reader::LibXML::Worksheet - Top level xlsx Worksheet interface
+Spreadsheet::XLSX::Reader::LibXML::Worksheet - Top level XLSX::Reader Worksheet interface
 
 =head1 SYNOPSIS
 
 If you are looking for the synopsis for the package see 
 L<Spreadsheet::XLSX::Reader::LibXML/SYNOPSIS>.  Otherwise the best example for use of 
 this module alone is the test file in this package 
-t/Spreadsheet/XLSX/Reader/LibXML/10-get_cell.t
+t/Spreadsheet/XLSX/Reader/LibXML/10-worksheet.t
     
 =head1 DESCRIPTION
 
-This documentation is written to explain ways to use this module when writing your 
-own excel parser.  To use the general package for excel parsing out of the box please 
-review the documentation for L<Workbooks|Spreadsheet::XLSX::Reader::LibXML>,
-L<Worksheets|Spreadsheet::XLSX::Reader::LibXML::Worksheet>, and 
-L<Cells|Spreadsheet::XLSX::Reader::LibXML::Cell>
+This documentation is intended to cover all 'tabular' data worksheets.  Even if they 
+contain embedded charts.  If the tab is a 'chartsheet' then please review the documentation 
+for L<Chartsheets|Spreadsheet::XLSX::Reader::LibXML::Chartsheet>.
 
-This is the extracted L<Role|Moose::Manual::Roles> to be used as a top level worksheet 
-interface.  This is the place where all the various details in each sub XML sheet are 
-coallated into a set of data representing all the necessary information for a requested 
-cell.  Since this is the center of data coallation all elements that may be customized 
-should reside outside of this role.  This includes any specific elements that would be 
-different between each of the sheet parser types and any element of Excel data presentation 
-that may lend itself to customization.  For instance all the XML parser 
-methods, (Reader, DOM, and possibly SAX) should exist outside and preferebly below this 
-role.
-
-This role is L<also|Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow/DESCRIPTION> 
-contains a layer of abstraction to allow for run time setting of count-from-one or 
-count-from-zero mode.  The layer of abstraction is use with the Moose 
-L<around|Moose::Manual::MethodModifiers/AROUND modifiers> modifier.
+The worksheet class provided by this package is an amalgam of a class, a few roles, 
+and a few traits aggregated at run time based on attribute settings from the workbook 
+level class.  This documentation shows the ways to use the resulting instance.  First, 
+it is best to generate a worksheet instance from the workbook class using one of the 
+various L<worksheet|Spreadsheet::XLSX::Reader::LibXML/worksheet( $name )> methods.  
+Once you have done that there are several ways to step through the data inside of each 
+worksheet and access information from the identified location in the sheet of the .xlsx 
+file.
 
 =head2 requires
 
@@ -1496,25 +1492,26 @@ L<Moose::Role>
 
 B<requires>
 
+any re-use of this role (Interface) requires the following methods. Links are provided 
+to the existing package implementation for study.
+
 =over
 
-min_row
+L<_min_row|Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow/_min_row>
 
-max_row
+L<_max_row|Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow/_max_row>
 
-min_col
+L<_min_col|Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow/_min_col>
 
-max_col
+L<_max_col|Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow/_max_col>
 
-row_range
+L<_get_col_row|Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow/_get_col_row>
 
-col_range
+L<_get_next_value_cell|Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow/_get_next_value_cell>
 
-_get_col_row
+L<_get_row_all|Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow/_get_row_all>
 
-_get_next_value_cell
-
-_get_row_all
+L<_get_merge_map|Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow/_get_merge_map>
 
 =back
 

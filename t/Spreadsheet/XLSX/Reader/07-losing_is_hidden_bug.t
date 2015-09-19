@@ -26,11 +26,17 @@ use	lib	'../../../../../Log-Shiras/lib',
 		'../../../../lib',
 		$lib,
 	;
-use Log::Shiras::Switchboard v0.21 qw( :debug );#
+#~ use Log::Shiras::Switchboard v0.21 qw( :debug );#
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(
 ###LogSD			name_space_bounds =>{
-###LogSD				UNBLOCK =>{
-###LogSD					log_file => 'trace',
+###LogSD				Test =>{
+###LogSD					StylesInstance =>{
+###LogSD						_coalate_perl_style_formats =>{
+###LogSD							UNBLOCK =>{
+###LogSD								log_file => 'trace',
+###LogSD							},
+###LogSD						},
+###LogSD					},
 ###LogSD				},
 ###LogSD			},
 ###LogSD			reports =>{
@@ -66,17 +72,17 @@ ok			$ws = $workbook->worksheet( 'Format' ),
 										"Loaded the worksheet 'Format' OK";
 #~ ###LogSD	my $reveal = 7;
 #~ ###LogSD	if( $row == $reveal and $col == 0 ){
-###LogSD		$operator->add_name_space_bounds( {
-###LogSD			Test =>{
-###LogSD				Worksheet =>{
-###LogSD					_build_out_the_cell =>{
-###LogSD						UNBLOCK =>{
-###LogSD							log_file => 'trace',
-###LogSD						},
-###LogSD					},
-###LogSD				},
-###LogSD			},
-###LogSD		} );
+#~ ###LogSD		$operator->add_name_space_bounds( {
+#~ ###LogSD			Test =>{
+#~ ###LogSD				Worksheet =>{
+#~ ###LogSD					_build_out_the_cell =>{
+#~ ###LogSD						UNBLOCK =>{
+#~ ###LogSD							log_file => 'trace',
+#~ ###LogSD						},
+#~ ###LogSD					},
+#~ ###LogSD				},
+#~ ###LogSD			},
+#~ ###LogSD		} );
 #~ ###LogSD	}
 #~ ###LogSD	elsif( $row == $reveal and $col == 1 ){
 #~ ###LogSD		$operator->add_name_space_bounds( {

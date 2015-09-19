@@ -804,13 +804,13 @@ sub _build_number{
 				###LogSD		"The comma less string is extracted to: $comma_less",
 				###LogSD		((defined $comma_group) ? "The separator group length is: $comma_group" : undef),
 				###LogSD		(($comma) ? "The separator character is: $comma" : undef),
-				###LogSD		((length( $leading_zeros )) ? ".. w/leading zeros: $leading_zeros" : undef),
-				###LogSD		((length( $trailinq_zeros )) ? ".. w/trailing zeros: $trailinq_zeros" : undef),
+				###LogSD		(($leading_zeros and length( $leading_zeros )) ? ".. w/leading zeros: $leading_zeros" : undef),
+				###LogSD		(($trailinq_zeros and length( $trailinq_zeros )) ? ".. w/trailing zeros: $trailinq_zeros" : undef),
 				###LogSD		(($divisor) ? "..with identified divisor: $divisor" : undef),
 				###LogSD		'Initial code hash:', $code_hash_ref] );
 				if( !$number_type ){
 					$number_type = 'INTEGER';
-					$code_hash_ref->{integer}->{leading_zeros} = length( $leading_zeros ) if $leading_zeros and length( $leading_zeros );
+					$code_hash_ref->{integer}->{leading_zeros} = length( $leading_zeros ) if length( $leading_zeros );# $leading_zeros and length( $leading_zeros );
 					$code_hash_ref->{integer}->{minimum_length} = length( $comma_less );
 					if( $comma ){
 						@{$code_hash_ref->{integer}}{ 'group_length', 'comma' } = ( $comma_group, $comma );
@@ -820,7 +820,7 @@ sub _build_number{
 							$code_hash_ref->{separator} = $1;
 						}elsif( $piece->[1] eq '/' ){
 							$number_type = 'FRACTION';
-							$code_hash_ref->{numerator}->{leading_zeros} = length( $leading_zeros ) if length( $leading_zeros );
+							$code_hash_ref->{numerator}->{leading_zeros} = length( $leading_zeros ) if length( $leading_zeros );# $leading_zeros and length( $leading_zeros );
 							delete $code_hash_ref->{integer};
 						}
 					}
@@ -829,11 +829,11 @@ sub _build_number{
 						$number_type = 'FRACTION';
 					}else{
 						$number_type = 'DECIMAL';
-						$code_hash_ref->{decimal}->{trailing_zeros} = length( $trailinq_zeros ) if length( $trailinq_zeros );
+						$code_hash_ref->{decimal}->{trailing_zeros} = length( $trailinq_zeros ) if length( $trailinq_zeros );# $trailinq_zeros and length( $trailinq_zeros );
 						$code_hash_ref->{decimal}->{max_length} = length( $comma_less );
 					}
 				}elsif( ($number_type eq 'SCIENTIFIC') or $number_type eq 'FRACTION' ){
-					$code_hash_ref->{exponent}->{leading_zeros} = length( $leading_zeros ) if $leading_zeros and length( $leading_zeros );
+					$code_hash_ref->{exponent}->{leading_zeros} = length( $leading_zeros ) if length( $leading_zeros );# $leading_zeros and length( $leading_zeros );
 					$code_hash_ref->{fraction}->{target_length} = length( $comma_less );
 					if( $divisor ){
 						$code_hash_ref->{fraction}->{divisor} = $divisor;

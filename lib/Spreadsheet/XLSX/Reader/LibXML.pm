@@ -814,7 +814,9 @@ sub _load_top_level_workbook{
 	my ( $list, $sheet_ref, $rel_lookup, $id_lookup );
 	my	$position = 0;
 	my ( $setting_node ) = $dom->getElementsByTagName( 'workbookPr' );
-	$self->_set_epoch_year( 1904 ) if $setting_node->getAttribute( 'date1904' );
+	if( $setting_node and $setting_node->getAttribute( 'date1904' ) ){
+		$self->_set_epoch_year( 1904 );
+	}
 	for my $sheet ( $dom->getElementsByTagName( 'sheet' ) ){
 		my	$sheet_name = $sheet->getAttribute( 'name' );
 		push @$list, $sheet_name;
