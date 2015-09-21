@@ -32,23 +32,23 @@ use	lib
 	;
 #~ use Log::Shiras::Switchboard qw( :debug );#
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(#
-###LogSD						name_space_bounds =>{
-###LogSD							UNBLOCK =>{
-###LogSD								log_file => 'warn',
-###LogSD							},
-###LogSD							Test =>{
-###LogSD								XMLReader =>{
-###LogSD									UNBLOCK =>{
-###LogSD										log_file => 'warn',
-###LogSD									},
-###LogSD								},
-###LogSD								parse_element =>{
-###LogSD									UNBLOCK =>{
-###LogSD										log_file => 'warn',
-###LogSD									},
-###LogSD								},
-###LogSD							},
-###LogSD						},
+#~ ###LogSD						name_space_bounds =>{
+#~ ###LogSD							UNBLOCK =>{
+#~ ###LogSD								log_file => 'warn',
+#~ ###LogSD							},
+#~ ###LogSD							Test =>{
+#~ ###LogSD								XMLReader =>{
+#~ ###LogSD									UNBLOCK =>{
+#~ ###LogSD										log_file => 'warn',
+#~ ###LogSD									},
+#~ ###LogSD								},
+#~ ###LogSD								parse_element =>{
+#~ ###LogSD									UNBLOCK =>{
+#~ ###LogSD										log_file => 'warn',
+#~ ###LogSD									},
+#~ ###LogSD								},
+#~ ###LogSD							},
+#~ ###LogSD						},
 ###LogSD						reports =>{
 ###LogSD							log_file =>[ Print::Log->new ],
 ###LogSD						},
@@ -186,7 +186,7 @@ is			$test_instance->_get_unique_count, $answer_ref->[$answer_row++],
 										"Check for correct unique_count";
 is			$test_instance->encoding, $answer_ref->[$answer_row++],
 										"Check for correct encoding";
-###LogSD	my $trigger = 3;
+###LogSD	my $trigger = 20;
 			for my $x ( 2..14 ){
 ###LogSD	print "-----------$x---------\n";
 ###LogSD	if( $x == $trigger ){
@@ -201,7 +201,7 @@ is			$test_instance->encoding, $answer_ref->[$answer_row++],
 ###LogSD	}
 			#~ print "position -$answer_ref->[$x]->[0]- " .Dumper( $test_instance->get_shared_string_position( $answer_ref->[$x]->[0] ) );
 is_deeply	$test_instance->get_shared_string_position( $answer_ref->[$x]->[0] ), $answer_ref->[$x]->[1],
-										"Get the -$answer_ref->[$x]->[0]- sharedStrings 'si' position as:" . Dumper( $answer_ref->[$x]->[1] );
+										"Get the sharedStrings 'si' position -$answer_ref->[$x]->[0]- as:" . Dumper( $answer_ref->[$x]->[1] );
 			}
 lives_ok{	$capture = $test_instance->get_shared_string_position( 20 ); 
 }										"Attempt an element past the end of the list";
@@ -231,7 +231,7 @@ is			$test_instance->_get_unique_count, $answer_ref->[$answer_row++],
 										"Check for correct unique_count";
 is			$test_instance->encoding, $answer_ref->[$answer_row++],
 										"Check for correct encoding";
-###LogSD	$trigger = 15;
+###LogSD	$trigger = 4;
 			for my $x ( 2..14 ){
 ###LogSD	print "-----------$x---------\n";
 ###LogSD	if( $x == $trigger ){

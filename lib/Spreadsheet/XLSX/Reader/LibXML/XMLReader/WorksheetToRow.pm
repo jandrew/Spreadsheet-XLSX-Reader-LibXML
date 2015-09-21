@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow;
-use version; our $VERSION = qv('v0.38.14');
+use version; our $VERSION = qv('v0.38.16');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow-$VERSION";
 
 use	5.010;
@@ -131,15 +131,13 @@ has _old_row_inst =>(
 			_is_old_row_hidden		=> 'is_row_hidden',
 			_get_old_row_formats	=> 'get_row_format', # pass the desired format key
 			_get_old_column			=> 'get_the_column', # pass a column number (no next default) returns (cell|undef|EOR)
-			#~ _get_old_value_column	=> 'get_the_next_value_column', # pass a column number (no next default) returns (cell|EOR)
-			#~ _get_old_next_value		=> 'get_the_next_value_position', # pass nothing returns next (cell|EOR)
 			_get_old_last_value_col	=> 'get_last_value_column',
 			_get_old_row_list		=> 'get_row_all',
-			_get_nold_row_end		=> 'get_row_end'
+			_get_old_row_end		=> 'get_row_end'
 		},
 	);
 
-has _new_row_ref =>(
+has _new_row_inst =>(
 		isa			=> InstanceOf[ 'Spreadsheet::XLSX::Reader::LibXML::Row' ],
 		reader		=> '_get_new_row_inst',
 		writer		=> '_set_new_row_inst',
@@ -150,7 +148,6 @@ has _new_row_ref =>(
 			_is_new_row_hidden		=> 'is_row_hidden',
 			_get_new_row_formats	=> 'get_row_format', # pass the desired format key
 			_get_new_column			=> 'get_the_column', # pass a column number (no next default) returns (cell|undef|EOR)
-			#~ _get_new_value_column	=> 'get_the_next_value_column', # pass a column number (no next default) returns (cell|EOR)
 			_get_new_next_value		=> 'get_the_next_value_position', # pass nothing returns next (cell|EOR)
 			_get_new_last_value_col	=> 'get_last_value_column',
 			_get_new_row_list		=> 'get_row_all',
@@ -529,7 +526,8 @@ sub _load_unique_bits{
 	###LogSD			"Setting the Worksheet unique bits", ] );
 	
 	# Read the sheet dimensions
-	if( $self->node_name eq 'dimension' or $self->advance_element_position( 'dimension' ) ){
+	my ( $node_depth, $node_name, $node_type ) = $self->location_status;
+	if( $node_name eq 'dimension' or $self->advance_element_position( 'dimension' ) ){
 		my $dimension = $self->parse_element;
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD		"parsed dimension value:", $dimension ] );
@@ -557,9 +555,10 @@ sub _load_unique_bits{
 	
 	#pull column stats
 	my	$has_column_data = 1;
+	( $node_depth, $node_name, $node_type ) = $self->location_status;
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		"Loading the column configuration" ] );
-	if( $self->node_name eq 'cols' or $self->advance_element_position( 'cols') ){
+	if( $node_name eq 'cols' or $self->advance_element_position( 'cols') ){
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD		"Already arrived at the column data" ] );
 	}else{
@@ -596,8 +595,9 @@ sub _load_unique_bits{
 	my	$merge_ref = [];
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		"Loading the mergeCell" ] );
+	( $node_depth, $node_name, $node_type ) = $self->location_status;
 	my $found_merges = 0;
-	if( ($self->node_name and $self->node_name eq 'mergeCells') or $self->advance_element_position( 'mergeCells') ){
+	if( ($node_name and $node_name eq 'mergeCells') or $self->advance_element_position( 'mergeCells') ){
 		$found_merges = 1;
 	}else{
 		$self->start_the_file_over;
@@ -670,99 +670,7 @@ Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow - Pull rows out of 
 
 =head1 SYNOPSIS
 
-	use Data::Dumper;
-	use MooseX::ShortCut::BuildInstance qw( build_instance );
-	use Types::Standard qw( Bool HasMethods );
-	use Spreadsheet::XLSX::Reader::LibXML::Error;
-	use Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet;
-	my  $error_instance = Spreadsheet::XLSX::Reader::LibXML::Error->new( should_warn => 0 );
-	my  $workbook_instance = build_instance(
-	        package     => 'WorkbookInstance',
-	        add_methods =>{
-	            counting_from_zero         => sub{ return 0 },
-	            boundary_flag_setting      => sub{},
-	            change_boundary_flag       => sub{},
-	            _has_shared_strings_file   => sub{ return 1 },
-				get_shared_string_position => sub{},
-				_has_styles_file           => sub{},
-	            get_format_position        => sub{},
-	            get_group_return_type      => sub{},
-	            set_group_return_type      => sub{},
-	            get_epoch_year             => sub{ return '1904' },
-	            change_output_encoding     => sub{ $_[0] },
-	            get_date_behavior          => sub{},
-	            set_date_behavior          => sub{},
-	            get_empty_return_type      => sub{ return 'undef_string' },
-	            get_values_only            => sub{},
-	            set_values_only            => sub{},
-	        },
-	        add_attributes =>{
-	            error_inst =>{
-	                isa => 	HasMethods[qw(
-	                            error set_error clear_error set_warnings if_warn
-	                        ) ],
-	                clearer  => '_clear_error_inst',
-	                reader   => 'get_error_inst',
-	                required => 1,
-				    handles =>[ qw(
-						error set_error clear_error set_warnings if_warn
-					) ],
-	            },
-	            empty_is_end =>{
-	                isa     => Bool,
-					writer  => 'set_empty_is_end',
-	                reader  => 'is_empty_the_end',
-	                default => 0,
-	            },
-	            from_the_edge =>{
-	                isa     => Bool,
-					reader  => '_starts_at_the_edge',
-	                writer  => 'set_from_the_edge',
-					default => 1,
-	            },
-			},
-			error_inst => $error_instance,
-	    );
-	my $test_instance = Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet->new(
-	        file              => 'xl/worksheets/sheet3.xml',
-	        error_inst        => $error_instance,
-	        sheet_name        => 'Sheet3',
-	        workbook_instance => $workbook_instance,
-	    );
-	my $x = 0;
-	my $result;
-	while( $x < 20 and (!$result or $result ne 'EOF') ){
-	    $result = $test_instance->_get_next_value_cell;
-	    print "Collecting data from position: $x" . Dumper( $result );
-		$x++;
-	}
-
-	###############################################
-	# SYNOPSIS Screen Output
-	# 01: Collecting data from position: 0
-	# 02: $VAR1 = {
-	# 03:           'r' => 'A2',
-	# 04:           'row' => 2,
-	# 05:           'col' => 1,
-	# 06:           'v' => {
-	# 07:                  'raw_text' => '0'
-	# 08:                },
-	# 09:           't' => 's'
-	# 10:         };
-	# 11: 
-	# 12: Collecting data from position: 1
-	# 13: $VAR1 = {
-	# 14:           'r' => 'D2',
-	# 15:           'row' => 2,
-	# 16:           'col' => 4,
-	# 17:           'v' => {
-	# 18:                  'raw_text' => '2'
-	# 19:                },
-	# 20:           't' => 's'
-	# 21:         };
-	#		~~ Continuing ~~
-	###############################################
-	
+See t\Spreadsheet\XLSX\Reader\LibXML02-worksheet_to_row.t
     
 =head1 DESCRIPTION
 
@@ -772,43 +680,57 @@ documentation for L<Workbooks|Spreadsheet::XLSX::Reader::LibXML>,
 L<Worksheets|Spreadsheet::XLSX::Reader::LibXML::Worksheet>, and 
 L<Cells|Spreadsheet::XLSX::Reader::LibXML::Cell>
 
-This module provides the basic connection to individual worksheet files for parsing xlsx 
-workbooks.  It does not provide a way to connect to L<chartsheets|Spreadsheet::XLSX::Reader::LibXML::Chartsheet>.  
-It does not provide the final view of a given cell.  The final view of the cell is collated 
-with the role L<Spreadsheet::XLSX::Reader::LibXML::GetCell>.  This reader extends the base 
-reader class L<Spreadsheet::XLSX::Reader::LibXML::XMLReader>.  The functionality provided 
-by those modules is not covered here.
+This module provides the basic connection to individual worksheet files (not chartsheets) for 
+parsing xlsx workbooks and coalating shared strings data to cell data.  It does not provide 
+a way to connect to L<chartsheets|Spreadsheet::XLSX::Reader::LibXML::Chartsheet>.  It does 
+not provide the final view of a given cell.  The final view of the cell is collated with 
+the role (Interface) L<Spreadsheet::XLSX::Reader::LibXML::Worksheet>.  This reader extends 
+the base reader class L<Spreadsheet::XLSX::Reader::LibXML::XMLReader>.  The functionality 
+provided by those modules is not explained here.
+
+For now this module reads each full row (with values) into a L<Spreadsheet::XLSX::Reader::LibXML::Row> 
+instance.  It stores only the currently read row and the previously read row.  Exceptions to 
+this are the start of read and end of read.  For start of read only the current row is available 
+with the assumption that all prior implied rows are empty.  When a position past the end of the sheet 
+is called both current and prior rows are cleared and an 'EOF' or undef value is returned.  See
+L<Spreadsheet::XLSX::Reader::LibXML/file_boundary_flags> for more details.  This allows for storage 
+of row general formats by row and where a requested cell falls in a row without values that the empty 
+state can be determined without rescanning the file.
+
+I<All positions (row and column places and integers) at this level are stored and returned in count 
+from one mode!>
 
 Modification of this module probably means extending a different reader or using other roles 
-for implementation of the class.  See lines 18 and on in the code here for the location to 
-change and See line 54 in the code L<Spreadsheet::XLSX::Reader::LibXML> for the way to repoint 
-the package at a new module.
+for implementation of the class.  Search for
+
+	extends	'Spreadsheet::XLSX::Reader::LibXML::XMLReader';
+	
+To replace the base reader. Search for the method 'worksheet' in L<Spreadsheet::XLSX::Reader::LibXML> 
+and the variable '$parser_modules' to replace this whole thing.
 
 =head2 Attributes
 
 Data passed to new when creating an instance.  For access to the values in these 
 attributes see the listed 'attribute methods'. For general information on attributes see 
 L<Moose::Manual::Attributes>.  For ways to manage the instance when opened see the 
-L<Public Methods|/Public Methods>.  The remaining undocumented attributes are used internally 
-for tracking state.
+L<Public Methods|/Public Methods>.
 	
-=head3 sheet_type
+=head3 is_hidden
 
 =over
 
-B<Definition:> This will always be 'worksheet' for this module.  It is provided as 
-a simple introspection method for distinguishing between worksheets and chartsheets 
-in case the circumstances are ambiguous.
+B<Definition:> This is set when the sheet is read from the sheet metadata level indicating 
+if the sheet is hidden
 
-B<Default:> 'worksheet'
+B<Default:> none
 
-B<Range:> 'worksheet'
+B<Range:> (1|0)
 
 B<attribute methods> Methods provided to adjust this attribute
 		
 =over
 
-B<get_sheet_type>
+B<is_sheet_hidden>
 
 =over
 
@@ -819,102 +741,165 @@ B<Definition:> return the attribute value
 =back
 
 =back
-	
-=head3 sheet_rel_id
+
+=head3 workbook_instance
 
 =over
 
-B<Definition:> To coordinate information accross the various sub-files excel maintains 
-a relId for sheets.  This is the value that excel assigned to this sheet.
+B<Definition:> This attribute holds a reference back to the workbook instance so that 
+the worksheet has access to the global settings managed there.  As a consequence many 
+of the workbook methods are be exposed here.  This includes some setter methods for 
+workbook attributes. I<Beware that setting or adjusting the workbook level attributes 
+with methods here will be universal and affect other worksheets.  So don't forget to 
+return the old value if you want the old behavour after you are done.>  If that 
+doesn't make sense then don't use these methods.  (Nothing to see here! Move along.)
 
-B<Range:> a string
+B<Default:> a Spreadsheet::XLSX::Reader::LibXML instance
 
-B<attribute methods> Methods provided to adjust this attribute
-		
+B<attribute methods> Methods of the workbook exposed here by the L<delegation
+|Moose::Manual::Attributes/Delegation> of the instance to this class through this 
+attribute
+
 =over
 
-B<rel_id>
+B<counting_from_zero>
 
 =over
 
-B<Definition:> return the attribute value
+B<Definition:> returns the L<Spreadsheet::XLSX::Reader::LibXML/count_from_zero> 
+instance state
 
 =back
 
-=back
-
-=back
-	
-=head3 sheet_id
+B<boundary_flag_setting>
 
 =over
 
-B<Definition:> When writing vbScript the sheet can be identified by a number instead 
-of a name.  This is that number.
-
-B<Range:> an integer
-
-B<attribute methods> Methods provided to adjust this attribute
-		
-=over
-
-B<sheet_id>
-
-=over
-
-B<Definition:> return the attribute value
+B<Definition:> returns the L<Spreadsheet::XLSX::Reader::LibXML/file_boundary_flags> 
+instance state
 
 =back
 
-=back
-
-=back
-	
-=head3 sheet_position
+B<change_boundary_flag( $Bool )>
 
 =over
 
-B<Definition:> Even if there are chartsheets in the workbook you will only get a list 
-of worksheets when using 'worksheet' methods.  However, this position is the visible 
-position of the worksheet in the workbook including chartsheets.  This can be different 
-than L<sheet_id|/sheet_id>
-
-B<Range:> an integer
-
-B<attribute methods> Methods provided to adjust this attribute
-		
-=over
-
-B<position>
-
-=over
-
-B<Definition:> return the attribute value
+B<Definition:> sets the L<Spreadsheet::XLSX::Reader::LibXML/file_boundary_flags> 
+instance state (B<For the whole workbook!>)
 
 =back
 
+B<get_shared_string_position( $int )>
+
+=over
+
+B<Definition:> returns the shared string data stored in the sharedStrings 
+file at position $int.  For more information review 
+L<Spreadsheet::XLSX::Reader::LibXML::SharedStrings>.  I<This is a delegation 
+of a delegation!>
+
 =back
 
+B<get_format_position( $int, [$header] )>
+
+=over
+
+B<Definition:> returns the format data stored in the styles 
+file at position $int.  If the optional $header is passed only the data for that 
+header is returned.  Otherwise all styles for that position are returned.  
+For more information review 
+L<Spreadsheet::XLSX::Reader::LibXML::Styles>.  I<This is a delegation 
+of a delegation!>
+
 =back
-	
-=head3 sheet_name
+
+B<set_empty_is_end( $Bool )>
 
 =over
 
-B<Definition:> This is the visible string expressed on the tab of the 
-worksheet in the workbook.
+B<Definition:> sets the L<Spreadsheet::XLSX::Reader::LibXML/empty_is_end> 
+instance state (B<For the whole workbook!>)
 
-B<Range:> a String
+=back
 
-B<attribute methods> Methods provided to adjust this attribute
-		
-=over
-
-B<get_name>
+B<is_empty_the_end>
 
 =over
 
-B<Definition:> return the attribute value
+B<Definition:> returns the L<Spreadsheet::XLSX::Reader::LibXML/empty_is_end> 
+instance state.
+
+=back
+
+B<get_group_return_type>
+
+=over
+
+B<Definition:> returns the L<Spreadsheet::XLSX::Reader::LibXML/group_return_type> 
+instance state.
+
+=back
+
+B<set_group_return_type( (instance|unformatted|value) )>
+
+=over
+
+B<Definition:> sets the L<Spreadsheet::XLSX::Reader::LibXML/group_return_type> 
+instance state (B<For the whole workbook!>)
+
+=back
+
+B<get_epoch_year>
+
+=over
+
+B<Definition:> uses the L<Spreadsheet::XLSX::Reader::LibXML/get_epoch_year> method.
+
+=back
+
+B<get_date_behavior>
+
+=over
+
+B<Definition:> This is a L<delegated|Moose::Manual::Delegation> method from the 
+L<styles|Spreadsheet::XLSX::Reader::LibXML::Styles> class (stored as a private 
+instance in the workbook).  It is held (and documented) in the 
+L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings> role.  It will 
+indicate how far unformatted L<transformation
+|Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/datetime_dates> 
+is carried for date coercions when returning formatted values. 
+
+=back
+
+B<set_date_behavior>
+
+=over
+
+B<Definition:> This is a L<delegated|Moose::Manual::Delegation> method from 
+the L<styles|Spreadsheet::XLSX::Reader::LibXML::Styles> class (stored as a private 
+instance in the workbook).  It is held (and documented) in the 
+L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings> role.  It will set how 
+far unformatted L<transformation
+|Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/datetime_dates> 
+is carried for date coercions when returning formatted values. 
+
+=back
+
+B<get_values_only>
+
+=over
+
+B<Definition:> gets the L<Spreadsheet::XLSX::Reader::LibXML/values_only> 
+instance state.
+
+=back
+
+B<set_values_only>
+
+=over
+
+B<Definition:> sets the L<Spreadsheet::XLSX::Reader::LibXML/values_only> 
+instance state (B<For the whole workbook!>)
 
 =back
 
@@ -1096,7 +1081,7 @@ is stored in the row sub array position.  This means the same span is stored in 
 positions.  The data is stored in the Excel convention of count from 1 so the first position 
 in both levels of the array are essentially placeholders.  The data is extracted from the 
 merge section of the worksheet at worksheet/mergeCells.  That array is read and converted 
-into this format for reading by this module when it first opens the worksheet..
+into this format for reading by this module when it first opens the worksheet.
 
 B<Range:> an array ref
 
@@ -1138,165 +1123,264 @@ row.  If no merges are available for that row it returns undef.
 =back
 
 =back
-
-=head2 Public Methods
-
-These are the methods provided by this class for use by the end user.
-
-=head3 min_row
+	
+=head3 _column_formats
 
 =over
 
-B<Definition:> This returns the minimum row with data or formatting in the worksheet.  It is 
-separated from L<_min_row|/_sheet_min_row> so that the package can modify the output between the functions 
-to match the attribute L<Spreadsheet::XLSX::Reader::LibXML/count_from_zero>
+B<Definition:> In order to (eventually) show all column formats that also affect individual 
+cells the column based formats are read from the metada when the worksheet is opened.  They
+are stored here for use although for now they are mostly used to determine the hidden state of 
+the column.  The formats are stored in the array by count from 1 column position.
 
-B<Accepts:> nothing
+B<Range:> an array ref
 
-B<Returns:> the minimum row integer
+B<attribute methods> Methods provided to adjust this attribute
+		
+=over
 
-=back
-
-=head3 max_row
+B<_set_set_column_formats>
 
 =over
 
-B<Definition:> This returns the maximum row with data or formatting in the worksheet.  It is 
-separated from L<_max_row|/_sheet_max_row> so that the package can modify the output between the functions 
-to match the attribute L<Spreadsheet::XLSX::Reader::LibXML/count_from_zero>
-
-B<Accepts:> nothing
-
-B<Returns:> the maximum row integer
+B<Definition:> sets the attribute value
 
 =back
 
-=head3 min_col
+=back
+
+B<_get_get_column_formats>
 
 =over
 
-B<Definition:> This returns the minimum column with data or formatting in the worksheet.  It is 
-separated from L<_min_col|/_sheet_min_col> so that the package can modify the output between the functions 
-to match the attribute L<Spreadsheet::XLSX::Reader::LibXML/count_from_zero>
-
-B<Accepts:> nothing
-
-B<Returns:> the minimum column integer
+B<Definition:> returns the attribute array
 
 =back
 
-=head3 max_col
+=back
+
+B<delegated methods> This attribute uses the native trait 'Array'
+		
+=over
+
+B<_get_custom_column_data( $int )> delgated from 'Array' 'get'
 
 =over
 
-B<Definition:> This returns the maximum column with data or formatting in the worksheet.  It is 
-separated from L<_max_col|/_sheet_max_col> so that the package can modify the output between the functions 
-to match the attribute L<Spreadsheet::XLSX::Reader::LibXML/count_from_zero>
-
-B<Accepts:> nothing
-
-B<Returns:> the maximum column integer
+B<Definition:> returns the sub hash ref representing any formatting 
+for that column.  If no custom formatting is available it returns undef.
 
 =back
 
-=head3 row_range
+=back
+	
+=head3 _old_row_inst
 
 =over
 
-B<Definition:> This returns the first and last row with data or formatting in the worksheet.  It is 
-separated from L<_min_row|/_sheet_min_row> and L<_max_row|/_sheet_max_row> so that the package can modify the 
-output between the functions to match the attribute L<Spreadsheet::XLSX::Reader::LibXML/count_from_zero>
+B<Definition:> This is the prior read row instance or undef for the beginning or 
+end of the sheet read.
 
-B<Accepts:> nothing
+B<Range:> isa => InstanceOf[ L<Spreadsheet::XLSX::Reader::LibXML::Row> ]
 
-B<Returns:> ( $min_row, $max_row ) as a list
+B<attribute methods> Methods provided to adjust this attribute
+		
+=over
 
-=back
-
-=head3 col_range
+B<_set_old_row_inst>
 
 =over
 
-B<Definition:> This returns the first and last column  with data or formatting in the worksheet.  It is 
-separated from L<_min_col|/_sheet_min_col> and L<_max_col|/_sheet_max_col> so that the package can modify the 
-output between the functions to match the attribute L<Spreadsheet::XLSX::Reader::LibXML/count_from_zero>
-
-B<Accepts:> nothing
-
-B<Returns:> ( $min_col, $max_col ) as a list
+B<Definition:> sets the attribute value
 
 =back
 
-=head3 get_merged_areas
+B<_get_old_row_inst>
 
 =over
 
-B<Definition:> This method returns an array ref of cells that are merged.  This method does 
-respond to the attribute L<Spreadsheet::XLSX::Reader::LibXML/count_from_zero>
-
-B<Accepts:> nothing
-
-B<Returns:> An arrayref of arrayrefs of merged areas or undef if no merged areas
-
-	[ [ $start_row_1, $start_col_1, $end_row_1, $end_col_1], etc.. ]
+B<Definition:> returns the attribute
 
 =back
 
-=head3 is_sheet_hidden
+B<_clear_old_row_inst>
 
 =over
 
-B<Definition:> Method indicates if the excel program would hide the sheet or show it if the 
-file were opened in the Microsoft Excel application
-
-B<Accepts:> nothing
-
-B<Returns:> a boolean value indicating if the sheet is hidden or not 1 = hidden
+B<Definition:> clears the attribute
 
 =back
 
-=head3 is_column_hidden
+B<_has_old_row_inst>
 
 =over
 
-B<Definition:> Method indicates if the excel program would hide the identified column(s) or show 
-it|them if the file were opened in the Microsoft Excel application.  If more than one column is 
-passed then it returns true if any of the columns are hidden in scalar context and a list of 
-1 and 0 values for each of the requested positions in array (list) context.  This method (input) 
-does respond to the attribute L<Spreadsheet::XLSX::Reader::LibXML/count_from_zero>.  Unlike the 
-method 'is_row_hidden' this method will always 'know' the correct answer since the information is 
-stored outside of the dataa table in the xml file.
-
-B<Accepts:> integer values or column letter values selecting the columns in question
-
-B<Returns:> in scalar context it returns a boolean value indicating if any of the requested 
-columns would be hidden by Excel.  In array/list context it returns a list of boolean values 
-for each requested column indicating it's hidden state for Excel. (1 = hidden)
+B<Definition:> predicate for the attribute
 
 =back
 
-=head3 is_row_hidden
+B<delegated methods> from L<Spreadsheet::XLSX::Reader::LibXML::Row>
+		
+=over
+
+B<_get_old_row_number> = L<Spreadsheet::XLSX::Reader::LibXML::Row/get_row_number>
+
+B<_is_old_row_hidden> = L<Spreadsheet::XLSX::Reader::LibXML::Row/is_row_hidden>
+
+B<_get_old_row_formats> = L<Spreadsheet::XLSX::Reader::LibXML::Row/get_row_format>
 
 =over
 
-B<Definition:> Method indicates if the excel program would hide the identified row(s) or show 
-it|them if the file were opened in the Microsoft Excel application.  If more than one row is 
-passed then it returns true if any of the rows are hidden in scalar context and a list of 
-1 and 0 values for each of the requested positions in array (list) context.  This method (input) 
-does respond to the attribute L<Spreadsheet::XLSX::Reader::LibXML/count_from_zero>.  B<Warning: 
-THIS METHOD WILL ONLY BE ACCURATE AFTER THE SHEET HAS READ AT LEAST ONE CELL FROM THE ROW 
-NUMBER REQUESTED.  THIS ALLOWS THE SHEET TO AVOID READING ALL THE WAY THROUGH ONCE BEFORE STARTING 
-THE CELL PARSING.>
-
-B<Accepts:> integer values selecting the rows in question
-
-B<Returns:> in scalar context it returns a boolean value indicating if any of the requested 
-rows would be hidden by Excel.  In array/list context it returns a list of boolean values 
-for each requested row indicating it's hidden state for Excel. (1 = hidden)
+pass the desired format key
 
 =back
 
-=head2 Private Methods
+B<_get_old_column> = L<Spreadsheet::XLSX::Reader::LibXML::Row/get_the_column( $column )>
+
+=over
+
+pass a column number (no next default) returns (cell|undef|EOR)
+
+=back
+
+B<_get_old_last_value_col> = L<Spreadsheet::XLSX::Reader::LibXML::Row/get_last_value_column>
+
+B<_get_old_row_list> = L<Spreadsheet::XLSX::Reader::LibXML::Row/get_row_all>
+
+B<_get_old_row_end> = L<Spreadsheet::XLSX::Reader::LibXML::Row/get_row_endl>
+
+=back
+
+=back
+
+=back
+	
+=head3 _new_row_inst
+
+=over
+
+B<Definition:> This is the current read row instance or undef for the end of the sheet 
+read.
+
+B<Range:> isa => InstanceOf[ L<Spreadsheet::XLSX::Reader::LibXML::Row> ]
+
+B<attribute methods> Methods provided to adjust this attribute
+		
+=over
+
+B<_set_new_row_inst>
+
+=over
+
+B<Definition:> sets the attribute value
+
+=back
+
+B<_get_new_row_inst>
+
+=over
+
+B<Definition:> returns the attribute
+
+=back
+
+B<_clear_new_row_inst>
+
+=over
+
+B<Definition:> clears the attribute
+
+=back
+
+B<_has_new_row_inst>
+
+=over
+
+B<Definition:> predicate for the attribute
+
+=back
+
+B<delegated methods> from L<Spreadsheet::XLSX::Reader::LibXML::Row>
+		
+=over
+
+B<_get_new_row_number> = L<Spreadsheet::XLSX::Reader::LibXML::Row/get_row_number>
+
+B<_is_new_row_hidden> = L<Spreadsheet::XLSX::Reader::LibXML::Row/is_row_hidden>
+
+B<_get_new_row_formats> = L<Spreadsheet::XLSX::Reader::LibXML::Row/get_row_format>
+
+=over
+
+pass the desired format key
+
+=back
+
+B<_get_new_column> = L<Spreadsheet::XLSX::Reader::LibXML::Row/get_the_column( $column )>
+
+=over
+
+pass a column number (no next default) returns (cell|undef|EOR)
+
+=back
+
+B<_get_new_next_value> = L<Spreadsheet::XLSX::Reader::LibXML::Row/get_the_next_value_position>
+
+=over
+
+pass nothing returns next (cell|EOR)
+
+=back
+
+B<_get_new_last_value_col> = L<Spreadsheet::XLSX::Reader::LibXML::Row/get_last_value_column>
+
+B<_get_new_row_list> = L<Spreadsheet::XLSX::Reader::LibXML::Row/get_row_all>
+
+B<_get_new_row_end> = L<Spreadsheet::XLSX::Reader::LibXML::Row/get_row_endl>
+
+=back
+
+=back
+
+=back
+	
+=head3 _row_hidden_states
+
+=over
+
+B<Definition:> As the worksheet is parsed it will store the hidden state for 
+the row in this attribute when each row is read.  This is the only worksheet 
+level caching done.  B<It will not test whether the requested row hidden state 
+has been read when accessing this data.>  If a method call a row past the 
+current max parsed row it will return 0 (unhidden).
+
+B<Range:> an array ref of Boolean values
+
+B<delegated methods> This attribute uses the native trait 'Array'
+		
+=over
+
+B<_set_row_hidden( $int )> delgated from 'Array' 'set'
+
+=over
+
+B<Definition:> sets the hidden state for that $int (row) counting from 1.
+
+=back
+
+B<_get_row_hidden( $int )> delgated from 'Array' 'get'
+
+=over
+
+B<Definition:> returns the known hidden state of the row.
+
+=back
+
+=back
+
+=back
+
+=head2 Methods
 
 These are the methods provided by this class for use within the package but are not intended 
 to be used by the end user.  Other private methods not listed here are used in the module but 
@@ -1308,8 +1392,7 @@ either requires replacing them or rewriting all the associated connecting roles 
 =over
 
 B<Definition:> This is called by L<Spreadsheet::XLSX::Reader::LibXML::XMLReader> when the file is 
-loaded for the first time so that file specific data can be collected.  All the L<Attributes|/Attributes> 
-with a leading _ in the documentation are filled in at this point.
+loaded for the first time so that file specific metadata can be collected.
 
 B<Accepts:> nothing
 
@@ -1325,25 +1408,12 @@ B<Definition:> This returns the worksheet file hash ref representation of the xm
 'next' value cell.  A cell is determined to have value based on the attribute 
 L<Spreadsheet::XLSX::Reader::LibXML/values_only>.  Next is affected by the attribute 
 L<Spreadsheet::XLSX::Reader::LibXML/empty_is_end>.  This method never returns an 'EOR' flag.  
-It just wraps automatically.
+It just wraps automatically.  This does return values from the shared strings file integrated but 
+not values from the Styles file integrated.
 
 B<Accepts:> nothing
 
-B<Returns:> the cell (or value as requested)
-
-=back
-
-=head3 _get_next_cell
-
-=over
-
-B<Definition:> This returns on every cell position whether there is data or not.  For empty 
-cells undef is returned.  Next is affected by the attribute L<Spreadsheet::XLSX::Reader::LibXML/empty_is_end>.  
-This method never returns an 'EOR' flag.  It just wraps automatically.
-
-B<Accepts:> nothing
-
-B<Returns:> undef, a value, or the cell
+B<Returns:> a hashref of key value pairs
 
 =back
 
@@ -1371,6 +1441,23 @@ empty array ref.
 B<Accepts:> ( $row ) - required
 
 B<Returns:> an array ref
+
+=back
+
+=head3 _is_column_hidden( @query_list )
+
+=over
+
+B<Definition:> This is returns a list of hidden states for each column integer in the @query_list 
+it will generally return n array ref of each of the values in the row placed in their 'count 
+from one' position.  If the row is empty but it is not the end of the sheet then this will return an 
+empty array ref.
+
+B<Accepts:> ( @query_list ) - integers in count from 1 representing requested columns
+
+B<Returns (when wantarray):> a list of hidden states as follows; 1 => hidden, 0 => known to be unhidden, 
+undef => unknown state (usually this represents columns before min_col or after max_col or at least past 
+the last stored value in the column)
 
 =back
 
@@ -1425,29 +1512,29 @@ L<MooseX::StrictConstructor>
 
 L<MooseX::HasDefaults::RO>
 
+L<Clone> - clone
+
 L<Carp> - confess
 
 L<Type::Tiny> - 1.000
 
+L<MooseX::ShortCut::BuildInstance> - build_instance should_re_use_classes
+
+L<Spreadsheet::XLSX::Reader::LibXML>
+
 L<Spreadsheet::XLSX::Reader::LibXML::XMLReader>
+
+L<Spreadsheet::XLSX::Reader::LibXML::Row>
 
 L<Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow>
 
-L<Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData>
-
-L<Spreadsheet::XLSX::Reader::LibXML::GetCell>
+L<Spreadsheet::XLSX::Reader::LibXML::XMLToPerlData>
 
 =back
 
 =head1 SEE ALSO
 
 =over
-
-L<Spreadsheet::ParseExcel> - Excel 2003 and earlier
-
-L<Spreadsheet::XLSX> - 2007+
-
-L<Spreadsheet::ParseXLSX> - 2007+
 
 L<Log::Shiras|https://github.com/jandrew/Log-Shiras>
 

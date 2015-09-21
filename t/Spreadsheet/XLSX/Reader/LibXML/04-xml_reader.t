@@ -19,7 +19,7 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 65;
+use	Test::Most tests => 54;
 use	Test::Moose;
 use IO::File;
 #~ use XML::LibXML::Reader;
@@ -70,18 +70,7 @@ my  		@class_methods = qw(
 				clear_error
 				set_warnings
 				if_warn
-				node_type
-				node_name
-				node_value	
-				has_value
-				node_depth
-				move_to_first_att
-				move_to_next_att
 				encoding
-				_go_to_the_end
-				_close_the_sheet
-				where_am_i
-				has_position
 				start_the_file_over
 				get_text_node
 				get_attribute_hash_ref
@@ -92,6 +81,8 @@ my  		@class_methods = qw(
 				get_header
 				copy_current_node
 			);
+				#~ where_am_i
+				#~ has_position
 my			$answer_ref = [
 				[
 					'<si xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><t>Hello</t></si>',

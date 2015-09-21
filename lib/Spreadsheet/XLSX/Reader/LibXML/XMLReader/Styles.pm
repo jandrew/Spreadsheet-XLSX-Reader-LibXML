@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles;
-use version; our $VERSION = qv('v0.38.14');
+use version; our $VERSION = qv('v0.38.16');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles-$VERSION";
 
 use 5.010;
@@ -84,7 +84,7 @@ has empty_return_type =>(
 		reader	=> 'get_empty_return_type',
 		writer	=> 'set_empty_return_type',
 	);
-with	'Spreadsheet::XLSX::Reader::LibXML::XMLToPerlData';#::XMLReader=
+with	'Spreadsheet::XLSX::Reader::LibXML::XMLToPerlData';#
 
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
 
@@ -508,68 +508,67 @@ Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles - A LibXML::Reader styles b
 =head1 SYNOPSIS
 
 	#!/usr/bin/env perl
-	$|=1;
+	
 	use Data::Dumper;
 	use MooseX::ShortCut::BuildInstance qw( build_instance );
 	use Spreadsheet::XLSX::Reader::LibXML::Error;
 	use Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles;
+	use Spreadsheet::XLSX::Reader::LibXML::FmtDefault;
 
 	my $file_instance = build_instance(
-	    package      => 'StylesInstance',
-	    superclasses => ['Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles'],
-	    file         => 'styles.xml',
-	    error_inst   => Spreadsheet::XLSX::Reader::LibXML::Error->new,
-	    add_roles_in_sequence => [qw(
-	        Spreadsheet::XLSX::Reader::LibXML::FmtDefault
-	        Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings
-	    )],
-	);
+		  package      => 'StylesInstance',
+		  superclasses => ['Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles'],
+		  file         => '../../../../../test_files/xl/styles.xml',
+		  error_inst   => Spreadsheet::XLSX::Reader::LibXML::Error->new,
+		  format_inst  => Spreadsheet::XLSX::Reader::LibXML::FmtDefault->new(
+							epoch_year	=> 1904,
+							error_inst	=> Spreadsheet::XLSX::Reader::LibXML::Error->new,
+						),
+		);
 	print Dumper( $file_instance->get_format_position( 2 ) );
 
 	#######################################
 	# SYNOPSIS Screen Output
 	# 01: $VAR1 = {
-	# 02:    'applyNumberFormat' => '1',
-	# 03:    'fontId' => '0',
-	# 04:    'fonts'  => {
-	# 05:       'color' => {
-	# 06:          'theme' => '1'
-	# 07:       },
-	# 08:       'sz'     => '11',
-	# 09:       'name'   => 'Calibri',
-	# 10:       'scheme' => 'minor',
-	# 11:       'family' => '2'
-	# 12:    },
-	# 13:    'numFmtId' => '164',
-	# 14:    'fillId'   => '0',
-	# 15:    'xfId'     => '0',
-	# 16:    'borders' => {
-	# 17:       'left'     => 1,
-	# 18:       'right'    => 1,
-	# 19:       'top'      => 1,
-	# 20:       'diagonal' => 1,
-	# 21:       'bottom'   => 1
-	# 22:    },
-	# 23:    'borderId' => '0',
-	# 24:    'cellStyleXfs' => {
-	# 25:       'fillId'   => '0',
-	# 26:       'fontId'   => '0',
-	# 27:       'borderId' => '0',
-	# 28:       'numFmtId' => '0'
-	# 29:    },
-	# 30:    'fills' => {
-	# 31:       'patternFill' => {
-	# 32:          'patternType' => 'none'
-	# 33:       }
-	# 34:    },
-	# 35:    'numFmts' => bless( {
-	# 36:       'name' => 'Excel_date_164',
-	# 37:       'uniq' => 86,
-	# 38:       'coercion' => bless( { 
-                    ~ 180 lines hidden ~
-	# 219:      }, 'Type::Coercion' )
-	# 220:    }, 'Type::Tiny' )
-	# 221: };
+	# 02: 'cell_style' => {
+	# 03:     'builtinId' => '0',
+	# 04:     'xfId' => '0',
+	# 05:     'name' => 'Normal'
+	# 06: },
+	# 07: 'cell_font' => {
+	# 08:     'name' => 'Calibri',
+	# 09:     'family' => '2',
+	# 10:     'scheme' => 'minor',
+	# 11:     'sz' => '11',
+	# 12:     'color' => {
+	# 13:         'theme' => '1'
+	# 14:     }
+	# 15:  },
+	# 16: 'cell_fill' => {
+	# 17:     'patternFill' => {
+	# 18:         'patternType' => 'none'
+	# 19:      }
+	# 20: },
+	# 21: 'borderId' => 0,
+	# 22: 'cell_coercion' => bless( {
+	~~ Skipped 184 lines ~~
+	#206:                             'display_name' => 'Excel_date_164'
+	#207:                           }, 'Type::Tiny' ),
+	#208: 'numFmtId' => '164',
+	#209: 'applyNumberFormat' => '1',
+	#210: 'fillId' => 0,
+	#211: 'cell_border' => {
+	#212:     'top' => undef,
+	#213:     'bottom' => undef,
+	#214:     'right' => undef,
+	#215:     'diagonal' => {
+	#216:         'cellStyleXfs' => undef
+	#217:      },
+	#218:      'left' => undef
+	#219: },
+	#220: 'xfId' => 0,
+	#221: 'fontId' => 0
+	#222: };
 	#######################################
 
 =head1 DESCRIPTION
@@ -607,6 +606,12 @@ the function of each when replacing them.  If you want to use the roles as-is, o
 integrate them is with L<MooseX::ShortCut::BuildInstance>. The 'on-the-fly' roles also 
 add other methods (not documented here) to this class.  Look at the documentation for those 
 modules to see what else comes with them.
+
+=head2 Warnings
+
+This package received a substantial re-write with version v0.38.16.  Now this class will now 
+cache the styles values by default.  If this causes you heartache please L<contact me|/SUPPORT> 
+and I will try and mitigate the impact.  The goal was to measurably speed up the package.
 
 =head2 Method(s)
 
@@ -675,7 +680,7 @@ L<github Spreadsheet::XLSX::Reader::LibXML/issues
 
 =over
 
-B<2.> This was one of the first XMLReader parsers I wrote and the XML parsing is crufty (needs a scrub)
+B<1.> Extend the values saved here out to the sheet and cell level better.
 
 =back
 
@@ -710,12 +715,6 @@ L<Spreadsheet::XLSX::Reader::LibXML>
 =head1 SEE ALSO
 
 =over
-
-L<Spreadsheet::ParseExcel> - Excel 2003 and earlier
-
-L<Spreadsheet::XLSX> - 2007+
-
-L<Spreadsheet::ParseXLSX> - 2007+
 
 L<Log::Shiras|https://github.com/jandrew/Log-Shiras>
 

@@ -88,7 +88,7 @@ sub get_shared_string_position{
 			###LogSD	$phone->talk( level => 'debug', message => [
 			###LogSD		"Getting to the first cell" ] );
 			if( $self->advance_element_position( 'si' ) ){
-				$self->_i_am_here( 0 );
+				$self->i_am_here( 0 );
 			}else{
 				$self->set_error( "No sharedStrings elements available" );
 				$self->_set_unique_count( 0 );
@@ -164,7 +164,7 @@ sub get_shared_string_position{
 				$self->_set_last_position_ref( $return );
 			}
 		}
-		$self->_i_am_here( $self->where_am_i + 1 );
+		$self->i_am_here( $self->where_am_i + 1 );
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD		"The next position to collect is: " . $self->where_am_i ] );
 	}

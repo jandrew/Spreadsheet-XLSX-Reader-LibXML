@@ -416,7 +416,7 @@ sub worksheet{
 	$args{workbook_instance}	= $self;
 	$args{error_inst}			= $self->get_error_inst;
 	$args{package}				= $parser_type->{package};
-	###LogSD $args{log_space} = $self->get_log_space;# FUTURE COMMON DECISION
+	###LogSD $args{log_space} = $self->get_log_space;
 	###LogSD	$phone->talk( level => 'trace', message =>[
 	###LogSD		'Finalized build info:', %args, ] );
 	my	$worksheet = build_instance( %args );

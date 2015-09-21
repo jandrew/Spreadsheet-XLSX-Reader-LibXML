@@ -37,12 +37,6 @@ sub parse_element{
 	}else{
 		$self->_clear_max_level;
 	}
-	###LogSD	$phone->talk( level => 'debug', message =>[
-	###LogSD		"Start node name: $node_name",
-	###LogSD		"..of type: $node_type",
-	###LogSD		"..at libxml2 level: $node_depth",
-	###LogSD		(($self->_has_max_level) ? 
-	###LogSD			('..against max allowed level: ' . $self->_get_max_level) : ''),] );
 	
 	# Set the seed data
 	my	$base_depth	= $node_depth;
@@ -50,12 +44,21 @@ sub parse_element{
 	my	$has_value	= 0;
 	my	$time		= 'first';
 	
+	###LogSD	$phone->talk( level => 'debug', message =>[
+	###LogSD		"Start node name: $node_name",
+	###LogSD		"..of type: $node_type",
+	###LogSD		"..at libxml2 level: $node_depth",
+	###LogSD		"..from base depth: $base_depth",
+	###LogSD		"..for time: $time",
+	###LogSD		(($self->_has_max_level) ? 
+	###LogSD			('..with max allowed level: ' . $self->_get_max_level) : ''),] );
+	
 	my $sub_ref;
-	PARSETHELAYERS: while( (($node_depth > $base_depth) || ($time eq 'first')) ){
+	PARSETHELAYERS: while( ($time eq 'first') or ($node_depth > $base_depth) ){
 		$time = 'not_first';
 		
 		# Check for a rewind
-		###LogSD	$phone->talk( level => 'trace', message => [
+		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD		"Checking for rewind state with current node depth: $node_depth",
 		###LogSD		"..........................against last node depth: $last_level", ] );
 		if( $node_depth < $last_level ){
@@ -366,8 +369,8 @@ __END__
 
 =head1 NAME
 
-Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData - 
-XMLReader to turn xlsx XML to perl hashes
+Spreadsheet::XLSX::Reader::LibXML::XMLToPerlData - 
+Role to turn xlsx XML to perl hashes
 
 =head1 SYNOPSIS
 
@@ -376,16 +379,21 @@ XMLReader to turn xlsx XML to perl hashes
 	use	MooseX::ShortCut::BuildInstance qw( build_instance );
 	use	Spreadsheet::XLSX::Reader::LibXML::XMLReader;
 	use	Spreadsheet::XLSX::Reader::LibXML::Error;
-	use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData;
-	my  $test_file = 'xl/sharedStrings.xml';
-	my  $test_instance = build_instance(
+	use	Spreadsheet::XLSX::Reader::LibXML::XMLToPerlData;
+	my  $test_file = '../../../../test_files/xl/sharedStrings.xml';
+	my  $test_instance	=	build_instance(
 			package => 'TestIntance',
 			superclasses =>[ 'Spreadsheet::XLSX::Reader::LibXML::XMLReader', ],
-			add_roles_in_sequence =>[ 'Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData', ],
-			file	=> $test_file,
-			error_inst	=> Spreadsheet::XLSX::Reader::LibXML::Error->new,
+			add_roles_in_sequence =>[ 'Spreadsheet::XLSX::Reader::LibXML::XMLToPerlData', ],
+			file => $test_file,
+			error_inst => Spreadsheet::XLSX::Reader::LibXML::Error->new,
+			add_attributes =>{
+				empty_return_type =>{
+					reader => 'get_empty_return_type',
+				},
+			},
 		);
-	map{ $test_instance->next_element( 'si' ) }( 0..15 );# Go somewhere interesting
+	$test_instance->advance_element_position( 'si', 16 );# Go somewhere interesting
 	print Dumper( $test_instance->parse_element ) . "\n";
 
 	###############################################
@@ -431,7 +439,7 @@ XMLReader to turn xlsx XML to perl hashes
 	# 39:         };
 	###############################################
     
-=head1 DESCRIPTION
+=head1 DESCRIPTION  ############## Re-write XMLReader POD too!!!
 
 This documentation is written to explain ways to use this module when writing your own excel 
 parser.  To use the general package for excel parsing out of the box please review the 
@@ -445,30 +453,30 @@ reasonably translates to deep perl structures.  For this implementation node nam
 as hash keys unless there are multiple subnodes within a node that have the same name.  In this 
 case the subnode name is stripped and each node is added as a subref in an arrary ref.  The overall 
 arrayref is attached to the key list.  Attributes are also treated as hash keys at the same level 
-as the sub nodes.  Text nodes (or raw text between tags) is treated as having the key 'raw_text'.
+as the sub nodes.  Text nodes (or raw text between base tags) is treated as having the key 'raw_text'.
 
-This reader assumes that it is a role added to a class built on 
+This reader assumes that it is a role that can be added to a class built on 
 L<Spreadsheet::XLSX::Reader::LibXML::XMLReader> it expects to get the methods provided by that type 
-of file reader to use to traverse the node.  As a consequence it doesn't accept an xml object since 
-it expects the overall file to be read serially.
+of xml reader for traversing and reading the file.  As a consequence it doesn't accept an xml object 
+or file since it expects to access the method below.
 
 =head2 Required Methods
 
-L<node_name|Spreadsheet::XLSX::Reader::LibXML::XMLReader/node_name>
+Follow the links to see details of the current implementation.
 
-L<move_to_first_att|Spreadsheet::XLSX::Reader::LibXML::XMLReader/move_to_first_att>
+=over
+	
+L<get_empty_return_type|Spreadsheet::XLSX::Reader::LibXML::XMLReader/get_empty_return_type>
 
-L<move_to_next_att|Spreadsheet::XLSX::Reader::LibXML::XMLReader/move_next_att>
+L<get_text_node|Spreadsheet::XLSX::Reader::LibXML::XMLReader/get_text_node>
 
-L<node_depth|Spreadsheet::XLSX::Reader::LibXML::XMLReader/node_depth>
+L<get_attribute_hash_ref|Spreadsheet::XLSX::Reader::LibXML::XMLReader/get_attribute_hash_ref>
 
-L<node_value|Spreadsheet::XLSX::Reader::LibXML::XMLReader/node_value>
+L<advance_element_position|Spreadsheet::XLSX::Reader::LibXML::XMLReader/advance_element_position>
 
-L<node_type|Spreadsheet::XLSX::Reader::LibXML::XMLReader/node_type>
+L<location_status|Spreadsheet::XLSX::Reader::LibXML::XMLReader/location_status>
 
-L<has_value|Spreadsheet::XLSX::Reader::LibXML::XMLReader/has_value>
-
-L<start_reading|Spreadsheet::XLSX::Reader::LibXML::XMLReader/start_reading>
+=back
 
 =head2 Methods
 
@@ -481,13 +489,13 @@ These are the methods provided by this module.
 B<Definition:> This returns a deep perl data structure that represents the full xml 
 down as many levels as indicated by $level (positive is deeper) or  to the bottom for 
 no passed value.  When this method is done the xml reader will be left at the begining 
-of the next level or up xml node.
+of the next xml node after the ending flag for the requested node.
 
 B<Accepts:> $level ( a positive integer )
 
 B<Returns:> ($success, $data_ref ) This method returns a list with the first element 
 being success or failure and the second element being the data ref corresponding to the 
-xml being parsed by L<Spreadsheet::XLSX::Reader::LibXML::XMLReader>.
+xml being parsed.
 
 =back 
 

@@ -53,7 +53,7 @@ has row_last_value_column =>(
 		reader	=> 'get_last_value_column',
 	);
 
-has row_formats =>(# Add to the cell values?
+has row_formats =>(
 		isa		=> HashRef,
 		traits	=> ['Hash'],
 		writer	=> 'set_row_formts',
@@ -177,13 +177,359 @@ __END__
 
 Spreadsheet::XLSX::Reader::LibXML::Row - XLSX Row data class
 
-=head1 SYNOPSIS
-
-This is really an internal class that is not intended to be used in a stand-alone fashion;
-    
 =head1 DESCRIPTION
 
-Documentation not written yet!
+This documentation is written to explain ways to use this module when writing your own excel 
+parser.  To use the general package for excel parsing out of the box please review the 
+documentation for L<Workbooks|Spreadsheet::XLSX::Reader::LibXML>,
+L<Worksheets|Spreadsheet::XLSX::Reader::LibXML::Worksheet>, and 
+L<Cells|Spreadsheet::XLSX::Reader::LibXML::Cell>
+
+This module provides the basic storage and manipulation of row data (for worksheet files).  
+It does not provide the final view of a given cell.  The final view of the cell is collated 
+with the role (Interface) L<Spreadsheet::XLSX::Reader::LibXML::Worksheet>.
+
+I<All positions (row and column places and integers) at this level are stored and returned in count 
+from one mode!>
+
+Modification of this module probably means a rework of the Worksheet level module 
+L<Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow>.  Review the attributes 
+L<Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow/_old_row_inst> and 
+L<Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow/_new_row_inst> for more 
+details.
+
+=head2 Attributes
+
+Data passed to new when creating an instance.  For access to the values in these 
+attributes see the listed 'attribute methods'. For general information on attributes see 
+L<Moose::Manual::Attributes>.  For ways to manage the instance when opened see the 
+L<Public Methods|/Public Methods>.
+	
+=head3 row_number
+
+=over
+
+B<Definition:> Stores the row number of the row data in count from 1
+
+B<Default:> none
+
+B<Range:> positive integers > 0
+
+B<attribute methods> Methods provided to adjust this attribute
+		
+=over
+
+B<get_row_number>
+
+=over
+
+B<Definition:> return the attribute value
+
+=back
+
+=back
+
+=back
+
+=head3 row_span
+
+=over
+
+B<Definition:> Stores an array ref of two integers representing the start and end columns in count from 1
+
+B<Default:> none
+
+B<Range:> [ 2 positive integers > 0 ]
+
+B<attribute methods> Methods provided to adjust this attribute
+		
+=over
+
+B<set_row_span>
+
+=over
+
+B<Definition:> sets the attribute
+
+=back
+
+B<has_row_span>
+
+=over
+
+B<Definition:> predicate for the attribute
+
+=back
+
+=back
+
+L<trait|Moose::Manual::Delegation/NATIVE DELEGATION> ['Array']
+
+B<delegated methods> - (L<curried|Moose::Manual::Delegation/CURRYING>)
+
+=over
+
+B<get_row_start> => [ 'get' => 0 ], # Get the first position
+
+B<get_row_end> => [ 'get' => 1 ], # Get the second position
+
+=back
+
+=back
+	
+=head3 row_last_value_column
+
+=over
+
+B<Definition:> Stores the column with a value in it in count from 1
+
+B<Default:> none
+
+B<Range:> positive integers > 0
+
+B<attribute methods> Methods provided to adjust this attribute
+		
+=over
+
+B<get_last_value_column>
+
+=over
+
+B<Definition:> return the attribute value
+
+=back
+
+=back
+
+=back
+
+=head3 row_formats
+
+=over
+
+B<Definition:> this is an open ended hashref with format values stored for the row
+
+B<Default:> none
+
+B<Range:> a hash ref
+
+B<attribute methods> Methods provided to adjust this attribute
+		
+=over
+
+B<set_row_formats>
+
+=over
+
+B<Definition:> sets the attribute
+
+=back
+
+=back
+
+L<trait|Moose::Manual::Delegation/NATIVE DELEGATION> ['Hash']
+
+B<delegated methods>
+
+=over
+
+B<get_row_format> => 'get'
+
+=back
+
+=back
+
+=head3 row_value_cells
+
+=over
+
+B<Definition:> Stores an array ref of information about cells with values 
+for that row (in order).  The purpose of only storing the values is to allow 
+for 'next_value' calls.  The actual position of the cell column is stored in 
+the cell hash and the attribute L<column_to_cell_translations|/column_to_cell_translations>.
+
+B<Default:> an ArrayRef[HashRef] with at least one column HashRef set
+
+B<Range:> ArrayRef[HashRef]
+
+B<attribute methods> Methods provided to adjust this attribute
+		
+=over
+
+B<get_row_value_cells>
+
+=over
+
+B<Definition:> gets the stored attribute value
+
+=back
+
+=back
+
+L<trait|Moose::Manual::Delegation/NATIVE DELEGATION> ['Array']
+
+B<delegated methods>
+
+=over
+
+B<get_cell_position> => 'get'
+
+B<total_cell_positions> => 'count'
+
+=back
+
+=back
+
+=head3 column_to_cell_translations
+
+=over
+
+B<Definition:> only cells with values are stored but you may want to 
+know if a cell has a value based on a column number or you may want to 
+know where the contents of a cell containing values are base on a column 
+number.  This attribute stores that lookup table.
+
+B<Default:> an ArrayRef with at least one column position set
+
+B<Range:> ArrayRef
+
+L<trait|Moose::Manual::Delegation/NATIVE DELEGATION> ['Array']
+
+B<delegated methods>
+
+=over
+
+B<get_position_for_column> => 'get'
+
+=back
+
+=back
+
+=head2 Methods
+
+These are the methods provided by this class for use within the package but are not intended 
+to be used by the end user.  Other private methods not listed here are used in the module but 
+not used by the package.  If the private method is listed here then replacement of this module 
+either requires replacing them or rewriting all the associated connecting roles and classes.  
+B<All methods here are assumed to be in count from 1 mode to since the role instances are meant 
+to be managed in the background for the worksheet.>
+
+=head3 get_the_column( $column )
+
+=over
+
+B<Definition:> This returns the value stored at the desired column position.  It also stores 
+this position as the last column retrieved for any 'next_*' calls
+
+B<Accepts:> $column (integer)
+
+B<Returns:> a hashref of cell values at that column, undef for no values, or 'EOR' for positions 
+past the end of the row.
+
+=back
+
+=head3 get_the_next_value_position
+
+=over
+
+B<Definition:> This returns the next set of cell values or 'EOR' for positions 
+past the end of the row.  When a set of cell values is returned (not EOR) the new 'last' 
+position is recorded.
+
+B<Accepts:> nothing
+
+B<Returns:> a hashref of key value pairs or 'EOR'
+
+=back
+
+=head3 get_row_all
+
+=over
+
+B<Definition:> This is a way to get an array of hashrefs that are positioned correctly B<in count 
+from zero> locations for the row data.  Just value cells can be returned with 
+L<get_row_value_cells|/get_row_value_cells>.  For cells with no value between the value cells undef 
+is stored.  For cells past the last value even if they fall inside the row span no positions are 
+created.
+
+B<Accepts:> nothing
+
+B<Returns:> an arrayref of hashrefs
+
+=back
+
+=head1 SUPPORT
+
+=over
+
+L<github Spreadsheet::XLSX::Reader::LibXML/issues
+|https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML/issues>
+
+=back
+
+=head1 TODO
+
+=over
+
+B<1.> Nothing L<yet|/SUPPORT>
+
+=back
+
+=head1 AUTHOR
+
+=over
+
+=item Jed Lund
+
+=item jandrew@cpan.org
+
+=back
+
+=head1 COPYRIGHT
+
+This program is free software; you can redistribute
+it and/or modify it under the same terms as Perl itself.
+
+The full text of the license can be found in the
+LICENSE file included with this module.
+
+This software is copyrighted (c) 2014, 2015 by Jed Lund
+
+=head1 DEPENDENCIES
+
+=over
+
+L<version>
+
+L<perl 5.010|perl/5.10.0>
+
+L<Moose>
+
+L<MooseX::StrictConstructor>
+
+L<MooseX::HasDefaults::RO>
+
+L<Clone> - clone
+
+L<Carp> - confess
+
+L<Type::Tiny> - 1.000
+
+=back
+
+=head1 SEE ALSO
+
+=over
+
+L<Log::Shiras|https://github.com/jandrew/Log-Shiras>
+
+=over
+
+All lines in this package that use Log::Shiras are commented out
+
+=back
+
+=back
 
 =cut
 

@@ -18,8 +18,6 @@ build_requires:
   MooseX::ShortCut::BuildInstance: '1.032'
   MooseX::StrictConstructor: '0'
   Spreadsheet::ParseExcel: '0'
-  Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet: '0'
-  Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData: '0'
   Test::Moose: '0'
   Test::Most: '0'
   Test::TypeTiny: '0'

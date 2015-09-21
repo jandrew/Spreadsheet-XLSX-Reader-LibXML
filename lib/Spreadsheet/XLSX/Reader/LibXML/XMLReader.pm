@@ -65,6 +65,14 @@ has	xml_header =>(
 		writer		=> '_set_xml_header',
 	);
 
+has position_index =>(
+		isa			=> Int,
+		reader		=> 'where_am_i',
+		writer		=> 'i_am_here',
+		clearer		=> 'clear_location',
+		predicate	=> 'has_position',
+	);
+
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
 
 
@@ -77,7 +85,7 @@ sub start_the_file_over{
 		#~ $self->_go_to_the_end;
 		$self->_close_the_sheet;
 		#~ $self->_clear_xml_parser;
-		$self->_clear_location;
+		$self->clear_location;
 		my $fh = $self->get_file;
 		$fh->seek( 0, 0 );
 		$self->_set_xml_parser( XML::LibXML::Reader->new( IO => $fh ) );
@@ -96,8 +104,8 @@ sub get_text_node{
 	###LogSD			"getting the text value of the node", ] );
 	
 	# Check for a text node type (and return immediatly if so)
-	if( $self->has_value ){
-		my $node_text = $self->node_value;
+	if( $self->_has_value ){
+		my $node_text = $self->_node_value;
 		###LogSD	$phone->talk( level => 'debug', message =>[
 		###LogSD		"This is a text node - returning value: $node_text",] );
 		return ( 1, $node_text, );
@@ -114,12 +122,12 @@ sub get_attribute_hash_ref{
 	###LogSD			"Extract all attributes as a hash ref", ] );
 	
 	my $attribute_ref = {};
-	my $result = $self->move_to_first_att;
+	my $result = $self->_move_to_first_att;
 	###LogSD	$phone->talk( level => 'trace', message =>[
 	###LogSD		"Result of the first attribute move: $result",] );
 	ATTRIBUTELIST: while( $result > 0 ){
-		my $att_name = $self->node_name;
-		my $att_value = $self->node_value;
+		my $att_name = $self->_node_name;
+		my $att_value = $self->_node_value;
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD		"Reading attribute: $att_name", "..and value: $att_value" ] );
 		if( $att_name eq 'val' ){
@@ -130,7 +138,7 @@ sub get_attribute_hash_ref{
 		}else{
 			$attribute_ref->{$att_name} = "$att_value";
 		}
-		$result = $self->move_to_next_att;
+		$result = $self->_move_to_next_att;
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD		"Result of the move: $result", ] );
 	}
@@ -199,7 +207,7 @@ sub location_status{
 	###LogSD			$self->get_all_space . '::XMLReader::location_status', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			"Getting the status for the current position", ] );
-	my ( $node_depth, $node_name, $node_type ) = ( $self->node_depth, $self->node_name, $self->node_type );
+	my ( $node_depth, $node_name, $node_type ) = ( $self->_node_depth, $self->_node_name, $self->_node_type );
 	$node_name	= 
 		( $node_type == 0 ) ? 'EOF' :
 		( $node_name eq '#text') ? 'raw_text' :
@@ -222,32 +230,23 @@ has _xml_reader =>(
 	clearer		=> '_clear_xml_parser',
 	handles	=>{
 		copy_current_node	=> 'copyCurrentNode',
-		#~ byte_consumed		=> 'byteConsumed',
-		_read_next_node		=> 'read',
-		_next_element		=> 'nextElement',
-		node_type			=> 'nodeType',
-		node_name			=> 'name',
-		node_value			=> 'value',
-		has_value			=> 'hasValue',
-		node_depth			=> 'depth',
-		move_to_first_att	=> 'moveToFirstAttribute',
-		move_to_next_att	=> 'moveToNextAttribute',
+		_close_the_sheet	=> 'close',
+		_node_depth			=> 'depth',
+		_node_type			=> 'nodeType',
+		_node_name			=> 'name',
 		_encoding			=> 'encoding',
 		_version			=> 'xmlVersion',
-		_go_to_the_end		=> 'finish',
-		_close_the_sheet	=> 'close',
+		_next_element		=> 'nextElement',
+		_node_value			=> 'value',
+		_has_value			=> 'hasValue',
+		_move_to_first_att	=> 'moveToFirstAttribute',
+		_move_to_next_att	=> 'moveToNextAttribute',
+		_read_next_node		=> 'read',
+		#~ _go_to_the_end		=> 'finish',
 		#~ get_node_all		=> 'readOuterXml',
 	},
 	trigger => \&_reader_init,
 );
-
-has _position_index =>(
-		isa			=> Int,
-		reader		=> 'where_am_i',
-		writer		=> '_i_am_here',
-		clearer		=> '_clear_location',
-		predicate	=> 'has_position',
-	);
 
 has _read_unique_bits =>(
 		isa		=> Bool,
@@ -265,7 +264,7 @@ sub _next_node{
 	###LogSD			$self->get_all_space . '::XMLReader::_next_node', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			"Reading the next node in the xml document", ] );
-	my $result = eval{ $self->_read_next_node } ? 1 : 0 ;
+	my $result = eval{ $self->_read_next_node } ? 1 : 0 ;# Handle unclosed xml tags without dying
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		"Result of the read: $result", ] );
 	my ( $node_depth, $node_name, $node_type ) = $self->location_status;
@@ -304,13 +303,13 @@ sub _reader_init{
 		$self->_next_node;
 		if( $self->_version ){
 			$self->_set_xml_version( $self->_version );
-			$xml_string .= $self->version . '"';
+			$xml_string .= $self->_version . '"';
 		}else{
 			confess "Could not find the version of this xml document!";
 		}
 		if( $self->_encoding ){
 			$self->_set_xml_encoding( $self->_encoding );
-			$xml_string = ' encoding="' . $self->encoding . '"'
+			$xml_string = ' encoding="' . $self->_encoding . '"'
 		}else{
 			$self->_clear_xml_encoding;
 		}
@@ -393,20 +392,9 @@ L<Worksheets|Spreadsheet::XLSX::Reader::LibXML::Worksheet>, and
 L<Cells|Spreadsheet::XLSX::Reader::LibXML::Cell>
 
 This module provides a generic way to open an xml file or xml file handle and then extract 
-information using the L<XML::LibXML::Reader> parser.  The class does this by using 
-L<delegation|Moose::Manual::Delegation> from the ~::Reader module to import useful functions 
-to this module.  Aside from the delegation piece this module provides four other useful 
-elements.  First, the module has an attribute to load the file or file handle and uses coercion 
-to turn a file into a file handle from the L<Types
-|Spreadsheet::XLSX::Reader::LibXML::Types/IOFileType> library.  Second, the module has an 
-attribute to store an L<error handler|Spreadsheet::XLSX::Reader::LibXML::Error>.  Third, 
-the module provides a L<rewind|/start_the_file_over> function since that is not available in  
-the L<XML::LibXML::Reader> parser. Finally, this module has a hook for classes that extend 
-this functionality during the initial build.  The initialization of the file will also attempt 
-to call '_load_unique_bits'.  It will only call that method once on initialization.
-
-Further use of the module or specialization of the reader can be done by L<extending|/SYNOPSIS> 
-the class.
+information using the L<XML::LibXML::Reader> parser.  The additional methods and attributes 
+are intended to provide some coalated parsing commands that are specifically useful in turning 
+xml to perl data structures.
 
 =head2 Attributes
 
@@ -414,7 +402,7 @@ Data passed to new when creating an instance.  For modification of these attribu
 listed 'attribute methods'. For general information on attributes see 
 L<Moose::Manual::Attributes>.  For ways to manage the instance when opened see the 
 L<Methods|/Methods>.
-
+	
 =head3 file
 
 =over
@@ -426,7 +414,7 @@ B<Default:> no default - this must be provided to read a file
 
 B<Required:> yes
 
-B<Range:> any unencrypted xml file name and path or file handle
+B<Range:> any unencrypted xml file name and path or IO::File file handle
 
 B<attribute methods> Methods provided to adjust this attribute
 		
@@ -468,6 +456,20 @@ B<Definition:> this clears (and unlocks) the file handle
 
 =back
 
+L<Delegated Methods>
+
+=over
+
+B<close>
+
+=over
+
+closes the file handle
+
+=back
+
+=back
+
 =back
 
 =head3 error_inst
@@ -483,7 +485,31 @@ B<Required:> yes
 
 B<Range:> any object instance that can provide the required delegated methods.
 
-B<delegated methods> Methods provided delegated by the attribute
+B<attribute methods> Methods provided to adjust this attribute
+
+=over
+
+B<_clear_error_inst>
+
+=over
+
+clear the attribute value
+
+=back
+
+=back
+
+B<_get_error_inst>
+
+=over
+
+get the attribute value
+
+=back
+
+=back
+
+B<Delegated Methods (required)> Methods delegated to this module by the attribute
 		
 =over
 
@@ -491,7 +517,7 @@ B<error>
 
 =over
 
-B<Definition:> returns the stored error string
+B<Definition:> returns the currently stored error string
 
 =back
 
@@ -530,9 +556,213 @@ B<Definition:> Returns the current state of the state value from 'set_warnings'
 
 =back
 
+=head3 xml_version
+
+=over
+
+B<Definition:> This stores the xml version stored in the xml header.  It is read 
+when the file handle is first set in this sheet.
+
+B<Default:> no default - this is auto read from the header
+
+B<Required:> no
+
+B<Range:> xml versions
+
+B<attribute methods> Methods provided to adjust this attribute
+
+=over
+
+B<_clear_xml_version>
+
+=over
+
+clear the attribute value
+
 =back
 
-=head2 Class Methods
+=back
+
+B<_set_xml_version>
+
+=over
+
+set the attribute value
+
+=back
+
+=back
+
+=head3 xml_encoding
+
+=over
+
+B<Definition:> This stores the data encoding of the xml file from the xml header.  
+It is read when the file handle is first set in this sheet.
+
+B<Default:> no default - this is auto read from the header
+
+B<Required:> no
+
+B<Range:> valid xml file encoding
+
+B<attribute methods> Methods provided to adjust this attribute
+
+=over
+
+B<encoding>
+
+=over
+
+get the attribute value
+
+=back
+
+=back
+
+=over
+
+B<has_encoding>
+
+=over
+
+predicate for the attribute value
+
+=back
+
+=back
+
+=over
+
+B<_clear_xml_encoding>
+
+=over
+
+clear the attribute value
+
+=back
+
+=back
+
+B<_set_xml_encoding>
+
+=over
+
+set the attribute value
+
+=back
+
+=back
+
+=head3 xml_header
+
+=over
+
+B<Definition:> This stores the xml header from the xml file.  It is read when 
+the file handle is first set in this sheet.
+
+B<Default:> no default - this is auto read from the header
+
+B<Required:> no
+
+B<Range:> valid xml file header
+
+B<attribute methods> Methods provided to adjust this attribute
+
+=over
+
+B<get_header>
+
+=over
+
+get the attribute value
+
+=back
+
+=back
+
+=over
+
+B<_set_xml_header>
+
+=over
+
+set the attribute value
+
+=back
+
+=back
+
+=back
+
+=head3 position_index
+
+=over
+
+B<Definition:> This attribute is available to facilitate other consuming roles and 
+classes.  Of the attribute methods only the 'clear_location' method is used in this 
+class during the 'start_the_file_over' method.  It can be used for tracking same level 
+positions with the same node name.
+
+B<Default:> no default - this is mostly managed by the child class or add on role
+
+B<Required:> no
+
+B<Range:> Integer
+
+B<attribute methods> Methods provided to adjust this attribute
+
+=over
+
+B<where_am_i>
+
+=over
+
+get the attribute value
+
+=back
+
+=back
+
+=over
+
+B<i_am_here>
+
+=over
+
+set the attribute value
+
+=back
+
+=back
+
+=over
+
+B<clear_location>
+
+=over
+
+clear the attribute value
+
+=back
+
+=back
+
+=over
+
+B<has_position>
+
+=over
+
+set the attribute value
+
+=back
+
+=back
+
+=back
+
+=head2 Methods
 
 These are the methods provided by this class.  They most likely should be agumented 
 with file specific methods when extending this module.
@@ -550,6 +780,61 @@ B<Returns:> nothing
 
 =back
 
+=head3 get_text_node
+
+=over
+
+B<Definition:> This will collect the text node at the current node position.  It will return 
+two items ( $success_or_failure, $text_node_value )
+
+B<Accepts:> nothing
+
+B<Returns:> ( $success_or_failure(1|undef), ($text_node_value|undef) )
+
+=back
+
+=head3 get_attribute_hash_ref
+
+=over
+
+B<Definition:> Some nodes have attribute settings.  This method returns a hashref with any 
+attribute settings attached as key => value pairs or an empty hash for no attributes
+
+B<Accepts:> nothing
+
+B<Returns:> { attribute_1 => attribute_1_value ... etc. }
+
+=back
+
+=head3 advance_element_position( [$node_name], [$number_of_times_to_index] )
+
+=over
+
+B<Definition:> This method will attempt to advance to $node_name (optional) or the next node 
+if no $node_name is passed.  If there is an expectation of multiple nodes of the same name at 
+the same level you can also pass $number_of_times_to_index (optional).  This will move through 
+the xml file at the $node_name level the number of times indicated starting with wherever the 
+xml file is already located.  Meaning $number_of_times_to_index is a relative index not an 
+absolute index.
+
+B<Accepts:> nothing
+
+B<Returns:> success or failure for the method call
+
+=back
+
+=head3 location_status
+
+=over
+
+B<Definition:> This method gives three usefull location values with one call
+
+B<Accepts:> nothing
+
+B<Returns:> ( $node_depth (from the top of the file), $node_name, $node_type (xml numerical value for type) );
+
+=back
+
 =head2 Delegated Methods
 
 These are the methods delegated to this class from L<XML::LibXML::Reader>.  For more 
@@ -557,51 +842,13 @@ general parsing of subsections of the xml file also see L<Spreadsheet::XLSX::Rea
 
 =head3 copy_current_node
 
+=over
+
 B<Delegated from:> L<XML::LibXML::Reader/copyCurrentNode (deep)>
 
-=head3 byte_consumed
+Returns an XML::LibXML::Node object
 
-B<Delegated from:> L<XML::LibXML::Reader/byteConsumed ()>
-
-=head3 start_reading
-
-B<Delegated from:> L<XML::LibXML::Reader/read ()>
-
-=head3 _next_element
-
-B<Delegated from:> L<XML::LibXML::Reader/nextElement>
-
-=head3 node_type
-
-B<Delegated from:> L<XML::LibXML::Reader/nodeType>
-
-=head3 node_name
-
-B<Delegated from:> L<XML::LibXML::Reader/name>
-
-=head3 node_value
-
-B<Delegated from:> L<XML::LibXML::Reader/value>
-
-=head3 has_value
-
-B<Delegated from:> L<XML::LibXML::Reader/hasValue>
-
-=head3 node_depth
-
-B<Delegated from:> L<XML::LibXML::Reader/depth>
-
-=head3 move_to_first_att
-
-B<Delegated from:> L<XML::LibXML::Reader/moveToFirstAttribute>
-
-=head3 move_to_next_att
-
-B<Delegated from:> L<XML::LibXML::Reader/moveToNextAttribute>
-
-=head3 encoding
-
-B<Delegated from:> L<XML::LibXML::Reader/encoding ()>
+=back
 
 =head1 SUPPORT
 

@@ -154,7 +154,7 @@ is			$cell->value, $answer_ref->[$x]->[1],
 										#~ "Try to return the chartsheet: Chart1";
 #~ like		$parser->error, $answer_ref->[$x],
 										#~ "..and check for the correct error: " . $answer_ref->[$x++];
-#~ explain 								"...Test Done";
+explain 								"...Test Done";
 done_testing();
 
 ###LogSD	package Print::Log;
