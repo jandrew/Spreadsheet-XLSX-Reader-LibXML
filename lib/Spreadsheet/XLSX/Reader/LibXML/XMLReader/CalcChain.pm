@@ -1,16 +1,16 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::CalcChain;
-use version; our $VERSION = qv('v0.38.14');
+use version; our $VERSION = qv('v0.38.16');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::XMLReader::CalcChain-$VERSION";
 
 use 5.010;
 use Moose;
 use MooseX::StrictConstructor;
 use MooseX::HasDefaults::RO;
+use Types::Standard qw( Enum	Bool ArrayRef );
 use lib	'../../../../../../lib',;
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
 extends	'Spreadsheet::XLSX::Reader::LibXML::XMLReader';
-with	'Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData';
 
 #########1 Dispatch Tables    3#########4#########5#########6#########7#########8#########9
 
@@ -18,67 +18,88 @@ with	'Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData';
 
 #########1 Public Attributes  3#########4#########5#########6#########7#########8#########9
 
-
+has empty_return_type =>(
+		isa		=> Enum[qw( empty_string undef_string )],
+		reader	=> 'get_empty_return_type',
+		writer	=> 'set_empty_return_type',
+	);
+with	'Spreadsheet::XLSX::Reader::LibXML::XMLToPerlData';
 
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
 
 sub get_calc_chain_position{
 	my( $self, $position ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD					$self->get_log_space .  '::get_calc_chain_position', );
+	###LogSD			$self->get_all_space . '::get_calc_chain_position', );
 	if( !defined $position ){
 		$self->set_error( "Requested calc chain position required - none passed" );
 		return undef;
 	}
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		"Getting the calcChain position: $position" ] );
+	my $result = $self->_get_cc_position( $position );
 	
-	# Initiate the read or reset the file if needed
-	if( $self->has_position and $self->where_am_i > $position ){
-		$self->start_the_file_over;
-		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"Finished resetting the file" ] );
-	}
-	if( !$self->has_position ){
-		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"Pulling the first cell" ] );
-		my $found_it = $self->next_element( 'c' );
-		if( $found_it < 1 ){
-			$self->set_error( "No strings stored in the sharedStrings file" );
-			return undef;
-		}
-		$self->_i_am_here( 0 );
-	}
-	
-	while( $self->where_am_i < $position ){
-		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"Pulling the next cell: " . ($self->where_am_i + 1) ] );
-		my $result = $self->next_element( 'c' );
-		if( !$result ){
-			$self->_clear_location;
-			$self->start_the_file_over;
-			return undef;
-		}
-		$self->_i_am_here( $self->where_am_i + 1 );
-	}
-	
-	my $calc_chain_node = $self->parse_element;
-	$self->_i_am_here( $self->where_am_i + 1 );
-	###LogSD	$phone->talk( level => 'trace', message => [
-	###LogSD		"Returning shared strings node:",
-	###LogSD		(($calc_chain_node) ? $calc_chain_node : '') ] );
-	return $calc_chain_node;
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		"Returning the calcChain result: " . ($result//'') ] );
+	return $result;
 }
 
-
-
 #########1 Private Attributes 3#########4#########5#########6#########7#########8#########9
-
-
+	
+has _calc_chain_positions =>(
+		isa		=> ArrayRef,
+		traits	=> ['Array'],
+		default	=> sub{ [] },
+		handles	=>{
+			_get_cc_position => 'get',
+			_set_cc_position => 'set',
+		},
+		reader => '_get_all_cache',
+		writer => '_set_all_cache',
+	);
+	
+###LogSD	has '+class_space' =>( default => 'CalcChain' );
 
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
 
+###LogSD	sub BUILD {
+###LogSD	    my $self = shift;
+###LogSD			$self->set_class_space( 'CalcChain' );
+###LogSD	}
 
+sub _load_unique_bits{
+	my( $self, ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::_load_unique_bits', );
+	###LogSD		$phone->talk( level => 'debug', message => [
+	###LogSD			"Setting the sharedStrings unique bits" ] );
+	$self->start_the_file_over;
+	my ( $node_depth, $node_name, $node_type ) = $self->location_status;
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		"Currently at libxml2 level: $node_depth",
+	###LogSD		"Current node name: $node_name",
+	###LogSD		"..for type: $node_type", ] );
+	my	$result = 1;
+	if( $node_name eq 'calcChain' ){
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"already at the calcChain node" ] );
+	}else{
+		$result = $self->advance_element_position( 'calcChain' );
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"attempt to get to the sst element result: $result" ] );
+	}
+	if( $result ){
+		my $calcChain_ref = $self->parse_element;
+		###LogSD	$phone->talk( level => 'trace', message => [
+		###LogSD		"Perl CalcChain is:", $calcChain_ref ] );
+			
+		$self->_set_all_cache( $calcChain_ref->{list} );
+		return undef;
+	}else{
+		$self->set_error( "No 'calcChain' element found - can't parse this as a calc chain file" );
+		return undef;
+	}
+}
 
 #########1 Phinish            3#########4#########5#########6#########7#########8#########9
 

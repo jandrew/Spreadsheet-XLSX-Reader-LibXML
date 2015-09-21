@@ -40,5 +40,16 @@ if ( !defined $workbook ) {
 }
 
 $worksheet = $workbook->worksheet( 'Blad1' );
-$cell = $worksheet->get_cell( 0, 02 );
+$cell = $worksheet->get_cell( 0, 2 );
 print "Cell type: " . $cell->type . "\n";
+print "Cell value: " . $cell->value . "\n";
+
+$workbook = $parser->parse('attr.xls');
+
+if ( !defined $workbook ) {
+	die $parser->error(), ".\n";
+}
+
+$worksheet = $workbook->worksheet( 'Format' );
+$cell = $worksheet->get_cell( 7, 0 );
+print "Cell value: " . $cell->value . "\n";

@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::Types;
-use version; our $VERSION = qv('v0.38.14');
+use version; our $VERSION = qv('v0.38.16');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::Types-$VERSION";
 		
 use strict;
@@ -48,7 +48,7 @@ declare XMLFile,
 
 declare XLSXFile,
 	as Str,
-	where{ $_ =~ /\.xlsx$/i and -r $_ },
+	where{ $_ =~ /\.xls(x|m)$/i and -r $_ },
 	message{
 		my $test = $_;
 		my $return =
@@ -56,7 +56,7 @@ declare XLSXFile,
 				"Empty filename" :
 			( ref $test ) ?
 				"'" . $test . "' is not a string value" :
-			( $test !~ /\.xlsx$/i ) ?
+			( $test !~ /\.xls(x|m)$/i ) ?
 				"The string -$test- does not have an xlsx file extension" :
 			( -r $test) ?
 				"Could not find / read the file: $test" :
@@ -314,7 +314,7 @@ none
 =head2 XLSXFile
 
 This type checks that the value is a readable file (full path - no file find magic 
-used)  with an \.xlsx extention
+used)  with an \.xlsx or \.xlsm extention
 
 =head3 coercions
 

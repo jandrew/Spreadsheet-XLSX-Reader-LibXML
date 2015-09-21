@@ -55,7 +55,7 @@ use	lib
 ###LogSD	use Log::Shiras::UnhideDebug;
 use	Spreadsheet::XLSX::Reader::LibXML::Error;
 #~ use	Spreadsheet::XLSX::Reader::LibXML::XMLReader;
-use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet;
+use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow;
 use	Spreadsheet::XLSX::Reader::LibXML::FmtDefault;
 use	DateTimeX::Format::Excel;
 use	DateTime::Format::Flexible;
@@ -154,13 +154,22 @@ lives_ok{
 									error_inst => $error_instance,
 									format_instance => $format_instance,
 								);
-			$test_instance	= Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet->new(
-				file				=> $test_file,
-				error_inst			=> $error_instance,
+			$test_instance	=	build_instance(
+									package				=> 'WorksheetInterfaceTest',
+									superclasses 		=>[ 'Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow' ],
+									roles 				=>[ 'Spreadsheet::XLSX::Reader::LibXML::Worksheet' ],
+									file				=> $test_file,
+									error_inst			=> $error_instance,
+									workbook_instance	=> $workbook_instance,
+			###LogSD				log_space			=> 'Test',
+								);
+			#~ $test_instance	= Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow->new(
+				#~ file				=> $test_file,
+				#~ error_inst			=> $error_instance,
 				sheet_name			=> 'Sheet3',
-				workbook_instance	=> $workbook_instance,
-			###LogSD	log_space	=> 'Test',
-			);
+				#~ workbook_instance	=> $workbook_instance,
+			#~ ###LogSD	log_space	=> 'Test',
+			#~ );
 			###LogSD	$phone->talk( level => 'info', message =>[ "Loaded test instance" ] );
 }										"Prep a new Worksheet instance";
 ###LogSD		$phone->talk( level => 'debug', message => [ "Max row is:" . $test_instance->max_row ] );
@@ -174,7 +183,7 @@ lives_ok{
 			###LogSD	log_space	=> 'Test',
 			);
 			###LogSD	$phone->talk( level => 'info', message =>[ "Loaded test instance" ] );
-}										"Prep a second Worksheet instance";
+}										"Prep a workbook instance";
 ###LogSD		$operator->add_name_space_bounds( {
 #~ ###LogSD			Test =>{
 #~ ###LogSD				Worksheet =>{

@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings;
-use version; our $VERSION = qv('v0.38.14');
+use version; our $VERSION = qv('v0.38.16');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings-$VERSION";
 
 use 5.010;
@@ -7,14 +7,13 @@ use Moose;
 use MooseX::StrictConstructor;
 use MooseX::HasDefaults::RO;
 use Types::Standard qw(
-		Int		Bool		HashRef			is_HashRef		ArrayRef
+		Int		Bool		HashRef			is_HashRef		ArrayRef	Enum
     );
 use Carp qw( confess );
 use lib	'../../../../../../lib';
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
 extends	'Spreadsheet::XLSX::Reader::LibXML::XMLReader';
-with	'Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData';
 
 #########1 Public Attributes  3#########4#########5#########6#########7#########8#########9
 	
@@ -23,20 +22,27 @@ has cache_positions =>(
 		reader	=> '_should_cache_positions',
 		default	=> 1,
 	);
-	
-has no_formats =>(
-		isa		=> Bool,
-		reader	=> '_should_block_formats',
-		writer	=> '_block_formats',
-		default	=> 0,
+
+has group_return_type =>(
+		isa		=> Enum[qw( unformatted value instance xml_value )],
+		reader	=> 'get_group_return_type',
+		writer	=> 'set_group_return_type',
+		predicate => 'has_group_return_type',
 	);
+
+has empty_return_type =>(
+		isa		=> Enum[qw( empty_string undef_string )],
+		reader	=> 'get_empty_return_type',
+		writer	=> 'set_empty_return_type',
+	);
+with	'Spreadsheet::XLSX::Reader::LibXML::XMLToPerlData';
 
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
 
 sub get_shared_string_position{
 	my( $self, $position ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD					$self->get_log_space .  '::get_shared_string_position', );
+	###LogSD			$self->get_all_space . '::get_shared_string_position', );
 	if( !defined $position ){
 		$self->set_error( "Requested shared string position required - none passed" );
 		return undef;
@@ -51,120 +57,133 @@ sub get_shared_string_position{
 		return undef;#  fail
 	}
 	
+	my ( $return, $success );
 	# handle cache retrieval
-	if( $self->_should_cache_positions and
-		($self->_is_cache_complete or  $self->_get_ss_position( $position )) ){
-		my	$return = $self->_get_ss_position( $position );
-			$return =	is_HashRef( $return ) ? $return :
-						$self->_should_block_formats ? $return :
-						{ raw_text => $return };
+	if( $self->_should_cache_positions and $self->_last_cache_position >= $position ){
 		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"Returning cached position -$position- value: ", $return ] );
-		return $return;
+		###LogSD		"Retreiving position -$position- from cache" ] );
+		$return = $self->_get_ss_position( $position );
+		$success = 1;
 	}
 	
 	# checking if the reqested (last) position is stored (no caching)
-	if( $self->_has_last_position and $position == $self->_get_last_position ){
+	if( !$success and $self->_has_last_position and $position == $self->_get_last_position ){
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD		"Already built the answer for position: $position", 
 		###LogSD		$self->_get_last_position_ref						] );
-		return $self->_get_last_position_ref;
+		$return = $self->_get_last_position_ref;
+		$success = 1;
 	}
 	
-	# Initiate the read and reset the file if needed
-	if( $self->has_position and $self->where_am_i > $position ){
-		if( $self->_should_cache_positions ){
+	# reset the file if needed 
+	if( !$success and $self->has_position and $self->where_am_i > $position ){
+		$self->start_the_file_over;
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Finished resetting the file" ] );
+	}
+	
+	# Kick start position counting
+	if( !$success ){
+		if( !$self->has_position ){
 			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"Weird empty string stored" ] );
-			return undef;
+			###LogSD		"Getting to the first cell" ] );
+			if( $self->advance_element_position( 'si' ) ){
+				$self->i_am_here( 0 );
+			}else{
+				$self->set_error( "No sharedStrings elements available" );
+				$self->_set_unique_count( 0 );
+				return undef;
+			}
+		}
+	}
+	
+	# Advance to the proper position - storing along the way as needed
+	while( !$success ){
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Reading the position: " . $self->where_am_i ] );
+		
+		# Build a perl ref
+		my $inital_parse = $self->parse_element;
+		my $provisional_output;
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Collected:", $inital_parse  ] );
+		
+		# Handle unexpected end of file here
+		if( $inital_parse eq 'EOF' ){
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"Handling the end of the file",  ] );
+			$return = $inital_parse;
+			$self->_set_unique_count( $self->where_am_i + 1 );
+			last;
+		}
+		
+		# Convert the perl ref to an Excel style ref
+		if( is_HashRef( $inital_parse ) ){
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"The initial parse is a hash ref"  ] );
+			if( exists $inital_parse->{t} ){
+				$provisional_output = $inital_parse->{t};
+			}elsif( exists $inital_parse->{list} ){
+				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD		"The initial parse contains a list"  ] );
+				my ( $raw_text, $rich_text );
+				for my $element( @{$inital_parse->{list}} ){
+					###LogSD	$phone->talk( level => 'debug', message => [
+					###LogSD		"The initial parse contains a list"  ] );
+					push( @$rich_text, length( $raw_text ), $element->{rPr} ) if exists $element->{rPr};
+					$raw_text .= $element->{t}->{raw_text};
+				}
+				@$provisional_output{qw( raw_text rich_text )} = ( $raw_text, $rich_text  );
+			}
 		}else{
-			$self->start_the_file_over;
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"Finished resetting the file" ] );
+			confess "Found unknown parse return: $inital_parse ";
 		}
-	}
-	my ( $success, $ref );
-	if( !$self->has_position ){
 		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"Pulling the first cell" ] );
-		my $found_it;
-		eval '$found_it = $self->next_element( "si" )';
-		if( $@ ){
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"Found an unexpected end of file: ", $@] );
-			$self->set_error( 'libxml2 error message' . $@ );
-			$self->_set_end_of_file( 0 );
-			$self->_i_am_here( 0 );
-			return undef;
-		}elsif( defined $found_it and $found_it < 1 ){
-			$self->set_error( "No strings stored in the sharedStrings file" );
-			return undef;
-		}
-		$self->_i_am_here( 0 );
+		###LogSD		"Built position " . $self->where_am_i . " => ", $provisional_output  ] );
+		
+		# Cache the position as needed
 		if( $self->_should_cache_positions ){
-			( $success, $ref ) = $self->_read_the_position( 0 );
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"Result of reading initial position: $success", $ref ] );
+			my $cache_value =
+				!$provisional_output ? undef :
+				(scalar( keys %$provisional_output ) == 1 or $self->_should_block_formats) ?
+					$provisional_output->{raw_text} : $provisional_output;
+			###LogSD	$phone->talk( level => 'debug', message =>[ "Caching position: " . $self->where_am_i, $cache_value ] );
+			$self->_set_ss_position( $self->where_am_i => $cache_value );
+			$self->_set_last_cache_position( $self->where_am_i );
+			###LogSD	$phone->talk( level => 'trace', message =>[ "Updated cache:", $self->_get_all_cache  ] );
 		}
-	}
-	
-	# Advance to the proper position
-	while( $self->where_am_i < $position ){
-		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"Pulling the next cell: " . ($self->where_am_i + 1) ] );
-		my $found_it;
-		if( !$self->_should_cache_positions ){######################
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"Advancing to the next position with the XMLReader" ] );
-			eval '$found_it = $self->next_element( "si" )';
-			if( $@ ){
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		"Found an unexpected end of file: ", $@] );
-				$self->set_error( 'libxml2 error message' . $@ );
-				$self->_set_end_of_file( $self->where_am_i );
-				$self->_i_am_here( 0 );
-				return undef;
-			}elsif( defined $found_it and $found_it < 1 ){
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		"Found an unexpected end of file: $found_it" ] );
-				$self->set_error( "Unexpected end of file found" );
-				$self->_set_end_of_file( $self->where_am_i );
-				$self->_i_am_here( 0 );
-				return undef;
-			}
-		}############################################################
-		my $current = $self->where_am_i + 1;
-		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"Now at position: $current", ] );
-		$self->_i_am_here( $current );
-		if( $self->_should_cache_positions ){
-			( $success, $ref ) = $self->_read_the_position( $current );
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"Result of reading -$current- position: $success", $ref ] );
-			if( !$success ){
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		"Found an unexpected end of file: ", $@] );
-				$self->set_error( 'The file ended earlier than expected' );
-				$self->_set_end_of_file( $self->where_am_i - 1 );
-				$self->_i_am_here( 0 );
-				return undef;
+		
+		# Determine if we have arrived
+		if( $self->where_am_i == $position ){
+			$success = 1;
+			$return = $provisional_output;
+			if( !$self->_should_cache_positions ){
+				my $cache_value = scalar( keys %$provisional_output ) == 1 ? $provisional_output->{raw_text} : $provisional_output;
+				###LogSD	$phone->talk( level => 'debug', message =>[ "Saving the last postion"  ] );
+				$self->_set_last_position( $self->where_am_i );
+				$self->_set_last_position_ref( $return );
 			}
 		}
+		$self->i_am_here( $self->where_am_i + 1 );
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"The next position to collect is: " . $self->where_am_i ] );
 	}
 	
-	# Read the data
-	$self->_set_last_position( $position );
-	if( !$self->_should_cache_positions ){
-		( $success, $ref ) = $self->_read_the_position( $position );
-		$self->_i_am_here( $position + 1);
+	# Manage the output
+	$return  =
+		( $return and $return eq 'EOF' ) ? undef :
+		( $self->_should_block_formats and is_HashRef( $return ) ) ? $return->{raw_text} :
+		$self->_should_block_formats ? $return :
+		is_HashRef( $return ) ? $return : { raw_text => $return } ;
+		
+	# Close the file if caching complete
+	if( $self->_should_cache_positions and $self->has_file and $self->where_am_i > $self->_get_unique_count - 1 ){
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Closing the file - all positions have been stored in cache" ] );
+		$self->close;
+		$self->clear_file;
 	}
-	$self->_set_last_position_ref( $ref ) if !$self->_should_cache_positions and $success;
-	if( $position == $self->_get_unique_count - 1 ){
-		$self->_set_end_of_file( $position );
-	}
-	###LogSD	$phone->talk( level => 'trace',  message =>[
-	###LogSD		"Final element result:", $ref, 'For position: ' . $self->where_am_i ] );
-	return $ref;
+	return $return;
 }
 
 #########1 Private Attributes 3#########4#########5#########6#########7#########8#########9
@@ -199,26 +218,46 @@ has _shared_strings_positions =>(
 			_get_ss_position => 'get',
 			_set_ss_position => 'set',
 		},
+		reader => '_get_all_cache',
 	);
 	
-has _cache_complete =>(
-		isa		=> Bool,
-		default	=> 0,
-		reader	=> '_is_cache_complete',
-		writer	=> '_cache_is_complete',
+has _cache_completed =>(
+		isa		=> Int,
+		default	=> -1,
+		reader	=> '_last_cache_position',
+		writer	=> '_set_last_cache_position',
 	);
 
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
 
+###LogSD	sub BUILD {
+###LogSD	    my $self = shift;
+###LogSD			$self->set_class_space( 'SharedStrings' );
+###LogSD	}
+
 sub _load_unique_bits{
 	my( $self, ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD					$self->get_log_space .  '::_load_unique_bits', );
+	###LogSD			$self->get_all_space . '::_load_unique_bits', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			"Setting the sharedStrings unique bits" ] );
-	
-	if( $self->node_name eq 'sst' or $self->next_element('sst') ){
-		my $sst_list= $self->parse_element( 0 );
+	$self->start_the_file_over;
+	my ( $node_depth, $node_name, $node_type ) = $self->location_status;
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		"Currently at libxml2 level: $node_depth",
+	###LogSD		"Current node name: $node_name",
+	###LogSD		"..for type: $node_type", ] );
+	my	$result = 1;
+	if( $node_name eq 'sst' ){
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"already at the sst node" ] );
+	}else{
+		$result = $self->advance_element_position( 'sst' );
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"attempt to get to the sst element result: $result" ] );
+	}
+	if( $result ){
+		my $sst_list= $self->get_attribute_hash_ref;
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD		"parsed sst list to:", $sst_list ] );
 		my $unique_count = $sst_list->{uniqueCount} // 0;
@@ -229,64 +268,19 @@ sub _load_unique_bits{
 	}else{
 		$self->set_error( "No 'sst' element found - can't parse this as a shared strings file" );
 		$self->_clear_unique_count;
-		$self->_clear_count;
+		#~ $self->_clear_count;
 		return undef;
 	}
 }
 
-sub _read_the_position{
-	my( $self, $position ) = @_;
+sub _should_block_formats{
+	my( $self, ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD					$self->get_log_space .  '::_read_the_position', );
+	###LogSD			$self->get_all_space . '::_should_block_formats', );
 	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"Reading the current sharedStrings position" ] );
-	my $focus = $self->_should_block_formats ? 't' : undef;# This may need to be more configurable!!!
-	my $init_ref = $self->parse_element( $focus );
-	$self->_i_am_here( $position );
-	###LogSD	$phone->talk( level => 'trace',  message =>[
-	###LogSD		"Element parse resulted in:", $init_ref ] );
-	if( is_HashRef( $init_ref ) ){
-		###LogSD	$phone->talk( level => 'trace',  message =>[
-		###LogSD		"This is a hash ref" ] );
-		if( exists $init_ref->{list} ){
-			my ( $raw_text, $rich_text );
-			for my $element( @{$init_ref->{list}} ){
-				push( @$rich_text, length( $raw_text ), $element->{rPr} ) if exists $element->{rPr};
-				$raw_text .= $element->{t}->{raw_text};
-			}
-			@$init_ref{qw( raw_text rich_text )} = ( $raw_text, $rich_text  );
-			delete $init_ref->{list};
-		}else{
-			$init_ref = $init_ref->{t};
-		}
-	}elsif( !$init_ref ){
-		$self->set_error( "Unable to parse the shared string position: $position" );
-		return ( 0, undef);
-	}
-	if( $self->_should_cache_positions ){
-		my $store = ( is_HashRef( $init_ref ) and (keys %$init_ref) == 1 and exists $init_ref->{raw_text} ) ?
-						$init_ref->{raw_text} : $init_ref;
-		$self->_set_ss_position( $position, $store );
-	}
-	return ( 1, $init_ref );
+	###LogSD			"determining if formats should be blocked" ] );
+	return ( $self->has_group_return_type and $self->get_group_return_type =~ /(unformatted|value|xml_value)/) ? 1 : 0 ;
 }
-
-sub _set_end_of_file{
-	my( $self, $position ) = @_;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD					$self->get_log_space .  '::_set_end_of_file', );
-	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"Setting the end of file for position: $position" ] );
-	$self->_set_unique_count( $position  +1 );
-	if( $self->_should_cache_positions ){
-		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"Reached the end of the file - should have cached everything by now" ] );
-		$self->_clear_xml_parser;
-		$self->clear_file;
-	}
-	return 1;
-}
-		
 
 #########1 Phinish            3#########4#########5#########6#########7#########8#########9
 

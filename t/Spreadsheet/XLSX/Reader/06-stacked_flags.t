@@ -16,6 +16,8 @@ BEGIN{
 		$lib		= '../../../../' . $lib;
 		$test_file	= '../../../test_files/'
 	}
+	use Carp 'confess';
+	$SIG{__WARN__} = sub{ confess $_[0] };
 }
 $| = 1;
 
@@ -69,7 +71,7 @@ is 				$@, '',
 						'.. and check that it succeded';
 				my $instance;
 lives_ok{		$instance = Spreadsheet::XLSX::Reader::LibXML->new }
-						"Build an instance of Spreadsheet::XLSX::Reader::LibXML for testing";
+						"Build an instance of Spreadsheet::XLSX::Reader::LibXML for testing with flag(s): :$good_flag";
 				for my $method ( keys %{$test_ref->{$good_flag}} ){
 is					$instance->$method, $test_ref->{$good_flag}->{$method},
 						"check that setting the flag -$good_flag- returns the method -$method- value: $test_ref->{$good_flag}->{$method}";

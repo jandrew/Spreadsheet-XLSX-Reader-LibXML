@@ -19,7 +19,7 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 4;
+use	Test::Most tests => 5;
 use	Test::Moose;
 use Data::Dumper;
 use	lib	'../../../../../Log-Shiras/lib',
@@ -29,14 +29,8 @@ use	lib	'../../../../../Log-Shiras/lib',
 #~ use Log::Shiras::Switchboard v0.21 qw( :debug );#
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(
 ###LogSD			name_space_bounds =>{
-###LogSD				Test =>{
-###LogSD					StylesInstance =>{
-###LogSD						_coalate_perl_style_formats =>{
-###LogSD							UNBLOCK =>{
-###LogSD								log_file => 'trace',
-###LogSD							},
-###LogSD						},
-###LogSD					},
+###LogSD				UNBLOCK =>{
+###LogSD					log_file => 'warn',
 ###LogSD				},
 ###LogSD			},
 ###LogSD			reports =>{
@@ -46,14 +40,16 @@ use	lib	'../../../../../Log-Shiras/lib',
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
 ###LogSD	use MooseX::ShortCut::BuildInstance;
-use Spreadsheet::XLSX::Reader::LibXML ':like_ParseExcel';
+use Spreadsheet::XLSX::Reader::LibXML;
 $test_file = ( @ARGV ) ? $ARGV[0] : $test_file;
-$test_file .= 'attr.xlsx';
+$test_file .= 'CodeTest.xlsm';
 	#~ print "Test file is: $test_file\n";
 my  ( 
-		$parser, $ws, $cell, $workbook,
+		$parser, @worksheets, $value, $workbook,
 	);
 my	$answer_ref = [
+		'Data',
+		['Spreadsheet::XLSX::Reader::LibXML::Cell', 'Hello World',],
 	];
 ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space => 'main', );
 ###LogSD		$phone->talk( level => 'info', message => [ "harder questions ..." ] );
@@ -68,8 +64,11 @@ my	$answer_ref = [
 is			$parser->error(), undef,
 										"Write any error messages from the file load";
 			$parser->clear_error;
-ok			$ws = $workbook->worksheet( 'Format' ),
-										"Loaded the worksheet 'Format' OK";
+			my $x = 0;
+ok			my $worksheet = $workbook->worksheet( 'Data' ),
+										'Open the (hidden) Data worksheet';
+is			$worksheet->get_name, $answer_ref->[$x],
+										'Check that the worksheet name is: ' . $answer_ref->[$x++];
 #~ ###LogSD	my $reveal = 7;
 #~ ###LogSD	if( $row == $reveal and $col == 0 ){
 #~ ###LogSD		$operator->add_name_space_bounds( {
@@ -97,9 +96,12 @@ ok			$ws = $workbook->worksheet( 'Format' ),
 #~ ###LogSD			},
 #~ ###LogSD		} );
 #~ ###LogSD	}
-ok			$cell = $ws->get_cell( 3, 0 ),
-										"Check that row -3- column -0- loaded OK";
-is			$cell->is_hidden, 'row',	"Check that the cell knows it's the row that's hidden";
+			my $cell;
+is			ref( $cell = $worksheet->get_cell( 0, 0 ) ), $answer_ref->[$x]->[0],
+										"Attempt to get the cell for row -0- column -0-";
+is			$cell->value, $answer_ref->[$x]->[1],
+										"For 'A1' check the returned value: " . $answer_ref->[$x]->[1];
+			$x++;
 explain 								"...Test Done";
 done_testing();
 

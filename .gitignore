@@ -4,7 +4,6 @@
 .build/*
 lib/Moose*
 Spreadsheet-XLSX-Reader-LibXML*
-DevelopmentNotes.txt
 Makefile.old
 Supporting_Documentation/*
 lib/Spreadsheet/XLSX/Reader/LibXML/XMLDOM/*

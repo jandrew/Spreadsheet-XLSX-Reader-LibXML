@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::Chartsheet;
-use version; our $VERSION = qv('v0.38.14');
+use version; our $VERSION = qv('v0.38.16');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::XMLReader::Chartsheet-$VERSION";
 
 use	5.010;
@@ -93,10 +93,15 @@ has workbook_instance =>(
 
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
 
+###LogSD	sub BUILD {
+###LogSD	    my $self = shift;
+###LogSD			$self->set_class_space( 'Chartsheet' );
+###LogSD	}
+
 sub _load_unique_bits{
 	my( $self, ) = @_;#, $new_file, $old_file
-	###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	###LogSD					name_space 	=> ($self->get_log_space . '::_load_unique_bits' ), );
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::_load_unique_bits', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			"Setting the Chartsheet unique bits", "Byte position: " . $self->byte_consumed ] );
 	

@@ -28,50 +28,38 @@ use	lib	'../../../../../Log-Shiras/lib',
 	;
 #~ use Log::Shiras::Switchboard v0.21 qw( :debug );#
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(
-###LogSD			name_space_bounds =>{
-###LogSD				UNBLOCK =>{
-###LogSD					log_file => 'trace',
-###LogSD				},
-###LogSD				build_instance =>{
-###LogSD					UNBLOCK =>{
-###LogSD						log_file => 'warn',
-###LogSD					},
-###LogSD				},
-###LogSD				build_class =>{
-###LogSD					UNBLOCK =>{
-###LogSD						log_file => 'warn',
-###LogSD					},
-###LogSD				},
-###LogSD				Test =>{
-###LogSD					SharedStringsInstance =>{
-###LogSD						UNBLOCK =>{
-###LogSD							log_file => 'trace5',
-###LogSD						},
-###LogSD					},
-###LogSD					StylesInstance =>{
-###LogSD						UNBLOCK =>{
-###LogSD							log_file => 'warn',
-###LogSD						},
-###LogSD					},
-###LogSD					Workbook =>{
-###LogSD						_build_dom =>{
-###LogSD							UNBLOCK =>{
-###LogSD								log_file => 'warn',
-###LogSD							},
-###LogSD						},
-###LogSD						_build_reader =>{
-###LogSD							UNBLOCK =>{
-###LogSD								log_file => 'trace',
-###LogSD							},
-###LogSD						},
-###LogSD						_set_shared_worksheet_files =>{
-###LogSD							UNBLOCK =>{
-###LogSD								log_file => 'warn',
-###LogSD							},
-###LogSD						},
-###LogSD					},
-###LogSD				},
-###LogSD			},
+#~ ###LogSD			name_space_bounds =>{
+#~ ###LogSD				UNBLOCK =>{
+#~ ###LogSD					log_file => 'trace',
+#~ ###LogSD				},
+#~ ###LogSD				build_instance =>{
+#~ ###LogSD					UNBLOCK =>{
+#~ ###LogSD						log_file => 'warn',
+#~ ###LogSD					},
+#~ ###LogSD				},
+#~ ###LogSD				build_class =>{
+#~ ###LogSD					UNBLOCK =>{
+#~ ###LogSD						log_file => 'warn',
+#~ ###LogSD					},
+#~ ###LogSD				},
+#~ ###LogSD				Test =>{
+#~ ###LogSD					SharedStringsInstance =>{
+#~ ###LogSD						UNBLOCK =>{
+#~ ###LogSD							log_file => 'trace',
+#~ ###LogSD						},
+#~ ###LogSD					},
+#~ ###LogSD					StylesInstance =>{
+#~ ###LogSD						UNBLOCK =>{
+#~ ###LogSD							log_file => 'warn',
+#~ ###LogSD						},
+#~ ###LogSD					},
+#~ ###LogSD					Workbook =>{
+#~ ###LogSD						UNBLOCK =>{
+#~ ###LogSD							log_file => 'warn',
+#~ ###LogSD						},
+#~ ###LogSD					},
+#~ ###LogSD				},
+#~ ###LogSD			},
 ###LogSD			reports =>{
 ###LogSD				log_file =>[ Print::Log->new ],
 ###LogSD			},
@@ -79,7 +67,7 @@ use	lib	'../../../../../Log-Shiras/lib',
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
 ###LogSD	use MooseX::ShortCut::BuildInstance;
-use Spreadsheet::XLSX::Reader::LibXML;
+use Spreadsheet::XLSX::Reader::LibXML ':debug';
 $test_file = ( @ARGV ) ? $ARGV[0] : $test_file;
 $test_file .= 'values.xlsx';
 	#~ print "Test file is: $test_file\n";
@@ -128,29 +116,28 @@ is_deeply	[@row_range], $answer_ref->[$x++],
 										"Check for the correct row range";
 			for my $row ( $row_range[0] .. $row_range[1] ){
 			for my $col ( $column_range[0] .. $column_range[1] ){
+###LogSD	my $row_check = 0; my $column_check = 3;
+###LogSD	if( $row == $row_check and $col == $column_check ){
+###LogSD		$operator->add_name_space_bounds( {
+#~ ###LogSD			Test =>{
+###LogSD				UNBLOCK =>{
+###LogSD					log_file => 'trace',
+###LogSD				},
+#~ ###LogSD			},
+###LogSD		} );
+###LogSD	}
+###LogSD	elsif( $row > $row_check or ($row == $row_check and $col > $column_check ) ){
+###LogSD		exit 1;
+###LogSD	}
 			my $cell;
 is			ref( $cell = $worksheet->get_cell( $row, $col ) ), $answer_ref->[$x]->[0],
 										"Attempt to get the cell for row -$row- and column -$col-";
-#~ is			ref( $cell ), 
-										#~ "make sure it returns a cell - if it should";
 			if( $answer_ref->[$x]->[0] ){
 is			$cell->value, $answer_ref->[$x]->[1],
 										"And check the returned value: " . $answer_ref->[$x]->[1];
 			}
 			$x++;
 			#~ while( !$value or $value ne 'EOF' ){
-#~ ###LogSD	if( $value_position == 0 ){
-#~ ###LogSD		$operator->add_name_space_bounds( {
-#~ ###LogSD			Test =>{
-#~ ###LogSD				UNBLOCK =>{
-#~ ###LogSD					log_file => 'debug',
-#~ ###LogSD				},
-#~ ###LogSD			},
-#~ ###LogSD		} );
-#~ ###LogSD	}
-#~ ###LogSD	elsif( $value_position == 1 ){
-#~ ###LogSD		exit 1;
-#~ ###LogSD	}
 #~ ok			$value = ($worksheet->get_next_value//'undef'),
 										#~ "Get the next value position:$x";
 #~ my			$return = ref( $value ) ? $value->value : $value;
@@ -167,7 +154,7 @@ is			$cell->value, $answer_ref->[$x]->[1],
 										#~ "Try to return the chartsheet: Chart1";
 #~ like		$parser->error, $answer_ref->[$x],
 										#~ "..and check for the correct error: " . $answer_ref->[$x++];
-#~ explain 								"...Test Done";
+explain 								"...Test Done";
 done_testing();
 
 ###LogSD	package Print::Log;

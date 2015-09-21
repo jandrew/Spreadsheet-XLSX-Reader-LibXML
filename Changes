@@ -10,8 +10,44 @@ NOTE: This software is designated as beta quality until this notice is removed. 
 be method matched to Spreadsheet::ParseExcel prior to the 1.0 release.
 
 {{$NEXT}}
-
+	
 	* Another cool change
+
+v0.38.16  2015-09-20 19:21:30-07:00 America/Los_Angeles
+	
+	! Closes issue #72 in github (hopefully) with safer testing of length in a variable
+	! Closes issue #75 in github with safer setup of cell instances with empty cell_coercion attributes
+	! Closes issue #74 in github with safer testing for the apple date flag
+	! Closes issue #73 in github with safer coercion assesment of date coercions
+	+ Added caching for the styles sub-file which should noticibly speed up parsing
+	+ Added a :debug flag tgit hat turns should_warn on.  This is mostly useful to get warns on 
+		build fails since the warnings can be turned on after build as desired.
+	+ Added "5.22"(back) and added "dev" and "5.10.1" to the TravisCI testing
+	! Closes #71 in github with updates to the import statement
+	+ fetchrow_array and fetchrow_arrayref no longer report undef for the positions representing
+		the remaining empty cells in a row ( the list just ends )
+	+ Treat stored empty stings -''- as empty cells for the 'values_only' attribute
+		This will still skip the empty string cells even if 'empty_return_type' is set to empty_string 
+	+ Rewrote XMLToPerlData and moved it up one file layer since it is more reader agnostic
+		This is a first step to integrating a file type agnostic XMLReader #4 (milestone v0.40.2)
+		with improved XMLtoPerl conversions.  This might break implementations that are built on the guts of this thing.
+		Contact me with questions or concerns.  Top level API implementations should be unaffected.
+		I also moved the test file to reflect this change
+	+ Changed the name of the Worksheet class to WorksheetToRow as a first step in moving this to a role
+		sometime in the future to eliminate inheritance as much as possible. (See the worksheet interface change below)
+		I changed the name of the test to match
+	+ Changed the name of the GetCell role to Worksheet with the intent of treating it as an interface
+		I moved it up one layer in the folder structure
+		I removed the worksheet pod (now in the same folder) since the documentation was duplicated there
+		I moved the test and changed the name to reflect this change
+	+ Re-wrote the worksheet parser to parse whole rows at a time rather than one cell at a time
+		This unkinks some of the cruft created when adding tracking of hidden_columns (v0.38.12)
+	+ Added a Row Class to hold and process cell data within a row
+	+ Added support for .xlsm files closes #68 in github
+		This does not include any reading or handling of 'vbaProject.bin'
+		It should be safe even with viruses if the reader doesn't mess with it
+	! Changed the %ENV test to a caller test run in BUILDARGS ( during ->new )
+		This should handle all useage by Spreadsheet::Read (enforces the :like_ParseExcel flag)
 
 v0.38.14  2015-08-24 16:49:04-07:00 America/Los_Angeles
 
@@ -24,7 +60,7 @@ v0.38.14  2015-08-24 16:49:04-07:00 America/Los_Angeles
 v0.38.12  2015-08-19 05:19:28-07:00 America/Los_Angeles
 
 	+ Fix yet another bug in the hidden formatting (hopefully)
-	+ Make the decimal vs scientific choice for hidden formatting more robust( issue 65 on github )
+	+ Make the decimal vs scientific choice for hidden formatting more robust( issue #65 on github )
 	+ Adding tests for hidden tabs rows columns and cells in the worksheet and cell
 	+ Adding the method 'get_merged_areas' to match ~::ParseExcel
 	+ For compatability purposes this package will now test (during import) to see if it's being 
@@ -79,7 +115,7 @@ v0.38.4   2015-06-29 17:17:07-07:00 America/Los_Angeles
 v0.38.2   2015-06-29 16:45:47-07:00 America/Los_Angeles
 
 	+ Added a cache_positions flag to the Workbook level
-		For now this only populates to cache built number conversion and the shared strings file
+		For now this only populates to cache built number conversions and the shared strings file
 	+ 'set_custom_formats' now has built in coercion to change Excel strings to coercion objects
 		This allows for you to define custom excel column formatting (Not already defined in the file)
 		using excel strings without building an intermediate coersion before loading it to the worksheet.

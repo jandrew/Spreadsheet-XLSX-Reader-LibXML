@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::Error;
-use version; our $VERSION = qv('v0.38.14');
+use version; our $VERSION = qv('v0.38.16');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::Error-$VERSION";
 
 use Moose;
@@ -27,8 +27,8 @@ has error_string =>(
 		coerce		=> 1,
 		trigger	=> sub{
 			my ( $self, $error ) = @_;
-			###LogSD	my	$phone = Log::Shiras::Telephone->new(
-			###LogSD			name_space => $self->get_log_space . '::error', );
+			###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+			###LogSD			$self->get_all_space . '::set_error', );
 			if( $self->if_warn ){
 				###LogSD	$phone->talk( level => 'debug', message => [ $error ] );
 				###LogSD	re_route_warn();
@@ -52,6 +52,17 @@ has should_warn =>(
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
 
 
+
+#########1 Private Attributes 3#########4#########5#########6#########7#########8#########9
+
+
+
+#########1 Private Methods    3#########4#########5#########6#########7#########8#########9
+
+###LogSD	sub BUILD {
+###LogSD	    my $self = shift;
+###LogSD			$self->set_class_space( 'Error' );
+###LogSD	}
 
 #########1 Phinish            3#########4#########5#########6#########7#########8#########9
 

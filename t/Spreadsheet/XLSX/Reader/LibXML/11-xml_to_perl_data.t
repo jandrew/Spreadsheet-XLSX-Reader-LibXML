@@ -13,27 +13,28 @@ BEGIN{
 		}
 	}
 	if( $start_deeper ){
-		$lib		= '../../../../../../' . $lib;
-		$test_file	= '../../../../../test_files/xl/';
+		$lib		= '../../../../../' . $lib;
+		$test_file	= '../../../../test_files/xl/';
 	}
 }
 $| = 1;
 
-use	Test::Most tests => 32;
+use	Test::Most tests => 28;
 use	Test::Moose;
 use	MooseX::ShortCut::BuildInstance qw( build_instance );
+use	Data::Dumper;
 use	lib
-		'../../../../../../../Log-Shiras/lib',
+		'../../../../../../Log-Shiras/lib',
 		$lib,
 	;
 #~ use Log::Shiras::Switchboard qw( :debug );#
 ###LogSD	use Data::Dumper;
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(#
-###LogSD						name_space_bounds =>{
-###LogSD							UNBLOCK =>{
-###LogSD								log_file => 'trace',
-###LogSD							},
-###LogSD						},
+#~ ###LogSD						name_space_bounds =>{
+#~ ###LogSD							UNBLOCK =>{
+#~ ###LogSD								log_file => 'trace',
+#~ ###LogSD							},
+#~ ###LogSD						},
 ###LogSD						reports =>{
 ###LogSD							log_file =>[ Print::Log->new ],
 ###LogSD						},
@@ -41,8 +42,8 @@ use	lib
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
 use	Spreadsheet::XLSX::Reader::LibXML::XMLReader;
+use	Spreadsheet::XLSX::Reader::LibXML::XMLToPerlData;
 use	Spreadsheet::XLSX::Reader::LibXML::Error;
-use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData;
 $test_file = ( @ARGV ) ? $ARGV[0] : $test_file;
 $test_fil2 = $test_file . 'worksheets/sheet3_test.xml';
 $test_file .= 'sharedStrings.xml';
@@ -61,24 +62,27 @@ my  		@instance_methods = qw(
 				set_file
 				has_file
 				clear_file
-				where_am_i
-				has_position
 				parse_element
 				error
 				set_error
 				clear_error
 				set_warnings
 				if_warn
-				node_name
-				byte_consumed
-				move_to_first_att
-				move_to_next_att
-				node_depth
-				node_value
-				node_type
-				has_value	
-				start_reading
+				start_the_file_over
+				get_text_node
+				get_attribute_hash_ref
+				advance_element_position
+				location_status
 			);
+				#~ where_am_i
+				#~ has_position
+				#~ node_name
+				#~ move_to_first_att
+				#~ move_to_next_att
+				#~ node_depth
+				#~ node_value
+				#~ node_type
+				#~ has_value	
 my			$answer_ref = [
 				{
 					'list' => [
@@ -93,6 +97,7 @@ my			$answer_ref = [
 									'rgb' => 'FFFF0000'
 								},
 								'sz' => '11',
+								#~ 'b' => 1,
 								'b' => undef,
 								'scheme' => 'minor',
 								'rFont' => 'Calibri',
@@ -108,6 +113,7 @@ my			$answer_ref = [
 									'rgb' => 'FF0070C0'
 								},
 								'sz' => '20',
+								#~ 'b' => 1,
 								'b' => undef,
 								'scheme' => 'minor',
 								'rFont' => 'Calibri',
@@ -119,7 +125,6 @@ my			$answer_ref = [
 						}
 					]
 		        },
-				'Hello World',
 				{
 					'r' => 'A11',
 					'v' => {
@@ -140,7 +145,10 @@ lives_ok{
 			$test_instance	=	build_instance(
 									package => 'TestIntance',
 									superclasses =>[ 'Spreadsheet::XLSX::Reader::LibXML::XMLReader', ],
-									add_roles_in_sequence =>[ 'Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData', ],
+									add_roles_in_sequence =>[ 'Spreadsheet::XLSX::Reader::LibXML::XMLToPerlData', ],
+									add_methods =>{
+										get_empty_return_type => sub{ 1 },
+									},
 									file	=> $test_file,
 									error_inst	=> Spreadsheet::XLSX::Reader::LibXML::Error->new(
 										#~ should_warn => 1,
@@ -160,18 +168,33 @@ can_ok		$test_instance, $_,
 
 ###LogSD		$phone->talk( level => 'info', message => [ "hardest questions ..." ] );
 			my $x = 0;
-explain		"index to position 15";
-			map{ $test_instance->next_element( 'si' ) }( 0..15 );
-			#~ print Dumper( $test_instance->parse_element );
-is_deeply	$test_instance->parse_element, $answer_ref->[$x++],
+#~ explain		"index to position 15";
+ok			$test_instance->start_the_file_over,
+										"reset the file";
+			my $target = 16;
+ok			$test_instance->advance_element_position( 'si', $target ),
+										"index to position: " . ($target - 1);
+			#~ print Dumper( $test_instance->parse_element ); exit 1;
+###LogSD	$operator->add_name_space_bounds( {
+#~ ###LogSD			Test =>{
+#~ ###LogSD				ExcelFmtDefault =>{
+#~ ###LogSD					_build_datestring =>{
+###LogSD						UNBLOCK =>{
+###LogSD							log_file => 'trace',
+###LogSD						},
+#~ ###LogSD					},
+#~ ###LogSD				},
+#~ ###LogSD			},
+###LogSD	}, );
+is_deeply	$test_instance->parse_element, $answer_ref->[$x],
 										"Check that the output matches expectations";
 ok			$test_instance->start_the_file_over,
 										"Start the file over";
 explain		"index to position 15 - again";
-			map{ $test_instance->next_element( 'si' ) }( 0..15 );
+			map{ $test_instance->advance_element_position( 'si' ) }( 0..15 );
 			#~ print Dumper( $test_instance->parse_element );
-is_deeply	$test_instance->parse_element( 't' ), $answer_ref->[$x++],
-										"Just get the text this time and check the output";
+is_deeply	$test_instance->parse_element, $answer_ref->[$x++],
+										"..and check the output..again";
 lives_ok{
 			$test_instance	=	TestIntance->new(
 									file	=> $test_fil2,
@@ -183,12 +206,12 @@ lives_ok{
 								);
 }										"Prep another TestIntance to test XMLToPerlData";
 explain		"Index to position 12";
-			map{ $test_instance->next_element( 'c' ) }( 0..12 );
+			map{ $test_instance->advance_element_position( 'c' ) }( 0..12 );
 			#~ print Dumper( $test_instance->parse_element );
 			#~ exit 1;
 is_deeply	$test_instance->parse_element, $answer_ref->[$x++],
 										"Check that the next output matches expectations.";
-ok			$test_instance->next_element( 'c' ),
+ok			$test_instance->advance_element_position( 'c' ),
 										"Advance to the next cell";
 is_deeply	$test_instance->parse_element, $answer_ref->[$x++],
 										"Check that the next output matches expectations.";
