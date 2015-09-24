@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::FmtDefault;
-use version; our $VERSION = qv('v0.38.16');
+use version; our $VERSION = qv('v0.38.18');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::FmtDefault-$VERSION";
 
 use	5.010;
@@ -11,6 +11,7 @@ use lib	'../../../../../lib',;
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
 ###LogSD	with 'Log::Shiras::LogSpace';
+###LogSD	sub get_class_space{ 'ExcelFmtDefault' }
 
 #########1 Dispatch Tables    3#########4#########5#########6#########7#########8#########9
 
@@ -128,7 +129,7 @@ sub	set_defined_excel_formats{
 		my $x = -1;
 		for my $format_string ( @$position_ref ){
 			$x++;
-			next if !$format_string;
+			next if !defined $format_string;
 			###LogSD	$phone->talk( level => 'info', message => [
 			###LogSD		"Setting position -$x- to format string: $format_string", ] );
 			$self->_set_defined_excel_format( $x => $format_string );

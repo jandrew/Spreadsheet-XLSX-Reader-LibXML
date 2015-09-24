@@ -1,5 +1,6 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow;
-use version; our $VERSION = qv('v0.38.16');
+our $AUTHORITY = 'cpan:JANDREW';
+use version; our $VERSION = qv('v0.38.18');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow-$VERSION";
 
 use	5.010;
@@ -423,13 +424,14 @@ sub _index_row{
 		
 		# Turn the xml into basic perl data
 		my $row_ref = $self->parse_element;
+		$row_ref->{list} =
+			exists $row_ref->{list} ? $row_ref->{list} :
+			exists $row_ref->{c} ? [ $row_ref->{c} ] : [];
+		delete $row_ref->{c} if exists $row_ref->{c};# Delete the single column c placeholder as needed
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD		'Result of row read:', $row_ref ] );
 				
 		# Load text values for each cell where appropriate
-		$row_ref->{list} =
-			exists $row_ref->{list} ? $row_ref->{list} :
-			exists $row_ref->{c} ? [ $row_ref->{c} ] : [];
 		my ( $alt_ref, $column_to_cell_translations, $reported_column, $reported_position, $last_value_column );
 		my $x = 0;
 		for my $cell ( @{$row_ref->{list}} ){
@@ -437,19 +439,30 @@ sub _index_row{
 			###LogSD		'Processing cell:', $cell	] );
 			
 			$cell->{cell_type} = 'Text';
-			if( exists $cell->{t} and $cell->{t} =~ /^s/ ){# Test for all in one sheet here!(future)
-				my $position = $self->get_shared_string_position( $cell->{v}->{raw_text} );
-				###LogSD	$phone->talk( level => 'debug', message =>[
-				###LogSD		"Shared strings returned:",  $position] );
-				if( is_HashRef( $position ) ){
-					@$cell{qw( cell_xml_value rich_text )} = ( $position->{raw_text}, $position->{rich_text} );
-					delete $cell->{rich_text} if !$cell->{rich_text};
+			if( exists $cell->{t} ){
+				if( $cell->{t} eq 's' ){
+					###LogSD	$phone->talk( level => 'debug', message =>[
+					###LogSD		"Identified potentially required shared string for cell:",  $cell] );
+					my $position = ( $self->_has_shared_strings_file ) ?
+							$self->get_shared_string_position( $cell->{v}->{raw_text} ) : $cell->{v}->{raw_text};
+					###LogSD	$phone->talk( level => 'debug', message =>[
+					###LogSD		"Shared strings resolved to:",  $position] );
+					if( is_HashRef( $position ) ){
+						@$cell{qw( cell_xml_value rich_text )} = ( $position->{raw_text}, $position->{rich_text} );
+						delete $cell->{rich_text} if !$cell->{rich_text};
+					}else{
+						$cell->{cell_xml_value} = $position;
+					}
+				}elsif( $cell->{t} eq 'str' ){
+					###LogSD	$phone->talk( level => 'debug', message =>[
+					###LogSD		"Identified a stored string in the worksheet file: " . ($cell->{v}//'')] );
+					$cell->{cell_xml_value} = $cell->{v}->{raw_text};
 				}else{
-					$cell->{cell_xml_value} = $position;
+					confess "Unknow 't' attribute set for the cell: $cell->{t}";
 				}
 				delete $cell->{t};
 				delete $cell->{v};
-				delete $cell->{cell_xml_value} if !$cell->{cell_xml_value};
+				delete $cell->{cell_xml_value} if !defined $cell->{cell_xml_value};
 			}elsif( exists $cell->{v} ){
 				###LogSD	$phone->talk( level => 'debug', message =>[
 				###LogSD		"Setting cell_xml_value from: $cell->{v}->{raw_text}", ] );
@@ -459,14 +472,14 @@ sub _index_row{
 			}
 			if( $self->get_empty_return_type eq 'empty_string' ){
 				$cell->{cell_xml_value} = '' if !exists $cell->{cell_xml_value};
-			}elsif( !$cell->{cell_xml_value} or
+			}elsif( !defined $cell->{cell_xml_value} or
 					($cell->{cell_xml_value} and length( $cell->{cell_xml_value} ) == 0) ){
 				delete $cell->{cell_xml_value};
 			}
 			###LogSD	$phone->talk( level => 'debug', message =>[
 			###LogSD		"Updated cell:",  $cell] );
 			# Clear empty cells if required
-			if( $self->get_values_only and ( !$cell->{cell_xml_value} or length( $cell->{cell_xml_value} ) == 0 ) ){
+			if( $self->get_values_only and ( !defined $cell->{cell_xml_value} or length( $cell->{cell_xml_value} ) == 0 ) ){
 					###LogSD	$phone->talk( level => 'info', message => [
 					###LogSD		'Values only called - stripping this non-value cell'	] );
 			}else{
@@ -488,8 +501,11 @@ sub _index_row{
 		
 		if( $alt_ref ){
 			my $new_ref;
-			@$new_ref{qw( row_number row_span )} =
-				( $row_ref->{r}, [split /:/, $row_ref->{spans}], );
+			###LogSD	$phone->talk( level => 'trace', message =>[
+			###LogSD		"Row ref:", $row_ref, ] ) if !$row_ref->{spans};
+			$new_ref->{row_number} = $row_ref->{r};
+			$new_ref->{row_span} = $row_ref->{spans} ?
+				[split /:/, $row_ref->{spans}] : [ $self->_min_col, $self->_max_col ];
 			delete $row_ref->{r};
 			delete $row_ref->{list};
 			delete $row_ref->{spans};
@@ -575,11 +591,13 @@ sub _load_unique_bits{
 		###LogSD		"parsed column elements to:", $column_data ] );
 		my $column_store = [];
 		for my $definition ( @{$column_data->{list}} ){
+			next if !is_HashRef( $definition );
 			###LogSD	$phone->talk( level => 'debug', message => [
 			###LogSD		"Processing:", $definition ] );
 			my $row_ref;
-			@$row_ref{qw( width customWidth bestFit hidden )} =
-				( @$definition{qw( width customWidth bestFit hidden )} );
+			map{ $row_ref->{$_} = $definition->{$_} if defined $definition->{$_} } qw( width customWidth bestFit hidden );
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"Updated row ref:", $row_ref ] );
 			for my $col ( $definition->{min} .. $definition->{max} ){
 				$column_store->[$col] = $row_ref;
 				###LogSD	$phone->talk( level => 'debug', message => [

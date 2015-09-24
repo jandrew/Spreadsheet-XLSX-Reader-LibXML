@@ -1,8 +1,9 @@
 package Spreadsheet::XLSX::Reader::LibXML::Worksheet;
-use version; our $VERSION = qv('v0.38.16');
+use version; our $VERSION = qv('v0.38.18');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::Worksheet-$VERSION";
 
 use Carp 'confess';
+use Data::Dumper;
 use	Moose::Role;
 requires qw(
 	_min_row					_max_row					_min_col
@@ -17,15 +18,16 @@ use Types::Standard qw(
 	is_Object					Str							is_Str
 );# Int
 use lib	'../../../../../lib',;
+use Spreadsheet::XLSX::Reader::LibXML::Cell;
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
-#~ use	Spreadsheet::XLSX::Reader::LibXML::Cell;
 use	Spreadsheet::XLSX::Reader::LibXML::Types qw(
 		SpecialDecimal					SpecialZeroScientific
 		SpecialOneScientific			SpecialTwoScientific
 		SpecialThreeScientific			SpecialFourScientific
 		SpecialFiveScientific
 	);
+###LogSD	sub get_class_space{ 'SharedStrings' }
 
 #########1 Dispatch Tables    3#########4#########5#########6#########7#########8#########9
 
@@ -565,26 +567,21 @@ has _reported_row_col =>(# Manage (store and retreive) in count from 1 mode
 
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
 
-sub BUILD {
-###LogSD	my	$self = shift;
-###LogSD		$self->set_class_space( 'Worksheet' );
-			require Spreadsheet::XLSX::Reader::LibXML::Cell;
-###LogSD		Spreadsheet::XLSX::Reader::LibXML::Cell->import( $self->get_log_space );
-}
-
 sub _build_out_the_cell{
 	my ( $self, $result, ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
 	###LogSD			$self->get_all_space . '::Interface::_hidden::_build_out_the_cell', );
-	###LogSD		$phone->talk( level => 'debug', message =>[  
+	###LogSD		$phone->talk( level => 'fatal', message =>[  
 	###LogSD			 "Building out the cell ref:", $result, "..with results as: ". $self->get_group_return_type ] );
 	my ( $return, $hidden_format );
 	$return->{cell_xml_value} = $result->{cell_xml_value} if defined $result->{cell_xml_value};
 	if( is_HashRef( $result ) ){
 		###LogSD	$phone->talk( level => 'debug', message =>[
 		###LogSD		"processing cell object from cell ref:", $result ] );
-		my $scientific_format;
-		if( exists $return->{cell_xml_value} and defined $result->{cell_xml_value} and $result->{cell_xml_value} =~ /^(\-)?((\d+)?\.?(\d+)?)[Ee](\-)?(\d+)$/ and $2 and $6 ){#Implement implied output formatting intrensic to Excel for scientific notiation
+		my $scientific_format; 
+		if( exists $return->{cell_xml_value} and  #Implement implied output formatting intrensic to Excel for scientific notiation
+			$return->{cell_xml_value} =~ /^(\-)?((\d{1,3})?(\.\d+)?)[Ee](\-)?(\d+)$/ and $2 and $6 and $6 < 309){# Maximum Excel value 1.79769313486232E+308 -> https://support.microsoft.com/en-us/kb/78113
+			#~ warn $return->{cell_xml_value};
 			###LogSD	$phone->talk( level => 'trace', message =>[
 			###LogSD		"Found special scientific notation case were stored values and visible values possibly differ" ] );
 			my	$dec_sign = $1 ? $1 : '';
@@ -610,13 +607,15 @@ sub _build_out_the_cell{
 				###LogSD	$phone->talk( level => 'debug', message =>[
 				###LogSD		"Found the unformatted scientific notation case with result: $return->{cell_unformatted}"] );
 			}else{
-				###LogSD	$phone->talk( level => 'trace', message =>[
+				#~ warn $initial_significant_digits if $initial_significant_digits < 0;# Uncomment here and26 lines up to validate the test 05-bad_xml_example_bug.t
+				$initial_significant_digits = $initial_significant_digits > -1 ? $initial_significant_digits : 0 ;# Fix 05-bad_xml_example_bug.t bug
+				###LogSD	$phone->talk( level => 'info', message =>[
 				###LogSD		"Attempting to use sprintf: %.${initial_significant_digits}f", ] );
+				#~ confess "Bad format string %.${initial_significant_digits}f: $initial_significant_digits" . Dumper( $result, $return ) if $initial_significant_digits =~ /\-/;
 				$return->{cell_unformatted} = sprintf "%.${initial_significant_digits}f", $return->{cell_xml_value};
 				###LogSD	$phone->talk( level => 'debug', message =>[
 				###LogSD		"Found the unformatted decimal case with output: $return->{cell_unformatted}"] );
 			}
-			
 			my	$short_decimal = sprintf '%.5f', $decimal;
 				$short_decimal =~ /([1-9])?\.(.*[1-9])?(0*)$/;
 			my	$short_sig_digit = 
@@ -635,6 +634,7 @@ sub _build_out_the_cell{
 			###LogSD	$phone->talk( level => 'debug', message =>[
 			###LogSD		"Resolved the final formatted output to formatter: " . $scientific_format->display_name ] );
 		}
+			
 		$return->{cell_type} = $result->{cell_type};
 		$return->{r} = $result->{r};
 		$return->{cell_merge} = $result->{cell_merge} if exists $result->{cell_merge};
@@ -642,6 +642,8 @@ sub _build_out_the_cell{
 		if( !exists $return->{cell_unformatted} and exists $result->{cell_xml_value} ){
 			@$return{qw( cell_unformatted rich_text )} = @$result{qw( cell_xml_value rich_text )};
 			delete $return->{rich_text} if !$return->{rich_text};
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD		"No crazy number stuff the unformatted value is: $return->{cell_unformatted}"] );
 		}
 		
 		#Implement user defined changes in encoding

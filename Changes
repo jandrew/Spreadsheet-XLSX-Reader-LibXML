@@ -10,8 +10,21 @@ NOTE: This software is designated as beta quality until this notice is removed. 
 be method matched to Spreadsheet::ParseExcel prior to the 1.0 release.
 
 {{$NEXT}}
+
+	* Another Cool change
+
+v0.38.18  2015-09-24 10:52:42-07:00 America/Los_Angeles
 	
-	* Another cool change
+	! Several tests added in the background (Not part of the package yet) to ensure a safer release
+		The (future) goal is to create tests small enough to fit with the package for the same failure modes
+	! Fixes #82 in github as well as removing the fail for negative decimal rounding numbers inferred from scientific notiation
+	! Addresses #81 in github with safer string searching
+	! Addresses #80 in github by Manually building this package on my system and then running the Spreadsheet::Read (master)
+		tests after.  Long term I would like to import more of that testing to this package.
+	! Addresses #79 in github with by allowing for EOF flags to add this and only use the value where available
+		Still needs a test added to the test suit
+	! Addresses #78 in github with by substituting the values from the sheet where no row span is provided
+		Still needs a test added to the test suit
 
 v0.38.16  2015-09-20 19:21:30-07:00 America/Los_Angeles
 	

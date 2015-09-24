@@ -19,7 +19,7 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 119;
+use	Test::Most tests => 120;
 use	Test::Moose;
 use Data::Dumper;
 use	lib	'../../../../../Log-Shiras/lib',
@@ -111,13 +111,13 @@ my	$answer_ref = [
 	];
 ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space => 'main', );
 ###LogSD		$phone->talk( level => 'info', message => [ "harder questions ..." ] );
-#~ lives_ok{
+lives_ok{
 			$parser = 	Spreadsheet::XLSX::Reader::LibXML->new(
 							###LogSD log_space => 'Test'
 						);
 			$workbook = $parser->parse($test_file);
 			$parser->set_warnings( 1 );
-#~ }										"Prep a test parser instance";
+}										"Prep a test parser instance";
 ###LogSD		$phone->talk( level => 'trace', message => [ "$parser:", $parser ] );
 like			$parser->error(), qr/Unable to load XML::LibXML with the element: sharedStrings/,
 										"Write any error messages from the file load";

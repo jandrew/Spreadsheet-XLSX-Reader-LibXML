@@ -19,7 +19,7 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 78;
+use	Test::Most tests => 88;
 use	Test::Moose;
 use Data::Dumper;
 use	lib	'../../../../../Log-Shiras/lib',
@@ -50,7 +50,7 @@ my  (
 my	$answer_ref = [
 		'Sheet1',
 		[0,1],
-		[0,10],
+		[0,12],
 		['Spreadsheet::XLSX::Reader::LibXML::Cell', undef, 'E421745', 'E421745', 'E421745'],[''],
 		['Spreadsheet::XLSX::Reader::LibXML::Cell', undef, '5.0000000000000001E-9', '0.000000005', '0.000000005'],[''],
 		['Spreadsheet::XLSX::Reader::LibXML::Cell', undef, '5.0000000000000003E-10', '0.0000000005', '5E-10'],[''],
@@ -68,6 +68,8 @@ my	$answer_ref = [
 		['Spreadsheet::XLSX::Reader::LibXML::Cell', undef, '15', '15', '15'],
 		['Spreadsheet::XLSX::Reader::LibXML::Cell', undef, '4.9999999999999999E-20', '5E-20', '5E-20'],[''],
 		['Spreadsheet::XLSX::Reader::LibXML::Cell', undef, '5.0000000000000004E-19', '0.0000000000000000005', '5E-19'],[''],
+		['Spreadsheet::XLSX::Reader::LibXML::Cell', undef, '121E22671', '121E22671', '121E22671'],[''],
+		['Spreadsheet::XLSX::Reader::LibXML::Cell', undef, '121E22671', '121E22671', '121E22671'],[''],
 	];
 ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space => 'main', );
 ###LogSD		$phone->talk( level => 'info', message => [ "harder questions ..." ] );
@@ -96,31 +98,31 @@ is_deeply	[@row_range], $answer_ref->[$x++],
 										"Check for the correct row range";
 			for my $row ( $row_range[0] .. $row_range[1] ){
 			for my $col ( $column_range[0] .. $column_range[1] ){
-###LogSD	my $reveal = 7;
+###LogSD	my $reveal =14;
 ###LogSD	if( $row == $reveal and $col == 0 ){
 ###LogSD		$operator->add_name_space_bounds( {
-###LogSD			Test =>{
-###LogSD				Worksheet =>{
-###LogSD					_build_out_the_cell =>{
+#~ ###LogSD			Test =>{
+#~ ###LogSD				Worksheet =>{
+#~ ###LogSD					_build_out_the_cell =>{
 ###LogSD						UNBLOCK =>{
 ###LogSD							log_file => 'trace',
 ###LogSD						},
-###LogSD					},
-###LogSD				},
-###LogSD			},
+#~ ###LogSD					},
+#~ ###LogSD				},
+#~ ###LogSD			},
 ###LogSD		} );
 ###LogSD	}
 ###LogSD	elsif( $row == $reveal and $col == 1 ){
 ###LogSD		$operator->add_name_space_bounds( {
-###LogSD			Test =>{
-###LogSD				Worksheet =>{
-###LogSD					_build_out_the_cell =>{
+#~ ###LogSD			Test =>{
+#~ ###LogSD				Worksheet =>{
+#~ ###LogSD					_build_out_the_cell =>{
 ###LogSD						UNBLOCK =>{
 ###LogSD							log_file => 'warn',
 ###LogSD						},
-###LogSD					},
-###LogSD				},
-###LogSD			},
+#~ ###LogSD					},
+#~ ###LogSD				},
+#~ ###LogSD			},
 ###LogSD		} );
 ###LogSD	}
 			my $cell;

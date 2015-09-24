@@ -28,7 +28,7 @@ use	lib
 ###LogSD		$operator->add_skip_up_caller( qw( Carp __ANON__ ) );
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
-use Spreadsheet::XLSX::Reader::LibXML::Error v0.4;
+use Spreadsheet::XLSX::Reader::LibXML::Error;
 my  ( 
 			$test_instance, $capture, $capture_II,
 	);
@@ -60,7 +60,7 @@ can_ok		'Spreadsheet::XLSX::Reader::LibXML::Error', $_,
 ###LogSD	$phone->talk( level => 'info', message => [ "harder questions ..." ] );
 lives_ok{
 			$test_instance =	Spreadsheet::XLSX::Reader::LibXML::Error->new(
-									#~ should_warn	=> 0,# to turn off cluck
+									should_warn	=> 1,# to turn on cluck
 								);
 }										"Prep a new Error instance";
 

@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader;
-use version; our $VERSION = qv('v0.38.16');
+use version; our $VERSION = qv('v0.38.18');
 
 use 5.010;
 use Moose;
@@ -10,6 +10,8 @@ use Types::Standard qw(
 		Num				Str
     );
 use XML::LibXML::Reader;
+use Data::Dumper;
+use Carp 'confess';
 use lib	'../../../../../lib',;
 ###LogSD	with 'Log::Shiras::LogSpace';
 ###LogSD	use Log::Shiras::Telephone;
@@ -17,6 +19,7 @@ use lib	'../../../../../lib',;
 use Spreadsheet::XLSX::Reader::LibXML::Types qw(
 		IOFileType
 	);
+use	Spreadsheet::XLSX::Reader::LibXML::Error;
 
 #########1 Public Attributes  3#########4#########5#########6#########7#########8#########9
 
@@ -42,6 +45,7 @@ has	error_inst =>(
 		handles =>[ qw(
 			error set_error clear_error set_warnings if_warn
 		) ],
+		default => sub{ Spreadsheet::XLSX::Reader::LibXML::Error->new },
 	);
 
 has	xml_version =>(
@@ -285,6 +289,27 @@ sub _next_node{
 		return $result;
 	}
 }
+
+#~ around BUILDARGS => sub {
+    #~ my ( $orig, $class, %args ) = @_;
+	#~ ###LogSD	my $log_space = $args{log_space};
+	#~ ###LogSD	$log_space .= '::' if $log_space;
+	#~ ###LogSD	$log_space .= 'Workbook::BUILDARGS';
+	#~ confess  "----------Dumping at BUILDARGS:" .  $class->meta->dump(5);
+	#~ ###LogSD	my	$phone = Log::Shiras::Telephone->new(
+	#~ ###LogSD					name_space 	=> $log_space, );
+	#~ ###LogSD		$phone->talk( level => 'trace', message =>[
+	#~ ###LogSD			'Arrived at BUILDARGS with: ', %args ] );
+    #~ my $orig  = shift;
+    #~ my $class = shift;
+ 
+    #~ if ( @_ == 1 && !ref $_[0] ) {
+        #~ return $class->$orig( ssn => $_[0] );
+    #~ }
+    #~ else {
+        #~ return $class->$orig(@_);
+    #~ }
+#~ };
 
 sub _reader_init{
 	my( $self, $reader ) = @_;
