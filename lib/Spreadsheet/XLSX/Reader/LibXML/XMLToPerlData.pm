@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLToPerlData;
-use version; our $VERSION = qv('v0.38.16');
+use version; our $VERSION = qv('v0.38.18');
 
 use	Moose::Role;
 use Data::Dumper;
@@ -8,7 +8,7 @@ requires qw(
 	get_empty_return_type		get_text_node				get_attribute_hash_ref
 	advance_element_position	location_status
 );#text_value
-use Types::Standard qw(	Int	ArrayRef );
+use Types::Standard qw(	Int	ArrayRef	is_HashRef 	is_Int );
 use Clone qw( clone );
 ###LogSD	requires 'get_all_space';
 ###LogSD	use Log::Shiras::Telephone;
@@ -254,9 +254,15 @@ sub _rewind{
 			###LogSD		"Rewinding:", $current_value, "from current ref:", $current_ref, ] );
 			if( ref $current_ref eq 'HASH' ){
 				if( exists $current_ref->{list} ){
-					###LogSD	$phone->talk( level => 'debug', message =>[
-					###LogSD		"Pushing:", $current_value, "on the list in:", $current_ref, ] );
-					$current_ref->{list}->[$next_value] = $current_value;
+					if( $current_value =~ /^\s+/ and is_HashRef( $current_ref->{list}->[$next_value - 1] ) ){
+						###LogSD	$phone->talk( level => 'debug', message =>[
+						###LogSD		"The value:", $current_value, "..is a string of spaces and and doesn't belong in a list of hashrefs",] );
+						pop @{$current_ref->{list}};
+					}else{
+						###LogSD	$phone->talk( level => 'debug', message =>[
+						###LogSD		"Pushing:", $current_value, "..at position: $next_value", "on the list in:", $current_ref, ] );
+						$current_ref->{list}->[$next_value] = $current_value;
+					}
 				}else{
 					if( $next_value eq 'raw_text' and scalar( keys %$current_ref ) > 1){# Check for bad spaces before a tag
 						###LogSD	$phone->talk( level => 'debug', message =>[
@@ -295,7 +301,7 @@ sub _stack{
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
 	###LogSD			$self->get_all_space . '::parse_element::_stack', );
 	###LogSD		$phone->talk( level => 'debug', message =>[
-	###LogSD			"Stacking node id: " . ($node_id//''), "to key/position: $replace_key", "in:",$current_value ] );
+	###LogSD			"Stacking node id: " . ($node_id//''),( ( is_Int( $replace_key )  ?  "..to position: " :  "..to key: ") . $replace_key) , "in:",$current_value ] );
 	my ( $alt_key, $alt_value );
 	
 	if( $replace_key eq 'raw_text' ){# Check for bad spaces before a tag

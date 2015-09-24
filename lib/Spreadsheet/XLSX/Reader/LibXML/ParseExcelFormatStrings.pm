@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings;
-use version; our $VERSION = qv('v0.38.16');
+use version; our $VERSION = qv('v0.38.18');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings-$VERSION";
 
 use 5.010;
@@ -384,11 +384,6 @@ has	_format_cash =>(
 	);
 
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
-
-###LogSD	sub BUILD {
-###LogSD	    my $self = shift;
-###LogSD			$self->set_class_space( 'ExcelFmtDefault' );
-###LogSD	}
 
 sub _build_text{
 	my( $self, $type_filter, $list_ref ) = @_;
@@ -1119,42 +1114,46 @@ sub _build_scientific_sub{
 	my $dispatch_sequence = $number_build_dispatch->{scientific};
 	
 	my 	$conversion_sub = sub{
-			###LogSD	my $sub_phone = $phone;
-			###LogSD	if( length( $Spreadsheet::XLSX::Reader::LibXML::Cell::all_space ) > 0 ){
-			###LogSD		$phone = Log::Shiras::Telephone->new( name_space =>
-			###LogSD			$Spreadsheet::XLSX::Reader::LibXML::Cell::all_space . '::hidden::_return_value_only' . '::_build_number::_build_scientific_sub', );
-			###LogSD	}
 			my $adjusted_input = $_[0];
 			if( !defined $adjusted_input or $adjusted_input eq '' ){
-				###LogSD	$sub_phone->talk( level => 'debug', message => [
+				###LogSD	$phone->talk( level => 'debug', message => [
 				###LogSD		"Return undef for empty strings" ] );
 				return undef;
-			}
-			my	$value_definitions = clone( $conversion_defs );
-				$value_definitions->{initial_value} = $adjusted_input;
-			###LogSD	$sub_phone->talk( level => 'trace', message => [
-			###LogSD		'Building scientific output with:',  $conversion_defs,
-			###LogSD		'..and dispatch sequence:', $dispatch_sequence ] );
-			my $built_ref = $self->_build_elements( $dispatch_sequence, $value_definitions );
-			###LogSD	$sub_phone->talk( level => 'trace', message => [
-			###LogSD		"Received built ref:", $built_ref ] );
-			my $return;
-			if( $built_ref->{no_decimal} ){
-				$return .= sprintf(
-					$built_ref->{sprintf_string},
-					$built_ref->{integer}->{value},
-					$built_ref->{exponent}->{value}
-				);
+			}elsif( $adjusted_input =~ /^\-?\d*(\.\d+)?$/ or
+						( $adjusted_input =~ /^(\-)?((\d{1,3})?(\.\d+)?)[Ee](\-)?(\d+)$/ and $2 and $6 and $6 < 309 ) ){# Check for non-scientific numbers passed to scientific format
+				###LogSD	$phone->talk( level => 'trace', message => [
+				###LogSD		"Passed the first scientific format test with: $adjusted_input" ] );
+				my	$value_definitions = clone( $conversion_defs );
+					$value_definitions->{initial_value} = $adjusted_input;
+					
+				###LogSD	$phone->talk( level => 'trace', message => [
+				###LogSD		'Building scientific output with:',  $conversion_defs,
+				###LogSD		'..and dispatch sequence:', $dispatch_sequence ] );
+				my $built_ref = $self->_build_elements( $dispatch_sequence, $value_definitions );
+				###LogSD	$phone->talk( level => 'trace', message => [
+				###LogSD		"Received built ref:", $built_ref ] );
+				my $return;
+				if( $built_ref->{no_decimal} ){
+					$return .= sprintf(
+						$built_ref->{sprintf_string},
+						$built_ref->{integer}->{value},
+						$built_ref->{exponent}->{value}
+					);
+				}else{
+					$return .= sprintf(
+						$built_ref->{sprintf_string},
+						$built_ref->{integer}->{value},
+						$built_ref->{decimal}->{value} ,
+						$built_ref->{exponent}->{value} 
+					);
+				}
+				$return = $built_ref->{sign} . $return if $built_ref->{sign} and $return;
+				return $return;
 			}else{
-				$return .= sprintf(
-					$built_ref->{sprintf_string},
-					$built_ref->{integer}->{value},
-					$built_ref->{decimal}->{value} ,
-					$built_ref->{exponent}->{value} 
-				);
+				###LogSD	$phone->talk( level => 'trace', message => [
+				###LogSD		"Doesn't really seem like this is a scientific number recognized by excel: $adjusted_input" ] );
+				return $adjusted_input;
 			}
-			$return = $built_ref->{sign} . $return if $built_ref->{sign} and $return;
-			return $return;
 		};
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		"Conversion sub for filter name: " . $type_filter->name, $conversion_sub ] );

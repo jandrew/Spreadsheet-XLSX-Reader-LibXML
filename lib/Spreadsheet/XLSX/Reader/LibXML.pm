@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML;
-use version 0.77; our $VERSION = qv('v0.38.16');
+use version 0.77; our $VERSION = qv('v0.38.18');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML-$VERSION";
 
 use 5.010;
@@ -18,11 +18,8 @@ use Types::Standard qw(
 		CodeRef				Int				HasMethods
 		Bool				is_Object		is_HashRef
     );
-use	MooseX::ShortCut::BuildInstance 1.032 qw( build_instance should_re_use_classes );
-should_re_use_classes( 1 );
 use lib	'../../../../lib',;
-#~ use Data::Dumper;
-###LogSD with 'Log::Shiras::LogSpace';
+use Data::Dumper;
 ###LogSD use Log::Shiras::Telephone;
 ###LogSD use Log::Shiras::UnhideDebug;
 use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles;
@@ -33,6 +30,11 @@ use	Spreadsheet::XLSX::Reader::LibXML::Worksheet;
 use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::Chartsheet;
 use	Spreadsheet::XLSX::Reader::LibXML::Error;
 use	Spreadsheet::XLSX::Reader::LibXML::Types qw( XLSXFile ParserType IOFileType );
+###LogSD use Log::Shiras::UnhideDebug;
+use	MooseX::ShortCut::BuildInstance 1.032 qw( build_instance should_re_use_classes );
+should_re_use_classes( 1 );
+###LogSD with 'Log::Shiras::LogSpace';
+###LogSD	sub get_class_space{ 'Workbook' }
 
 #########1 Dispatch Tables    3#########4#########5#########6#########7#########8#########9
 
@@ -43,22 +45,22 @@ my	$parser_modules ={
 				superclasses	=> ['Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings'],
 				attributes		=> [qw( error_inst cache_positions empty_return_type group_return_type )],
 				store			=> '_set_shared_strings_instance',
-				package			=> 'SharedStringsInstance',
+				package			=> 'SharedStrings',
 			},
 			styles =>{
 				superclasses	=> ['Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles'],
 				attributes		=> [qw( error_inst cache_positions format_inst empty_return_type )],
 				store			=> '_set_styles_instance',
-				package			=> 'StylesInstance',
+				package			=> 'Styles',
 			},
 			worksheet =>{
 				superclasses	=> ['Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow'],
 				roles			=> ['Spreadsheet::XLSX::Reader::LibXML::Worksheet'],
-				package			=> 'WorksheetInstance',
+				package			=> 'Worksheet',
 			},
 			chartsheet =>{
 				superclasses	=> ['Spreadsheet::XLSX::Reader::LibXML::XMLReader::Chartsheet'],
-				package			=> 'ChartsheetInstance',
+				package			=> 'Chartsheet',
 			},
 		},
 	};
@@ -581,9 +583,8 @@ has _zip_file_handle =>(
 		clearer	=> '_clear_zip_file_handle',
 		writer	=> '_set_zip_file_handle',
 		reader	=> '_get_zip_file_handle',
+		predicate	=> '_has_zip_file_handle',
 	);
-	
-###LogSD	has '+class_space' =>( default => 'Workbook' );
 
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
 
@@ -650,11 +651,6 @@ around BUILDARGS => sub {
 	###LogSD			"Final BUILDARGS:", %args ] );
     return $class->$orig(%args);
 };
-
-###LogSD	sub BUILD {
-###LogSD	    my $self = shift;
-###LogSD			$self->set_class_space( 'Workbook' );
-###LogSD	}
 
 sub _build_workbook{
 
@@ -1017,7 +1013,7 @@ sub DEMOLISH{
 	}
 	if( $self->_has_shared_strings_file ){
 		my $instance = $self->_get_shared_strings_instance;
-		#~ print "closing sharedStrings.xml\n" . Dumper( $instance );
+		#~ print "closing sharedStrings.xml\n";# . Dumper( $instance )
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD			"Clearing the sharedStrings.xml file" ] );
 		if( $instance ){
@@ -1030,7 +1026,7 @@ sub DEMOLISH{
 	
 	if( $self->_has_styles_file ){
 		my $instance = $self->_get_styles_instance;
-		#~ print "closing styles.xml\n" . Dumper( $instance );
+		#~ print "closing styles.xml\n";# . Dumper( $instance )
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD			"Clearing the styles.xml file" ] );
 		if( $instance ){
@@ -1041,12 +1037,19 @@ sub DEMOLISH{
 		}
 	}
 	
-	###LogSD	$phone->talk( level => 'debug', message => [
-	###LogSD		"Clearing the Zip file handle" ] );
-	$self->_clear_zip_file_handle;
-	###LogSD	$phone->talk( level => 'debug', message => [
-	###LogSD		"Clearing the top level file handle" ] );
-	$self->_clear_file_handle;
+	if( $self->_has_zip_file_handle ){
+		#~ print "closing zip file handle\n";
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Clearing the Zip file handle" ] );
+		$self->_clear_zip_file_handle;
+	}
+	
+	if( $self->has_file_handle ){
+		#~ print "closing general file handle\n";
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Clearing the top level file handle" ] );
+		$self->_clear_file_handle;
+	}
 }
 
 #########1 Phinish            3#########4#########5#########6#########7#########8#########9
@@ -1078,7 +1081,7 @@ Spreadsheet::XLSX::Reader::LibXML - Read xlsx spreadsheet files with LibXML
 </a>
 
 <a>
-	<img src="https://img.shields.io/badge/this version-0.38.16-brightgreen.svg" alt="this version">
+	<img src="https://img.shields.io/badge/this version-0.38.18-brightgreen.svg" alt="this version">
 </a>
 
 <a href="https://metacpan.org/pod/Spreadsheet::XLSX::Reader::LibXML">

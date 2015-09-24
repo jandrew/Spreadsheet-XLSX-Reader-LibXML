@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::CalcChain;
-use version; our $VERSION = qv('v0.38.16');
+use version; our $VERSION = qv('v0.38.18');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::XMLReader::CalcChain-$VERSION";
 
 use 5.010;
@@ -10,6 +10,7 @@ use Types::Standard qw( Enum	Bool ArrayRef );
 use lib	'../../../../../../lib',;
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
+###LogSD	sub get_class_space{ 'CalcChain' }
 extends	'Spreadsheet::XLSX::Reader::LibXML::XMLReader';
 
 #########1 Dispatch Tables    3#########4#########5#########6#########7#########8#########9
@@ -57,15 +58,8 @@ has _calc_chain_positions =>(
 		reader => '_get_all_cache',
 		writer => '_set_all_cache',
 	);
-	
-###LogSD	has '+class_space' =>( default => 'CalcChain' );
 
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
-
-###LogSD	sub BUILD {
-###LogSD	    my $self = shift;
-###LogSD			$self->set_class_space( 'CalcChain' );
-###LogSD	}
 
 sub _load_unique_bits{
 	my( $self, ) = @_;

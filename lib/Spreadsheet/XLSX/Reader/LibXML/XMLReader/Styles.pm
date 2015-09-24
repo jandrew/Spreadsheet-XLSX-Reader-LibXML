@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles;
-use version; our $VERSION = qv('v0.38.16');
+use version; our $VERSION = qv('v0.38.18');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles-$VERSION";
 
 use 5.010;
@@ -16,6 +16,7 @@ use Types::Standard qw(
 use lib	'../../../../../../lib',;
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
+###LogSD	sub get_class_space{ 'Styles' }
 extends	'Spreadsheet::XLSX::Reader::LibXML::XMLReader';
 
 #########1 Dispatch Tables & Package Variables    5#########6#########7#########8#########9
@@ -236,11 +237,6 @@ has _generic_styles_count =>(
 	);
 
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
-
-###LogSD	sub BUILD {
-###LogSD	    my $self = shift;
-###LogSD			$self->set_class_space( 'Styles' );
-###LogSD	}
 
 sub _load_unique_bits{
 	my( $self, ) = @_;

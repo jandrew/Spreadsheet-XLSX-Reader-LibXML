@@ -21,7 +21,6 @@
 ^TestBook\.zip
 ^lib/Moose/*
 ^t/test_files/spread_test\.xlsx
-^t/test_files/relo-data-2015\.09\.18\.xlsx
 ^t/test_files/spread_test*
 ^t/test_files/relo-data-2015.09.18*
 ^t/04-endless_loop_bug\.t

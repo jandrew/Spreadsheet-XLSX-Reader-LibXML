@@ -54,6 +54,7 @@ t/Spreadsheet/XLSX/Reader/LibXML/XMLReader/03-sharedstrings.t
 t/Spreadsheet/XLSX/Reader/LibXML/XMLReader/04-calcchain.t
 t/Spreadsheet/XLSX/Reader/LibXML/XMLReader/05-styles.t
 t/Spreadsheet/XLSX/Reader/LibXML/XMLReader/52-merge_function_alignment.t
+t/Spreadsheet/XLSX/Reader/LibXML/XMLReader/81-text_in_worksheet_bug.t
 t/Spreadsheet/XLSX/Reader/LibXML/XMLReader/calcchain_example.pl
 t/Spreadsheet/XLSX/Reader/LibXML/XMLReader/sharedstrings_example.pl
 t/Spreadsheet/XLSX/Reader/LibXML/XMLReader/styles_example.pl
@@ -88,6 +89,7 @@ t/test_files/misc.xlsx
 t/test_files/perc.xls
 t/test_files/perc.xlsx
 t/test_files/possible_weird_apple_date_mixin.xls
+t/test_files/string_in_worksheet.xml
 t/test_files/values.xlsx
 t/test_files/xl/_rels/workbook.xml.rels
 t/test_files/xl/calcChain.xml

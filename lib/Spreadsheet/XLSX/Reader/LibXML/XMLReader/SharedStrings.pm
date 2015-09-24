@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings;
-use version; our $VERSION = qv('v0.38.16');
+use version; our $VERSION = qv('v0.38.18');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings-$VERSION";
 
 use 5.010;
@@ -7,12 +7,13 @@ use Moose;
 use MooseX::StrictConstructor;
 use MooseX::HasDefaults::RO;
 use Types::Standard qw(
-		Int		Bool		HashRef			is_HashRef		ArrayRef	Enum
+		Int		Bool		HashRef			is_HashRef		ArrayRef	Enum	is_Int
     );
 use Carp qw( confess );
 use lib	'../../../../../../lib';
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
+###LogSD	sub get_class_space{ 'SharedStrings' }
 extends	'Spreadsheet::XLSX::Reader::LibXML::XMLReader';
 
 #########1 Public Attributes  3#########4#########5#########6#########7#########8#########9
@@ -46,6 +47,8 @@ sub get_shared_string_position{
 	if( !defined $position ){
 		$self->set_error( "Requested shared string position required - none passed" );
 		return undef;
+	}elsif( !is_Int( $position ) ){
+		confess "The passed position -$position- is not an integer";
 	}
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		"Getting the sharedStrings position: $position" ] );
@@ -229,11 +232,6 @@ has _cache_completed =>(
 	);
 
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
-
-###LogSD	sub BUILD {
-###LogSD	    my $self = shift;
-###LogSD			$self->set_class_space( 'SharedStrings' );
-###LogSD	}
 
 sub _load_unique_bits{
 	my( $self, ) = @_;
