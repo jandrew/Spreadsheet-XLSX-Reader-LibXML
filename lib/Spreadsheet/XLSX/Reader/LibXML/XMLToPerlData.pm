@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLToPerlData;
-use version; our $VERSION = qv('v0.38.18');
+use version; our $VERSION = version->declare('v0.38.20');
 
 use	Moose::Role;
 use Data::Dumper;
@@ -24,13 +24,16 @@ use Clone qw( clone );
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
 
 sub parse_element{
-	my ( $self, $level ) = @_;
+	my ( $self, $level, $attribute_ref ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
 	###LogSD			$self->get_all_space . '::parse_element', );
-	###LogSD		$phone->talk( level => 'debug', message =>[ "Parsing current element",] );
+	###LogSD		$phone->talk( level => 'debug', message =>[
+	###LogSD			"Parsing current element", (defined $level ? "..to level: $level" : undef),
+	###LogSD			(defined $attribute_ref ? "..with attribute_ref:" : undef), $attribute_ref ] );
 	$self->_clear_partial_ref;
 	$self->_clear_bread_crumbs;
-	my ( $node_depth, $node_name, $node_type ) = $self->location_status;
+	my ( $node_depth, $node_name, $node_type ) =
+		$attribute_ref ? @$attribute_ref{qw(node_depth node_name node_type )} : $self->location_status ;
 	if( defined $level ){
 		###LogSD	$phone->talk( level => 'debug', message =>[ "Setting max level with (+1)", $level, $node_depth] );
 		$self->_set_max_level( $level + $node_depth + 1 );
@@ -90,7 +93,7 @@ sub parse_element{
 		$last_level = $node_depth;
 		if( !$self->_has_max_level or $self->_get_max_level > $node_depth ){# Check for the bottom
 			# Check for a text node
-			my( $result, $node_text, ) = $self->get_text_node;
+			my( $result, $node_text, ) = $attribute_ref ? ( undef, undef ) : $self->get_text_node;
 			###LogSD	$phone->talk( level => 'trace', message => [
 			###LogSD		"Finished text node search with:", $result, $node_text, ] );
 			
@@ -105,8 +108,15 @@ sub parse_element{
 				###LogSD	$phone->talk( level => 'debug', message =>[ "Loaded the text node"] );
 			}else{
 				###LogSD	$phone->talk( level => 'debug', message =>[
-				###LogSD		"Not a text node - Checking for an attribute ref" ] );
-				( $result, $next_ref ) = $self->get_attribute_hash_ref;
+				###LogSD		"Not a text node - Checking for an attribute ref: " . ref $attribute_ref, $attribute_ref ] );
+				if( ref $attribute_ref ){
+					###LogSD	$phone->talk( level => 'debug', message =>[
+					###LogSD		"Using the pre-parsed attribute ref", $attribute_ref->{attribute_hash} ] );
+					( $result, $next_ref ) = ( 1, $attribute_ref->{attribute_hash} );
+					$attribute_ref = undef;
+				}else{
+					( $result, $next_ref ) = $self->get_attribute_hash_ref;
+				}
 				###LogSD	$phone->talk( level => 'debug', message =>[
 				###LogSD		"The attribute hash_ref search result -$result- produced the ref:", $next_ref ] );
 				if( $result ){
@@ -301,10 +311,10 @@ sub _stack{
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
 	###LogSD			$self->get_all_space . '::parse_element::_stack', );
 	###LogSD		$phone->talk( level => 'debug', message =>[
-	###LogSD			"Stacking node id: " . ($node_id//''),( ( is_Int( $replace_key )  ?  "..to position: " :  "..to key: ") . $replace_key) , "in:",$current_value ] );
+	###LogSD			"Stacking node id: " . ($node_id//''),( ( ($replace_key and is_Int( $replace_key ))  ?  "..to position: " :  "..to key: ") . ($replace_key//'undef')) , "in:",$current_value ] );
 	my ( $alt_key, $alt_value );
 	
-	if( $replace_key eq 'raw_text' ){# Check for bad spaces before a tag
+	if( $replace_key and $replace_key eq 'raw_text' ){# Check for bad spaces before a tag
 		###LogSD	$phone->talk( level => 'debug', message =>[
 		###LogSD		"Found a bad space before the tag -$node_id- with value |$current_value->{$replace_key}|" ] );
 		delete $current_value->{$replace_key};
@@ -331,9 +341,6 @@ sub _stack{
 		}else{
 			###LogSD	$phone->talk( level => 'debug', message =>[
 			###LogSD		"managing a hash ref:", $current_value, $replace_key ] );
-			if( !ref $replace_key ){
-				$current_value->{$replace_key} = $current_value->{$replace_key};
-			}
 			$current_value->{$node_id} = undef;
 			$replace_key = $node_id;
 			if( $node_id eq 'raw_text' and exists $current_value->{'xml:space'} ){

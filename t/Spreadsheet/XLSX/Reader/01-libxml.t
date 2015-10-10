@@ -20,7 +20,7 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 129;
+use	Test::Most tests => 135;
 use	Test::Moose;
 use Data::Dumper;
 use	lib	'../../../../../Log-Shiras/lib',
@@ -29,70 +29,6 @@ use	lib	'../../../../../Log-Shiras/lib',
 	;
 #~ use Log::Shiras::Switchboard v0.21 qw( :debug );#
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(
-###LogSD						name_space_bounds =>{
-###LogSD							main =>{
-###LogSD								UNBLOCK =>{
-###LogSD									log_file => 'info',
-###LogSD								},
-###LogSD							},
-###LogSD							UNBLOCK =>{
-###LogSD								log_file => 'warn',
-###LogSD							},
-#~ ###LogSD							build_class =>{
-#~ ###LogSD								UNBLOCK =>{
-#~ ###LogSD									log_file => 'warn',
-#~ ###LogSD								},
-#~ ###LogSD							},
-#~ ###LogSD							build_instance =>{
-#~ ###LogSD								UNBLOCK =>{
-#~ ###LogSD									log_file => 'warn',
-#~ ###LogSD								},
-#~ ###LogSD							},
-###LogSD							Test =>{
-#~ ###LogSD								StylesInstance =>{
-#~ ###LogSD									UNBLOCK =>{
-#~ ###LogSD										log_file => 'trace',
-#~ ###LogSD									},
-#~ ###LogSD									XMLReader =>{
-#~ ###LogSD										UNBLOCK =>{
-#~ ###LogSD											log_file => 'warn',
-#~ ###LogSD										},
-#~ ###LogSD									},
-#~ ###LogSD									get_defined_conversion =>{
-#~ ###LogSD										UNBLOCK =>{
-#~ ###LogSD											log_file => 'trace',
-#~ ###LogSD										},
-#~ ###LogSD									},
-#~ ###LogSD									_load_unique_bits =>{
-#~ ###LogSD										UNBLOCK =>{
-#~ ###LogSD											log_file => 'warn',
-#~ ###LogSD										},
-#~ ###LogSD									},
-#~ ###LogSD									parse_element =>{
-#~ ###LogSD										UNBLOCK =>{
-#~ ###LogSD											log_file => 'warn',
-#~ ###LogSD										},
-#~ ###LogSD									},
-#~ ###LogSD								},
-###LogSD								ExcelFmtDefault =>{
-###LogSD									get_defined_conversion =>{
-###LogSD										UNBLOCK =>{
-###LogSD											log_file => 'debug',
-###LogSD										},
-###LogSD									},
-###LogSD									parse_excel_format_string =>{
-###LogSD										UNBLOCK =>{
-###LogSD											log_file => 'debug',
-###LogSD										},
-###LogSD									},
-###LogSD									hidden =>{
-###LogSD										UNBLOCK =>{
-###LogSD											log_file => 'trace',
-###LogSD										},
-###LogSD									},
-###LogSD								},
-###LogSD							},
-###LogSD						},
 ###LogSD						reports =>{
 ###LogSD							log_file =>[ Print::Log->new ],
 ###LogSD						},
@@ -200,8 +136,8 @@ ok			1,							"The file unzipped and the parser set up without issues";
 
 			my	$offset_ref = [ 0, 9, 17 ];
 			my	$y = 0;
-###LogSD	my	$test_position = 10;
-###LogSD	my	$test_worksheet = 'Sheet1';
+###LogSD	my	$test_position = 20;
+###LogSD	my	$test_worksheet = 'Sheet2';
 ###LogSD	my	$show_worksheet_build = 0;
 ###LogSD	if( $show_worksheet_build ){
 ###LogSD	$operator->add_name_space_bounds( {
@@ -228,18 +164,11 @@ is			$worksheet->is_sheet_hidden, $answer_ref->[$offset_ref->[$y] + $x],
 ###LogSD	if( $worksheet_name eq $test_worksheet and $x == $test_position ){
 ###LogSD		$operator->add_name_space_bounds( {
 ###LogSD			Test =>{
-###LogSD				Cell =>{
+###LogSD				ExcelFmtDefault =>{
 ###LogSD					hidden =>{
-###LogSD						_return_value_only =>{
-###LogSD							_build_text =>{
-###LogSD								UNBLOCK =>{
-###LogSD									log_file => 'debug',
-###LogSD								},
-###LogSD							},
-###LogSD							_build_datestring =>{
-###LogSD								UNBLOCK =>{
-###LogSD									log_file => 'debug',
-###LogSD								},
+###LogSD						_build_datestring =>{
+###LogSD							UNBLOCK =>{
+###LogSD								log_file => 'debug',
 ###LogSD							},
 ###LogSD						},
 ###LogSD					},
@@ -275,6 +204,43 @@ is_deeply	$row_ref, $answer_ref->[$offset_ref->[$y] + $x],
 			}
 			$y++;
 			}
+lives_ok{ 	
+			$workbook = Spreadsheet::XLSX::Reader::LibXML->new(
+							file_name 			=> $test_file,
+							empty_is_end 		=> 1,
+							empty_return_type 	=> 'undef_string',
+							group_return_type	=> 'value',
+			###LogSD		log_space			=> 'Test',
+						);
+}										"Attempt to unzip the file with different attributes";
+			#~ print Dumper( $workbook );
+			if ( !$workbook->has_file_name ) {
+				# the test version of "die $parser->error()";
+is			$workbook->error(), 'Workbook failed to load',
+										"Write any error messages from the file load";
+			}else{
+pass									"The file unzipped and the parser set up without issues";
+			}
+ok			my $worksheet = $workbook->worksheet( 'Sheet1' ),
+										"Open 'Sheet1' again";
+###LogSD	$operator->add_name_space_bounds( {
+###LogSD			Test =>{
+#~ ###LogSD				ExcelFmtDefault =>{
+#~ ###LogSD					_build_datestring =>{
+###LogSD						UNBLOCK =>{
+###LogSD							log_file => 'trace',
+###LogSD						},
+#~ ###LogSD					},
+#~ ###LogSD				},
+###LogSD			},
+###LogSD	}, );
+is_deeply	$worksheet->fetchrow_arrayref( 13 ), $answer_ref->[31],
+										"fetchrow_arrayref( 13 ) And check that it returns: " . Dumper( $answer_ref->[31] );
+is_deeply	$worksheet->fetchrow_arrayref( 11 ), $answer_ref->[29],
+										"fetchrow_arrayref( 11 ) And check that it returns: " . Dumper( $answer_ref->[29] );
+is_deeply	$worksheet->fetchrow_arrayref( ), $answer_ref->[30],
+										"fetchrow_arrayref() (next -> 12) And check that it returns: " . Dumper( $answer_ref->[30] );
+###LogSD	exit 1;
 is			$workbook->parse( 'badfile.not' ), undef,
 										"Check that a bad file will not load";
 like		$workbook->error, qr/Attribute \(file_name\) does not pass the type constraint because: The string \-badfile\.not\- does not have an xlsx file extension/,

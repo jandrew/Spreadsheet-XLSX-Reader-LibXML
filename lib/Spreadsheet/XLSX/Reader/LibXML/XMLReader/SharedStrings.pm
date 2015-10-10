@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings;
-use version; our $VERSION = qv('v0.38.18');
+use version; our $VERSION = version->declare('v0.38.20');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings-$VERSION";
 
 use 5.010;
@@ -13,7 +13,6 @@ use Carp qw( confess );
 use lib	'../../../../../../lib';
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
-###LogSD	sub get_class_space{ 'SharedStrings' }
 extends	'Spreadsheet::XLSX::Reader::LibXML::XMLReader';
 
 #########1 Public Attributes  3#########4#########5#########6#########7#########8#########9
@@ -39,6 +38,8 @@ has empty_return_type =>(
 with	'Spreadsheet::XLSX::Reader::LibXML::XMLToPerlData';
 
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
+
+###LogSD	sub get_class_space{ 'SharedStrings' }
 
 sub get_shared_string_position{
 	my( $self, $position ) = @_;

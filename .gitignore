@@ -10,7 +10,11 @@ lib/Spreadsheet/XLSX/Reader/LibXML/XMLDOM/*
 t/Spreadsheet/XLSX/Reader/LibXML/XMLDOM/*
 t/test_files/spread_test.xlsx
 t/test_files/relo-data-2015.09.18.xlsx
+<<<<<<< HEAD
 t/test_files/121206_Raw Data - Call Logs_ken.xlsx
+=======
+t/121206_Raw Data - Call Logs_ken.xlsx
+>>>>>>> iss83
 t/04-endless_loop_bug.t
 t/05-bad_xml_example_bug.t
 t/06-bad_gism_example.t

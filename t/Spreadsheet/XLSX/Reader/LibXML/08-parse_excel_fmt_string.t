@@ -3,7 +3,7 @@
 BEGIN{ $ENV{PERL_TYPE_TINY_XS} = 0; }
 $| = 1;
 
-use	Test::Most tests => 246;
+use	Test::Most tests => 263;
 use	Test::Moose;
 use Data::Dumper;
 use	MooseX::ShortCut::BuildInstance v1.8 qw( build_instance );#
@@ -41,7 +41,7 @@ my  (
 my 			$row = 0;
 my 			@class_attributes = qw(
 				epoch_year							cache_formats
-				datetime_dates
+				datetime_dates						european_first
 			);
 my  		@class_methods = qw(
 				new									get_epoch_year
@@ -49,6 +49,7 @@ my  		@class_methods = qw(
 				set_date_behavior					parse_excel_format_string
 				get_defined_excel_format			total_defined_excel_formats
 				change_output_encoding				get_excel_region
+				set_european_first					get_european_first
 			);
 my			$question_list =[
 				['[$-409]d-mmm-yy;@',undef,'7/4/1776 11:00.234 AM','0.112311','60.99112311','1.500112311','55.0000102311','59.112311','60.345112311'],
@@ -62,7 +63,9 @@ my			$question_list =[
 				['# ??/10',undef,'0.3333333','-1.6666666','2.1666666','-3.8333333','4.1111111','-5.2222222','6.4444444','-7.5555555','8.7777777','-9.8888888','10.09090909','-11.1818181','12.0833333','-13.4166666','0.12345678','-0.125','0.75','-0.0416666666666667','0.000005','-0.00001','0.9999999','0.019','-0.999'],
 				['# ???/100',undef,'0.3333333','-1.6666666','2.1666666','-3.8333333','4.1111111','-5.2222222','6.4444444','-7.5555555','8.7777777','-9.8888888','10.09090909','-11.1818181','12.0833333','-13.4166666','0.12345678','-0.125','0.75','-0.0416666666666667','0.000005','-0.00001','0.9999999','0.019','-0.999'],
 				['# ??????/??????',undef,'0.3333333','-1.6666666','2.1666666','-3.8333333','4.1111111','-5.2222222','6.4444444','-7.5555555','8.7777777','-9.8888888','10.09090909','-11.1818181','12.0833333','-13.4166666','0.12345678','-0.125','0.75','-0.0416666666666667','0.000005','-0.00001','0.9999999','0.019','-0.999'],
-				];
+				['d-mmmm-yy',undef,'7/4/1776','4/7/1776','7/4/76','4/7/76', '5-30-11 0:00'],
+				['d-mmmm-yy',undef,'7/4/1776','4/7/1776','7/4/76','4/7/76'],
+			];
 my			$answer_list =[
 				['[$-409]d-mmm-yy;@',undef,'4-Jul-76','1-Jan-04','1-Mar-04','2-Jan-04','25-Feb-04','29-Feb-04','1-Mar-04'],
 				['[$-409]dddd, mmmm dd, yyyy;@',undef,'Thursday, July 04, 1776','Friday, January 01, 1904','Tuesday, March 01, 1904','Saturday, January 02, 1904','Thursday, February 25, 1904','Monday, February 29, 1904','Tuesday, March 01, 1904'],
@@ -75,6 +78,8 @@ my			$answer_list =[
 				['# ??/10',undef,'3/10','-1 7/10','2 2/10','-3 8/10','4 1/10','-5 2/10','6 4/10','-7 6/10','8 8/10','-9 9/10','10 1/10','-11 2/10','12 1/10','-13 4/10','1/10','-1/10','8/10','0','0','0','1','0','-1'],
 				['# ???/100',undef,'33/100','-1 67/100','2 17/100','-3 83/100','4 11/100','-5 22/100','6 44/100','-7 56/100','8 78/100','-9 89/100','10 9/100','-11 18/100','12 8/100','-13 42/100','12/100','-13/100','75/100','-4/100','0','0','1','2/100','-1'],
 				['# ??????/??????',undef,'1/3','-1 2/3','2 1/6','-3 5/6','4 1/9','-5 2/9','6 4/9','-7 5/9','8 7/9','-9 8/9','10 1/11','-11 2/11','12 1/12','-13 5/12','10/81','-1/8','3/4','-1/24','1/200000','-1/100000','1','19/1000','-999/1000'],
+				['d-mmmm-yy',undef,'4-July-76','7-April-76','4-July-76','7-April-76', '30-May-11'],
+				['d-mmmm-yy',undef,'7-April-76','4-July-76','7-April-76','4-July-76',],
 			];
 ###LogSD		$phone->talk( level => 'info', message => [ "easy questions ..." ] );
 lives_ok{
@@ -103,6 +108,10 @@ can_ok		$test_instance, $_,
 ###LogSD		$phone->talk( level => 'info', message => [ "hardest questions ..." ] );
 			no warnings 'uninitialized';
 			for my $position ( 0 .. $#$question_list ){
+			if( $position == 12 ){
+lives_ok{	$test_instance->set_european_first( 1 ) }
+										"Prioritize European style (DD-MM-YY) string parsing";
+			}
 ###LogSD		$phone->talk( level => 'debug', message => [ 'processing excel format string: ' . $question_list->[$position]->[0]  ] );
 ok			my $coercion = $test_instance->parse_excel_format_string( $question_list->[$position]->[0] ),
 										"Build a coercion with excel format string: $question_list->[$position]->[0]";

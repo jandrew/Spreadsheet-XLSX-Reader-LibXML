@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::Cell;
-use version; our $VERSION = qv('v0.38.18');
+use version; our $VERSION = version->declare('v0.38.20');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::Cell-$VERSION";
 
 $| = 1;
@@ -16,12 +16,12 @@ use Types::Standard qw(
 use lib	'../../../../../lib';
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
-###LogSD	with 'Log::Shiras::LogSpace';
 use	Spreadsheet::XLSX::Reader::LibXML::Types qw(
 		CellID
 	);
 ###LogSD with 'Log::Shiras::LogSpace';
-###LogSD	sub get_class_space{ 'Workbook' }
+###LogSD	sub get_class_space{ 'Cell' }
+our $log_space = '';
 
 #########1 Public Attributes  3#########4#########5#########6#########7#########8#########9
 
@@ -183,7 +183,7 @@ sub value{
 				$unformatted, 
 				$self->get_coercion,
 				$self->_get_error_inst,
-	###LogSD	$self->get_log_space,
+	#~ ###LogSD	$self->get_log_space,
 			);
 }
 
@@ -203,12 +203,13 @@ after 'set_coercion' => sub{
 };
 
 sub _return_value_only{
-	my ( $self, $unformatted, $coercion, $error_inst, $log_space ) = @_;# To be used by GetCell too
+	my ( $self, $unformatted, $coercion, $error_inst ) = @_;# To be used by GetCell too
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD				$self->get_all_space . '::hidden::_return_value_only', );
+	###LogSD				$self->get_class_space . '::hidden::_return_value_only', );
 	###LogSD		$phone->talk( level => 'debug', message =>[  
-	###LogSD			 "Returning the coerced value of -" . ( defined $unformatted ? $unformatted : '') . '-',
-	###LogSD			 ($coercion ? ( '..using coercion:' , $coercion ) : ''), ] );
+	###LogSD			 "Returning the coerced value of -" . ( defined $unformatted ? $unformatted : '') . '-', ] );
+	###LogSD		$phone->talk( level => 'trace', message =>[  
+	###LogSD			 '..using coercion:' , $coercion ] ) if $coercion;
 	my	$formatted = $unformatted;
 	if( !$coercion ){
 		###LogSD	$phone->talk( level => 'debug', message => [

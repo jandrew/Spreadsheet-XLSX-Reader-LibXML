@@ -1,19 +1,23 @@
 package Spreadsheet::XLSX::Reader::LibXML::Error;
-use version; our $VERSION = qv('v0.38.18');
+use version; our $VERSION = version->declare('v0.38.20');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::Error-$VERSION";
 
 use Moose;
-use Carp qw( cluck );
+use Carp qw( cluck longmess );
+#~ our @CARP_NOT = qw(
+		#~ Spreadsheet::XLSX::Reader::LibXML::Error
+		#~ Class::MOP::Class
+	#~ );
 use MooseX::StrictConstructor;
 use MooseX::HasDefaults::RO;
 use Types::Standard qw(
 		Str
 		Bool
     );
+use Devel::StackTrace;
 use lib	'../../../../../lib',;
 use Spreadsheet::XLSX::Reader::LibXML::Types qw( ErrorString );
 ###LogSD	with 'Log::Shiras::LogSpace';
-###LogSD	use Log::Shiras::TapWarn qw( re_route_warn restore_warn );
 ###LogSD	use Log::Shiras::Telephone;
 
 #########1 Public Attributes  3#########4#########5#########6#########7#########8#########9
@@ -29,15 +33,16 @@ has error_string =>(
 			my ( $self, $error ) = @_;
 			###LogSD	my	$phone = Log::Shiras::Telephone->new( 
 			###LogSD				name_space => $self->get_all_space . '::set_error',  );
-			if( $self->if_warn ){
-				###LogSD	$phone->talk( level => 'debug', message => [ $error ] );
-				###LogSD	re_route_warn();
-				cluck $error;
-				###LogSD	restore_warn;
+			my $error_string;
+			###LogSD	$error_string = "In name_space: " . $self->get_all_space . "\n";
+			if( $self->spewing_longmess ){
+				$error_string .= longmess( $error );
 			}else{
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		$error . " line " .
-				###LogSD		(((caller(2))[2])? ((caller(2))[2]) : ((caller(1))[2]) ) ] );
+				$error_string .= $error;
+			}
+			###LogSD	$phone->talk( level => 'warn', message => [ $error_string . "\n------------------------------\n" ] );
+			if( $self->if_warn ){
+				warn "$error_string\n";
 			}
 		},
 	);
@@ -47,6 +52,13 @@ has should_warn =>(
 		default	=> 0,
 		writer	=> 'set_warnings',
 		reader	=> 'if_warn',
+	);
+
+has spew_longmess =>(
+		isa		=> Bool,
+		default	=> 1,
+		writer	=> 'should_spew_longmess',
+		reader	=> 'spewing_longmess',
 	);
 
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
@@ -181,10 +193,15 @@ B<Definition:> sets the attribute with $error_string.
 
 =over
 
-B<Definition:> This determines if the package will L<cluck|CARP> and 
-return a stack trace when the error_string attribute is set.
+B<Definition:> This determines if the package will push any low level errors logged 
+during processing to STDERR when they occur. (rather than just made available) It 
+should be noted that failures that kill the package should push to STDERR by default.  
+If your Excel sheet is malformed it can error without failing.  Sometimes this package 
+will handle those cases correctly and sometimes it wont.  If you want to know more 
+behind the scenes about the unexpected behaviour of the sheet then turn this attribute 
+on.
 
-B<Default> 1 -> it will cluck
+B<Default> 1 -> it will push to STDERR
 
 B<Range> Boolean values
 
@@ -196,11 +213,43 @@ B<attribute methods> Methods provided to adjust this attribute
 
 =over
 
-B<Definition:> Turn clucked warnings on or off
+B<Definition:> Turn pushed warnings on or off
 
 =back
 
 =head4 if_warn
+
+=over
+
+B<Definition:> Returns the current setting of this attribute
+
+=back
+
+=head3 spew_longmess
+
+=over
+
+B<Definition:> This (the Error) class is capable of pulling the L<Carp/longmess> 
+for each error in order to understand what happened.  If that is just too much 
+you can change the behaviour
+
+B<Default> 1 -> it will pull the longmess (using Carp);
+
+B<Range> Boolean values
+
+B<attribute methods> Methods provided to adjust this attribute
+		
+=back
+
+=head4 should_spew_longmess( $bool )
+
+=over
+
+B<Definition:> add the longmess to errors
+
+=back
+
+=head4 spewing_longmess
 
 =over
 
@@ -223,6 +272,7 @@ L<github Spreadsheet::XLSX::Reader::LibXML/issues
 
 B<1.> get clases in this package to return error numbers and or error strings and 
 then provide opportunity for this class to localize.
+B<2.> Get the @CARP_NOT section to work and skip most of the Moose level reporting
 
 =back
 

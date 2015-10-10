@@ -1,1 +1,5 @@
 password for opening and the 'Data' tab of CodeTest.xlsm file is 'stupidpwd'
+Add a test that reads a row with spaces and then force a rewind and call that row again to see if it creates an endless loop
+2015-10-05 I've adjusted the unzipped files enough that it't time to not adjust 'TestBook.xlsx' and unzip it anymore.
+The name space should be owned by the instance and shared via observer rather than passed and stored in each sub object (worksheet or reader)
+	This should be fixed sooner rather than later!!!!!!!!!!

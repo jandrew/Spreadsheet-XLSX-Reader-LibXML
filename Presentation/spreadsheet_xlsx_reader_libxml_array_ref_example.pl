@@ -19,8 +19,7 @@ if ( !$workbook->has_file_name ) {
 my	$worksheet = $workbook->worksheet( 'Sheet5' );
 	$worksheet->set_custom_formats( {
 		B2 => DateTimeStringOneType,
-		C2 => DateTimeStringOneType,
-		D2 => DateTimeStringOneType,
+		2 =>'yyyy-m-d',
 	} );
 my $value;
 while( !$value or $value ne 'EOF' ){
