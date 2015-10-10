@@ -2,6 +2,8 @@
 ^t/02-pod\.t
 ^t/03-tap_harness_tests\.t
 ^t/04-endless_loop_bug\.t
+^t/05-bad_xml_example_bug\.t
+^t/06-bad_gism_example\.t
 ^DevelopmentNotes.txt
 ^p5-alien-libxml*
 ^.gitignore
@@ -27,3 +29,4 @@
 ^t/05-bad_xml_example_bug\.t
 ^t/test_files/ChartSheet.[^x]
 ^t/test_files/metaExample*
+^t/test_files/121206_Raw Data - Call Logs_ken*

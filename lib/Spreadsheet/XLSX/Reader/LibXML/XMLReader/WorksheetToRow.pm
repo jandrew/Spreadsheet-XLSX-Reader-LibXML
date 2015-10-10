@@ -1,6 +1,6 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow;
 our $AUTHORITY = 'cpan:JANDREW';
-use version; our $VERSION = qv('v0.38.18');
+use version; our $VERSION = version->declare('v0.38.20');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow-$VERSION";
 
 use	5.010;
@@ -10,8 +10,9 @@ use	MooseX::HasDefaults::RO;
 use Clone 'clone';
 use Carp qw( confess );
 use Types::Standard qw(
-		HasMethods		InstanceOf		ArrayRef
-		Bool			Int				is_HashRef
+		HasMethods		InstanceOf		ArrayRef		Maybe
+		Bool			Int				is_HashRef		is_Int
+		is_ArrayRef
     );
 use MooseX::ShortCut::BuildInstance qw ( build_instance should_re_use_classes );
 should_re_use_classes( 1 );
@@ -20,7 +21,7 @@ use lib	'../../../../../../lib';
 ###LogSD	use Log::Shiras::UnhideDebug;
 extends	'Spreadsheet::XLSX::Reader::LibXML::XMLReader';
 use Spreadsheet::XLSX::Reader::LibXML::Row;
-
+use Data::Dumper;
 #########1 Dispatch Tables & Package Variables    5#########6#########7#########8#########9
 
 
@@ -121,23 +122,6 @@ has _column_formats =>(
 		},
 	);
 
-has _old_row_inst =>(
-		isa			=> InstanceOf[ 'Spreadsheet::XLSX::Reader::LibXML::Row' ],
-		reader		=> '_get_old_row_inst',
-		writer		=> '_set_old_row_inst',
-		clearer		=> '_clear_old_row_inst',
-		predicate	=> '_has_old_row_inst',
-		handles	=>{
-			_get_old_row_number 	=> 'get_row_number',
-			_is_old_row_hidden		=> 'is_row_hidden',
-			_get_old_row_formats	=> 'get_row_format', # pass the desired format key
-			_get_old_column			=> 'get_the_column', # pass a column number (no next default) returns (cell|undef|EOR)
-			_get_old_last_value_col	=> 'get_last_value_column',
-			_get_old_row_list		=> 'get_row_all',
-			_get_old_row_end		=> 'get_row_end'
-		},
-	);
-
 has _new_row_inst =>(
 		isa			=> InstanceOf[ 'Spreadsheet::XLSX::Reader::LibXML::Row' ],
 		reader		=> '_get_new_row_inst',
@@ -156,10 +140,24 @@ has _new_row_inst =>(
 		},
 	);
 	
+has _row_position_lookup =>(
+		isa		=> ArrayRef[ Maybe[Int] ],
+		traits	=>['Array'],
+		default => sub{ [] },
+		reader	=> '_get_all_positions',
+		handles =>{
+			_set_row_position => 'set',
+			_get_row_position => 'get',
+			_max_row_position_recorded => 'count',
+			_remove_last_row_position => 'pop',
+		},
+	);
+	
 has _row_hidden_states =>(
 		isa		=> ArrayRef[ Bool ],
 		traits	=>['Array'],
 		default => sub{ [] },
+		reader	=> '_get_all_hidden',
 		handles =>{
 			_set_row_hidden => 'set',
 			_get_row_hidden => 'get',
@@ -175,76 +173,83 @@ sub _get_col_row{
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			"Reached _get_col_row",
 	###LogSD			( $target_row ? "Requesting target row and column: [ $target_row, $target_col ]" : '' ),
-	###LogSD			( $self->_has_old_row_inst ? ("With stored old row: " . $self->_get_old_row_number) : ''),
 	###LogSD			( $self->_has_new_row_inst ? ("..and stored current row: " . $self->_get_new_row_number) : '') ] );
-
-	# Attempt to pull the data from stored values or index the row forward
-	my	$index_result = 'NoParse';
-	my ( $cell_ref, $max_value_col );
-	while( !defined $max_value_col ){
-		if( !$self->_has_new_row_inst ){
+	
+	# Get the raw elements (as available)
+	my $cell_ref = $self->_get_specific_position( $target_row, $target_col );
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		"The cell ref after pulling column -$target_col-", $cell_ref, ] );
+	if( $cell_ref ){
+		if( !$cell_ref or $cell_ref eq 'EOR' ){
+			###LogSD	no warnings 'uninitialized';
+			###LogSD	my $max_positions = $self->_max_row_position_recorded - 1;
 			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"No stored data available - index to the next (first?) row" ] );
-			$index_result = $self->_index_row;
-		}elsif( $self->_get_new_row_number < $target_row ){
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		'The value is past the latest row pulled' ] );
-			$index_result = $self->_index_row;
-		}elsif( $self->_get_new_row_number == $target_row ){
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		'The value might be in the latest row pulled' ] );
-			$max_value_col = $self->_get_new_last_value_col;
-			if( $target_col > $max_value_col ){
-				$cell_ref = ($self->is_empty_the_end or $self->_get_new_row_end < $target_col) ? 'EOR' : undef;
-			}else{
-				$cell_ref = $self->_get_new_column( $target_col );
-			}
-			if( $cell_ref and $cell_ref eq 'EOR' ){
-				$index_result = $self->_index_row;
-				$cell_ref = 'EOF' if $index_result eq 'EOF';
-			}
-		}elsif( $self->_has_old_row_inst ){
-			if( $self->_get_old_row_number < $target_row ){
+			###LogSD		"Cell ref is EOR or undef - checking that is is also not EOF with the last 10 known row positions: " . 
+			###LogSD		join( ', ', @{$self->_get_all_positions}[( $max_positions > 10 ? $max_positions - 10 : 0 ) .. $max_positions] ) ] );
+			###LogSD	no warnings 'uninitialized';
+			# Check if EOR equals EOF
+			my $valid_test = 0;
+			if( $self->has_max_row and $self->_max_row == $target_row ){
+					###LogSD	$phone->talk( level => 'debug', message => [
+					###LogSD		"This is the last row - and therefore EOF" ] );
+					$cell_ref = 'EOF';
+					$valid_test = 1;
+			}elsif( $self->_max_row_position_recorded - 1 >= $target_row + 1 ){
 				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		'The requested value falls between the last row and the current row' ] );
-				$index_result = undef;
-			}elsif( $self->_get_old_row_number == $target_row ){
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		'The value might be in the previous row pulled' ] );
-				$max_value_col = $self->_get_old_last_value_col;
-				if( $target_col > $max_value_col ){
-					$cell_ref = ($self->is_empty_the_end or $self->_get_old_row_end < $target_col) ? 'EOR' : undef;
-				}else{
-					$cell_ref = $self->_get_old_column( $target_col );
+				###LogSD		"At least one more row has been previewed - checking to see if it has values" ] );
+				my $row_positions = $self->_get_all_positions;
+				my $test_position = $target_row + 1;
+				for my $position ( @$row_positions[ $test_position .. $#$row_positions ] ){
+					###LogSD	$phone->talk( level => 'debug', message => [
+					###LogSD		"Checking if the position -$test_position- has a row defined: " . ($position//'undef') ] );
+					if( defined $position ){
+						###LogSD	$phone->talk( level => 'debug', message => [
+						###LogSD		"Positing -$test_position- is defined - this is not an EOF" ] );
+						$valid_test = 1;
+						last;
+					}
+					$test_position++;
 				}
-			}else{
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		'The value appears to exist prior to the older saved row - restarting the sheet' ] );
-				$self->start_the_file_over;
-				$self->_clear_old_row_inst;
-				$self->_clear_new_row_inst;
-				$index_result = $self->_index_row;
 			}
-		}else{
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		'The requested value falls between the beginning and the current row (and is empty)' ] );
-			$index_result = undef;
+			if( !$valid_test ){
+				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD		"Unable to know the EOF state from stored data - processing additional rows" ] );
+				my $index_result = $self->_go_to_or_past_row( $target_row + 1 );
+				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD		"Returned from advancing rows with: $index_result" ] );
+				if( $index_result ){
+					if( $self->is_empty_the_end ){
+						###LogSD	$phone->talk( level => 'debug', message => [
+						###LogSD		"Empty is the end - Just check for EOF" ] );
+						if( $index_result eq 'EOF' ){
+							$cell_ref = 'EOF';
+						}
+					}else{
+						if( $self->_max_col >= $target_col ){
+							###LogSD	$phone->talk( level => 'debug', message => [
+							###LogSD		"There may be nothing else of value but we are not at the end of the emptys" ] );
+							$cell_ref = undef;
+						}else{
+							###LogSD	$phone->talk( level => 'debug', message => [
+							###LogSD		"This really is the end of the row - check for EOF" ] );
+							if( $index_result eq 'EOF' ){
+								$cell_ref = 'EOF';
+							}
+						}
+					}
+				}
+			}
 		}
-		if( !$index_result ){
-			return 
-				( 	$self->is_empty_the_end ? 'EOR' :
-					$self->_max_col < $target_col ? 'EOR' : undef );
-		}elsif( !$cell_ref and $index_result =~ /^EO(F|R)$/ ){
-			return $index_result;
+		if( $cell_ref and $cell_ref eq 'EOF' ){
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"The cell ref is EOF!" ] );
+			$self->_clear_new_row_inst;
+			$self->start_the_file_over;
 		}
 	}
-	###LogSD	$phone->talk( level => 'debug', message => [
-	###LogSD		'The index result after parsing through the rows:', $index_result,
-	###LogSD		"The cell ref after pulling column -$target_col-", $cell_ref, ] );
 	my $updated_cell = 
-		( $cell_ref ? 
-			( $cell_ref =~ /^EO(F|R)$/ ? $cell_ref : $self->_complete_cell( $cell_ref ) ) : 
-		($self->is_empty_the_end and $max_value_col < $target_col) ? 'EOR' : undef 		);
+		!$cell_ref ? undef :
+		is_HashRef( $cell_ref ) ?  $self->_complete_cell( $cell_ref ) : $cell_ref;
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		'returning ref:', $updated_cell,] );
 	return $updated_cell;
@@ -261,23 +266,59 @@ sub _get_next_value_cell{
 	# Attempt to pull the data from stored values or index the row forward
 	my	$index_result = 'NoParse';
 	my	$cell_ref;
+	my	$first_pass = 1;
 	while( !$cell_ref ){
 		if( !$self->_has_new_row_inst ){
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"No stored data available - index to the next (first?) row" ] );
-			$index_result = $self->_index_row;
+			if( $first_pass ){
+				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD		"Probably the first time through at the beginning of the sheet" ] );
+				$self->start_the_file_over;
+				my $first_data_row = 1;
+				if( $self->_max_row_position_recorded > 1 ){
+					###LogSD	$phone->talk( level => 'debug', message => [
+					###LogSD		"The sheet has been processed before - find the first data row" ] );
+					my $found_it = 0;
+					while( !$found_it ){
+						if( defined $self->_get_row_position( $first_data_row ) ){
+							###LogSD	$phone->talk( level => 'debug', message => [
+							###LogSD		"Row number -$first_data_row- has data" ] );
+							$found_it = 1;
+						}else{
+							$first_data_row++;
+						}
+					}
+				}
+				$index_result = $self->_go_to_or_past_row( $first_data_row );
+			}else{
+				###LogSD	my $max_positions = $self->_max_row_position_recorded - 1;
+				###LogSD	$phone->talk( level => 'trace', message => [
+				###LogSD		"Likely some bad row bound / EOF / empty last row condition found with last 10 positions: " . join( ', ', @{$self->_get_all_positions}[( $max_positions > 10 ? $max_positions - 10 : 0 ) .. $max_positions] ) ] );
+				$self->start_the_file_over;
+				return 'EOF';
+			}
 		}else{
 			$cell_ref = $self->_get_new_next_value;
+			my $current_row = $self->_get_new_row_number;
 			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		'Pulling the next value in the row:', $cell_ref ] );
+			###LogSD		"For row -$current_row- the next cell is:", $cell_ref ] );
 			if( $cell_ref eq 'EOR' ){
+				$current_row++;
 				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		'Reached the end of the row - starting over' ] );
-				$index_result = $self->_index_row;
-				$cell_ref = undef;
+				###LogSD		"Reached the end of the row - starting over at row: $current_row" ] );
+				if( !$self->has_max_row or $current_row <= $self->_max_row ){
+					$index_result = $self->_go_to_or_past_row( $current_row );
+					$cell_ref = undef;
+				}else{
+					$self->_clear_new_row_inst;
+					$self->start_the_file_over;
+					return 'EOF';
+				}
 			}
 		}
-		if( !$cell_ref and $index_result =~ /^EOF/ ){
+		$first_pass = 0;
+		if( !$cell_ref and $index_result eq 'EOF' ){
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"Returning: $index_result" ] );
 			return $index_result;
 		}
 	}
@@ -297,59 +338,23 @@ sub _get_row_all{
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			"Reached _get_row_all",
 	###LogSD			( $target_row ? "Requesting target row: $target_row" : '' ),
-	###LogSD			( $self->_has_old_row_inst ? ("With stored old row: " . $self->_get_old_row_number) : ''),
 	###LogSD			( $self->_has_new_row_inst ? ("..and stored current row: " . $self->_get_new_row_number) : '') ] );
-
-	# Attempt to pull the data from stored values or index the row forward
-	my	$index_result = 'NoParse';
-	my $row_ref;
-	while( $index_result and !defined $row_ref ){
-		if( !$self->_has_new_row_inst ){
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"No stored data available - index to the next (first?) row" ] );
-			$index_result = $self->_index_row;
-		}elsif( $self->_get_new_row_number < $target_row ){
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		'The requested row is past the latest row pulled' ] );
-			$index_result = $self->_index_row;
-		}elsif( $self->_get_new_row_number == $target_row ){
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		'The requested row is the latest row pulled' ] );
-			$row_ref = $self->_get_new_row_list;
-		}elsif( $self->_has_old_row_inst ){
-			if( $self->_get_old_row_number < $target_row ){
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		'The requested row falls between the last row and the current row' ] );
-				$index_result = undef;
-			}elsif( $self->_get_old_row_number == $target_row ){
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		'The requested row is the previous row pulled' ] );
-				$row_ref = $self->_get_new_old_list;
-			}else{
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		'The requested row appears to exist prior to the older saved row - restarting the sheet' ] );
-				$self->start_the_file_over;
-				$self->_clear_old_row_inst;
-				$self->_clear_new_row_inst;
-				$index_result = $self->_index_row;
-			}
-		}else{
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		'The requested row falls between the beginning and the current row (and is empty)' ] );
-			$index_result = undef;
-		}
-		if( !$index_result ){
-			return [];
-		}elsif( !$row_ref and $index_result eq 'EOF' ){
-			return $index_result;
-		}
-	}
+	
+	# Get the raw elements (as available)
+	my $row_ref = $self->_get_specific_position( $target_row, );
 	###LogSD	$phone->talk( level => 'debug', message => [
-	###LogSD		'The index result after parsing through the rows:', $index_result,
-	###LogSD		"The row ref after pulling row -$target_row-", $row_ref, ] );
-	my $updated_row;
-	for my $cell_ref ( @$row_ref ){
-		push @$updated_row, $cell_ref ? $self->_complete_cell( $cell_ref ) : $cell_ref ;
+	###LogSD		"The row ref is:", $row_ref, ] );
+	my $updated_row = [];
+	if( is_ArrayRef( $row_ref ) ){
+		###LogSD	$phone->talk( level => 'trace', message => [
+		###LogSD		"There are cells to process:", $row_ref ] );
+		for my $cell_ref ( @$row_ref ){
+				###LogSD	$phone->talk( level => 'trace', message => [
+				###LogSD		"Processing cell:", $cell_ref ] );
+			push @$updated_row, $cell_ref ? $self->_complete_cell( $cell_ref ) : $cell_ref ;
+		}
+	}else{
+		$updated_row = $row_ref;
 	}
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		'returning row ref:', $updated_row,] );
@@ -378,7 +383,6 @@ sub _complete_cell{
 		$cell_ref->{cell_hidden} = 'sheet';
 	}else{
 		my $column_attributes = $self->_get_custom_column_data( $cell_ref->{cell_col} );
-		#~ my $row_attributes		= $self->_get_custom_row_data( $sub_ref->{cell_row} );
 		###LogSD	$phone->talk( level => 'trace', message => [
 		###LogSD		"Column -$cell_ref->{cell_col}- has attributes:", $column_attributes, ] );
 		if( $column_attributes and $column_attributes->{hidden} ){
@@ -392,146 +396,480 @@ sub _complete_cell{
 	return $cell_ref;
 }
 
-sub _index_row{
-	my( $self, ) = @_;#, $new_file, $old_file
+sub _get_specific_position{
+	my( $self, $target_row, $target_col ) = @_;
+	my $current_row = $self->_has_new_row_inst ? $self->_get_new_row_number : 0;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::WorksheetToRow::_index_row', );
-	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"Indexing the row forward by one value found position", ] );
+	###LogSD			$self->get_all_space . '::WorksheetToRow::_get_specific_position', );
+	###LogSD		$phone->talk( level => 'info', message => [
+	###LogSD			"Seeking elements of row: $target_row",
+	###LogSD			( defined $target_col ? "..with the intent to extract column: $target_col" : undef) ] );
 	
-	# Index the row as needed to get the next cell
-	my $row_node_ref;
-	while( !$row_node_ref ){
+	# Look for the row and then the cell
+	my ( $row_found, $advance_result );
+	while( !$row_found ){
 		
-		# Advance to the next row node
-		my ( $node_depth, $node_name, $node_type ) = $self->location_status;
-		###LogSD		$phone->talk( level => 'debug', message => [
-		###LogSD			"Attempting to build the next row node from node: $node_name", ] );
-		if( $node_name eq 'row' ){
-			###LogSD	$phone->talk( level => 'trace', message => [
-			###LogSD		'The index is at a row node.' ] );
-		}elsif( $self->advance_element_position( 'row' ) ){
-			###LogSD	$phone->talk( level => 'trace', message => [
-			###LogSD		'The index was moved to a row node.' ] );
+		# Check for the 'EOF' conditions
+		if( $advance_result and $advance_result eq 'EOF'){
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"Returning EOF after arriving at the end of the file" ] );
+			return 'EOF';
+		}elsif( $self->has_max_row ){
+			if( $target_row > $self->_max_row ){
+				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD		"Returning EOF because max row less than target row" ] );
+				return 'EOF';
+			}elsif( defined $target_col and $self->has_max_col and $target_row == $self->_max_row and $target_col > $self->_max_col ){
+				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD		"Returning EOF because max row equal to target row and max col less than requested column" ] );
+				return 'EOF';
+			}
+		}
+		
+		# See if the currently stored row is the desired row (or if we know the row is empty)
+		if( $self->_has_new_row_inst ){
+			my $stored_row = $self->_has_new_row_inst ? $self->_get_new_row_number : undef;
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"Checking if the requested row -$target_row- matches the stored row: " . ($stored_row//'undef'), ] );
+			if( defined $stored_row and $stored_row == $target_row ){
+				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD		'The value might be in the latest row pulled' ] );
+				$row_found = 1;# Currently stored row is the one we want
+			}
+		}
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"The current row found state: " . ($row_found//'undef'),
+		###LogSD		"The current max positions recorded: " . $self->_max_row_position_recorded,
+		###LogSD		"..against target_row: $target_row" ] );
+		if( !$row_found and $self->_max_row_position_recorded - 1 >= $target_row ){
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"The desired row has already been read - check if it is empty: " ] );
+			my $row_position = $self->_get_row_position( $target_row );
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"The desired row is at position: " . ($row_position//'undef') ] );
+			if( !defined $row_position ){
+				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD		"I already know this is an empty row" ] );
+				$row_found = 2;# Empty Row
+			}else{
+				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD		"Need to index to and then read row -$target_row- at position: $row_position" ] );
+			}
+		}
+		
+		# Look deeper as needed
+		if( !$row_found ){
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"Need index the currently read row forward to read the target row: $target_row" ] );
+			$advance_result = $self->_go_to_or_past_row( $target_row );
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"Result of the index is: $advance_result" ] );
+			if( $advance_result and $advance_result eq 'EOF' ){
+				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD		"Setting the return ref to: EOF" ] );
+				$row_found = 3;# EOF condition
+			}
+		}
+		
+	}
+	
+	# Handle unknown $row_found
+	if( $row_found > 3 or $row_found < 1 ){
+		confess "Unknown row_found value: $row_found";
+	}
+	
+	# Return EOF as known
+	if( $row_found == 3 ){
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Returning EOF" ] );
+		return 'EOF';
+	}
+	
+	# If the whole row is needed return that
+	if( !defined $target_col ){
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Prepping to return the row type: " . ( $row_found == 1 ? 'ArrayRef' : $row_found == 2 ? 'Empty ArrayRef' : 'EOF' ) ] );
+		my $row_list = $row_found == 1 ? $self->_get_new_row_list : [];
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Returning the row list:", $row_list ] );
+		return $row_list;
+	}
+	
+	# Return the correct cell value
+	my $cell_ref;
+	if( $row_found == 1 ){# Handle current row return
+		if( $target_col > $self->_get_new_last_value_col ){
+			$cell_ref = ($self->is_empty_the_end or $self->_get_new_row_end < $target_col) ? 'EOR' : undef;
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"The requested cell is past the end of the data in this row: " . ($cell_ref//'undef') ] );
 		}else{
-			$self->set_error( "No row node found where I was looking in the worksheet" );
-			$self->_set_max_row( $self->_get_new_row_number );
+			$cell_ref = $self->_get_new_column( $target_col );
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"Pulling cell data from the stored row:", $cell_ref ] );
+		}
+	}else{
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Determining how to represent a value from an empty row:", $cell_ref, $self->has_max_col, $self->_max_col, $target_col] );
+		$cell_ref = $self->is_empty_the_end ? 'EOR' : ($self->_max_col < $target_col) ? 'EOR' : undef;
+	}
+	
+	###LogSD	$phone->talk( level => 'info', message => [
+	###LogSD		'Returning:', $cell_ref ] );
+	return $cell_ref;
+}
+
+sub _go_to_or_past_row{
+	my( $self, $target_row ) = @_;
+	my $current_row = $self->_has_new_row_inst ? $self->_get_new_row_number : 0;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::WorksheetToRow::_go_to_or_past_row', );
+	###LogSD		$phone->talk( level => 'info', message => [
+	###LogSD			"Indexing the row forward to find row: $target_row", "From current row: $current_row" ] );
+	
+	# Handle a call where we are already at the required location
+	if( $self->_has_new_row_inst and defined $target_row and $self->_get_new_row_number == $target_row ){
+		###LogSD	$phone->talk( level => 'info', message => [
+		###LogSD		'Asked for a row that has already been built and loaded' ] );
+		return $target_row;
+	}
+	
+	# processes through the unwanted known positions quickly
+	my $current_position;
+	my $row_attributes;
+	my $attribute_ref;
+	if( $self->_max_row_position_recorded ){
+		###LogSD	$phone->talk( level => 'trace', message => [
+		###LogSD		'The sheet has recorded some rows' ] );
+		my ( $fast_forward, $test_position );
+		my $test_target = $target_row;
+		
+		# Look forward for fast forward goal
+		###LogSD	no warnings 'uninitialized';
+		while( !defined $test_position and $test_target < ($self->_max_row_position_recorded - 1) ){
+			$test_position = $self->_get_row_position( $test_target );
+			###LogSD	my $max_positions = $self->_max_row_position_recorded - 1;
+			###LogSD	$phone->talk( level => 'trace', message => [
+			###LogSD		"Checking for a defined row position for row: $test_target",
+			###LogSD		".. with position result: " . ($test_position//'undef'),
+			###LogSD		".. with max known column -$max_positions- and the last 10 detailed positions: " . join( ', ', @{$self->_get_all_positions}[( $max_positions > 10 ? $max_positions - 10 : 0 ) .. $max_positions] ) ] );
+			$test_target++;
+		}
+		###LogSD	my $max_positions = $self->_max_row_position_recorded - 1;
+		###LogSD	$phone->talk( level => 'trace', message => [
+		###LogSD		'After looking at and forward of the target row the test position is: ' . $test_position,
+		###LogSD		"..and last 10 known columns: " . join( ', ', @{$self->_get_all_positions}[( $max_positions > 10 ? $max_positions - 10 : 0 ) .. $max_positions] ) ] ) if defined $test_position;
+		
+		# Look backward for fast forward goal
+		$test_target = $target_row < ($self->_max_row_position_recorded - 1) ? $target_row : -1;
+		while( !defined $test_position and $test_target < ($self->_max_row_position_recorded - 1) ){
+			###LogSD	my $max_positions = $self->_max_row_position_recorded - 1;
+			###LogSD	$phone->talk( level => 'trace', message => [
+			###LogSD		"Checking for a defined row position for row: $test_target",
+			###LogSD		".. with position result: " . ($test_position//'undef'),
+			###LogSD		".. against the last 10 positions: " . join( ', ', @{$self->_get_all_positions}[( $max_positions > 10 ? $max_positions - 10 : 0 ) .. $max_positions] )  ] );
+			$test_position = $self->_get_row_position( $test_target );
+			$test_target--;
+		}
+		###LogSD	$max_positions = $self->_max_row_position_recorded - 1;
+		###LogSD	$phone->talk( level => 'trace', message => [
+		###LogSD		'After looking backward from the the target row the test position is: ' . ($test_position//'undef'),
+		###LogSD		".. against the last 10 positions: " . join( ', ', @{$self->_get_all_positions}[( $max_positions > 10 ? $max_positions - 10 : 0 ) .. $max_positions] ) ] );
+		###LogSD	use warnings 'uninitialized';
+		
+		# Pull the current position
+		$current_position	= $current_row ? $self->_get_row_position( $current_row ) : 0;
+		$fast_forward		= $current_position ? $test_position - $current_position : $test_position;
+		@$attribute_ref{qw( node_depth node_name node_type )} = $self->location_status;
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Checking if a speed index can be done between position: " . ($current_position//'undef'),
+		###LogSD		"..for last recorded row: " . ($current_row),
+		###LogSD		"..to target position: $test_position",
+		###LogSD		"..with proposed increment: $fast_forward",
+		###LogSD		"..node name: $attribute_ref->{node_name}", "..node type: $attribute_ref->{node_type}",
+		###LogSD		"..node depth: $attribute_ref->{node_depth}", ] );
+		if( $fast_forward < 0 or ($attribute_ref->{node_depth} == 0 and $attribute_ref->{node_name} eq 'EOF') ){
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"Looking for a row that is earlier than the current position" ] );
 			$self->start_the_file_over;
-			$self->_clear_old_row_inst;
-			$self->_clear_new_row_inst;
+			$fast_forward	= $test_position - 1;
+			$current_row	= 0;
+			$self->advance_element_position( 'row', ) ;
+		}
+		
+		if( $fast_forward > 1 ){# Since you quit at the beginning of the next node
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"Fast forwarding -$fast_forward- times", ] );
+			$self->advance_element_position( 'row', $fast_forward - 1 ) ;
+			@$attribute_ref{qw( node_depth node_name node_type )} = $self->location_status;
+			$row_attributes		= $self->get_attribute_hash_ref;
+			$current_row		= $row_attributes->{r};
+			$attribute_ref->{attribute_hash} = $row_attributes;
+			$current_position	= $test_position;
+		}
+	}
+	$self->_clear_new_row_inst;# We are not in Kansas anymore
+	
+	# move forward into the unknown (slower, in order to record steps)
+	my $count = 0;
+	while( defined $current_row and $target_row > $current_row ){
+		@$attribute_ref{qw( node_depth node_name node_type )} = $self->location_status;
+		###LogSD	$phone->talk( level => 'info', message => [
+		###LogSD		"Reading the next row",
+		###LogSD		"..from XML file position:", $attribute_ref, "..at current position: " . ($current_position//'undef')  ] );
+		
+		# find a row node if you don't have one
+		my $result = 1;
+		if( $attribute_ref->{node_name} ne 'row' ){
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"Attempting to advanced to a row node from a non row node"  ] );
+			$result = $self->advance_element_position( 'row' );
+			@$attribute_ref{qw( node_depth node_name node_type )} = $self->location_status;
+		}
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Current location result: $result", $attribute_ref  ] );
+		# Check for EOF node
+		if( $attribute_ref->{node_name} eq 'EOF' ){
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"Returning EOF"  ] );
+			$self->_set_max_row_state;
 			return 'EOF';
 		}
 		
-		# Turn the xml into basic perl data
-		my $row_ref = $self->parse_element;
-		$row_ref->{list} =
-			exists $row_ref->{list} ? $row_ref->{list} :
-			exists $row_ref->{c} ? [ $row_ref->{c} ] : [];
-		delete $row_ref->{c} if exists $row_ref->{c};# Delete the single column c placeholder as needed
-		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		'Result of row read:', $row_ref ] );
-				
-		# Load text values for each cell where appropriate
-		my ( $alt_ref, $column_to_cell_translations, $reported_column, $reported_position, $last_value_column );
-		my $x = 0;
-		for my $cell ( @{$row_ref->{list}} ){
-			###LogSD	$phone->talk( level => 'info', message => [
-			###LogSD		'Processing cell:', $cell	] );
-			
-			$cell->{cell_type} = 'Text';
-			if( exists $cell->{t} ){
-				if( $cell->{t} eq 's' ){
-					###LogSD	$phone->talk( level => 'debug', message =>[
-					###LogSD		"Identified potentially required shared string for cell:",  $cell] );
-					my $position = ( $self->_has_shared_strings_file ) ?
-							$self->get_shared_string_position( $cell->{v}->{raw_text} ) : $cell->{v}->{raw_text};
-					###LogSD	$phone->talk( level => 'debug', message =>[
-					###LogSD		"Shared strings resolved to:",  $position] );
-					if( is_HashRef( $position ) ){
-						@$cell{qw( cell_xml_value rich_text )} = ( $position->{raw_text}, $position->{rich_text} );
-						delete $cell->{rich_text} if !$cell->{rich_text};
-					}else{
-						$cell->{cell_xml_value} = $position;
-					}
-				}elsif( $cell->{t} eq 'str' ){
-					###LogSD	$phone->talk( level => 'debug', message =>[
-					###LogSD		"Identified a stored string in the worksheet file: " . ($cell->{v}//'')] );
-					$cell->{cell_xml_value} = $cell->{v}->{raw_text};
-				}else{
-					confess "Unknow 't' attribute set for the cell: $cell->{t}";
-				}
-				delete $cell->{t};
-				delete $cell->{v};
-				delete $cell->{cell_xml_value} if !defined $cell->{cell_xml_value};
-			}elsif( exists $cell->{v} ){
-				###LogSD	$phone->talk( level => 'debug', message =>[
-				###LogSD		"Setting cell_xml_value from: $cell->{v}->{raw_text}", ] );
-				$cell->{cell_xml_value} = $cell->{v}->{raw_text};
-				$cell->{cell_type} = 'Numeric' if $cell->{cell_xml_value} and $cell->{cell_xml_value} ne '';
-				delete $cell->{v};
+		# Processe the node advance
+		if( $result ){
+			# Get the location from the current row attributes
+			$row_attributes = $self->get_attribute_hash_ref;
+			$current_row	= $row_attributes->{r};
+			if( !defined $row_attributes->{r} ){
+				confess "arrived at a row node with no row number: " . Dumper( $row_attributes );
 			}
-			if( $self->get_empty_return_type eq 'empty_string' ){
-				$cell->{cell_xml_value} = '' if !exists $cell->{cell_xml_value};
-			}elsif( !defined $cell->{cell_xml_value} or
-					($cell->{cell_xml_value} and length( $cell->{cell_xml_value} ) == 0) ){
-				delete $cell->{cell_xml_value};
+			$current_position = defined $current_position ? $current_position + 1 : 0;
+			###LogSD	$phone->talk( level => 'trace', message => [
+			###LogSD		"Currently at row: $current_row",
+			###LogSD		"..and current position: $current_position", ] );
+			if( $current_row > ($self->_max_row_position_recorded - 1) ){
+				###LogSD	no warnings 'uninitialized';
+				###LogSD	my $max_positions = $self->_max_row_position_recorded - 1;
+				###LogSD	$phone->talk( level => 'trace', message => [
+				###LogSD		"The current last 10 positions from row -$current_row- of the hidden row ref: " . join( ', ', @{$self->_get_all_hidden}[( $max_positions > 10 ? $max_positions - 10 : 0 ) .. $max_positions] ) ] );
+				$self->_set_row_hidden( $current_row => (exists $row_attributes->{hidden} ? 1 : 0) );
+				###LogSD	$phone->talk( level => 'trace', message => [
+				###LogSD		"The updated last 10 positions from row -$current_row- of the hidden row ref: " . join( ', ', @{$self->_get_all_hidden}[( $max_positions > 10 ? $max_positions - 10 : 0 ) .. $max_positions] ),
+				###LogSD		"..with the current last 10 positions of the updated position row ref: " . join( ', ', @{$self->_get_all_positions}[( $max_positions > 10 ? $max_positions - 10 : 0 ) .. $max_positions] ) ] );
+				$self->_set_row_position( $current_row => $current_position );
+				###LogSD	$max_positions = $self->_max_row_position_recorded - 1;
+				###LogSD	$phone->talk( level => 'trace', message => [
+				###LogSD		"The position row ref max row is: $max_positions",
+				###LogSD		"..with the updated last 10 positions of the updated position row ref: " . join( ', ', @{$self->_get_all_positions}[( $max_positions > 10 ? $max_positions - 10 : 0 ) .. $max_positions] ) ] );
+				###LogSD	use warnings 'uninitialized';
 			}
-			###LogSD	$phone->talk( level => 'debug', message =>[
-			###LogSD		"Updated cell:",  $cell] );
-			# Clear empty cells if required
-			if( $self->get_values_only and ( !defined $cell->{cell_xml_value} or length( $cell->{cell_xml_value} ) == 0 ) ){
-					###LogSD	$phone->talk( level => 'info', message => [
-					###LogSD		'Values only called - stripping this non-value cell'	] );
-			}else{
-				$cell->{cell_type} = 'Text' if !exists $cell->{cell_type};
-				$cell->{cell_hidden} = 'row' if $row_ref->{hidden};
-				@$cell{qw( cell_col cell_row )} = $self->_parse_column_row( $cell->{r} );
-				$last_value_column = $cell->{cell_col};
-				$cell->{cell_formula} = $cell->{f}->{raw_text} if $cell->{f};
-				delete $cell->{f};
-				$column_to_cell_translations->[$cell->{cell_col}] = $x++;
-				$reported_column = $cell->{cell_col} if !defined $reported_column;
-				$reported_position = 0;
-				###LogSD	$phone->talk( level => 'info', message => [
-				###LogSD		'Saving cell:', $cell	] );
-				push @$alt_ref, $cell;
-			}
-		}
-		$self->_set_row_hidden( $row_ref->{r} => ($row_ref->{hidden} ? 1 : 0) );
-		
-		if( $alt_ref ){
-			my $new_ref;
-			###LogSD	$phone->talk( level => 'trace', message =>[
-			###LogSD		"Row ref:", $row_ref, ] ) if !$row_ref->{spans};
-			$new_ref->{row_number} = $row_ref->{r};
-			$new_ref->{row_span} = $row_ref->{spans} ?
-				[split /:/, $row_ref->{spans}] : [ $self->_min_col, $self->_max_col ];
-			delete $row_ref->{r};
-			delete $row_ref->{list};
-			delete $row_ref->{spans};
-			delete $row_ref->{hidden};
-			###LogSD	$phone->talk( level => 'debug', message =>[
-			###LogSD		"Updated row ref:", $new_ref, ] );
-			$self->_set_old_row_inst( $self->_get_new_row_inst ) if $self->_has_new_row_inst;
-			$row_node_ref =	build_instance( 
-								package 		=> 'RowInstance',
-								superclasses 	=> [ 'Spreadsheet::XLSX::Reader::LibXML::Row' ],
-								%$new_ref,
-								row_value_cells	=> $alt_ref,
-								row_formats		=> $row_ref,
-								row_last_value_column => $last_value_column,
-								column_to_cell_translations	=> $column_to_cell_translations,
-				###LogSD		log_space => $self->get_log_space
-							);
-			###LogSD	$phone->talk( level => 'debug', message =>[
-			###LogSD		"New row instance:", $row_node_ref, ] );
-			$self->_set_new_row_inst( $row_node_ref );
+			$attribute_ref->{attribute_hash} = $row_attributes;
 		}else{
+			###LogSD	$phone->talk( level => 'trace', message => [
+			###LogSD		"Couldn't find another value row -> this is an unexpected end of file" ] );
+			$self->_set_max_row_state;
+			return 'EOF';
+		}
+		$count++;
+	}
+	
+	# Collect the details of the final row position
+	my $row_ref = $self->parse_element( undef, $attribute_ref );
+	$row_ref->{list} =
+		exists $row_ref->{list} ? $row_ref->{list} :
+		exists $row_ref->{c} ? [ $row_ref->{c} ] : [];
+	delete $row_ref->{c} if exists $row_ref->{c};# Delete the single column c placeholder as needed
+	###LogSD	$phone->talk( level => 'trace', message => [#ask => 1, 
+	###LogSD		'Result of row read:', $row_ref ] );
+	
+	# Load text values for each cell where appropriate
+	my ( $alt_ref, $column_to_cell_translations, $reported_column, $reported_position, $last_value_column );
+	my $x = 0;
+	for my $cell ( @{$row_ref->{list}} ){
+		###LogSD	$phone->talk( level => 'info', message => [
+		###LogSD		'Processing cell:', $cell	] );
+		
+		$cell->{cell_type} = 'Text';
+		if( exists $cell->{t} ){
+			if( $cell->{t} eq 's' ){
+				###LogSD	$phone->talk( level => 'debug', message =>[
+				###LogSD		"Identified potentially required shared string for cell:",  $cell] );
+				my $position = ( $self->_has_shared_strings_file ) ?
+						$self->get_shared_string_position( $cell->{v}->{raw_text} ) : $cell->{v}->{raw_text};
+				###LogSD	$phone->talk( level => 'debug', message =>[
+				###LogSD		"Shared strings resolved to:",  $position] );
+				if( is_HashRef( $position ) ){
+					@$cell{qw( cell_xml_value rich_text )} = ( $position->{raw_text}, $position->{rich_text} );
+					delete $cell->{rich_text} if !$cell->{rich_text};
+				}else{
+					$cell->{cell_xml_value} = $position;
+				}
+			}elsif( $cell->{t} eq 'str' ){
+				###LogSD	$phone->talk( level => 'debug', message =>[
+				###LogSD		"Identified a stored string in the worksheet file: " . ($cell->{v}//'')] );
+				$cell->{cell_xml_value} = $cell->{v}->{raw_text};
+			}else{
+				confess "Unknown 't' attribute set for the cell: $cell->{t}";
+			}
+			delete $cell->{t};
+			delete $cell->{v};
+		}elsif( exists $cell->{v} ){
 			###LogSD	$phone->talk( level => 'debug', message =>[
-			###LogSD		'Nothing to see here - move along', ] );
+			###LogSD		"Setting cell_xml_value from: $cell->{v}->{raw_text}", ] );
+			$cell->{cell_xml_value} = $cell->{v}->{raw_text};
+			$cell->{cell_type} = 'Numeric' if $cell->{cell_xml_value} and $cell->{cell_xml_value} ne '';
+			delete $cell->{v};
+		}
+		if( $self->get_empty_return_type eq 'empty_string' ){
+			$cell->{cell_xml_value} = '' if !exists $cell->{cell_xml_value} or !defined $cell->{cell_xml_value};
+		}elsif( !defined $cell->{cell_xml_value} or
+				($cell->{cell_xml_value} and length( $cell->{cell_xml_value} ) == 0) ){
+			delete $cell->{cell_xml_value};
+		}
+		###LogSD	$phone->talk( level => 'debug', message =>[
+		###LogSD		"Updated cell:",  $cell] );
+		
+		# Clear empty cells if required
+		if( $self->get_values_only and ( !defined $cell->{cell_xml_value} or length( $cell->{cell_xml_value} ) == 0 ) ){
+				###LogSD	$phone->talk( level => 'info', message => [
+				###LogSD		'Values only called - stripping this non-value cell'	] );
+		}else{
+			$cell->{cell_type} = 'Text' if !exists $cell->{cell_type};
+			$cell->{cell_hidden} = 'row' if $row_ref->{hidden};
+			@$cell{qw( cell_col cell_row )} = $self->_parse_column_row( $cell->{r} );
+			$last_value_column = $cell->{cell_col};
+			$cell->{cell_formula} = $cell->{f}->{raw_text} if $cell->{f};
+			delete $cell->{f};
+			$column_to_cell_translations->[$cell->{cell_col}] = $x++;
+			$reported_column = $cell->{cell_col} if !defined $reported_column;
+			$reported_position = 0;
+			###LogSD	$phone->talk( level => 'info', message => [
+			###LogSD		'Saving cell:', $cell	] );
+			push @$alt_ref, $cell;
 		}
 	}
-	return $row_node_ref ? 'GoodParse' : undef;
+	
+	#Load the row instance
+	my $new_ref;
+	###LogSD	$phone->talk( level => 'trace', message =>[
+	###LogSD		"Row ref:", $row_ref, ] );
+	if( defined $row_ref->{r} ){
+		$new_ref->{row_number} = $row_ref->{r};
+		delete $row_ref->{r};
+		delete $row_ref->{list};
+		delete $row_ref->{hidden};
+		if( $alt_ref ){
+			###LogSD	$phone->talk( level => 'trace', message =>[
+			###LogSD		"Alt ref:", $alt_ref, ] );
+			$new_ref->{row_value_cells}	= $alt_ref;
+			$new_ref->{row_span} = $row_ref->{spans} ? [split /:/, $row_ref->{spans}] : [ undef, undef ];
+			$new_ref->{row_last_value_column} = $last_value_column;
+			$new_ref->{column_to_cell_translations}	= $column_to_cell_translations;
+			$new_ref->{row_span}->[0] //= $new_ref->{row_value_cells}->[0]->{cell_col};
+			if( !$self->has_max_col or $self->_max_col < $new_ref->{row_value_cells}->[-1]->{cell_col} ){
+				###LogSD	$phone->talk( level => 'trace', message =>[
+				###LogSD		"From known cells setting the max column to: $new_ref->{row_value_cells}->[-1]->{cell_col}" ] );
+				$self->_set_max_col( $new_ref->{row_value_cells}->[-1]->{cell_col} );
+			}
+			if( defined $new_ref->{row_span}->[1] and $self->_max_col < $new_ref->{row_span}->[1] ){
+				###LogSD	$phone->talk( level => 'trace', message =>[
+				###LogSD		"From the row span setting the max column to:  $new_ref->{row_span}->[1]" ] );
+				$self->_set_max_col(  $new_ref->{row_span}->[1] );
+			}else{
+				$new_ref->{row_span}->[1] //= $self->_max_col;
+			}
+		}else{
+			###LogSD	$phone->talk( level => 'trace', message =>[
+			###LogSD		" No row list (with values?) found" ] );
+			$new_ref->{row_span} = [ 0, 0 ];
+			$new_ref->{row_last_value_column} = 0;
+			$new_ref->{column_to_cell_translations}	= [];
+		}
+		delete $row_ref->{spans};
+		###LogSD	$phone->talk( level => 'debug', message =>[
+		###LogSD		"Row formats:", $row_ref,
+		###LogSD		"Row attributes:", $new_ref, ] );
+		my 	$row_node_ref =	build_instance( 
+				package 		=> 'RowInstance',
+				superclasses	=> [ 'Spreadsheet::XLSX::Reader::LibXML::Row' ],
+				row_formats		=> $row_ref,
+				%$new_ref,
+		###LogSD	log_space 	=> $self->get_log_space
+			);
+		###LogSD	$phone->talk( level => 'debug', message =>[
+		###LogSD		"New row instance:", $row_node_ref, ] );
+		$self->_set_new_row_inst( $row_node_ref );
+	}else{
+		###LogSD	$phone->talk( level => 'debug', message =>[
+		###LogSD		"line 706 - No row number found - must be EOF", ] );
+		return 'EOF';
+	}
+	
+	if( !$alt_ref ){
+		###LogSD	$phone->talk( level => 'debug', message =>[
+		###LogSD		'Nothing to see here - move along', ] );
+		###LogSD	no warnings 'uninitialized';
+		my $result = $current_row + 1;
+		if( is_Int( $current_row ) ){
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD	"Going on to the next row: " . ($current_row +1), ] );
+			#~ no warnings 'recursion';
+			$result = $self->_go_to_or_past_row( $current_row + 1 );# Recursive call for empty rows
+			#~ use warnings 'recursion';
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD	"Returned from the next row with: " . ($result//'undef'),
+			###LogSD	"..target current row is: " . ($current_row +1), ] );
+			$self->_set_row_position( $current_row => undef );# Clean up phantom placeholder
+			my $max_positions = $self->_max_row_position_recorded - 1;
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD	"The last 10 position ref values are: " .
+			###LogSD	join( ', ', @{$self->_get_all_positions}[( $max_positions > 10 ? $max_positions - 10 : 0 ) .. $max_positions] ), ] );
+		}
+		$current_row = $result;
+		###LogSD	my $max_positions = $self->_max_row_position_recorded - 1;
+		###LogSD	$phone->talk( level => 'debug', message =>[
+		###LogSD		'Updated current row -$current_row- pdated last 10 row positions are: ' . 
+		###LogSD		join( ', ', @{$self->_get_all_positions}[( $max_positions > 10 ? $max_positions - 10 : 0 ) .. $max_positions] ) ] );
+		###LogSD	use warnings 'uninitialized';
+	}
+	$self->_set_max_row_state if $current_row and $current_row eq 'EOF';
+	###LogSD	$phone->talk( level => 'debug', message =>[
+	###LogSD		"Returning: ", $current_row ] );
+	return $current_row;
+}
+
+sub _set_max_row_state{
+	my( $self, ) = @_;
+	my $row_position_ref = $self->_get_all_positions;
+	my $max_positions = $#$row_position_ref;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::WorksheetToRow::_go_to_or_past_row::_set_max_row_state', );
+	###LogSD	no warnings 'uninitialized';
+	###LogSD		$phone->talk( level => 'debug', message => [
+	###LogSD			"The current max row is: " . ($self->has_max_row ? $self->_max_row : 'undef'),
+	###LogSD			"Setting the max row from the last 10 positions of the row position ref:" . join( ', ', @$row_position_ref[( $max_positions > 10 ? $max_positions - 10 : 0 ) .. $max_positions] ) ] );
+	###LogSD	use warnings 'uninitialized';
+	if( $self->is_empty_the_end ){
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Clearing empty rows from the end" ] );
+		my $last_position;
+		while( !defined $last_position ){
+			$last_position = $self->_remove_last_row_position;
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"Removed the last row position value: " . ($last_position//'undef'),
+			###LogSD		"..from position: " . $self->_max_row_position_recorded ] );
+		}
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Reload the final poped value: " . $self->_max_row_position_recorded . ' => ' . $last_position ] );
+		$self->_set_row_position( $self->_max_row_position_recorded => $last_position );
+	}
+	my $last_row = $self->_max_row_position_recorded - 1;
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		"Setting the max row to: $last_row" ] );
+	$self->_clear_new_row_inst;
+	$self->start_the_file_over;
+	$self->_set_max_row( $last_row );
+	return $last_row;
 }
 
 sub _load_unique_bits{
@@ -555,16 +893,14 @@ sub _load_unique_bits{
 												( 1, 1 ) : $self->_parse_column_row( $start );
 		my ( $end_column, $end_row	) = $end ? 
 				$self->_parse_column_row( $end ) : 
-				( $start_column, $start_row ) ;
+				( undef, undef ) ;
 		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"Start column: $start_column", "Start row: $start_row",
-		###LogSD		"End column: $end_column", "End row: $end_row" ] );
+		###LogSD		'Start column: ' . ($start_column//'undef'), 'Start row: ' . ($start_row//'undef'),
+		###LogSD		'End column: ' . ($end_column//'undef'), 'End row: ' . ($end_row//'undef') ] );
 		$self->_set_min_col( $start_column );
 		$self->_set_min_row( $start_row );
-		$self->_set_max_col( $end_column );
-		$self->_set_max_row( $end_row );
-		$self->_clear_old_row_inst;
-		$self->_clear_new_row_inst;
+		$self->_set_max_col( $end_column ) if defined $end_column;
+		$self->_set_max_row( $end_row ) if defined $end_row;
 	}else{
 		confess "No sheet dimensions provided";# Shouldn't the error instance be loaded already?
 	}
@@ -1187,87 +1523,6 @@ B<_get_custom_column_data( $int )> delgated from 'Array' 'get'
 
 B<Definition:> returns the sub hash ref representing any formatting 
 for that column.  If no custom formatting is available it returns undef.
-
-=back
-
-=back
-	
-=head3 _old_row_inst
-
-=over
-
-B<Definition:> This is the prior read row instance or undef for the beginning or 
-end of the sheet read.
-
-B<Range:> isa => InstanceOf[ L<Spreadsheet::XLSX::Reader::LibXML::Row> ]
-
-B<attribute methods> Methods provided to adjust this attribute
-		
-=over
-
-B<_set_old_row_inst>
-
-=over
-
-B<Definition:> sets the attribute value
-
-=back
-
-B<_get_old_row_inst>
-
-=over
-
-B<Definition:> returns the attribute
-
-=back
-
-B<_clear_old_row_inst>
-
-=over
-
-B<Definition:> clears the attribute
-
-=back
-
-B<_has_old_row_inst>
-
-=over
-
-B<Definition:> predicate for the attribute
-
-=back
-
-B<delegated methods> from L<Spreadsheet::XLSX::Reader::LibXML::Row>
-		
-=over
-
-B<_get_old_row_number> = L<Spreadsheet::XLSX::Reader::LibXML::Row/get_row_number>
-
-B<_is_old_row_hidden> = L<Spreadsheet::XLSX::Reader::LibXML::Row/is_row_hidden>
-
-B<_get_old_row_formats> = L<Spreadsheet::XLSX::Reader::LibXML::Row/get_row_format>
-
-=over
-
-pass the desired format key
-
-=back
-
-B<_get_old_column> = L<Spreadsheet::XLSX::Reader::LibXML::Row/get_the_column( $column )>
-
-=over
-
-pass a column number (no next default) returns (cell|undef|EOR)
-
-=back
-
-B<_get_old_last_value_col> = L<Spreadsheet::XLSX::Reader::LibXML::Row/get_last_value_column>
-
-B<_get_old_row_list> = L<Spreadsheet::XLSX::Reader::LibXML::Row/get_row_all>
-
-B<_get_old_row_end> = L<Spreadsheet::XLSX::Reader::LibXML::Row/get_row_endl>
-
-=back
 
 =back
 

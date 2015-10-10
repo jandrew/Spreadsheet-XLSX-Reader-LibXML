@@ -10,10 +10,13 @@ lib/Spreadsheet/XLSX/Reader/LibXML/XMLDOM/*
 t/Spreadsheet/XLSX/Reader/LibXML/XMLDOM/*
 t/test_files/spread_test.xlsx
 t/test_files/relo-data-2015.09.18.xlsx
+t/121206_Raw Data - Call Logs_ken.xlsx
 t/04-endless_loop_bug.t
 t/05-bad_xml_example_bug.t
+t/06-bad_gism_example.t
 t/test_files/spread_test*
 t/test_files/relo-data-2015.09.18*
+t/test_files/121206_Raw Data - Call Logs_ken*
 t/test_files/ChartSheet/*
 t/test_files/ChartSheet.zip
 t/test_files/metaExample*

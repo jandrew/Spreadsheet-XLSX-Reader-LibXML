@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::Row;
-use version; our $VERSION = qv('v0.38.18');
+use version; our $VERSION = version->declare('v0.38.20');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::Row-$VERSION";
 
 $| = 1;
@@ -66,7 +66,7 @@ has row_formats =>(
 has column_to_cell_translations =>(
 		isa			=> ArrayRef,
 		traits		=>[ 'Array' ],
-		required	=> 1,
+		#~ required	=> 1,
 		handles	=>{
 			get_position_for_column => 'get',
 		},
@@ -76,7 +76,7 @@ has row_value_cells =>(
 		isa			=> ArrayRef,
 		traits		=>[ 'Array' ],
 		reader		=> 'get_row_value_cells',
-		required	=> 1,
+		#~ required	=> 1,
 		handles	=>{
 			get_cell_position => 'get',
 			total_cell_positions => 'count',

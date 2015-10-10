@@ -19,7 +19,7 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 825;
+use	Test::Most tests => 1200;
 use	Test::Moose;
 use	MooseX::ShortCut::BuildInstance qw( build_instance );
 use Types::Standard qw( Bool HasMethods );
@@ -30,28 +30,16 @@ use	lib
 use	Data::Dumper;
 #~ use Log::Shiras::Switchboard qw( :debug );#
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(
-###LogSD						name_space_bounds =>{
-###LogSD							UNBLOCK =>{
-###LogSD								log_file => 'warn',
-###LogSD							},
-###LogSD							main =>{
-###LogSD								UNBLOCK =>{
-###LogSD									log_file => 'info',
-###LogSD								},
-###LogSD							},
-###LogSD							Test =>{
-###LogSD								_load_unique_bits =>{
-###LogSD									UNBLOCK =>{
-###LogSD										log_file => 'warn',
-###LogSD									},
-###LogSD								},
-###LogSD								_set_file_name =>{
-###LogSD									UNBLOCK =>{
-###LogSD										log_file => 'warn',
-###LogSD									},
-###LogSD								},
-###LogSD							},
-###LogSD						},
+#~ ###LogSD						name_space_bounds =>{
+#~ ###LogSD							UNBLOCK =>{
+#~ ###LogSD								log_file => 'warn',
+#~ ###LogSD							},
+#~ ###LogSD							main =>{
+#~ ###LogSD								UNBLOCK =>{
+#~ ###LogSD									log_file => 'info',
+#~ ###LogSD								},
+#~ ###LogSD							},
+#~ ###LogSD						},
 ###LogSD						reports =>{
 ###LogSD							log_file =>[ Print::Log->new ],
 ###LogSD						},
@@ -110,6 +98,8 @@ my  		@instance_methods = qw(
 				_get_next_value_cell
 				_get_col_row
 				is_sheet_hidden
+				_is_column_hidden
+				_get_row_hidden
 			);
 my			$answer_ref = [
 				[
@@ -135,94 +125,70 @@ my			$answer_ref = [
 					'EOF',
 				],
 				[
-					undef, undef, undef, undef, undef, undef,
-					{ r => 'A2', cell_row => 2, cell_col => 1, cell_xml_value => 'Hello', cell_type => 'Text' },
-					undef, undef,
-					{ r => 'D2', cell_row => 2, cell_col => 4, cell_xml_value => 'my', cell_type => 'Text', cell_hidden => 'column', },
-					undef, undef,
-					undef, undef, undef, undef, undef, undef, 
-					undef, undef,
-					{ r => 'C4', cell_row => 4, cell_col => 3, cell_xml_value => 'World', cell_type => 'Text', s => '7', cell_hidden => 'column', },
-					undef, undef, undef,
-					undef, undef, undef, undef, undef, undef,
-					{ r => 'A6', cell_row => 6, cell_col => 1, cell_xml_value => 'Hello World', cell_type => 'Text', s => '11', cell_merge => 'A6:B6' },
-					{ r => 'B6', cell_row => 6, cell_col => 2, cell_type => 'Text', s => '11', cell_merge => 'A6:B6', },
-					undef, undef, undef, undef,
-					undef,
-					{ r => 'B7', cell_row => 7, cell_col => 2, cell_xml_value => '69', cell_type => 'Numeric', cell_hidden => 'row', },
-					undef, undef, undef, undef,
-					undef,
-					{ r => 'B8', cell_row => 8, cell_col => 2, cell_xml_value => '27', cell_type => 'Numeric', cell_hidden => 'row', },
-					undef, undef,
-					{ r => 'E8', cell_row => 8, cell_col => 5, cell_xml_value => '37145', cell_type => 'Numeric', s => 2, cell_hidden => 'row', },
-					undef,
-					undef,
-					{ r => 'B9', cell_row => 9, cell_col => 2, cell_xml_value => '42', cell_type => 'Numeric', cell_formula => 'B7-B8', cell_hidden => 'row', },
-					undef, undef, undef, undef,
-					undef, undef, undef,
-					{ r => 'D10', cell_row => 10, cell_col => 4, cell_type => 'Text', cell_xml_value => ' ', s => 1, cell_hidden => 'column', },
-					{ r => 'E10', cell_row => 10, cell_col => 5, cell_type => 'Text', cell_xml_value => '2/6/2011', s => 6, cell_hidden => 'row', },
-					{ r => 'F10', cell_row => 10, cell_col => 6, cell_type => 'Text', cell_xml_value => '2/6/2011', s => 2, cell_hidden => 'row', },
-					{ r => 'A11', cell_row => 11, cell_col => 1, cell_type => 'Numeric', cell_xml_value => '2.1345678901', s => 8, cell_hidden => 'row', },
-					undef, undef, undef, undef, undef,
-					undef,
-					{ r => 'B12', cell_row => 12, cell_col => 2, cell_type => 'Text', cell_formula => 'IF(B11>0,"Hello","")', },
-					undef,
-					{ r => 'D12', cell_row => 12, cell_col => 4, cell_type => 'Numeric', cell_xml_value => '39118', cell_formula => 'DATEVALUE(E10)', s => 10, cell_merge => 'D12:E12', cell_hidden => 'column', },
-					{ r => 'E12', cell_row => 12, cell_col => 5, cell_type => 'Text', s => 10, cell_merge => 'D12:E12', },
-					undef,
-					undef, undef, undef, undef, undef, undef,
-					undef, undef,
-					{ r => 'C14', cell_row => 14, cell_col => 3, cell_type => 'Text', cell_xml_value => ' ', cell_hidden => 'column', },
-					{ r => 'D14', cell_row => 14, cell_col => 4, cell_type => 'Numeric', cell_xml_value => '39118', cell_formula => 'D12', s => 9, cell_hidden => 'column', },
-					{ r => 'E14', cell_row => 14, cell_col => 5, cell_type => 'Numeric', cell_xml_value => '39118', cell_formula => 'D14', s => 2, },
-					undef,
-					'EOF',
-				],
-				[
-					undef, undef, undef, undef, undef, undef,'EOR',
-					{ r => 'A2', cell_row => 2, cell_col => 1, cell_xml_value => 'Hello', cell_type => 'Text' },
-					undef, undef,
-					{ r => 'D2', cell_row => 2, cell_col => 4, cell_xml_value => 'my', cell_type => 'Text', cell_hidden => 'column', },
-					undef, undef,'EOR',
-					undef, undef, undef, undef, undef, undef,'EOR',
-					undef, undef,
-					{ r => 'C4', cell_row => 4, cell_col => 3, cell_xml_value => 'World', cell_type => 'Text', s => '7', cell_hidden => 'column', },
-					undef, undef, undef,'EOR',
-					undef, undef, undef, undef, undef, undef,'EOR',
-					{ r => 'A6', cell_row => 6, cell_col => 1, cell_xml_value => 'Hello World', cell_type => 'Text', s => '11', cell_merge => 'A6:B6' },
-					{ r => 'B6', cell_row => 6, cell_col => 2, cell_type => 'Text', s => '11', cell_merge => 'A6:B6', },
-					undef, undef, undef, undef,'EOR',
-					undef,
-					{ r => 'B7', cell_row => 7, cell_col => 2, cell_xml_value => '69', cell_type => 'Numeric', cell_hidden => 'row', },
-					undef, undef, undef, undef,'EOR',
-					undef,
-					{ r => 'B8', cell_row => 8, cell_col => 2, cell_xml_value => '27', cell_type => 'Numeric', cell_hidden => 'row', },
-					undef, undef,
-					{ r => 'E8', cell_row => 8, cell_col => 5, cell_xml_value => '37145', cell_type => 'Numeric', s => 2, cell_hidden => 'row', },
-					undef,'EOR',
-					undef,
-					{ r => 'B9', cell_row => 9, cell_col => 2, cell_xml_value => '42', cell_type => 'Numeric', cell_formula => 'B7-B8', cell_hidden => 'row', },
-					undef, undef, undef, undef,'EOR',
-					undef, undef, undef,
-					{ r => 'D10', cell_row => 10, cell_col => 4, cell_type => 'Text', cell_xml_value => ' ', s => 1, cell_hidden => 'column', },
-					{ r => 'E10', cell_row => 10, cell_col => 5, cell_type => 'Text', cell_xml_value => '2/6/2011', s => 6, cell_hidden => 'row', },
-					{ r => 'F10', cell_row => 10, cell_col => 6, cell_type => 'Text', cell_xml_value => '2/6/2011', s => 2, cell_hidden => 'row', },
-					'EOR',
-					{ r => 'A11', cell_row => 11, cell_col => 1, cell_type => 'Numeric', cell_xml_value => '2.1345678901', s => 8, cell_hidden => 'row', },
-					undef, undef, undef, undef, undef,'EOR',
-					undef,
-					{ r => 'B12', cell_row => 12, cell_col => 2, cell_type => 'Text', cell_formula => 'IF(B11>0,"Hello","")', },
-					undef,
-					{ r => 'D12', cell_row => 12, cell_col => 4, cell_type => 'Numeric', cell_xml_value => '39118', cell_formula => 'DATEVALUE(E10)', s => 10, cell_merge => 'D12:E12', cell_hidden => 'column', },
-					{ r => 'E12', cell_row => 12, cell_col => 5, cell_type => 'Text', s => 10, cell_merge => 'D12:E12', },
-					undef,'EOR',
-					undef, undef, undef, undef, undef, undef,'EOR',
-					undef, undef,
-					{ r => 'C14', cell_row => 14, cell_col => 3, cell_type => 'Text', cell_xml_value => ' ', cell_hidden => 'column', },
-					{ r => 'D14', cell_row => 14, cell_col => 4, cell_type => 'Numeric', cell_xml_value => '39118', cell_formula => 'D12', s => 9, cell_hidden => 'column', },
-					{ r => 'E14', cell_row => 14, cell_col => 5, cell_type => 'Numeric', cell_xml_value => '39118', cell_formula => 'D14', s => 2, },
-					undef,'EOF',
+					[ undef, undef, undef, undef, undef, undef,'EOR'],
+					[
+						{ r => 'A2', cell_row => 2, cell_col => 1, cell_xml_value => 'Hello', cell_type => 'Text' },
+						undef, undef,
+						{ r => 'D2', cell_row => 2, cell_col => 4, cell_xml_value => 'my', cell_type => 'Text', cell_hidden => 'column', },
+						undef, undef,'EOR'
+					],
+					[undef, undef, undef, undef, undef, undef,'EOR'],
+					[
+						undef, undef,
+						{ r => 'C4', cell_row => 4, cell_col => 3, cell_xml_value => 'World', cell_type => 'Text', s => '7', cell_hidden => 'column', },
+						undef, undef, undef,'EOR'
+					],
+					[undef, undef, undef, undef, undef, undef,'EOR'],
+					[
+						{ r => 'A6', cell_row => 6, cell_col => 1, cell_xml_value => 'Hello World', cell_type => 'Text', s => '11', cell_merge => 'A6:B6' },
+						{ r => 'B6', cell_row => 6, cell_col => 2, cell_type => 'Text', s => '11', cell_merge => 'A6:B6', },
+						undef, undef, undef, undef,'EOR'
+					],
+					[
+						undef,
+						{ r => 'B7', cell_row => 7, cell_col => 2, cell_xml_value => '69', cell_type => 'Numeric', cell_hidden => 'row', },
+						undef, undef, undef, undef,'EOR'
+					],
+					[
+						undef,
+						{ r => 'B8', cell_row => 8, cell_col => 2, cell_xml_value => '27', cell_type => 'Numeric', cell_hidden => 'row', },
+						undef, undef,
+						{ r => 'E8', cell_row => 8, cell_col => 5, cell_xml_value => '37145', cell_type => 'Numeric', s => 2, cell_hidden => 'row', },
+						undef,'EOR'
+					],
+					[
+						undef,
+						{ r => 'B9', cell_row => 9, cell_col => 2, cell_xml_value => '42', cell_type => 'Numeric', cell_formula => 'B7-B8', cell_hidden => 'row', },
+						undef, undef, undef, undef,'EOR'
+					],
+					[
+						undef, undef, undef,
+						{ r => 'D10', cell_row => 10, cell_col => 4, cell_type => 'Text', cell_xml_value => ' ', s => 1, cell_hidden => 'column', },
+						{ r => 'E10', cell_row => 10, cell_col => 5, cell_type => 'Text', cell_xml_value => '2/6/2011', s => 6, cell_hidden => 'row', },
+						{ r => 'F10', cell_row => 10, cell_col => 6, cell_type => 'Text', cell_xml_value => '2/6/2011', s => 2, cell_hidden => 'row', },
+						'EOR'
+					],
+					[
+						{ r => 'A11', cell_row => 11, cell_col => 1, cell_type => 'Numeric', cell_xml_value => '2.1345678901', s => 8, cell_hidden => 'row', },
+						undef, undef, undef, undef, undef,'EOR'
+					],
+					[
+						undef,
+						{ r => 'B12', cell_row => 12, cell_col => 2, cell_type => 'Text', cell_formula => 'IF(B11>0,"Hello","")', },
+						undef,
+						{ r => 'D12', cell_row => 12, cell_col => 4, cell_type => 'Numeric', cell_xml_value => '39118', cell_formula => 'DATEVALUE(E10)', s => 10, cell_merge => 'D12:E12', cell_hidden => 'column', },
+						{ r => 'E12', cell_row => 12, cell_col => 5, cell_type => 'Text', s => 10, cell_merge => 'D12:E12', },
+						undef,'EOR'
+					],
+					[undef, undef, undef, undef, undef, undef,'EOR'],
+					[
+						undef, undef,
+						{ r => 'C14', cell_row => 14, cell_col => 3, cell_type => 'Text', cell_xml_value => ' ', cell_hidden => 'column', },
+						{ r => 'D14', cell_row => 14, cell_col => 4, cell_type => 'Numeric', cell_xml_value => '39118', cell_formula => 'D12', s => 9, cell_hidden => 'column', },
+						{ r => 'E14', cell_row => 14, cell_col => 5, cell_type => 'Numeric', cell_xml_value => '39118', cell_formula => 'D14', s => 2, },
+						undef,'EOF'
+					],
+					'EOF'
 				],
 				[
 					[],
@@ -310,7 +276,7 @@ my			$answer_ref = [
 					{ r => 'A2', cell_row => 2, cell_col => 1, cell_xml_value => 'Hello', cell_type => 'Text' },
 					undef, undef,
 					{ r => 'D2', cell_row => 2, cell_col => 4, cell_xml_value => 'my', cell_type => 'Text', cell_hidden => 'column', },
-					'EOR',
+					,'EOR',
 					'EOR',
 					undef, undef,
 					{ r => 'C4', cell_row => 4, cell_col => 3, cell_xml_value => 'World', cell_type => 'Text', s => '7', cell_hidden => 'column', },
@@ -396,6 +362,8 @@ my			$answer_ref = [
 					],	
 					'EOF',
 				],
+				[ 0, 0, 1, 1, 0, 0 ],
+				[ undef, undef, 0, undef, 0, undef, 0, 1, 1, 1, 1, 1, 0, undef, 0, undef ],
 			];
 ###LogSD	$phone->talk( level => 'info', message => [ "easy questions ..." ] );
 map{
@@ -495,7 +463,6 @@ lives_ok{
 			$test_instance	= Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow->new(
 				file				=> $test_file,
 				error_inst			=> $error_instance,
-				#~ sheet_name			=> 'Sheet3',
 				workbook_instance	=> $workbook_instance,
 				is_hidden 			=> 0,
 			###LogSD	log_space	=> 'Test',
@@ -503,7 +470,6 @@ lives_ok{
 			###LogSD	$phone->talk( level => 'info', message =>[ "Loaded test instance" ] );
 }										"Prep a new WorksheetToRow instance";
 
-###LogSD		$phone->talk( level => 'debug', message => [ "Max row is:" . $test_instance->_max_row ] );
 map{
 can_ok		$test_instance, $_,
 } 			@instance_methods;
@@ -511,14 +477,10 @@ is			$test_instance->_min_row, 1,
 										"check that it knows what the lowest row number is";
 is			$test_instance->_min_col, 1,
 										"check that it knows what the lowest column number is";
-is			$test_instance->_max_row, 14,
-										"check that it knows what the highest row number is";
-is			$test_instance->_max_col, 6,
-										"check that it knows what the highest column number is";
-#~ is_deeply	[$test_instance->row_range], [1,14],
-										#~ "check for a correct row range";
-#~ is_deeply	[$test_instance->col_range], [1,6],
-										#~ "check for a correct column range";
+is			$test_instance->_max_row, undef,
+										"check that it knows what the highest row number is (not)";
+is			$test_instance->_max_col, undef,
+										"check that it knows what the highest column number is (not)";
 										
 explain									"read through value cells ...";
 			my $test = 0;
@@ -528,20 +490,20 @@ explain									"Running cycle: $y";
 			my $x = 0;
 			while( !$result or $result ne 'EOF' ){
 				
-###LogSD	my $expose = 21;
-###LogSD	if( $x == $expose and $y == 1 ){
+###LogSD	my $expose = 20; my $iteration = 1;
+###LogSD	if( $x == $expose and $y == $iteration ){
 ###LogSD		$operator->add_name_space_bounds( {
-###LogSD			Test =>{
-###LogSD				_get_next_value_cell =>{
+#~ ###LogSD			Test =>{
+#~ ###LogSD				_get_next_value_cell =>{
 ###LogSD					UNBLOCK =>{
 ###LogSD						log_file => 'trace',
 ###LogSD					},
-###LogSD				},
-###LogSD			},
+#~ ###LogSD				},
+#~ ###LogSD			},
 ###LogSD		} );
 ###LogSD	}
 
-###LogSD	elsif( $x > ($expose + 0) and $y > 0 ){
+###LogSD	elsif( $x > ($expose + 0) and $y == $iteration ){
 ###LogSD		exit 1;
 ###LogSD	}
 
@@ -549,88 +511,70 @@ lives_ok{	$result = $test_instance->_get_next_value_cell }
 										"_get_next_value_cell test -$test- iteration -$y- from sheet position: $x";
 			#~ print Dumper( $result );
 ###LogSD	$phone->talk( level => 'debug', message => [ "result at position -$x- is:", $result,
-###LogSD		'Against answer:', $answer_ref->[$x], ] );
+###LogSD		'Against answer:', $answer_ref->[$test]->[$x], ] );
 is_deeply	$result, $answer_ref->[$test]->[$x],"..........and see if test -$test- iteration -$y- from sheet position -$x- has good info";
+#~ explain									Dumper( $test_instance->_get_all_positions );
 			$x++;
+#~ explain									"Checking next x: $x";
 			}
+#~ explain									"Checking y after: $y";
 			}
 			$test++;
-#~ explain									"read through all cells in sequence...";
-			#~ for my $y (1..2){
-			#~ my $result = undef;
-#~ explain									"Running cycle: $y";
-			#~ my $x = 20;
-			#~ while( $x < 105 and (!$result or $result ne 'EOF') ){
-			#~ my	$position = $x - 20;
-				
-#~ ###LogSD	my $expose = 20;
-#~ ###LogSD	if( $x == $expose and $y == 1 ){
-#~ ###LogSD		$operator->add_name_space_bounds( {
-#~ ###LogSD			Test =>{
-#~ ###LogSD				_get_next_value_cell =>{
-#~ ###LogSD					UNBLOCK =>{
-#~ ###LogSD						log_file => 'trace',
-#~ ###LogSD					},
-#~ ###LogSD				},
-#~ ###LogSD			},
-#~ ###LogSD		} );
-#~ ###LogSD	}
-
-#~ ###LogSD	elsif( $x > ($expose + 1) and $y > 0 ){
-#~ ###LogSD		exit 1;
-#~ ###LogSD	}
-
-#~ lives_ok{	$result = $test_instance->_get_next_cell }
-										#~ "_get_next_cell test -$test- iteration -$y- from sheet position: $position";
-#~ ###LogSD	$phone->talk( level => 'trace', message => [ "result at position -$position- is:", $result,
-#~ ###LogSD		'Against answer:', $answer_ref->[$x], ] );
-#~ is_deeply	$result, $answer_ref->[$x++],"..and see if it has good info";
-			#~ }
-			#~ }
-			$test++;
+explain									"Finished value cell reading";
 explain									"read row columns through cells in sequence...";
-			for my $y (1..2){
+			for my $y (1..3){
 explain									"Running cycle: $y";
+			if( $y == 3 ){
+lives_ok{
+			$test_instance	= Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow->new(
+				file				=> $test_file,
+				error_inst			=> $error_instance,
+				workbook_instance	=> $workbook_instance,
+				is_hidden 			=> 0,
+			###LogSD	log_space	=> 'Test',
+			);
+			###LogSD	$phone->talk( level => 'info', message =>[ "Loaded test instance" ] );
+}										"Prep a new WorksheetToRow instance";
+			}
 			my $y_dim = 1;
-			my $x = 0;
+			#~ my $x = 0;
 			my	$result = undef;
 			while( !$result or $result ne 'EOF' ){
 			my	$x_dim = 1;
 				$result = undef;
 			while( !$result or ($result ne 'EOR' and $result ne 'EOF') ){
 				
-###LogSD	my $expose_x = 8;
-###LogSD	my $expose_y = 30;
-###LogSD	if( $x_dim == $expose_x and $y_dim == $expose_y ){
+###LogSD	my $expose_x = 7;
+###LogSD	my $expose_y = 16;
+###LogSD	my $expose_dim = 1;
+###LogSD	if( $x_dim == $expose_x and $y_dim == $expose_y and $y == $expose_dim ){
 ###LogSD		$operator->add_name_space_bounds( {
-###LogSD			Test =>{
-###LogSD					UNBLOCK =>{
-###LogSD						log_file => 'trace',
-###LogSD					},
-###LogSD				parse_element =>{
-###LogSD					UNBLOCK =>{
-###LogSD						log_file => 'warn',
-###LogSD					},
-###LogSD				},
-###LogSD				XMLReader =>{
-###LogSD					UNBLOCK =>{
-###LogSD						log_file => 'warn',
-###LogSD					},
-###LogSD				},
-###LogSD			},
+#~ ###LogSD			Test =>{
+#~ ###LogSD				WorksheetToRow =>{
+#~ ###LogSD					_go_to_or_past_row =>{
+###LogSD						UNBLOCK =>{
+###LogSD							log_file => 'trace',
+###LogSD						},
+#~ ###LogSD					},
+#~ ###LogSD				},
+#~ ###LogSD			},
 ###LogSD		} );
 ###LogSD	}
 
-###LogSD	elsif( $y_dim > $expose_y or ($y_dim == $expose_y and $x_dim > $expose_x +1 ) ){
-###LogSD		exit 1;
-###LogSD	}
 
 lives_ok{	$result = $test_instance->_get_col_row( $x_dim, $y_dim  ) }
 										"_get_col_row data for test -$test- and iteration -$y- at column -$x_dim- and row -$y_dim-";
 ###LogSD	$phone->talk( level => 'trace', message => [ "result for column -$y_dim- and row -$x_dim- is:", $result,
-###LogSD		'Against answer:', $answer_ref->[$test]->[$x], ] );
-is_deeply	$result, $answer_ref->[$test]->[$x],"...........and see if test -$test- and iteration -$y- at column -$x_dim- and row -$y_dim- returns good info";
-			$x++;
+###LogSD		'Against answer:', $answer_ref->[$test]->[$y_dim-1]->[$x_dim-1], ] );
+			if( $y == 3 and $result and $result eq 'EOR' ){
+pass									"...........and see if test -$test- and iteration -$y- at column -$x_dim- and row -$y_dim- found EOR";
+			}else{
+is_deeply	$result, $answer_ref->[$test]->[$y_dim-1]->[$x_dim-1],
+										"...........and see if test -$test- and iteration -$y- at column -$x_dim- and row -$y_dim- returns good info";#: " . Dumper( $answer_ref->[$test]->[$y_dim-1]->[$x_dim-1] );
+			}
+###LogSD	if( $x_dim > $expose_x and $y_dim == $expose_y and $y == $expose_dim ){
+###LogSD		exit 1;
+###LogSD	}
 			$x_dim++;
 			}
 			$y_dim++;
@@ -638,35 +582,48 @@ is_deeply	$result, $answer_ref->[$test]->[$x],"...........and see if test -$test
 			}
 			$test++;
 explain									"read rows through sheet in sequence...";
-			for my $y (1..2){
+			for my $y (1..3){
 explain									"Running cycle: $y";
+			if( $y == 3 ){
+lives_ok{
+			$test_instance	= Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow->new(
+				file				=> $test_file,
+				error_inst			=> $error_instance,
+				workbook_instance	=> $workbook_instance,
+				is_hidden 			=> 0,
+			###LogSD	log_space	=> 'Test',
+			);
+			###LogSD	$phone->talk( level => 'info', message =>[ "Loaded test instance" ] );
+}										"Prep a new WorksheetToRow instance";
+			}
 			my $result = undef;
 			my $y_dim = 1;
 			my $x = 0;
 			while( !$result or $result ne 'EOF' ){
 				
-###LogSD	my $expose_y = 20;
-###LogSD	if( $y_dim == $expose_y ){
+###LogSD	my $expose_y = 17;
+###LogSD	my $iteration = 1;
+###LogSD	if( $y_dim == $expose_y and $y == $iteration ){
 ###LogSD		$operator->add_name_space_bounds( {
-###LogSD			Test =>{
+#~ ###LogSD			Test =>{
 ###LogSD					UNBLOCK =>{
 ###LogSD						log_file => 'trace',
 ###LogSD					},
-###LogSD				parse_element =>{
-###LogSD					UNBLOCK =>{
-###LogSD						log_file => 'warn',
-###LogSD					},
-###LogSD				},
-###LogSD				XMLReader =>{
-###LogSD					UNBLOCK =>{
-###LogSD						log_file => 'warn',
-###LogSD					},
-###LogSD				},
-###LogSD			},
+#~ ###LogSD				parse_element =>{
+#~ ###LogSD					UNBLOCK =>{
+#~ ###LogSD						log_file => 'warn',
+#~ ###LogSD					},
+#~ ###LogSD				},
+#~ ###LogSD				XMLReader =>{
+#~ ###LogSD					UNBLOCK =>{
+#~ ###LogSD						log_file => 'warn',
+#~ ###LogSD					},
+#~ ###LogSD				},
+#~ ###LogSD			},
 ###LogSD		} );
 ###LogSD	}
 
-###LogSD	elsif( $y_dim > $expose_y ){
+###LogSD	elsif( $y_dim > $expose_y and $y == $iteration ){
 ###LogSD		exit 1;
 ###LogSD	}
 
@@ -708,8 +665,20 @@ lives_ok{
 			#~ }
 			$test++;
 explain									"read row columns through cells without edges in sequence...";
-			for my $y (1..2){
+			for my $y (1..3){
 explain									"Running cycle: $y";
+			if( $y == 3 ){
+lives_ok{
+			$test_instance	= Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow->new(
+				file				=> $test_file,
+				error_inst			=> $error_instance,
+				workbook_instance	=> $workbook_instance,
+				is_hidden 			=> 0,
+			###LogSD	log_space	=> 'Test',
+			);
+			###LogSD	$phone->talk( level => 'info', message =>[ "Loaded test instance" ] );
+}										"Prep a new WorksheetToRow instance";
+			}
 			my $y_dim = 1;
 			my $x = 0;
 			my	$result = undef;
@@ -718,29 +687,29 @@ explain									"Running cycle: $y";
 				$result = undef;
 			while( !$result or ($result ne 'EOR' and $result ne 'EOF') ){
 				
-###LogSD	my $expose_x = 8;
-###LogSD	my $expose_y = 15;
+###LogSD	my $expose_x = 5;
+###LogSD	my $expose_y = 2;
 ###LogSD	if( $x_dim == $expose_x and $y_dim == $expose_y ){
 ###LogSD		$operator->add_name_space_bounds( {
-###LogSD			Test =>{
+#~ ###LogSD			Test =>{
 ###LogSD					UNBLOCK =>{
 ###LogSD						log_file => 'trace',
 ###LogSD					},
-###LogSD				parse_element =>{
-###LogSD					UNBLOCK =>{
-###LogSD						log_file => 'warn',
-###LogSD					},
-###LogSD				},
-###LogSD				XMLReader =>{
-###LogSD					UNBLOCK =>{
-###LogSD						log_file => 'warn',
-###LogSD					},
-###LogSD				},
-###LogSD			},
+#~ ###LogSD				parse_element =>{
+#~ ###LogSD					UNBLOCK =>{
+#~ ###LogSD						log_file => 'warn',
+#~ ###LogSD					},
+#~ ###LogSD				},
+#~ ###LogSD				XMLReader =>{
+#~ ###LogSD					UNBLOCK =>{
+#~ ###LogSD						log_file => 'warn',
+#~ ###LogSD					},
+#~ ###LogSD				},
+#~ ###LogSD			},
 ###LogSD		} );
 ###LogSD	}
 
-###LogSD	elsif( $y_dim > $expose_y or ($y_dim == $expose_y and $x_dim > $expose_x +1 ) ){
+###LogSD	elsif( $y_dim > $expose_y or ($y_dim == $expose_y and $x_dim > $expose_x ) ){
 ###LogSD		exit 1;
 ###LogSD	}
 
@@ -757,8 +726,20 @@ is_deeply	$result, $answer_ref->[$test]->[$x],"...........and see if test -$test
 			}
 			$test++;
 explain									"read rows through sheet without edges in sequence...";
-			for my $y (1..2){
+			for my $y (1..3){
 explain									"Running cycle: $y";
+			if( $y == 3 ){
+lives_ok{
+			$test_instance	= Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow->new(
+				file				=> $test_file,
+				error_inst			=> $error_instance,
+				workbook_instance	=> $workbook_instance,
+				is_hidden 			=> 0,
+			###LogSD	log_space	=> 'Test',
+			);
+			###LogSD	$phone->talk( level => 'info', message =>[ "Loaded test instance" ] );
+}										"Prep a new WorksheetToRow instance";
+			}
 			my $result = undef;
 			my $y_dim = 1;
 			my $x = 0;
@@ -797,12 +778,12 @@ is_deeply	$result, $answer_ref->[$test]->[$x++],"..and see if test -$test- and i
 			$y_dim++;
 			}
 			}
+			$test++;
 is			$test_instance->is_sheet_hidden, 0,
 										'Check if the sheet is hidden (Not)';
-#~ is_deeply	[ $test_instance->is_column_hidden( 1 .. 6 ) ], [ 0, 0, 1, 1, 0, 0 ],
-										#~ 'Check that the sheet knows which columns are hidden - by number';
-#~ is_deeply	[ $test_instance->is_column_hidden( 'A', 'B', 'C', 'D', 'E', 'F' ) ], [ 0, 0, 1, 1, 0, 0 ],
-										#~ 'Check that the sheet knows which columns are hidden - by letter';
+is_deeply	[ $test_instance->_is_column_hidden( 1 .. 6 ) ], $answer_ref->[$test],#[ 0, 0, 1, 1, 0, 0 ],
+										'Check that the sheet knows which columns are hidden - by number';
+			$test++;
 #~ ###LogSD		$operator->add_name_space_bounds( {
 #~ ###LogSD			Test =>{
 #~ ###LogSD				is_row_hidden =>{
@@ -812,8 +793,14 @@ is			$test_instance->is_sheet_hidden, 0,
 #~ ###LogSD				},
 #~ ###LogSD			},
 #~ ###LogSD		} );
-#~ is_deeply	[ $test_instance->is_row_hidden( 0 .. 15 ) ], [ undef, undef, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, undef ],
-										#~ 'Check that the sheet knows which rows are hidden - by number';
+			for my $row ( 0..15 ){
+is			$test_instance->_get_row_hidden( $row ),  $answer_ref->[$test]->[$row],
+										"For test -$test- check that the sheet knows the hidden state of row: $row";
+			}
+is			$test_instance->_max_row, 14,
+										"check that it knows what the highest row number is: 14";
+is			$test_instance->_max_col, 6,
+										"check that it knows what the highest column number is: 6";
 explain 								"...Test Done";
 done_testing();
 
