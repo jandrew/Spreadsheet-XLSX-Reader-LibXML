@@ -1,7 +1,7 @@
 package Spreadsheet::XLSX::Reader::LibXML::Worksheet;
-use version; our $VERSION = qv('v0.38.18');
+use version; our $VERSION = version->declare('v0.38.20');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::Worksheet-$VERSION";
-
+use Modern::Perl;
 use Carp 'confess';
 use Data::Dumper;
 use	Moose::Role;
@@ -27,7 +27,6 @@ use	Spreadsheet::XLSX::Reader::LibXML::Types qw(
 		SpecialThreeScientific			SpecialFourScientific
 		SpecialFiveScientific
 	);
-###LogSD	sub get_class_space{ 'SharedStrings' }
 
 #########1 Dispatch Tables    3#########4#########5#########6#########7#########8#########9
 
@@ -90,6 +89,8 @@ has max_header_col =>(
 
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
 
+###LogSD	sub get_class_space{ 'Worksheet' }
+
 sub min_row{
 	my( $self ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
@@ -104,7 +105,7 @@ sub max_row{
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
 	###LogSD			$self->get_all_space . '::Interface::row_bound::max_row', );
 	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"Returning the maximum row: " . $self->_max_row ] );
+	###LogSD			"Returning the maximum row: " . ($self->_max_row//'undef') ] );
 	return $self->_max_row;
 }
 
@@ -122,7 +123,7 @@ sub max_col{
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
 	###LogSD			$self->get_all_space . '::Interface::row_bound::max_col', );
 	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"Returning the maximum column: " . $self->_max_col ] );
+	###LogSD			"Returning the maximum column: " . ($self->_max_col//'undef') ] );
 	return $self->_max_col;
 }
 
@@ -131,7 +132,7 @@ sub row_range{
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
 	###LogSD			$self->get_all_space . '::Interface::row_bound::row_range', );
 	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"Returning row range( " . $self->_min_row . ", " . $self->_max_row . " )" ] );
+	###LogSD			"Returning row range( " . $self->_min_row . ", " .  ($self->_max_row//'undef') . " )" ] );
 	return( $self->_min_row, $self->_max_row );
 }
 
@@ -140,7 +141,7 @@ sub col_range{
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
 	###LogSD			$self->get_all_space . '::Interface::row_bound::col_range', );
 	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"Returning col range( " . $self->_min_col . ", " . $self->_max_col . " )" ] );
+	###LogSD			"Returning col range( " . $self->_min_col . ", " . ($self->_max_col//'undef') . " )" ] );
 	return( $self->_min_col, $self->_max_col );
 }
 
@@ -251,24 +252,40 @@ sub get_cell{
 	}
 	
 	# Get information
+	###LogSD	$phone->talk( level => 'trace', message =>[
+	###LogSD		'Requesting [ $column, $row ]: [ ' . $requested_column . ', ' . $requested_row . ' ]' ] );
 	my $result = $self->_get_col_row( $requested_column, $requested_row );
+	###LogSD	$phone->talk( level => 'trace', message =>[
+	###LogSD	'Returned result:', $result, "..with requested row -$requested_row- against max row: ", $self->_max_row,
+	###LogSD	"..and requested column -$requested_column- against max column: " . $self->_max_col ] );
 	
-	# Handle EOF EOR flags
+	# Handle returns including EOF EOR flags
 	my $return = undef;
-	if( $result ){
-		if( is_HashRef( $result ) ){
-			$return = $self->_build_out_the_cell( $result );
-		}else{
+	if( $result and is_HashRef( $result ) ){# make this same change for fetchrow_arrayref
+		###LogSD	$phone->talk( level => 'trace', message =>[ 'Got a cell to build and return' ] );
+		$return = $self->_build_out_the_cell( $result );
+	}elsif( $self->is_empty_the_end ){
+		###LogSD	$phone->talk( level => 'trace', message =>[ 'Sending back -undef- or a boundary flag' ] );
+		$return = $result if $result and $self->boundary_flag_setting;
+		( $requested_column, $requested_row ) = 
+			( $result eq 'EOR' ) ? ( 0, $requested_row + 1 ) : ( 0, 0 );
+	}elsif( !$self->has_max_row or $requested_row <= $self->_max_row ){
+		###LogSD	$phone->talk( level => 'trace', message =>[ 'Requested row is inside the (unknown?) max row' ] );
+		if( $requested_column > $self->_max_col ){
+			###LogSD	$phone->talk( level => 'trace', message =>[ 'Requested column is past the max column' ] );
 			$return = $result if $self->boundary_flag_setting;
-			( $requested_column, $requested_row ) = 
-				( $result eq 'EOR' ) ? ( 0, $requested_row + 1 ) : ( 0, 0 );
+			( $requested_column, $requested_row ) = ( 0, $requested_row + 1 );
 		}
+	}else{
+		###LogSD	$phone->talk( level => 'trace', message =>[ 'Requested row is past the known rows' ] );
+		( $requested_column, $requested_row ) = ( 0, 0 );
+		$return = 'EOF' if $self->boundary_flag_setting;
 	}
+	
 	$self->_set_reported_row_col( [ $requested_row, $requested_column ] );
 	###LogSD	$phone->talk( level => 'debug', message =>[
 	###LogSD		"Set the reported [ row, col ] to: [ $requested_row, $requested_column ]", ] );
 	###LogSD	$phone->talk( level => 'trace', message =>[ 'Final return:', $return ] );
-	
 	return $return;
 }
 
@@ -571,7 +588,7 @@ sub _build_out_the_cell{
 	my ( $self, $result, ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
 	###LogSD			$self->get_all_space . '::Interface::_hidden::_build_out_the_cell', );
-	###LogSD		$phone->talk( level => 'fatal', message =>[  
+	###LogSD		$phone->talk( level => 'debug', message =>[  
 	###LogSD			 "Building out the cell ref:", $result, "..with results as: ". $self->get_group_return_type ] );
 	my ( $return, $hidden_format );
 	$return->{cell_xml_value} = $result->{cell_xml_value} if defined $result->{cell_xml_value};
@@ -594,7 +611,6 @@ sub _build_out_the_cell{
 					!$2         ? 0 :
 					defined $3 ? 14 - length( $3 ) : 14 ;
 			my $initial_significant_digits = length( $exp_sign ) > 0 ? ($last_sig_digit + $exponent) : ($last_sig_digit - $exponent);
-			#~ my $sig_digit_delta = 
 			###LogSD	$phone->talk( level => 'debug', message =>[
 			###LogSD		"Processing decimal                          : $decimal",
 			###LogSD		"Final significant digit of the decimal is at: $last_sig_digit",
@@ -611,7 +627,6 @@ sub _build_out_the_cell{
 				$initial_significant_digits = $initial_significant_digits > -1 ? $initial_significant_digits : 0 ;# Fix 05-bad_xml_example_bug.t bug
 				###LogSD	$phone->talk( level => 'info', message =>[
 				###LogSD		"Attempting to use sprintf: %.${initial_significant_digits}f", ] );
-				#~ confess "Bad format string %.${initial_significant_digits}f: $initial_significant_digits" . Dumper( $result, $return ) if $initial_significant_digits =~ /\-/;
 				$return->{cell_unformatted} = sprintf "%.${initial_significant_digits}f", $return->{cell_xml_value};
 				###LogSD	$phone->talk( level => 'debug', message =>[
 				###LogSD		"Found the unformatted decimal case with output: $return->{cell_unformatted}"] );
@@ -709,7 +724,7 @@ sub _build_out_the_cell{
 		}
 		
 		# handle the formula
-		if( exists $result->{cell_formula}  ){
+		if( exists $result->{cell_formula} and defined $result->{cell_formula} and length( $result->{cell_formula} ) > 0 ){
 			$return->{cell_formula} = $result->{cell_formula};
 		}
 		
@@ -772,9 +787,6 @@ sub _build_out_the_cell{
 						$return->{$header} = $format->{$header};
 						if( $header eq 'cell_coercion' ){
 							if(	$return->{cell_type} eq 'Numeric' and
-								#~ is_Object( $format->{$header} ) and
-								#~ $format->{$header}->can( 'display_name' ) and
-								#~ $format->{$header}->display_name =~ /date/i 
 								$format->{$header}->name =~ /date/i){
 								###LogSD	$phone->talk( level => 'trace', message =>[
 								###LogSD		"Found a -Date- cell", ] );
@@ -904,9 +916,43 @@ Spreadsheet::XLSX::Reader::LibXML::Worksheet - Top level XLSX::Reader Worksheet 
 
 =head1 SYNOPSIS
 
-If you are looking for the synopsis for the package see 
-L<Spreadsheet::XLSX::Reader::LibXML/SYNOPSIS>.  Otherwise the best example for use of 
-this module alone is the test file in this package 
+	use strict;
+	use warnings;
+	use Data::Dumper;
+	
+	use Spreadsheet::XLSX::Reader::LibXML;
+	my $workbook =	Spreadsheet::XLSX::Reader::LibXML->new( #similar style to Spreadsheet::XLSX
+						file_name => 't/test_files/TestBook.xlsx',# in the test folder of this package
+						group_return_type => 'value',
+					);
+
+	if ( !$workbook->has_file_name ) {
+		die $workbook->error(), ".\n";
+	}
+
+	my	$worksheet = $workbook->worksheet( 'Sheet5' );
+		$worksheet->set_custom_formats( {
+			2 =>'yyyy-mm-dd',
+		} );
+	my $value;
+	while( !$value or $value ne 'EOF' ){
+		$value = $worksheet->fetchrow_arrayref;
+		print Dumper( $value );
+	}
+
+	###########################
+	# SYNOPSIS Output
+	# $VAR1 = [ 'Superbowl Audibles', 'Column Labels' ];
+	# $VAR1 = [         'Row Labels',     2016-02-06', '2017-02-14', '2018-02-03', 'Grand Total' ];
+	# $VAR1 = [               'Blue',            '10',          '7',           '',          '17' ];
+	# $VAR1 = [              'Omaha',              '',           '',          '2',           '2' ];
+	# $VAR1 = [                'Red',            '30',          '5',          '3',          '38' ];
+	# $VAR1 = [        'Grand Total',            '40',         '12',          '5',          '57' ];
+	# $VAR1 = 'EOF';
+	###########################
+
+
+The best example for use of this module alone is the test file in this package 
 t/Spreadsheet/XLSX/Reader/LibXML/10-worksheet.t
     
 =head1 DESCRIPTION
@@ -1104,7 +1150,17 @@ of min_row
 
 B<Definition:> This is the maximum row with data listed in the sheet.  This value 
 is affected by the workbook attribute 
-L<count_from_zero|Spreadsheet::XLSX::Reader::LibXML/count_from_zero>
+L<count_from_zero|Spreadsheet::XLSX::Reader::LibXML/count_from_zero>. B<Warning: 
+This value is extracted from the sheet metadata, however if your sheet has been 
+damaged or 'adjusted' by non-microsoft code (This is more common than you would think 
+in the data processing world) then this value may be wrong or missing when the sheet 
+is first opened.  The goal of this package is to minimize memory consumption so it 
+will learn what the correct value is over the first pass through the sheet as you 
+collect data but it does not attempt to validate this value in detail initially. If 
+you have an idea of the range for a damaged sheet before you open it you can use 
+L<EOF|change_boundary_flag( $Bool )> flags.  Otherwise the methods 
+L<get_next_value|/get_next_value> or L<fetchrow_arrayref|/fetchrow_arrayref> are 
+recomended.>
 
 B<Accepts:> nothing
 
@@ -1151,7 +1207,17 @@ of min_col
 
 B<Definition:> This is the maximum row with data listed in the sheet.  This value 
 is affected by the workbook attribute 
-L<count_from_zero|Spreadsheet::XLSX::Reader::LibXML/count_from_zero>
+L<count_from_zero|Spreadsheet::XLSX::Reader::LibXML/count_from_zero> B<Warning: 
+This value is extracted from the sheet metadata, however if your sheet has been 
+damaged or 'adjusted' by non-microsoft code (This is more common than you would think 
+in the data processing world) then this value may be wrong or missing when the sheet 
+is first opened.  The goal of this package is to minimize memory consumption so it 
+will learn what the correct value is over the first pass through the sheet as you 
+collect data but it does not attempt to validate this value in detail initially. If 
+you have an idea of the range for a damaged sheet before you open it you can use 
+L<EOR|change_boundary_flag( $Bool )> flags.  Otherwise the methods 
+L<get_next_value|/get_next_value> or L<fetchrow_arrayref|/fetchrow_arrayref> are 
+recomended.>
 
 B<Accepts:> nothing
 
@@ -1175,7 +1241,18 @@ of max_col
 B<Definition:> This returns a list containing the minimum row number followed 
 by the maximum row number.  This list is affected by the workbook attributes 
 L<from_the_edge|Spreadsheet::XLSX::Reader::LibXML/from_the_edge>, and 
-L<count_from_zero|Spreadsheet::XLSX::Reader::LibXML/count_from_zero>
+L<count_from_zero|Spreadsheet::XLSX::Reader::LibXML/count_from_zero> B<Warning: 
+This result is extracted from the sheet metadata, however if your sheet has been 
+damaged or 'adjusted' by non-microsoft code (This is more common than you would think 
+in the data processing world) then the return list may be wrong or missing when the 
+sheet is first opened.  The goal of this package is to minimize memory consumption so it 
+will learn what the correct list is over the first pass through the sheet as you 
+collect data but it does not attempt to validate this list in detail initially. If 
+you have an idea of the range for a damaged sheet before you open it you can use 
+L<EOR-EOF|change_boundary_flag( $Bool )> flags.  Otherwise the methods 
+L<get_next_value|/get_next_value> or L<fetchrow_arrayref|/fetchrow_arrayref> are 
+recomended.>  For missing values the minimum is set to the first row and the maximum 
+is set to undef.
 
 B<Accepts:> nothing
 
@@ -1203,7 +1280,18 @@ B<Returns:> ( $minimum_column, $maximum_column )
 =over
 
 B<Definition:> This method returns an array ref of cells that are merged.  This method does 
-respond to the attribute L<Spreadsheet::XLSX::Reader::LibXML/count_from_zero>
+respond to the attribute L<Spreadsheet::XLSX::Reader::LibXML/count_from_zero> B<Warning: 
+This result is extracted from the sheet metadata, however if your sheet has been 
+damaged or 'adjusted' by non-microsoft code (This is more common than you would think 
+in the data processing world) then the return list may be wrong or missing when the 
+sheet is first opened.  The goal of this package is to minimize memory consumption so it 
+will learn what the correct list is over the first pass through the sheet as you 
+collect data but it does not attempt to validate this list in detail initially. If 
+you have an idea of the range for a damaged sheet before you open it you can use 
+L<EOR|change_boundary_flag( $Bool )> flags.  Otherwise the methods 
+L<get_next_value|/get_next_value> or L<fetchrow_arrayref|/fetchrow_arrayref> are 
+recomended.>  For missing values the minimum is set to the first column and the maximum 
+is set to undef.
 
 B<Accepts:> nothing
 
@@ -1255,9 +1343,9 @@ it|them if the file were opened in the Microsoft Excel application.  If more tha
 passed then it returns true if any of the rows are hidden in scalar context and a list of 
 1 and 0 values for each of the requested positions in array (list) context.  This method (input) 
 does respond to the attribute L<Spreadsheet::XLSX::Reader::LibXML/count_from_zero>.  B<Warning: 
-THIS METHOD WILL ONLY BE ACCURATE AFTER THE SHEET HAS READ AT LEAST ONE CELL FROM THE ROW 
-NUMBER REQUESTED.  THIS ALLOWS THE SHEET TO AVOID READING ALL THE WAY THROUGH ONCE BEFORE STARTING 
-THE CELL PARSING.>
+This method will only be accurate after the user has read at least one cell from or past the row 
+inspected for it's hidden state.  This allows the sheet to avoid reading all the way through once 
+before starting the cell parsing.>
 
 B<Accepts:> integer values selecting the rows in question
 

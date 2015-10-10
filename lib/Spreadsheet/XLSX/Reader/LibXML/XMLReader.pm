@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader;
-use version; our $VERSION = qv('v0.38.18');
+use version; our $VERSION = version->declare('v0.38.20');
 
 use 5.010;
 use Moose;
@@ -160,7 +160,7 @@ sub advance_element_position{
 	$position ||= 1;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
 	###LogSD			$self->get_all_space . '::XMLReader::advance_element_position', );
-	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD	$phone->talk( level => 'info', message => [
 	###LogSD		"Advancing to element -" . ($element//'') . "- -$position- times", ] );
 	my ( $result, $node_depth, $node_name, $node_type, $byte_count );
 	my $x = 0;
@@ -198,7 +198,7 @@ sub advance_element_position{
 		###LogSD	$phone->talk( level => 'info', message =>[
 		###LogSD		"Unable to location position -$position- for element: " . ($element//'') ] );
 	}else{
-		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD	$phone->talk( level => 'info', message => [
 		###LogSD		"Actually advanced -$x- positions with result: $result",
 		###LogSD		"..indicated by:", $self->location_status ] );
 	}
@@ -247,7 +247,7 @@ has _xml_reader =>(
 		_move_to_next_att	=> 'moveToNextAttribute',
 		_read_next_node		=> 'read',
 		#~ _go_to_the_end		=> 'finish',
-		#~ get_node_all		=> 'readOuterXml',
+		get_node_all		=> 'readOuterXml',
 	},
 	trigger => \&_reader_init,
 );
@@ -289,27 +289,6 @@ sub _next_node{
 		return $result;
 	}
 }
-
-#~ around BUILDARGS => sub {
-    #~ my ( $orig, $class, %args ) = @_;
-	#~ ###LogSD	my $log_space = $args{log_space};
-	#~ ###LogSD	$log_space .= '::' if $log_space;
-	#~ ###LogSD	$log_space .= 'Workbook::BUILDARGS';
-	#~ confess  "----------Dumping at BUILDARGS:" .  $class->meta->dump(5);
-	#~ ###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	#~ ###LogSD					name_space 	=> $log_space, );
-	#~ ###LogSD		$phone->talk( level => 'trace', message =>[
-	#~ ###LogSD			'Arrived at BUILDARGS with: ', %args ] );
-    #~ my $orig  = shift;
-    #~ my $class = shift;
- 
-    #~ if ( @_ == 1 && !ref $_[0] ) {
-        #~ return $class->$orig( ssn => $_[0] );
-    #~ }
-    #~ else {
-        #~ return $class->$orig(@_);
-    #~ }
-#~ };
 
 sub _reader_init{
 	my( $self, $reader ) = @_;

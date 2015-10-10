@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings;
-use version; our $VERSION = qv('v0.38.18');
+use version; our $VERSION = version->declare('v0.38.20');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings-$VERSION";
 
 use 5.010;
@@ -19,6 +19,7 @@ use	Type::Coercion;
 use	Type::Tiny;
 use DateTimeX::Format::Excel 0.012;
 use DateTime::Format::Flexible;
+use DateTime;
 use Clone 'clone';
 use lib	'../../../../../lib',;
 ###LogSD	use Log::Shiras::Telephone;
@@ -107,6 +108,13 @@ has	datetime_dates =>(
 		isa		=> Bool,
 		reader	=> 'get_date_behavior',
 		writer	=> 'set_date_behavior',
+		default	=> 0,
+	);
+	
+has	european_first =>(
+		isa		=> Bool,
+		reader	=> 'get_european_first',
+		writer	=> 'set_european_first',
 		default	=> 0,
 	);
 
@@ -612,7 +620,10 @@ sub _build_date{
 
 sub _build_datestring{
 	my( $self, $type_filter, $list_ref ) = @_;
-	my $this_date_cldr = $last_date_cldr;# This is critical to getting the string to date conversion right (matching the number to date equivalent)
+	my $this_date_cldr 		= $last_date_cldr;# This is critical to getting the string to date conversion right (matching the number to date equivalent)
+	my $this_duration		= $last_duration;
+	my $this_sub_seconds	= $last_sub_seconds;
+	my $this_format_rem		= $last_format_rem;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
 	###LogSD			$self->get_all_space . '::hidden::_build_datestring', );
 	###LogSD		$phone->talk( level => 'debug', message => [
@@ -631,10 +642,6 @@ sub _build_datestring{
 				$date .= $3 if $3;
 				$calc_sub_secs .= 0 x (9 - length( $calc_sub_secs ));
 			}
-			my	$dt = 	DateTime::Format::Flexible->parse_datetime(
-							$date, lang =>[ $self->get_excel_region ]
-						);
-			$dt->add( nanoseconds => $calc_sub_secs ) if $calc_sub_secs;
 			###LogSD	my $sub_phone = $phone;
 			###LogSD	if( length( $Spreadsheet::XLSX::Reader::LibXML::Cell::all_space ) > 0 ){
 			###LogSD		$sub_phone = Log::Shiras::Telephone->new( name_space =>
@@ -645,8 +652,47 @@ sub _build_datestring{
 			###LogSD		"..with duration:", $last_duration,
 			###LogSD		"..and sub-seconds: $last_sub_seconds",
 			###LogSD		"..and stripped nanoseconds: $calc_sub_secs"		] );
+			my ( $dt_us, $dt_eu );
+			eval '$dt_us = DateTime::Format::Flexible->parse_datetime( $date )';
+			eval '$dt_eu = DateTime::Format::Flexible->parse_datetime( $date, european => 1, )';
+			if( !$dt_us and !$dt_eu ){# handle double digit years in formats unreadable by ~::Flexible
+				###LogSD	$sub_phone->talk( level => 'debug', message => [
+				###LogSD		"Initial DateTime conversion failed - attempting backup work for: $date"		] );
+				my	$current_year = DateTime->now()->truncate( to => 'year' );
+				my	$century_prefix = substr( $current_year, 0, 2 );
+				my	$century_postfix = substr( $current_year, 2, 2 );
+				my	$bump_year = ( $century_postfix + 20 > 99 ) ? ( $century_postfix - 80 ) : undef;# The double digit years are probably less than 21 years in the future of the processing time
+				my	$drop_year = ( $century_postfix - 79 < 0 ) ? ( $century_postfix + 21 ) : undef;# The double digit years are probably less than 81 years in the past of the processing time
+				$date =~ /(\d{1,2})\D(\d{1,2})\D(\d{1,2})(\s|T)(\d{1,2})\D(\d{1,2})(\D(\d{1,2}))?/;
+				if ( defined $1 and defined $2 and defined $3 ){
+					###LogSD	$sub_phone->talk( level => 'debug', message => [
+					###LogSD		"Processing date parse for: $date", $1, $2, $3, $4, $5, $6, $7 ] );
+					my $year = $3;
+					   $year = (
+							(defined $bump_year and $year <= $bump_year ) ? $century_prefix + 1 :
+							(defined $drop_year and $year >= $drop_year ) ? $century_prefix - 1 : $century_prefix ) . sprintf '%02u', $year;
+					my $us_str = sprintf "%u-%02u-%02uT%02u:%02u:%02u", $year, $1, $2, $5, $6, ($7//'00');
+					my $eu_str = sprintf "%u-%02u-%02uT%02u:%02u:%02u", $year, $2, $1, $5, $6, ($7//'00');
+					eval '$dt_us = DateTime::Format::Flexible->parse_datetime( $us_str )';
+					eval '$dt_eu = DateTime::Format::Flexible->parse_datetime( $eu_str )';# european => 1,
+				}
+			}
+			my $dt =
+				( $self->get_european_first and $dt_eu )? $dt_eu :# DD-MM-YY tested instead of MM-DD-YY
+				( $dt_us ) ? $dt_us :  $dt_eu ;
+			###LogSD	$sub_phone->talk( level => 'debug', message => [
+			###LogSD		"Result of the processing of -$date- " . $dt	] );
+			if( $dt ){
+				$dt->add( nanoseconds => $calc_sub_secs ) if $calc_sub_secs;
+				###LogSD	$sub_phone->talk( level => 'debug', message => [
+				###LogSD		"Date building sucessfull - result to this point: $dt"		] );
+			}else{
+				###LogSD	$sub_phone->talk( level => 'debug', message => [
+				###LogSD		"Unable to convert the string to a date time object: $date"		] );
+				return $date;
+			}
 			my $return_string;
-			if( $last_duration ){
+			if( $this_duration ){
 				my	@args_list = ( $self->get_epoch_year == 1904 ) ? ( system_type => 'apple_excel' ) : ();
 				my	$converter = DateTimeX::Format::Excel->new( @args_list );
 				my	$di = $dt->subtract_datetime_absolute( $converter->_get_epoch_start );
@@ -655,21 +701,21 @@ sub _build_datestring{
 				}
 				my	$sign = DateTime->compare_ignore_floating( $dt, $converter->_get_epoch_start );
 				$return_string = ( $sign == -1 ) ? '-' : '' ;
-				my $key = $last_duration->[0];
+				my $key = $this_duration->[0];
 				my $delta_seconds	= $di->seconds;
 				my $delta_nanosecs	= $di->nanoseconds;;
 				###LogSD	$sub_phone->talk( level => 'debug', message => [
 				###LogSD		"Delta seconds: $delta_seconds",
 				###LogSD		(($delta_nanosecs) ? "Delta nanoseconds: $delta_nanosecs" : undef) ] );
-				$return_string .= $self->_build_duration( $last_duration, $delta_seconds, $delta_nanosecs );
+				$return_string .= $self->_build_duration( $this_duration, $delta_seconds, $delta_nanosecs );
 				###LogSD	$phone->talk( level => 'debug', message => [
 				###LogSD		"Duration return string: $return_string" ] );
 			}else{
 				if( $self->get_date_behavior ){
 					return $dt;
 				}
-				if( $last_sub_seconds ){
-					$calc_sub_secs = $dt->format_cldr( $last_sub_seconds );
+				if( $this_sub_seconds ){
+					$calc_sub_secs = $dt->format_cldr( $this_sub_seconds );
 					###LogSD	$sub_phone->talk( level => 'debug', message => [
 					###LogSD		"Processing sub-seconds: $calc_sub_secs" ] );
 					if( "0.$calc_sub_secs" >= 0.5 ){
@@ -679,12 +725,12 @@ sub _build_datestring{
 					}
 				}
 				###LogSD	$sub_phone->talk( level => 'debug', message => [
-				###LogSD		"Converting it with CLDR string: $last_date_cldr" ] );
+				###LogSD		"Converting it with CLDR string: $this_date_cldr" ] );
 				$return_string .= $dt->format_cldr( $this_date_cldr );
-				if( $last_sub_seconds and $last_sub_seconds ne '1' ){
+				if( $this_sub_seconds and $this_sub_seconds ne '1' ){
 					$return_string .= $calc_sub_secs;
 				}
-				$return_string .= $dt->format_cldr( $last_format_rem ) if $last_format_rem;
+				$return_string .= $dt->format_cldr( $this_format_rem ) if $this_format_rem;
 				###LogSD	$sub_phone->talk( level => 'debug', message => [
 				###LogSD		"returning: $return_string" ] );
 			}
@@ -1975,6 +2021,45 @@ B<Definition:> sets the value of the attribute
 B<Range:> Boolean 1 = cache formats, 0 = Don't cache formats
 
 B<Delegated to the workbook class:> inherited
+
+=back
+
+=back
+
+=back
+
+=head3 european_first
+
+=over
+
+B<Definition:> This is a way to check for DD-MM-YY formatting of string 
+dates prior to checking for MM-DD-YY.  Since this checks both ways the 
+goal is to catch ambiguous data where the substring for DD < 13 and 
+assign it correctly.
+
+B<Default:> 0 = MM-DD-YY is tested first
+
+B<attribute methods> Methods provided to adjust this attribute
+		
+=over
+
+B<get_european_first>
+
+=over
+
+B<Definition:> returns the value of the attribute
+
+=back
+
+B<set_european_first>
+
+=over
+
+B<Definition:> sets the value of the attribute
+
+B<Range:> Boolean 0 = MM-DD-YY is tested first, 1 = DD-MM-YY is tested first
+
+B<Delegated to the workbook class:> yes
 
 =back
 

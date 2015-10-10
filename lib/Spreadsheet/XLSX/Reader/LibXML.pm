@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML;
-use version 0.77; our $VERSION = qv('v0.38.18');
+use version 0.77; our $VERSION = version->declare('v0.38.20');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML-$VERSION";
 
 use 5.010;
@@ -145,16 +145,26 @@ my	$flag_settings ={
 #########1 Public Attributes  3#########4#########5#########6#########7#########8#########9
 
 has error_inst =>(
-		isa			=> 	HasMethods[qw(
-							error set_error clear_error set_warnings if_warn
-						) ],
+		isa	=> 	HasMethods[qw(
+						error set_error clear_error set_warnings if_warn should_spew_longmess spewing_longmess
+					),
+		###LogSD	'set_log_space',
+				],
 		clearer		=> '_clear_error_inst',
 		reader		=> 'get_error_inst',
 		predicate	=> 'has_error_inst',
 		required	=> 1,
-		handles =>[ qw(
-			error set_error clear_error set_warnings if_warn
-		) ],
+		handles =>{ qw(
+						error					error
+						set_error				set_error
+						clear_error				clear_error
+						set_warnings			set_warnings
+						if_warn 				if_warn
+						should_spew_longmess 	should_spew_longmess
+						spewing_longmess		spewing_longmess
+					),
+		###LogSD	set_error_log_space => 'set_log_space',
+	},
 		trigger => sub{
 			if( $_[0]->_has_format_inst and !$_[0]->get_format_inst->block_inherit ){
 				$_[0]->get_format_inst->set_error_inst( $_[1] );
@@ -163,20 +173,30 @@ has error_inst =>(
 	);
 	
 has format_inst =>(
-		isa		=> HasMethods[qw( 
+		isa	=> 	HasMethods[qw( 
 						set_error_inst				set_excel_region
 						set_target_encoding			get_defined_excel_format
 						set_defined_excel_formats	change_output_encoding
 						set_epoch_year				set_cache_behavior
 						set_date_behavior			get_defined_conversion		
-						parse_excel_format_string							)],	
+						parse_excel_format_string	set_european_first
+					),
+		###LogSD	'set_log_space',
+				],	
 		writer	=> 'set_format_inst',
 		reader	=> 'get_format_inst',
 		predicate => '_has_format_inst',
-		handles =>[qw(
-						get_defined_excel_format 	parse_excel_format_string
-						change_output_encoding		set_date_behavior
-						get_date_behavior			set_defined_excel_formats)],
+		handles => { qw(
+							get_defined_excel_format	get_defined_excel_format
+							parse_excel_format_string	parse_excel_format_string
+							change_output_encoding		change_output_encoding
+							set_date_behavior			set_date_behavior
+							get_date_behavior			get_date_behavior
+							set_defined_excel_formats	set_defined_excel_formats
+							set_european_first			set_european_first
+						),
+		###LogSD		set_formatter_log_space => 'set_log_space',
+					},	
 		trigger => \&_import_format_settings,
 	);
 	
@@ -598,7 +618,7 @@ around BUILDARGS => sub {
 	###LogSD		$phone->talk( level => 'trace', message =>[
 	###LogSD			'Arrived at BUILDARGS with: ', %args ] );
 	
-	# Check if this was called by Spreadsheet::Read;
+	# Check if this was called by Spreadsheet::Read; Warning discontinuing after 1-Jan-2016 unless someone asks
 	my $like_ParseExcel = 0;
 	for my $x ( 2 .. 5 ){
 		###LogSD	$phone->talk( level => 'trace', message =>[
@@ -623,7 +643,7 @@ around BUILDARGS => sub {
 		}
 	}
 	
-	# Enforce Spreadsheet::Read requirements
+	# Enforce Spreadsheet::Read requirements - Warning discontinuing after 1-Jan-2016 unless someone asks
 	if( $like_ParseExcel ){
 		###LogSD	$phone->talk( level => 'trace', message =>[
 		###LogSD		"Enforcing like_ParseExcel defaults" ] );
@@ -1005,6 +1025,8 @@ sub DEMOLISH{
 	my ( $self ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
 	###LogSD			$self->get_all_space . '::hidden::DEMOLISH', );
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD			"Last recorded error: " . ($self->error//'none') ] );
 	if( $self->_has_calc_chain_file ){
 		#~ print "closing calcChain.xml\n";
 		###LogSD	$phone->talk( level => 'debug', message => [
@@ -1081,7 +1103,7 @@ Spreadsheet::XLSX::Reader::LibXML - Read xlsx spreadsheet files with LibXML
 </a>
 
 <a>
-	<img src="https://img.shields.io/badge/this version-0.38.18-brightgreen.svg" alt="this version">
+	<img src="https://img.shields.io/badge/this version-0.38.20-brightgreen.svg" alt="this version">
 </a>
 
 <a href="https://metacpan.org/pod/Spreadsheet::XLSX::Reader::LibXML">
@@ -1274,6 +1296,20 @@ intention of doing so.  Therefore my research indicates there should be no risk 
 while parsing even an infected xlsm file with this package but I encourage you to use your own 
 judgement in this area.
 
+B<6.> This package will read some files with 'broken' xml.  In general this should be 
+transparent but in the case of the maximum row value and the maximum column value for a 
+worksheet it can cause some surprising problems.  For instance the answer to the methods 
+L<Spreadsheet::XLSX::Reader::LibXML::Worksheet/row_range> and 
+L<Spreadsheet::XLSX::Reader::LibXML::Worksheet/col_range> can change as more of the sheet is 
+parsed.  This includes the possibility that the maximum values are initially listed as 'undef' 
+if the sheet does not provide them in the metadata.  The sheet will improve these values as cells 
+are read and more definitive information is available based on the dimensional scope of the users 
+cell parsing.  The primary cause of these broken XML elements are non-XML applications writing to 
+the excel spreadsheet.  You can use the attribute L<file_boundary_flags|/file_boundary_flags> or 
+the methods L<Spreadsheet::XLSX::Reader::LibXML::Worksheet/get_next_value> or 
+L<Spreadsheet::XLSX::Reader::LibXML::Worksheet/fetchrow_arrayref> to overcome the missing 
+metadata.
+
 =head2 Attributes
 
 Data passed to new when creating an instance.  For modification of these attributes see the 
@@ -1439,6 +1475,24 @@ B<if_warn>
 
 B<Definition:> delegated method from the class used to extend this package and 
 see if warnings should be emitted.
+
+=back
+
+B<should_spew_longmess>
+
+=over
+
+B<Definition:> delegated method from the class used to turn on or off the L<Carp> 
+'longmess'for error messages
+
+=back
+
+B<spewing_longmess>
+
+=over
+
+B<Definition:> delegated method from the class used to understand the current state 
+the longmess concatenation for error messages
 
 =back
 		
@@ -1742,6 +1796,8 @@ L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/parse_excel_format_
 L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings//set_date_behavior>
 
 L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings//get_date_behavior>
+
+L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings//set_european_first>
 
 =back
 

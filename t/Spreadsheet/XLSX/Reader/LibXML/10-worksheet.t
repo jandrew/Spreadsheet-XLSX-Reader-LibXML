@@ -1,4 +1,4 @@
-#########1 Test File for Spreadsheet::XLSX::Reader::LibXML::GetCell   7#########8#########9
+#########1 Test File for Spreadsheet::XLSX::Reader::LibXML::Worksheet   7#########8#########9
 #!/usr/bin/env perl
 my ( $lib, $test_file );
 BEGIN{
@@ -19,7 +19,7 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 769;
+use	Test::Most tests => 799;
 use	Test::Moose;
 use IO::File;
 use XML::LibXML::Reader;
@@ -38,58 +38,16 @@ use	lib
 	;
 #~ use Log::Shiras::Switchboard qw( :debug );
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(#
-###LogSD						name_space_bounds =>{
-###LogSD							UNBLOCK =>{
-###LogSD								log_file => 'warn',
-###LogSD							},
-#~ ###LogSD							Test =>{
-#~ ###LogSD								Styles =>{
-#~ ###LogSD									UNBLOCK =>{
-#~ ###LogSD										log_file => 'warn',
-#~ ###LogSD									},
-#~ ###LogSD								},
-#~ ###LogSD								SharedStrings =>{
-#~ ###LogSD									UNBLOCK =>{
-#~ ###LogSD										log_file => 'warn',
-#~ ###LogSD									},
-#~ ###LogSD								},
-#~ ###LogSD								parse_element =>{
-#~ ###LogSD									UNBLOCK =>{
-#~ ###LogSD										log_file => 'warn',
-#~ ###LogSD									},
-#~ ###LogSD								},
-#~ ###LogSD								set_custom_formats =>{
-#~ ###LogSD									UNBLOCK =>{
-#~ ###LogSD										log_file => 'warn',
-#~ ###LogSD									},
-#~ ###LogSD								},
-#~ ###LogSD								_parse_column_row =>{
-#~ ###LogSD									UNBLOCK =>{
-#~ ###LogSD										log_file => 'warn',
-#~ ###LogSD									},
-#~ ###LogSD								},
-#~ ###LogSD								_load_unique_bits =>{
-#~ ###LogSD									UNBLOCK =>{
-#~ ###LogSD										log_file => 'warn',
-#~ ###LogSD									},
-#~ ###LogSD								},
-#~ ###LogSD								FmtDefault =>{
-#~ ###LogSD									UNBLOCK =>{
-#~ ###LogSD										log_file => 'warn',
-#~ ###LogSD									},
-#~ ###LogSD								},
-#~ ###LogSD								XMLReader =>{
-#~ ###LogSD									UNBLOCK =>{
-#~ ###LogSD										log_file => 'warn',
-#~ ###LogSD									},
+#~ ###LogSD						name_space_bounds =>{
+#~ ###LogSD							UNBLOCK =>{
+#~ ###LogSD								log_file => 'trace',
+#~ ###LogSD							},
+#~ ###LogSD							main =>{
+#~ ###LogSD								UNBLOCK =>{
+#~ ###LogSD									log_file => 'info',
 #~ ###LogSD								},
 #~ ###LogSD							},
-###LogSD							main =>{
-###LogSD								UNBLOCK =>{
-###LogSD									log_file => 'info',
-###LogSD								},
-###LogSD							},
-###LogSD						},
+#~ ###LogSD						},
 ###LogSD						reports =>{
 ###LogSD							log_file =>[ Print::Log->new ],
 ###LogSD						},
@@ -145,36 +103,63 @@ my  		@class_methods = qw(
 			);
 my			$answer_list =[
 				[
-					{},{},{},{},{},{},
-					{ cell_id => 'A2', row => 1, col => 0, type => 'Text', unformatted => 'Hello', value => 'Hello' },{},{},
-					{ cell_id => 'D2', row => 1, col => 3, type => 'Text', unformatted => 'my', value => 'my' },{},{},
-					{},{},{},{},{},{},
-					{},{},{ cell_id => 'C4', row => 3, col => 2, type => 'Text', unformatted => 'World', value => 'World', coercion_name => 'Excel_text_0' },{},{},{},
-					{},{},{},{},{},{},
-					{ cell_id => 'A6', row => 5, col => 0, type => 'Text', unformatted => 'Hello World', value => 'Hello World',
-						get_rich_text =>[
-							2, { color =>{ rgb => 'FFFF0000' }, sz => '11', b => undef, scheme => 'minor', rFont => 'Calibri', family => 2 },
-							6, { color =>{ rgb => 'FF0070C0' }, sz => '20', b => undef, scheme => 'minor', rFont => 'Calibri', family => 2 },
-						],
-						merge_range => 'A6:B6',
-					},
-					{ cell_id => 'B6', row => 5, col => 1, type => 'Text', unformatted => undef, value => undef, merge_range => 'A6:B6' },{},{},{},{},
-					{},{ cell_id => 'B7', row => 6, col => 1, type => 'Numeric', unformatted => '69', value => '69' },{},{},{},{},
-					{},{ cell_id => 'B8', row => 7, col => 1, type => 'Numeric', unformatted => '27', value => '27' },{},{},
-					{ cell_id => 'E8', row => 7, col => 4, type => 'Date', unformatted => '37145', value => '12-Sep-05', coercion_name => 'Excel_date_164' },{},
-					{},{ cell_id => 'B9', row => 8, col => 1, type => 'Numeric', unformatted => '42', value => '42', formula => 'B7-B8' },{},{},{},{},
-					{},{},{},{ cell_id => 'D10', row => 9, col => 3, type => 'Custom', unformatted => ' ', value => ' ', coercion_name => 'YYYYMMDD' },
-					{ cell_id => 'E10', row => 9, col => 4, type => 'Custom', unformatted => '2/6/2011', value => '2011-02-06T00:00:00', coercion_name => 'Custom_date_type' },
-					{ cell_id => 'F10', row => 9, col => 5, type => 'Custom', unformatted => '2/6/2011', value => '2011-02-06', coercion_name => 'YYYYMMDD' },
-					{ cell_id => 'A11', row => 10, col => 0, type => 'Numeric', unformatted => '2.1345678901', value => '2.13', coercion_name => 'Excel_number_2' },{},{},{},{},{},
-					{},{ cell_id => 'B12', row => 11, col => 1, type => 'Text', unformatted => undef, value => undef, formula => 'IF(B11>0,"Hello","")', },
-					{},{ cell_id => 'D12', row => 11, col => 3, type => 'Date', unformatted => '39118', value => '6-Feb-11', coercion_name => 'Excel_date_164', merge_range => 'D12:E12' },
-					{ cell_id => 'E12', row => 11, col => 4, type => 'Text', unformatted => undef, value => undef, coercion_name => 'Excel_date_164', merge_range => 'D12:E12' },{},
-					{},{},{},{},{},{},
-					{},{},{ cell_id => 'C14', row => 13, col => 2, type => 'Text', unformatted => ' ', value => ' ', has_coercion => '', },
-					{ cell_id => 'D14', row => 13, col => 3, type => 'Custom', unformatted => '39118', value => '2011-2-06', coercion_name => 'Worksheet_Custom_0', },
-					{ cell_id => 'E14', row => 13, col => 4, type => 'Date', unformatted => '39118', value => '6-Feb-11', coercion_name => 'Excel_date_164', },{},
-					'EOF',
+					[
+						{},{},{},{},'EOR','EOR','EOR',
+					],
+					[
+						{ cell_id => 'A2', row => 1, col => 0, type => 'Text', unformatted => 'Hello', value => 'Hello' },{},{},
+						{ cell_id => 'D2', row => 1, col => 3, type => 'Text', unformatted => 'my', value => 'my' },{},{},'EOR',
+					],
+					[
+						{},{},{},{},{},{},'EOR',
+					],
+					[
+						{},{},{ cell_id => 'C4', row => 3, col => 2, type => 'Text', unformatted => 'World', value => 'World', coercion_name => 'Excel_text_0' },{},{},{},'EOR',
+					],
+					[
+						{},{},{},{},{},{},'EOR',
+					],
+					[
+						{ cell_id => 'A6', row => 5, col => 0, type => 'Text', unformatted => 'Hello World', value => 'Hello World',
+							get_rich_text =>[
+								2, { color =>{ rgb => 'FFFF0000' }, sz => '11', b => undef, scheme => 'minor', rFont => 'Calibri', family => 2 },
+								6, { color =>{ rgb => 'FF0070C0' }, sz => '20', b => undef, scheme => 'minor', rFont => 'Calibri', family => 2 },
+							],
+							merge_range => 'A6:B6',
+						},
+						{ cell_id => 'B6', row => 5, col => 1, type => 'Text', unformatted => undef, value => undef, merge_range => 'A6:B6' },{},{},{},{},'EOR',
+					],
+					[
+						{},{ cell_id => 'B7', row => 6, col => 1, type => 'Numeric', unformatted => '69', value => '69' },{},{},{},{},'EOR',
+					],
+					[
+						{},{ cell_id => 'B8', row => 7, col => 1, type => 'Numeric', unformatted => '27', value => '27' },{},{},
+						{ cell_id => 'E8', row => 7, col => 4, type => 'Date', unformatted => '37145', value => '12-Sep-05', coercion_name => 'Excel_date_164' },{},'EOR',
+					],
+					[
+						{},{ cell_id => 'B9', row => 8, col => 1, type => 'Numeric', unformatted => '42', value => '42', formula => 'B7-B8' },{},{},{},{},'EOR',
+					],
+					[
+						{},{},{},{ cell_id => 'D10', row => 9, col => 3, type => 'Custom', unformatted => ' ', value => ' ', coercion_name => 'YYYYMMDD' },
+						{ cell_id => 'E10', row => 9, col => 4, type => 'Custom', unformatted => '2/6/2011', value => '2011-02-06T00:00:00', coercion_name => 'Custom_date_type' },
+						{ cell_id => 'F10', row => 9, col => 5, type => 'Custom', unformatted => '2/6/2011', value => '2011-02-06', coercion_name => 'YYYYMMDD' },'EOR',
+					],
+					[
+						{ cell_id => 'A11', row => 10, col => 0, type => 'Numeric', unformatted => '2.1345678901', value => '2.13', coercion_name => 'Excel_number_2' },{},{},{},{},{},'EOR',
+					],
+					[
+						{},{ cell_id => 'B12', row => 11, col => 1, type => 'Text', unformatted => undef, value => undef, formula => 'IF(B11>0,"Hello","")', },
+						{},{ cell_id => 'D12', row => 11, col => 3, type => 'Date', unformatted => '39118', value => '6-Feb-11', coercion_name => 'Excel_date_164', merge_range => 'D12:E12' },
+						{ cell_id => 'E12', row => 11, col => 4, type => 'Text', unformatted => undef, value => undef, coercion_name => 'Excel_date_164', merge_range => 'D12:E12' },{},'EOR',
+					],
+					[
+						{},{},{},{},{},{},'EOR',
+					],
+					[
+						{},{},{ cell_id => 'C14', row => 13, col => 2, type => 'Text', unformatted => ' ', value => ' ', has_coercion => '', },
+						{ cell_id => 'D14', row => 13, col => 3, type => 'Custom', unformatted => '39118', value => '2011-2-06', coercion_name => 'Worksheet_Custom_0', },
+						{ cell_id => 'E14', row => 13, col => 4, type => 'Date', unformatted => '39118', value => '6-Feb-11', coercion_name => 'Excel_date_164', },{},'EOF',
+					],
 				],
 				[
 					{ cell_id => 'A2', row => 1, col => 0, type => 'Text', unformatted => 'Hello', value => 'Hello' },
@@ -459,11 +444,6 @@ lives_ok{
 									workbook_instance	=> $workbook_instance,
 			###LogSD				log_space			=> 'Test',
 								);
-#~ ###LogSD		$operator->add_name_space_bounds( {
-#~ ###LogSD				UNBLOCK =>{
-#~ ###LogSD					log_file => 'trace',
-#~ ###LogSD				},
-#~ ###LogSD		} );
 			$test_instance->set_custom_formats(
 								E10	=> $date_time_type,
 								10	=> $string_type,
@@ -485,37 +465,42 @@ is			$test_instance->min_row, 0,
 										"check that it knows what the lowest row number is";
 is			$test_instance->min_col, 0,
 										"check that it knows what the lowest column number is";
-is			$test_instance->max_row, 13,
-										"check that it knows what the highest row number is";
-is			$test_instance->max_col, 5,
-										"check that it knows what the highest column number is";
-is_deeply	[$test_instance->row_range], [0,13],
+is			$test_instance->max_row, undef,
+										"check that it knows what the highest row number is (not)";
+is			$test_instance->max_col, undef,
+										"check that it knows what the highest column number is (not)";
+is_deeply	[$test_instance->row_range], [0,undef],
 										"check for a correct row range";
-is_deeply	[$test_instance->col_range], [0,5],
+is_deeply	[$test_instance->col_range], [0,undef],
 										"check for a correct column range";
 
 explain									"Test get_cell";
+#~ ###LogSD		$operator->add_name_space_bounds( {
+#~ ###LogSD				UNBLOCK =>{
+#~ ###LogSD					log_file => 'trace',
+#~ ###LogSD				},
+#~ ###LogSD		} );
 explain		$test_instance->get_cell( 1, 0 )->row;
 is			$test_instance->get_cell( 1, 0 )->row, 1,
 										"Check that you can call the same cell twice";
 is			$test_instance->get_cell( 1, 0 )->row, 1,
 										"...and again";
+			#~ exit 1;
 			my ( $row_min, $row_max ) = $test_instance->row_range();
 			my ( $col_min, $col_max ) = $test_instance->col_range();
-			my $x = 0;
 			my $test_group = 0;
 			no warnings 'uninitialized';
-			INITIALRUN: for my $row ( $row_min .. ($row_max + 1) ) {
-            for my $col ( $col_min .. $col_max ) {
+			INITIALRUN: for my $row ( 0 .. 13 ) {
+            for my $col ( 0 .. 6 ) {
 				
-###LogSD	my $expose_row = 15; my $expose_col = 8;
+###LogSD	my $expose_row = 13; my $expose_col = 6;
 ###LogSD	if( $row == $expose_row and $col == $expose_col ){
 ###LogSD		$operator->add_name_space_bounds( {
-###LogSD			Test =>{
+#~ ###LogSD			Test =>{
 ###LogSD				UNBLOCK =>{
 ###LogSD					log_file => 'trace',
 ###LogSD				},
-###LogSD			},
+#~ ###LogSD			},
 ###LogSD		} );
 ###LogSD	}
 
@@ -529,37 +514,37 @@ is			$test_instance->get_cell( 1, 0 )->row, 1,
 lives_ok{	$cell = $test_instance->get_cell( $row, $col ) }
 										"Get anything at the cell for row -$row- and col -$col-";
 ###LogSD	$phone->talk( level => 'debug', message => [ "cell:", $cell ] );
-			if( !ref $answer_list->[$test_group]->[$x] ){
-is			$cell, $answer_list->[$test_group]->[$x],
-										"Check for the correct end of file flag: EOF";
-			last INITIALRUN;
-			}elsif( scalar( keys %{$answer_list->[$test_group]->[$x]} ) == 0 ){
+			if( !ref $answer_list->[$test_group]->[$row]->[$col] ){
+is			$cell, $answer_list->[$test_group]->[$row]->[$col],
+										"Check for the correct end flag: $answer_list->[$test_group]->[$row]->[$col]";
+			#~ last INITIALRUN;
+			}elsif( scalar( keys %{$answer_list->[$test_group]->[$row]->[$col]} ) == 0 ){
 is			!$cell, 1,					"Check that an expected empty cell really is empty";
 			}else{
-			for my $key ( keys %{$answer_list->[$test_group]->[$x]} ){
+			for my $key ( keys %{$answer_list->[$test_group]->[$row]->[$col]} ){
 ###LogSD	$phone->talk( level => 'debug', message => [ "checking method:", $key ] );
-is_deeply	$cell->$key, $answer_list->[$test_group]->[$x]->{$key},
-										"Checking the method -$key- value at row -$row- and column -$col- is: $answer_list->[$x]->{$key}";
+is_deeply	$cell->$key, $answer_list->[$test_group]->[$row]->[$col]->{$key},
+										"Checking the method -$key- value at row -$row- and column -$col- is: $answer_list->[$test_group]->[$row]->[$col]->{$key}";
 			}
 			}
-			$x++;
             }
 			}
+			#~ exit 1;
 is			$test_instance->get_cell( 1, 6 ), 'EOR',
-										"Get a correct end of row flag: EOR";
+										"For row -1- and column -6- get a correct end of row flag: EOR";
 is			$workbook_instance->change_boundary_flag( 0 ), 0,
 										"Turn boundary flags off";
-is			$test_instance->get_cell( 2, 6 ), undef,
-										"Check an end of row position (should be undef)";
+is			$test_instance->get_cell( 2, 7 ), undef,
+										"Check row -2- and column -7- (end of row position) should return undef";
 is			$test_instance->get_cell( 14, 0 ), undef,
-										"Check and end of file position (should be undef)";
+										"Check row -14- and -0- (end of file position) should return undef";
 
 ok			$test_instance->set_values_only( 1 ),
 										'Turn values_only on';
 explain									"Test get_next_value with values_only = 1";
 			$test_group++;
 			$cell = undef;
-			$x = 0;
+			my $x = 0;
 			VALUERUN: while( !$cell or ref $cell eq 'Spreadsheet::XLSX::Reader::LibXML::Cell' ){#$x < 103 and ( )
 
 ###LogSD	my $expose_position = 17;
@@ -772,6 +757,14 @@ is_deeply	[ $test_instance->is_column_hidden( 'A', 'B', 'C', 'D', 'E', 'F' ) ], 
 ###LogSD	$phone->talk( level => 'trace', message => [ "Row range:", $test_instance->row_range ] );
 is_deeply	[ $test_instance->is_row_hidden( 0 .. 15 ) ], [ 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, undef, undef, undef ],
 										'Check that the sheet knows which rows are hidden - by number';
+is			$test_instance->max_row, 13,
+										"check that it knows what the highest row number is";
+is			$test_instance->max_col, 5,
+										"check that it knows what the highest column number is";
+is_deeply	[$test_instance->row_range], [0,13],
+										"check for a correct row range";
+is_deeply	[$test_instance->col_range], [0,5],
+										"check for a correct column range";
 
 explain									"Test fetchrow_hashref";
 			$test_group++;

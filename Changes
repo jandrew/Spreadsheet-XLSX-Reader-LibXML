@@ -11,7 +11,22 @@ be method matched to Spreadsheet::ParseExcel prior to the 1.0 release.
 
 {{$NEXT}}
 
-	* Another Cool change
+	* Another cool change
+
+v0.38.20  2015-10-10 06:28:21-07:00 America/Los_Angeles
+	
+	+ Added an Attribute that allows control of whether the errors get Carp's longmess
+	+ Added better handling of double digit text years in conversion to a date
+		This assumes that the year is no more than 20 years in the future or 80 years 
+		in the past of the process time
+	+ Added an attribute 'european_first' to the formatter that prioritizes the DD-MM-YY 
+		style of date string parsing over MM-DD-YY
+	+ Re-wrote the worksheet parser to have a 'fast-forward' mode.  
+		This reduces the intermediate processing (time) spent on advancing through the worksheet 
+		when you don't want the values, closes #83 in github
+	! Added a test for bad worksheet dimension values in a worksheet, closes #79 in github
+	! Added a test for missing row span attributes in a row node, closes #78 in github
+	+ Aligned dist.ini a bit with the other packages I maintain
 
 v0.38.18  2015-09-24 10:52:42-07:00 America/Los_Angeles
 	
