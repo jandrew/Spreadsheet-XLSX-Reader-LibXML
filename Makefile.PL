@@ -73,7 +73,7 @@ my %WriteMakefileArgs = (
   },
   "VERSION" => "v0.38.18",
   "test" => {
-    "TESTS" => "t/Spreadsheet/XLSX/Reader/*.t t/Spreadsheet/XLSX/Reader/LibXML/*.t t/Spreadsheet/XLSX/Reader/LibXML/XMLReader/*.t"
+    "TESTS" => "t/*.t t/Spreadsheet/XLSX/Reader/*.t t/Spreadsheet/XLSX/Reader/LibXML/*.t t/Spreadsheet/XLSX/Reader/LibXML/XMLReader/*.t"
   }
 );
 
