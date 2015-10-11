@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::Row;
-use version; our $VERSION = version->declare('v0.38.20');
+use version; our $VERSION = version->declare('v0.38.22');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::Row-$VERSION";
 
 $| = 1;

@@ -28,7 +28,6 @@ lib/Spreadsheet/XLSX/Reader/LibXML/XMLReader/SharedStrings.pm
 lib/Spreadsheet/XLSX/Reader/LibXML/XMLReader/Styles.pm
 lib/Spreadsheet/XLSX/Reader/LibXML/XMLReader/WorksheetToRow.pm
 lib/Spreadsheet/XLSX/Reader/LibXML/XMLToPerlData.pm
-t/06-bad_gism_example.t
 t/Spreadsheet/XLSX/Reader/01-libxml.t
 t/Spreadsheet/XLSX/Reader/02-open_by_worksheet_bug.t
 t/Spreadsheet/XLSX/Reader/03-temp_dir_bug.t
@@ -66,35 +65,6 @@ t/Spreadsheet/XLSX/Reader/LibXML/parse_excel_fmt_string_example.pl
 t/Spreadsheet/XLSX/Reader/LibXML/xml_to_perl_data_example.pl
 t/Spreadsheet/XLSX/Reader/libxml_example.pl
 t/Spreadsheet/XLSX/Reader/libxml_example_alt.pl
-'t/test_files/121206_Raw Data - Call Logs_ken - Copy/[Content_Types].xml'
-'t/test_files/121206_Raw Data - Call Logs_ken - Copy/docProps/app.xml'
-'t/test_files/121206_Raw Data - Call Logs_ken - Copy/docProps/core.xml'
-'t/test_files/121206_Raw Data - Call Logs_ken - Copy/xl/_rels/workbook.xml.rels'
-'t/test_files/121206_Raw Data - Call Logs_ken - Copy/xl/calcChain.xml'
-'t/test_files/121206_Raw Data - Call Logs_ken - Copy/xl/pivotCache/_rels/pivotCacheDefinition1.xml.rels'
-'t/test_files/121206_Raw Data - Call Logs_ken - Copy/xl/pivotCache/_rels/pivotCacheDefinition2.xml.rels'
-'t/test_files/121206_Raw Data - Call Logs_ken - Copy/xl/pivotCache/_rels/pivotCacheDefinition3.xml.rels'
-'t/test_files/121206_Raw Data - Call Logs_ken - Copy/xl/pivotCache/pivotCacheDefinition1.xml'
-'t/test_files/121206_Raw Data - Call Logs_ken - Copy/xl/pivotCache/pivotCacheDefinition2.xml'
-'t/test_files/121206_Raw Data - Call Logs_ken - Copy/xl/pivotCache/pivotCacheDefinition3.xml'
-'t/test_files/121206_Raw Data - Call Logs_ken - Copy/xl/pivotCache/pivotCacheRecords1.xml'
-'t/test_files/121206_Raw Data - Call Logs_ken - Copy/xl/pivotCache/pivotCacheRecords2.xml'
-'t/test_files/121206_Raw Data - Call Logs_ken - Copy/xl/pivotCache/pivotCacheRecords3.xml'
-'t/test_files/121206_Raw Data - Call Logs_ken - Copy/xl/pivotTables/_rels/pivotTable1.xml.rels'
-'t/test_files/121206_Raw Data - Call Logs_ken - Copy/xl/pivotTables/_rels/pivotTable2.xml.rels'
-'t/test_files/121206_Raw Data - Call Logs_ken - Copy/xl/pivotTables/_rels/pivotTable3.xml.rels'
-'t/test_files/121206_Raw Data - Call Logs_ken - Copy/xl/pivotTables/_rels/pivotTable4.xml.rels'
-'t/test_files/121206_Raw Data - Call Logs_ken - Copy/xl/pivotTables/pivotTable1.xml'
-'t/test_files/121206_Raw Data - Call Logs_ken - Copy/xl/pivotTables/pivotTable2.xml'
-'t/test_files/121206_Raw Data - Call Logs_ken - Copy/xl/pivotTables/pivotTable3.xml'
-'t/test_files/121206_Raw Data - Call Logs_ken - Copy/xl/pivotTables/pivotTable4.xml'
-'t/test_files/121206_Raw Data - Call Logs_ken - Copy/xl/sharedStrings.xml'
-'t/test_files/121206_Raw Data - Call Logs_ken - Copy/xl/styles.xml'
-'t/test_files/121206_Raw Data - Call Logs_ken - Copy/xl/theme/theme1.xml'
-'t/test_files/121206_Raw Data - Call Logs_ken - Copy/xl/workbook.xml'
-'t/test_files/121206_Raw Data - Call Logs_ken - Copy/xl/worksheets/_rels/sheet1.xml.rels'
-'t/test_files/121206_Raw Data - Call Logs_ken - Copy/xl/worksheets/sheet1.xml'
-'t/test_files/121206_Raw Data - Call Logs_ken.xlsx'
 t/test_files/ChartSheet.xls
 t/test_files/ChartSheet.xlsx
 t/test_files/CodeTest.xlsm

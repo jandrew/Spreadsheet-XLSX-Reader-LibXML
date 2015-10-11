@@ -1,6 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow;
-our $AUTHORITY = 'cpan:JANDREW';
-use version; our $VERSION = version->declare('v0.38.20');
+use version; our $VERSION = version->declare('v0.38.22');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow-$VERSION";
 
 use	5.010;
@@ -813,9 +812,9 @@ sub _go_to_or_past_row{
 		if( is_Int( $current_row ) ){
 			###LogSD	$phone->talk( level => 'debug', message =>[
 			###LogSD	"Going on to the next row: " . ($current_row +1), ] );
-			#~ no warnings 'recursion';
+			no warnings 'recursion';
 			$result = $self->_go_to_or_past_row( $current_row + 1 );# Recursive call for empty rows
-			#~ use warnings 'recursion';
+			use warnings 'recursion';
 			###LogSD	$phone->talk( level => 'debug', message =>[
 			###LogSD	"Returned from the next row with: " . ($result//'undef'),
 			###LogSD	"..target current row is: " . ($current_row +1), ] );
