@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLToPerlData;
-use version; our $VERSION = version->declare('v0.38.20');
+use version; our $VERSION = version->declare('v0.38.22');
 
 use	Moose::Role;
 use Data::Dumper;
@@ -311,7 +311,7 @@ sub _stack{
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
 	###LogSD			$self->get_all_space . '::parse_element::_stack', );
 	###LogSD		$phone->talk( level => 'debug', message =>[
-	###LogSD			"Stacking node id: " . ($node_id//''),( ( ($replace_key and is_Int( $replace_key ))  ?  "..to position: " :  "..to key: ") . ($replace_key//'undef')) , "in:",$current_value ] );
+	###LogSD			"Stacking node id: " . ($node_id//''),( ( (defined $replace_key and is_Int( $replace_key ))  ?  "..to position: " :  "..to key: ") . ($replace_key//'undef')) , "in:",$current_value ] );
 	my ( $alt_key, $alt_value );
 	
 	if( $replace_key and $replace_key eq 'raw_text' ){# Check for bad spaces before a tag
@@ -331,6 +331,9 @@ sub _stack{
 		if( exists $current_value->{list} ){
 			###LogSD	$phone->talk( level => 'debug', message =>[
 			###LogSD		"Pushing -$node_id- to the array" ] );
+			if( $current_value->{list}->[-1] =~ /^\s*$/ and $node_id !~ /^\s*$/ ){
+				pop @{$current_value->{list}};
+			}
 			push @{$current_value->{list}}, $node_id;
 			$replace_key = $#{$current_value->{list}};
 		}elsif( exists $current_value->{count} ){

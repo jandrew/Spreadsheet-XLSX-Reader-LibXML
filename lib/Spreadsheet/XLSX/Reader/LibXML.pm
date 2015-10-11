@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML;
-use version 0.77; our $VERSION = version->declare('v0.38.20');
+use version 0.77; our $VERSION = version->declare('v0.38.22');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML-$VERSION";
 
 use 5.010;
@@ -286,7 +286,7 @@ has cache_positions =>(
 	);
 
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
-#~ use Data::Dumper;
+
 sub import{# Flags handled here!
     my ( $self, @flag_list ) = @_;
 	
@@ -1103,7 +1103,7 @@ Spreadsheet::XLSX::Reader::LibXML - Read xlsx spreadsheet files with LibXML
 </a>
 
 <a>
-	<img src="https://img.shields.io/badge/this version-0.38.20-brightgreen.svg" alt="this version">
+	<img src="https://img.shields.io/badge/this version-0.38.22-brightgreen.svg" alt="this version">
 </a>
 
 <a href="https://metacpan.org/pod/Spreadsheet::XLSX::Reader::LibXML">

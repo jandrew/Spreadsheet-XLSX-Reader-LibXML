@@ -30,16 +30,16 @@ use	lib
 use	Data::Dumper;
 #~ use Log::Shiras::Switchboard qw( :debug );#
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(
-#~ ###LogSD						name_space_bounds =>{
-#~ ###LogSD							UNBLOCK =>{
-#~ ###LogSD								log_file => 'warn',
-#~ ###LogSD							},
-#~ ###LogSD							main =>{
-#~ ###LogSD								UNBLOCK =>{
-#~ ###LogSD									log_file => 'info',
-#~ ###LogSD								},
-#~ ###LogSD							},
-#~ ###LogSD						},
+###LogSD						name_space_bounds =>{
+###LogSD							UNBLOCK =>{
+###LogSD								log_file => 'trace',
+###LogSD							},
+###LogSD							main =>{
+###LogSD								UNBLOCK =>{
+###LogSD									log_file => 'info',
+###LogSD								},
+###LogSD							},
+###LogSD						},
 ###LogSD						reports =>{
 ###LogSD							log_file =>[ Print::Log->new ],
 ###LogSD						},
@@ -469,7 +469,7 @@ lives_ok{
 			);
 			###LogSD	$phone->talk( level => 'info', message =>[ "Loaded test instance" ] );
 }										"Prep a new WorksheetToRow instance";
-
+			#~ exit 1;
 map{
 can_ok		$test_instance, $_,
 } 			@instance_methods;
