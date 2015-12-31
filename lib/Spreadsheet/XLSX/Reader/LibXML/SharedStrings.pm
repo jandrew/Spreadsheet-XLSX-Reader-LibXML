@@ -1,45 +1,34 @@
-package Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings;
-use version; our $VERSION = version->declare('v0.38.22');
-###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings-$VERSION";
+package Spreadsheet::XLSX::Reader::LibXML::SharedStrings;
+use version; our $VERSION = version->declare('v0.40.2');
+###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::SharedStrings-$VERSION";
 
 use 5.010;
-use Moose;
-use MooseX::StrictConstructor;
-use MooseX::HasDefaults::RO;
+use Moose::Role;
+requires qw( 
+	set_error					where_am_i					has_position
+	advance_element_position	start_the_file_over 		i_am_here
+	parse_element				grep_node					get_group_return_type
+	squash_node
+);
 use Types::Standard qw(
 		Int		Bool		HashRef			is_HashRef		ArrayRef	Enum	is_Int
     );
 use Carp qw( confess );
 use lib	'../../../../../../lib';
 ###LogSD	use Log::Shiras::Telephone;
-###LogSD	use Log::Shiras::UnhideDebug;
-extends	'Spreadsheet::XLSX::Reader::LibXML::XMLReader';
+#~ ###LogSD	use Log::Shiras::UnhideDebug;
 
 #########1 Public Attributes  3#########4#########5#########6#########7#########8#########9
-	
+
 has cache_positions =>(
 		isa		=> Bool,
 		reader	=> '_should_cache_positions',
 		default	=> 1,
 	);
 
-has group_return_type =>(
-		isa		=> Enum[qw( unformatted value instance xml_value )],
-		reader	=> 'get_group_return_type',
-		writer	=> 'set_group_return_type',
-		predicate => 'has_group_return_type',
-	);
-
-has empty_return_type =>(
-		isa		=> Enum[qw( empty_string undef_string )],
-		reader	=> 'get_empty_return_type',
-		writer	=> 'set_empty_return_type',
-	);
-with	'Spreadsheet::XLSX::Reader::LibXML::XMLToPerlData';
-
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
 
-###LogSD	sub get_class_space{ 'SharedStrings' }
+###LogSD	sub get_class_space{ 'SharedStringsInterface' }
 
 sub get_shared_string_position{
 	my( $self, $position ) = @_;
@@ -52,7 +41,8 @@ sub get_shared_string_position{
 		confess "The passed position -$position- is not an integer";
 	}
 	###LogSD	$phone->talk( level => 'debug', message => [
-	###LogSD		"Getting the sharedStrings position: $position" ] );
+	###LogSD		"Getting the sharedStrings position: $position",
+	###LogSD		"From current position: " . ($self->has_position ? $self->where_am_i : '(none yet)'), ] );
 	
 	#checking if the reqested position is too far
 	if( $position > $self->_get_unique_count - 1 ){
@@ -78,28 +68,45 @@ sub get_shared_string_position{
 		$return = $self->_get_last_position_ref;
 		$success = 1;
 	}
-	
+		
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		"Success: " . ($success//'not yet'), "position state: " . $self->has_position ] );
 	# reset the file if needed 
-	if( !$success and $self->has_position and $self->where_am_i > $position ){
+	if( !$self->has_position ){
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"No current position stored - ensure the file is at the beginning" ] );
+		$self->start_the_file_over;
+		#~ my $fh = $self->get_file;
+		#~ ###LogSD		$phone->talk( level => 'debug', message =>[ "got the file handle", $fh ] );
+		#~ $fh->seek( 0, 0 );
+		#~ ###LogSD		$phone->talk( level => 'debug', message =>[ "seek to 0 done" ] );
+		$success = 0;
+	}elsif( !$success and $self->where_am_i > $position ){
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Current position: " . $self->where_am_i, "..against desired position: $position" ] );
 		$self->start_the_file_over;
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD		"Finished resetting the file" ] );
 	}
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		"Reset tests complete" ] );
 	
-	# Kick start position counting
-	if( !$success ){
-		if( !$self->has_position ){
+	# Kick start position counting for the first go-round
+	if( !$success and !$self->has_position ){
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Kickstart position counting - getting first si cell" ] );
+		if( $self->advance_element_position( 'si' ) ){
 			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"Getting to the first cell" ] );
-			if( $self->advance_element_position( 'si' ) ){
-				$self->i_am_here( 0 );
-			}else{
-				$self->set_error( "No sharedStrings elements available" );
-				$self->_set_unique_count( 0 );
-				return undef;
-			}
+			###LogSD		"Successfully advanced one share string position" ] );
+			$self->i_am_here( 0 );
+		}else{
+			$self->set_error( "No sharedStrings elements available" );
+			$self->_set_unique_count( 0 );
+			return undef;
 		}
 	}
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		"Any needed kickstarting complete" ] );
 	
 	# Advance to the proper position - storing along the way as needed
 	while( !$success ){
@@ -113,7 +120,7 @@ sub get_shared_string_position{
 		###LogSD		"Collected:", $inital_parse  ] );
 		
 		# Handle unexpected end of file here
-		if( $inital_parse eq 'EOF' ){
+		if( $inital_parse and $inital_parse eq 'EOF' ){
 			###LogSD	$phone->talk( level => 'debug', message => [
 			###LogSD		"Handling the end of the file",  ] );
 			$return = $inital_parse;
@@ -125,23 +132,26 @@ sub get_shared_string_position{
 		if( is_HashRef( $inital_parse ) ){
 			###LogSD	$phone->talk( level => 'debug', message => [
 			###LogSD		"The initial parse is a hash ref"  ] );
-			if( exists $inital_parse->{t} ){
-				$provisional_output = $inital_parse->{t};
+			my( $success, $t_node ) = $self->grep_node( $inital_parse, 't' );
+			if( $success ){
+				$provisional_output = $t_node;# ->{raw_text}
 			}elsif( exists $inital_parse->{list} ){
 				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		"The initial parse contains a list"  ] );
+				###LogSD		"The initial parse is broken up into list elements", $inital_parse->{list}  ] );
 				my ( $raw_text, $rich_text );
 				for my $element( @{$inital_parse->{list}} ){
 					###LogSD	$phone->talk( level => 'debug', message => [
-					###LogSD		"The initial parse contains a list"  ] );
-					push( @$rich_text, length( $raw_text ), $element->{rPr} ) if exists $element->{rPr};
-					$raw_text .= $element->{t}->{raw_text};
+					###LogSD		"processing element:", $element  ] );
+					my ( $success, $perl_style ) = $self->squash_node( $element );
+					push( @$rich_text, length( $raw_text ), $perl_style->{rPr} ) if exists $perl_style->{rPr};
+					$raw_text .= $perl_style->{t}->{raw_text};
 				}
 				@$provisional_output{qw( raw_text rich_text )} = ( $raw_text, $rich_text  );
 			}
 		}else{
 			confess "Found unknown parse return: $inital_parse ";
 		}
+		delete $provisional_output->{'xml:space'} if is_HashRef( $provisional_output );
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD		"Built position " . $self->where_am_i . " => ", $provisional_output  ] );
 		
@@ -179,6 +189,8 @@ sub get_shared_string_position{
 		( $self->_should_block_formats and is_HashRef( $return ) ) ? $return->{raw_text} :
 		$self->_should_block_formats ? $return :
 		is_HashRef( $return ) ? $return : { raw_text => $return } ;
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		"After possible format stripping: " . $self->_should_block_formats, $return ] );
 		
 	# Close the file if caching complete
 	if( $self->_should_cache_positions and $self->has_file and $self->where_am_i > $self->_get_unique_count - 1 ){
@@ -192,11 +204,19 @@ sub get_shared_string_position{
 
 #########1 Private Attributes 3#########4#########5#########6#########7#########8#########9
 
+has _loaded =>(
+		isa			=> Bool,
+		writer		=> '_good_load',
+		reader		=> 'loaded_correctly',
+		default		=> 0,
+	);
+
 has _unique_count =>(
 	isa			=> Int,
 	writer		=> '_set_unique_count',
 	reader		=> '_get_unique_count',
 	clearer		=> '_clear_unique_count',
+	predicate	=> '_has_unique_count'
 );
 
 has _last_position =>(
@@ -204,7 +224,12 @@ has _last_position =>(
 		writer	=> '_set_last_position',
 		reader	=> '_get_last_position',
 		predicate => '_has_last_position',
-		trigger	=> \&_clear_last_position_ref,
+		trigger	=> sub{
+			my ( $self ) = @_;
+			if( $self->_has_last_position_ref ){
+				$self->_clear_last_position_ref;
+			}
+		},
 	);
 
 has _last_position_ref =>(
@@ -263,12 +288,10 @@ sub _load_unique_bits{
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD		"Loading unique count: $unique_count" ] );
 		$self->_set_unique_count( $unique_count );
-		return undef;
+		$self->_good_load( 1 );
 	}else{
 		$self->set_error( "No 'sst' element found - can't parse this as a shared strings file" );
 		$self->_clear_unique_count;
-		#~ $self->_clear_count;
-		return undef;
 	}
 }
 
@@ -277,14 +300,13 @@ sub _should_block_formats{
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
 	###LogSD			$self->get_all_space . '::_should_block_formats', );
 	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"determining if formats should be blocked" ] );
-	return ( $self->has_group_return_type and $self->get_group_return_type =~ /(unformatted|value|xml_value)/) ? 1 : 0 ;
+	###LogSD			"determining if formats should be blocked: " . $self->get_group_return_type ] );
+	return ( $self->get_group_return_type =~ /(unformatted|value|xml_value)/) ? 1 : 0 ;
 }
 
 #########1 Phinish            3#########4#########5#########6#########7#########8#########9
 
-no Moose;
-__PACKAGE__->meta->make_immutable;
+no Moose::Role;
 	
 1;
 
@@ -293,7 +315,7 @@ __END__
 
 =head1 NAME
 
-Spreadsheet::XLSX::Reader::XMLReader::SharedStrings - A LibXML::Reader sharedStrings base class
+Spreadsheet::XLSX::Reader::LibXML::SharedStrings - The sharedStrings interface
 
 =head1 SYNOPSIS
 

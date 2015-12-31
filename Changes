@@ -10,8 +10,31 @@ NOTE: This software is designated as beta quality until this notice is removed. 
 be method matched to Spreadsheet::ParseExcel prior to the 1.0 release.
 
 {{$NEXT}}
-
-	* Another cool change
+	
+	+ Adds a 'max_file_caching' attribute
+		This setting will automatically turn off caching if it trys to read a file larger than a certain size
+		The goal here is to continue to run on super large files even though it will slow WAY down!
+		No actual testing of the platform memory is done since that requires more dependancies than I am willing to install
+		I'm up for setting the default lower but the default setting is optimized for my enviornment so I would be looking 
+		for a case that indicates why a lower standard is a better general fit.  I would be unlikely to raise the default as 
+		the end user can bump it up where you have certified that the environment can handle it.
+	! Added a test and closes #90 in github
+	! Changed the format_inst to formatter_inst to avoid confusion with future implementation of 
+		sheet visual formatting
+			This includes a change to all methods using this attribute
+	- Removed the attribute format_string_parser - (not sure why it was still in)
+	! Fixed the documentation for the attribute empty_is_end where the old version said
+		1 = feature is not on and the new version says 1 = The feature is on
+		No actual functionality in the sheet was changed.  This was just incorrectly
+		documented.
+	- Removed the dont_inherit attribute from the formatter class as it doesn't play well with the new architecture
+	+ Added interfaces to the other workbook shared files in order to support the xml file types since the readers for a 
+		flat xml file and sub files in a zip file will be different
+	+ Extracted the string formatter interface into it's own role Spreadsheet::XLSX::Reader::LibXML::FormatInterface
+		The goal is to use the base elements to possibly also integrate the formatter into ~::ParseExcel
+			Probably called Spreadsheet::ParseExcel::FormatInterface
+		This would eventually require a different ~::ParseExcel interface and likely require extracting these elements to their own package
+	+ Added support for Excel 2003 XML format (.xml tabular data) extentions
 
 v0.38.22  2015-10-10 20:11:56-07:00 America/Los_Angeles
 

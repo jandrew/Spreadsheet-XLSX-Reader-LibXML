@@ -1,5 +1,5 @@
-#########1 Test File for Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings    ###9
-#!/usr/bin/env perl
+#########1 Test File for Spreadsheet::XLSX::Reader::LibXML::FmtDefault          8#########9
+#!evn perl
 BEGIN{ $ENV{PERL_TYPE_TINY_XS} = 0; }
 $| = 1;
 
@@ -13,38 +13,6 @@ use	lib
 		'../../../../../lib',;
 #~ use Log::Shiras::Switchboard qw( :debug );
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(#
-###LogSD						name_space_bounds =>{
-###LogSD							UNBLOCK =>{
-###LogSD								log_file => 'warn',
-###LogSD							},
-#~ ###LogSD							Test =>{
-#~ ###LogSD								get_defined_excel_format =>{
-#~ ###LogSD									UNBLOCK =>{
-#~ ###LogSD										log_file => 'trace',
-#~ ###LogSD									},
-#~ ###LogSD								},
-#~ ###LogSD								parse_excel_format_string =>{
-#~ ###LogSD									UNBLOCK =>{
-#~ ###LogSD										log_file => 'trace',
-#~ ###LogSD									},
-#~ ###LogSD								},
-#~ ###LogSD								hidden =>{
-#~ ###LogSD									_util_function =>{
-#~ ###LogSD										UNBLOCK =>{
-#~ ###LogSD											log_file => 'warn',
-#~ ###LogSD										},
-#~ ###LogSD									},
-#~ ###LogSD									UNBLOCK =>{
-#~ ###LogSD										log_file => 'trace',
-#~ ###LogSD									},
-#~ ###LogSD								},
-#~ ###LogSD							},
-###LogSD							main =>{
-###LogSD								UNBLOCK =>{
-###LogSD									log_file => 'info',
-###LogSD								},
-###LogSD							},
-###LogSD						},
 ###LogSD						reports =>{
 ###LogSD							log_file =>[ Print::Log->new ],
 ###LogSD						},
@@ -52,10 +20,12 @@ use	lib
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	my $phone = Log::Shiras::Telephone->new;
 ###LogSD	use Log::Shiras::UnhideDebug;
-use	Spreadsheet::XLSX::Reader::LibXML::Error;
+use Spreadsheet::XLSX::Reader::LibXML::Error;
 ###LogSD	use Log::Shiras::UnhideDebug;
 use	Spreadsheet::XLSX::Reader::LibXML::FmtDefault;
-use	Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings;
+###LogSD	use Log::Shiras::UnhideDebug;
+use Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings;
+use Spreadsheet::XLSX::Reader::LibXML::FormatInterface;
 ###LogSD	use Spreadsheet::XLSX::Reader::LibXML::Cell;# Added to cover the namespace reporting (not required in the code outside of source filtered stuff)
 my  ( 
 			$test_instance, $workbook_instance, $capture, $x, @answer, $coercion,
@@ -233,21 +203,22 @@ lives_ok{
 										},
 								);
 			$test_instance	=	build_instance(
-									package	=> 'ParseExcelFormatStringsTest',
+									package	=> 'FormatInterfaceTest',
 									superclasses =>[
 										'Spreadsheet::XLSX::Reader::LibXML::FmtDefault'
 									],
 									add_roles_in_sequence =>[
-										'Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings'
+										'Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings',
+										'Spreadsheet::XLSX::Reader::LibXML::FormatInterface'
 									],
 									workbook_inst => $workbook_instance,
 ###LogSD							log_space	=> 'Test',
 								);
-}										"Prep a test ParseExcelFormatStrings instance";
+}										"Prep a test FormatInterfaceTest instance";
 map{ 
 has_attribute_ok
 			$test_instance, $_,
-										"Check that ParseExcelFormatStringsTest has the -$_- attribute"
+										"Check that FormatInterfaceTest has the -$_- attribute"
 } 			@class_attributes;
 map{
 can_ok		$test_instance, $_,
@@ -343,8 +314,8 @@ is			$test_instance->get_defined_excel_format( $position ), $answer_list->[$test
 ###LogSD			},
 ###LogSD		} );
 ###LogSD	}
-ok			$coercion = $test_instance->get_defined_conversion( $position ),
-										"..now get the Type::Tiny coercion for position: $position";
+ok			my $coercion = $test_instance->parse_excel_format_string( $test_instance->get_defined_excel_format( $position ) ),
+										,"..and try to turn it into a Type::Tiny coercion";
 ###LogSD		$operator->add_name_space_bounds( {
 ###LogSD			UNBLOCK =>{
 ###LogSD				log_file => 'warn',

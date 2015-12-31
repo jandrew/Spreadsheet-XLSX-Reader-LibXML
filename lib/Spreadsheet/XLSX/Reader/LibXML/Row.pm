@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::Row;
-use version; our $VERSION = version->declare('v0.38.22');
+use version; our $VERSION = version->declare('v0.40.2');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::Row-$VERSION";
 
 $| = 1;
@@ -158,6 +158,14 @@ has _reported_position =>(
 
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
 
+#~ sub DEMOLISH{
+	#~ my ( $self ) = @_;
+	#~ ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	#~ ###LogSD				$self->get_all_space . '::hidden::DEMOLISH', );
+	#~ ###LogSD		$phone->talk( level => 'debug', message => [
+	#~ ###LogSD			"Closing the row instance" ] );
+	#~ print "Row closed\n";
+#~ }
 
 #########1 Phinish            3#########4#########5#########6#########7#########8#########9
 

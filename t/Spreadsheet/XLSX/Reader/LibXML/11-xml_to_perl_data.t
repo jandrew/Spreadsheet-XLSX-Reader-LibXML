@@ -1,6 +1,6 @@
 #########1 Test File for Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData #####9
 #!/usr/bin/env perl
-my ( $lib, $test_file, $test_fil2 );
+my ( $lib, $test_file, $test_fil2, $test_fil3 );
 BEGIN{
 	$ENV{PERL_TYPE_TINY_XS} = 0;
 	my	$start_deeper = 1;
@@ -14,14 +14,15 @@ BEGIN{
 	}
 	if( $start_deeper ){
 		$lib		= '../../../../../' . $lib;
-		$test_file	= '../../../../test_files/xl/';
+		$test_file	= '../../../../test_files/';
 	}
 }
 $| = 1;
 
-use	Test::Most tests => 28;
+use	Test::Most tests => 23;
 use	Test::Moose;
 use	MooseX::ShortCut::BuildInstance qw( build_instance );
+use Types::Standard qw( HasMethods Int );
 use	Data::Dumper;
 use	lib
 		'../../../../../../Log-Shiras/lib',
@@ -30,130 +31,183 @@ use	lib
 #~ use Log::Shiras::Switchboard qw( :debug );#
 ###LogSD	use Data::Dumper;
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(#
-#~ ###LogSD						name_space_bounds =>{
-#~ ###LogSD							UNBLOCK =>{
-#~ ###LogSD								log_file => 'trace',
-#~ ###LogSD							},
-#~ ###LogSD						},
+###LogSD						name_space_bounds =>{
+###LogSD							UNBLOCK =>{
+###LogSD								log_file => 'trace',
+###LogSD							},
+###LogSD						},
 ###LogSD						reports =>{
 ###LogSD							log_file =>[ Print::Log->new ],
 ###LogSD						},
 ###LogSD					);
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
-use	Spreadsheet::XLSX::Reader::LibXML::XMLReader;
 use	Spreadsheet::XLSX::Reader::LibXML::XMLToPerlData;
+use	Spreadsheet::XLSX::Reader::LibXML::XMLReader;
 use	Spreadsheet::XLSX::Reader::LibXML::Error;
 $test_file = ( @ARGV ) ? $ARGV[0] : $test_file;
-$test_fil2 = $test_file . 'worksheets/sheet3_test.xml';
-$test_file .= 'sharedStrings.xml';
+$test_fil2 = $test_file . 'xl/worksheets/sheet3_test.xml';
+$test_fil3 = $test_file . 'MySQL.xml';
+$test_file .= 'xl/sharedStrings.xml';
 #~ print "$lib\n$test_file\n$test_fil2\n";
 my  ( 
-			$test_instance, $capture, @answer, $error_instance,
+			$test_instance, $capture, @answer, $workbook_instance,
 	);
 my 			$row = 0;
 my 			@class_attributes = qw(
-				file
-				error_inst
+				file						workbook_inst			exclude_match
+				strip_keys
 			);
 my  		@instance_methods = qw(
-				parse_element
-				get_file
-				set_file
-				has_file
-				clear_file
-				parse_element
-				error
-				set_error
-				clear_error
-				set_warnings
-				if_warn
-				start_the_file_over
-				get_text_node
-				get_attribute_hash_ref
-				advance_element_position
-				location_status
+				set_exclude_match			set_strip_keys			parse_element
+				grep_node					squash_node
 			);
-				#~ where_am_i
-				#~ has_position
-				#~ node_name
-				#~ move_to_first_att
-				#~ move_to_next_att
-				#~ node_depth
-				#~ node_value
-				#~ node_type
-				#~ has_value	
 my			$answer_ref = [
 				{
+					'list_keys' => [ 'r', 'r', 'r' ],
 					'list' => [
 						{
-							't' => {
-								'raw_text' => 'He'
-							}
+		                    'list_keys' => [ 't' ],
+							'list' => [
+								{
+									'raw_text' => 'He'
+								}
+							]
 						},
 						{
-							'rPr' => {
-								'color' => {
-									'rgb' => 'FFFF0000'
+							'list_keys' => [ 'rPr', 't' ],
+							'list' => [
+								{
+									'list_keys' => [ 'b', 'sz', 'color', 'rFont', 'family', 'scheme' ],
+									'list' => [
+										undef,
+		                                {
+		                                    'attributes' => '11'
+		                                },
+		                                {
+		                                    'attributes' => {
+		                                        'rgb' => 'FFFF0000'
+		                                    }
+		                                },
+		                                {
+		                                    'attributes' => 'Calibri'
+		                                },
+		                                {
+		                                    'attributes' => '2'
+		                                },
+										{
+		                                    'attributes' => 'minor'
+		                                }
+									],
 								},
-								'sz' => '11',
-								#~ 'b' => 1,
-								'b' => undef,
-								'scheme' => 'minor',
-								'rFont' => 'Calibri',
-								'family' => '2'
-							},
-							't' => {
-								'raw_text' => 'llo '
-							}
+								{	
+									'xml:space' => 'preserve',
+									'raw_text' => 'llo '
+								}
+							],
 						},
 						{
-							'rPr' => {
-								'color' => {
-									'rgb' => 'FF0070C0'
+							'list_keys' => [ 'rPr', 't' ],
+							'list' => [
+								{
+									'list_keys' => [ 'b', 'sz', 'color', 'rFont', 'family', 'scheme' ],
+									'list' => [
+										undef,
+		                                {
+		                                    'attributes' => '20'
+		                                },
+		                                {
+		                                    'attributes' => {
+		                                        'rgb' => 'FF0070C0'
+		                                    }
+		                                },
+		                                {
+		                                    'attributes' => 'Calibri'
+		                                },
+		                                {
+		                                    'attributes' => '2'
+		                                },
+										{
+		                                    'attributes' => 'minor'
+		                                }
+									],
 								},
-								'sz' => '20',
-								#~ 'b' => 1,
-								'b' => undef,
-								'scheme' => 'minor',
-								'rFont' => 'Calibri',
-								'family' => '2'
-							},
-							't' => {
-								'raw_text' => 'World'
-							}
+								{
+									'raw_text' => 'World'
+								}
+							],
 						}
 					]
 		        },
 				{
-					'r' => 'A11',
-					'v' => {
-						'raw_text' => '1'
+					'attributes' => {
+						's' => '8',
+						'r' => 'A11'
 					},
-					's' => '8'
-				},
+					'list_keys' => [ 'v' ],
+					'list' => [
+						{
+							'raw_text' => '1'
+						}
+					]
+		        },
 				{
-					'r' => 'B12',
-					'v' => {
-						'raw_text' => undef#''
-					}
-		        }
+					'attributes' => {
+						'r' => 'B12'
+					},
+					'list_keys' =>[ 'v' ],
+					'list' =>[ undef ],
+		        },
+				{
+					'attributes' => {
+						'xmlns:x' => 'urn:schemas-microsoft-com:office:excel',
+						'xmlns:ss' => 'urn:schemas-microsoft-com:office:spreadsheet',
+						'xmlns:o' => 'urn:schemas-microsoft-com:office:office',
+						'xmlns' => 'urn:schemas-microsoft-com:office:spreadsheet',
+						'xmlns:html' => 'http://www.w3.org/TR/REC-html40',
+					},
+					'list_keys' =>[ 'Worksheet' ],
+					'list' =>[
+						{
+							'attributes' =>{ 'ss:Name' => 'Table1', },
+						}
+					],
+				}
 			];
 ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space => 'main', );
 ###LogSD		$phone->talk( level => 'info', message => [ "easy questions ..." ] );
 lives_ok{
+			$workbook_instance = build_instance(
+										package	=> 'Spreadsheet::XLSX::Reader::LibXML',
+										add_attributes =>{
+											error_inst =>{
+												isa => 	HasMethods[qw(
+																	error set_error clear_error set_warnings if_warn
+																) ],
+												clearer		=> '_clear_error_inst',
+												reader		=> 'get_error_inst',
+												required	=> 1,
+												handles =>[ qw(
+													error set_error clear_error set_warnings if_warn
+												) ],
+												default => sub{ Spreadsheet::XLSX::Reader::LibXML::Error->new() },
+											},
+											epoch_year =>{
+												isa => Int,
+												reader => 'get_epoch_year',
+												default => 1904,
+											},
+										},
+										add_methods =>{
+											get_empty_return_type => sub{ 1 },
+										},
+								);
 			$test_instance	=	build_instance(
 									package => 'TestIntance',
 									superclasses =>[ 'Spreadsheet::XLSX::Reader::LibXML::XMLReader', ],
 									add_roles_in_sequence =>[ 'Spreadsheet::XLSX::Reader::LibXML::XMLToPerlData', ],
-									add_methods =>{
-										get_empty_return_type => sub{ 1 },
-									},
 									file	=> $test_file,
-									error_inst	=> Spreadsheet::XLSX::Reader::LibXML::Error->new(
-										#~ should_warn => 1,
-										should_warn => 0,# to turn off cluck when the error is set
-									),
+									workbook_inst => $workbook_instance,
 			###LogSD				log_space	=> 'Test',
 								);
 }										"Prep a new TestIntance to test XMLToPerlData";
@@ -168,53 +222,57 @@ can_ok		$test_instance, $_,
 
 ###LogSD		$phone->talk( level => 'info', message => [ "hardest questions ..." ] );
 			my $x = 0;
-#~ explain		"index to position 15";
+explain		"index to position 15";
 ok			$test_instance->start_the_file_over,
 										"reset the file";
 			my $target = 16;
 ok			$test_instance->advance_element_position( 'si', $target ),
 										"index to position: " . ($target - 1);
-			#~ print Dumper( $test_instance->parse_element ); exit 1;
-###LogSD	$operator->add_name_space_bounds( {
-#~ ###LogSD			Test =>{
-#~ ###LogSD				ExcelFmtDefault =>{
-#~ ###LogSD					_build_datestring =>{
-###LogSD						UNBLOCK =>{
-###LogSD							log_file => 'trace',
-###LogSD						},
-#~ ###LogSD					},
-#~ ###LogSD				},
-#~ ###LogSD			},
-###LogSD	}, );
 is_deeply	$test_instance->parse_element, $answer_ref->[$x],
 										"Check that the output matches expectations";
 ok			$test_instance->start_the_file_over,
 										"Start the file over";
 explain		"index to position 15 - again";
 			map{ $test_instance->advance_element_position( 'si' ) }( 0..15 );
-			#~ print Dumper( $test_instance->parse_element );
 is_deeply	$test_instance->parse_element, $answer_ref->[$x++],
 										"..and check the output..again";
 lives_ok{
 			$test_instance	=	TestIntance->new(
-									file	=> $test_fil2,
-									error_inst	=> Spreadsheet::XLSX::Reader::LibXML::Error->new(
-										#~ should_warn => 1,
-										should_warn => 0,# to turn off cluck when the error is set
-									),
+									file => $test_fil2,
+									workbook_inst => $workbook_instance,,
 			###LogSD				log_space	=> 'Test',
 								);
-}										"Prep another TestIntance to test XMLToPerlData";
+}										"Prep another TestIntance to test: $test_fil2";
 explain		"Index to position 12";
 			map{ $test_instance->advance_element_position( 'c' ) }( 0..12 );
-			#~ print Dumper( $test_instance->parse_element );
-			#~ exit 1;
 is_deeply	$test_instance->parse_element, $answer_ref->[$x++],
 										"Check that the next output matches expectations.";
 ok			$test_instance->advance_element_position( 'c' ),
 										"Advance to the next cell";
 is_deeply	$test_instance->parse_element, $answer_ref->[$x++],
 										"Check that the next output matches expectations.";
+lives_ok{
+			$test_instance	=	TestIntance->new(
+									file => $test_fil3,
+									workbook_inst => $workbook_instance,
+			###LogSD				log_space	=> 'Test',
+								);
+}										"Prep another TestIntance to test: $test_fil3";
+ok			$test_instance->advance_element_position( 'Workbook' ),
+										"Correctly find the Workbook node";
+ok			$test_instance->set_exclude_match( '(Table)' ),
+										"Exclude 'Table' nodes from collection";
+###LogSD	$operator->add_name_space_bounds( {# Move this whole block around as needed
+###LogSD			Test =>{
+###LogSD				UNBLOCK =>{
+###LogSD					log_file => 'trace',
+###LogSD				},
+###LogSD			},
+###LogSD	}, );
+###LogSD	explain		$test_instance->parse_element( 2 ); exit 1;#
+#~ explain		$test_instance->parse_element( 2 ), $answer_ref->[$x++]; exit 1;
+is_deeply	$test_instance->parse_element( 2 ), $answer_ref->[$x++],
+										"And pull two levels to see what is returned";
 explain 								"...Test Done";
 done_testing();
 

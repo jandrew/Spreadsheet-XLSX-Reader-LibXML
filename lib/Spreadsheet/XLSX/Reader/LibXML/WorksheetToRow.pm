@@ -1,11 +1,15 @@
-package Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow;
-use version; our $VERSION = version->declare('v0.38.22');
+package Spreadsheet::XLSX::Reader::LibXML::WorksheetToRow;
+use version; our $VERSION = version->declare('v0.40.2');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow-$VERSION";
 
 use	5.010;
-use	Moose;
-use	MooseX::StrictConstructor;
-use	MooseX::HasDefaults::RO;
+use	Moose::Role;
+requires qw(
+	is_empty_the_end				start_the_file_over				advance_element_position
+	location_status					get_attribute_hash_ref			parse_element
+	has_shared_strings_interface	get_shared_string_position		get_empty_return_type
+	get_values_only					_starts_at_the_edge				grep_node
+);
 use Clone 'clone';
 use Carp qw( confess );
 use Types::Standard qw(
@@ -18,7 +22,7 @@ should_re_use_classes( 1 );
 use lib	'../../../../../../lib';
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
-extends	'Spreadsheet::XLSX::Reader::LibXML::XMLReader';
+#~ extends	'Spreadsheet::XLSX::Reader::LibXML::XMLReader';
 use Spreadsheet::XLSX::Reader::LibXML::Row;
 use Data::Dumper;
 #########1 Dispatch Tables & Package Variables    5#########6#########7#########8#########9
@@ -31,40 +35,6 @@ has is_hidden =>(
 		isa		=> Bool,
 		reader	=> 'is_sheet_hidden',
 	);
-	
-has workbook_instance =>(
-		isa		=> HasMethods[qw(
-						counting_from_zero			boundary_flag_setting
-						change_boundary_flag		_has_shared_strings_file
-						get_shared_string_position	_has_styles_file
-						get_format_position			set_empty_is_end
-						is_empty_the_end			_starts_at_the_edge
-						get_group_return_type		set_group_return_type
-						get_epoch_year				change_output_encoding
-						get_date_behavior			set_date_behavior
-						get_empty_return_type		set_error
-						get_values_only				set_values_only
-						parse_excel_format_string
-					)],
-		handles	=> [qw(
-						counting_from_zero			boundary_flag_setting
-						change_boundary_flag		_has_shared_strings_file
-						get_shared_string_position	_has_styles_file
-						get_format_position			set_empty_is_end
-						is_empty_the_end			_starts_at_the_edge
-						get_group_return_type		set_group_return_type
-						get_epoch_year				change_output_encoding
-						get_date_behavior			set_date_behavior
-						get_empty_return_type		set_error
-						get_values_only				set_values_only
-						parse_excel_format_string
-					)],
-		required => 1,
-	);
-###LogSD	use Log::Shiras::UnhideDebug;
-with	'Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow',
-		'Spreadsheet::XLSX::Reader::LibXML::XMLToPerlData',
-		;
 
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
 
@@ -674,10 +644,7 @@ sub _go_to_or_past_row{
 	
 	# Collect the details of the final row position
 	my $row_ref = $self->parse_element( undef, $attribute_ref );
-	$row_ref->{list} =
-		exists $row_ref->{list} ? $row_ref->{list} :
-		exists $row_ref->{c} ? [ $row_ref->{c} ] : [];
-	delete $row_ref->{c} if exists $row_ref->{c};# Delete the single column c placeholder as needed
+	$row_ref->{list} = exists $row_ref->{list} ? $row_ref->{list} : [];
 	###LogSD	$phone->talk( level => 'trace', message => [#ask => 1, 
 	###LogSD		'Result of row read:', $row_ref ] );
 	
@@ -689,12 +656,13 @@ sub _go_to_or_past_row{
 		###LogSD		'Processing cell:', $cell	] );
 		
 		$cell->{cell_type} = 'Text';
-		if( exists $cell->{t} ){
-			if( $cell->{t} eq 's' ){
+		my $v_node = $self->grep_node( $cell, 'v' );
+		if( exists $cell->{attributes}->{t} ){
+			if( $cell->{attributes}->{t} eq 's' ){
 				###LogSD	$phone->talk( level => 'debug', message =>[
 				###LogSD		"Identified potentially required shared string for cell:",  $cell] );
-				my $position = ( $self->_has_shared_strings_file ) ?
-						$self->get_shared_string_position( $cell->{v}->{raw_text} ) : $cell->{v}->{raw_text};
+				my $position = ( $self->has_shared_strings_interface ) ?
+						$self->get_shared_string_position( $v_node->{raw_text} ) : $v_node->{raw_text};
 				###LogSD	$phone->talk( level => 'debug', message =>[
 				###LogSD		"Shared strings resolved to:",  $position] );
 				if( is_HashRef( $position ) ){
@@ -703,21 +671,19 @@ sub _go_to_or_past_row{
 				}else{
 					$cell->{cell_xml_value} = $position;
 				}
-			}elsif( $cell->{t} eq 'str' ){
+			}elsif( $cell->{attributes}->{t} =~ /^(str|e)$/ ){
 				###LogSD	$phone->talk( level => 'debug', message =>[
-				###LogSD		"Identified a stored string in the worksheet file: " . ($cell->{v}//'')] );
-				$cell->{cell_xml_value} = $cell->{v}->{raw_text};
+				###LogSD		"Identified a stored string in the worksheet file: " . ($v_node//'')] );
+				$cell->{cell_xml_value} = $v_node->{raw_text};
 			}else{
-				confess "Unknown 't' attribute set for the cell: $cell->{t}";
+				confess "Unknown 't' attribute set for the cell: $cell->{attributes}->{t}";
 			}
-			delete $cell->{t};
-			delete $cell->{v};
-		}elsif( exists $cell->{v} ){
+			delete $cell->{attributes}->{t};
+		}elsif( $v_node ){
 			###LogSD	$phone->talk( level => 'debug', message =>[
-			###LogSD		"Setting cell_xml_value from: $cell->{v}->{raw_text}", ] );
-			$cell->{cell_xml_value} = $cell->{v}->{raw_text};
+			###LogSD		"Setting cell_xml_value from: $v_node->{raw_text}", ] );
+			$cell->{cell_xml_value} = $v_node->{raw_text};
 			$cell->{cell_type} = 'Numeric' if $cell->{cell_xml_value} and $cell->{cell_xml_value} ne '';
-			delete $cell->{v};
 		}
 		if( $self->get_empty_return_type eq 'empty_string' ){
 			$cell->{cell_xml_value} = '' if !exists $cell->{cell_xml_value} or !defined $cell->{cell_xml_value};
@@ -734,14 +700,20 @@ sub _go_to_or_past_row{
 				###LogSD		'Values only called - stripping this non-value cell'	] );
 		}else{
 			$cell->{cell_type} = 'Text' if !exists $cell->{cell_type};
-			$cell->{cell_hidden} = 'row' if $row_ref->{hidden};
-			@$cell{qw( cell_col cell_row )} = $self->_parse_column_row( $cell->{r} );
+			$cell->{cell_hidden} = 'row' if $row_ref->{attributes}->{hidden};
+			@$cell{qw( cell_col cell_row )} = $self->_parse_column_row( $cell->{attributes}->{r} );
+			$cell->{r} = $cell->{attributes}->{r};
+			$cell->{s} = $cell->{attributes}->{s} if exists $cell->{attributes}->{s};
+			delete $cell->{attributes}->{r};
 			$last_value_column = $cell->{cell_col};
-			$cell->{cell_formula} = $cell->{f}->{raw_text} if $cell->{f};
-			delete $cell->{f};
+			my $formula_node = $self->grep_node( $cell, 'f' );
+			$cell->{cell_formula} = $formula_node->{raw_text} if $formula_node;
 			$column_to_cell_translations->[$cell->{cell_col}] = $x++;
 			$reported_column = $cell->{cell_col} if !defined $reported_column;
 			$reported_position = 0;
+			delete $cell->{attributes};
+			delete $cell->{list};
+			delete $cell->{list_keys};
 			###LogSD	$phone->talk( level => 'info', message => [
 			###LogSD		'Saving cell:', $cell	] );
 			push @$alt_ref, $cell;
@@ -752,19 +724,22 @@ sub _go_to_or_past_row{
 	my $new_ref;
 	###LogSD	$phone->talk( level => 'trace', message =>[
 	###LogSD		"Row ref:", $row_ref, ] );
-	if( defined $row_ref->{r} ){
-		$new_ref->{row_number} = $row_ref->{r};
-		delete $row_ref->{r};
+	if( defined $row_ref->{attributes}->{r} ){
+		$new_ref->{row_number} = $row_ref->{attributes}->{r};
+		delete $row_ref->{attributes}->{r};
 		delete $row_ref->{list};
-		delete $row_ref->{hidden};
+		delete $row_ref->{list_keys};
+		delete $row_ref->{attributes}->{hidden};
 		if( $alt_ref ){
 			###LogSD	$phone->talk( level => 'trace', message =>[
-			###LogSD		"Alt ref:", $alt_ref, ] );
+			###LogSD		"Alt ref:", $alt_ref, "updated row ref:", $row_ref, "new ref:", $new_ref,] );
 			$new_ref->{row_value_cells}	= $alt_ref;
-			$new_ref->{row_span} = $row_ref->{spans} ? [split /:/, $row_ref->{spans}] : [ undef, undef ];
+			$new_ref->{row_span} = $row_ref->{attributes}->{spans} ? [split /:/, $row_ref->{attributes}->{spans}] : [ undef, undef ];
 			$new_ref->{row_last_value_column} = $last_value_column;
 			$new_ref->{column_to_cell_translations}	= $column_to_cell_translations;
 			$new_ref->{row_span}->[0] //= $new_ref->{row_value_cells}->[0]->{cell_col};
+			###LogSD	$phone->talk( level => 'trace', message =>[
+			###LogSD		"adjusted new ref:", $new_ref,] );
 			if( !$self->has_max_col or $self->_max_col < $new_ref->{row_value_cells}->[-1]->{cell_col} ){
 				###LogSD	$phone->talk( level => 'trace', message =>[
 				###LogSD		"From known cells setting the max column to: $new_ref->{row_value_cells}->[-1]->{cell_col}" ] );
@@ -784,7 +759,7 @@ sub _go_to_or_past_row{
 			$new_ref->{row_last_value_column} = 0;
 			$new_ref->{column_to_cell_translations}	= [];
 		}
-		delete $row_ref->{spans};
+		delete $row_ref->{attributes}->{spans};# Delete just attributes here?
 		###LogSD	$phone->talk( level => 'debug', message =>[
 		###LogSD		"Row formats:", $row_ref,
 		###LogSD		"Row attributes:", $new_ref, ] );
@@ -884,7 +859,7 @@ sub _load_unique_bits{
 		my $dimension = $self->parse_element;
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD		"parsed dimension value:", $dimension ] );
-		my	( $start, $end ) = split( /:/, $dimension->{ref} );
+		my	( $start, $end ) = split( /:/, $dimension->{attributes}->{ref} );
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD		"Start position: $start", 
 		###LogSD		( $end ? "End position: $end" : '' ), ] );
@@ -926,14 +901,14 @@ sub _load_unique_bits{
 		###LogSD		"parsed column elements to:", $column_data ] );
 		my $column_store = [];
 		for my $definition ( @{$column_data->{list}} ){
-			next if !is_HashRef( $definition );
+			next if !is_HashRef( $definition ) or !is_HashRef( $definition->{attributes} );
 			###LogSD	$phone->talk( level => 'debug', message => [
 			###LogSD		"Processing:", $definition ] );
 			my $row_ref;
-			map{ $row_ref->{$_} = $definition->{$_} if defined $definition->{$_} } qw( width customWidth bestFit hidden );
+			map{ $row_ref->{$_} = $definition->{attributes}->{$_} if defined $definition->{attributes}->{$_} } qw( width customWidth bestFit hidden );
 			###LogSD	$phone->talk( level => 'debug', message => [
 			###LogSD		"Updated row ref:", $row_ref ] );
-			for my $col ( $definition->{min} .. $definition->{max} ){
+			for my $col ( $definition->{attributes}->{min} .. $definition->{attributes}->{max} ){
 				$column_store->[$col] = $row_ref;
 				###LogSD	$phone->talk( level => 'debug', message => [
 				###LogSD		"Updated column store is:", $column_store ] );
@@ -964,7 +939,7 @@ sub _load_unique_bits{
 		for my $merge_ref ( @{$merge_range->{list}} ){
 			###LogSD	$phone->talk( level => 'debug', message => [
 			###LogSD		"parsed merge element to:", $merge_ref ] );
-			my ( $start, $end ) = split /:/, $merge_ref->{ref};
+			my ( $start, $end ) = split /:/, $merge_ref->{attributes}->{ref};
 			my ( $start_col, $start_row ) = $self->_parse_column_row( $start );
 			my ( $end_col, $end_row ) = $self->_parse_column_row( $end );
 			###LogSD	$phone->talk( level => 'debug', message => [
@@ -972,7 +947,7 @@ sub _load_unique_bits{
 			###LogSD		"End column: $end_col", "End row: $end_row" ] );
 			my 	$min_col = $start_col;
 			while ( $start_row <= $end_row ){
-				$final_ref->[$start_row]->[$start_col] = $merge_ref->{ref};
+				$final_ref->[$start_row]->[$start_col] = $merge_ref->{attributes}->{ref};
 				$start_col++;
 				if( $start_col > $end_col ){
 					$start_col = $min_col;
@@ -1009,8 +984,7 @@ sub _is_column_hidden{
 
 #########1 Phinish            3#########4#########5#########6#########7#########8#########9
 
-no Moose;
-__PACKAGE__->meta->make_immutable;
+no Moose::Role;
 	
 1;
 

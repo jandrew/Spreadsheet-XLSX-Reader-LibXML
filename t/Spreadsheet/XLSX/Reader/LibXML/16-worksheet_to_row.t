@@ -13,18 +13,17 @@ BEGIN{
 		}
 	}
 	if( $start_deeper ){
-		$lib		= '../../../../../../' . $lib;
-		$test_file	= '../../../../../test_files/xl/';
+		$lib		= '../../../../../' . $lib;
+		$test_file	= '../../../../test_files/xl/';
 	}
 }
 $| = 1;
 
-use	Test::Most tests => 1200;
+use	Test::Most tests => 1185;
 use	Test::Moose;
-use	MooseX::ShortCut::BuildInstance qw( build_instance );
-use Types::Standard qw( Bool ConsumerOf HasMethods );
+use Types::Standard qw( Bool ConsumerOf HasMethods Int Str );
 use	lib
-		'../../../../../../../Log-Shiras/lib',
+		'../../../../../../Log-Shiras/lib',
 		$lib,
 	;
 use	Data::Dumper;
@@ -46,10 +45,19 @@ use	Data::Dumper;
 ###LogSD					);
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
+use	MooseX::ShortCut::BuildInstance qw( build_instance );
+use	Spreadsheet::XLSX::Reader::LibXML::XMLReader;
+###LogSD	use Log::Shiras::UnhideDebug;
+use	Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow;
+use	Spreadsheet::XLSX::Reader::LibXML::XMLToPerlData;
+###LogSD	use Log::Shiras::UnhideDebug;
+use	Spreadsheet::XLSX::Reader::LibXML::WorksheetToRow;
 use	Spreadsheet::XLSX::Reader::LibXML::Error;
-use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow;
+###LogSD	use Log::Shiras::UnhideDebug;
+use	Spreadsheet::XLSX::Reader::LibXML::SharedStrings;
 use	Spreadsheet::XLSX::Reader::LibXML::FmtDefault;
-use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings;
+use	Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings;
+use	Spreadsheet::XLSX::Reader::LibXML::FormatInterface;
 use	DateTimeX::Format::Excel;
 use	DateTime::Format::Flexible;
 use	Type::Coercion;
@@ -62,44 +70,19 @@ my	$shared_strings_file = $test_file . 'sharedStrings.xml';
 ###LogSD	my	$log_space	= 'Test';
 ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space => 'main', );
 ###LogSD		$phone->talk( level => 'trace', message => [ "Test file is: $test_file" ] );
-my  ( 
-			$test_instance, $error_instance, $workbook_instance, $file_handle, $format_instance, $shared_strings_instance
+my  (  
+			$test_instance, $workbook_instance, $file_handle, $shared_strings_instance, $format_instance,
 	);
 my 			@class_attributes = qw(
-				file
-				error_inst
 				is_hidden
-				workbook_instance
 			);
 my  		@instance_methods = qw(
-				is_sheet_hidden
-				is_empty_the_end
-				get_group_return_type
-				_set_min_col
-				_min_col
-				has_min_col
-				_set_min_row
-				_min_row
-				has_min_row
-				_set_max_col
-				_max_col
-				has_max_col
-				_set_max_row
-				_max_row
+				is_empty_the_end				start_the_file_over				advance_element_position
+				location_status					get_attribute_hash_ref			parse_element
+				has_shared_strings_interface	get_shared_string_position		get_empty_return_type
+				get_values_only					grep_node						is_sheet_hidden
+				has_min_col						has_min_row						has_max_col
 				has_max_row
-				_set_merge_map
-				_get_merge_map
-				_get_row_merge_map
-				get_file
-				set_file
-				has_file
-				clear_file
-				_get_row_all
-				_get_next_value_cell
-				_get_col_row
-				is_sheet_hidden
-				_is_column_hidden
-				_get_row_hidden
 			);
 my			$answer_ref = [
 				[
@@ -365,100 +348,101 @@ my			$answer_ref = [
 				[ 0, 0, 1, 1, 0, 0 ],
 				[ undef, undef, 0, undef, 0, undef, 0, 1, 1, 1, 1, 1, 0, undef, 0, undef ],
 			];
-###LogSD	$phone->talk( level => 'info', message => [ "easy questions ..." ] );
-map{
-has_attribute_ok
-			'Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow', $_,
-										"Check that Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow has the -$_- attribute"
-} 			@class_attributes;
 
+###LogSD	$phone->talk( level => 'info', message => [ "easy questions ..." ] );
 lives_ok{
-			$error_instance = Spreadsheet::XLSX::Reader::LibXML::Error->new( should_warn => 0 );
-			$shared_strings_instance =	Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings->new(
-										group_return_type	=> 'xml_value',
-										file			=> $shared_strings_file,
-										error_inst 		=> Spreadsheet::XLSX::Reader::LibXML::Error->new(
-											#~ should_warn		=> 1,
-											should_warn		=> 0,# to turn off cluck when the error is set
-										),
-				###LogSD				log_space	=> 'Test',
-									);
-			$workbook_instance	= build_instance(
-									package		=> 'Spreadsheet::XLSX::Reader::LibXML',
-									add_methods =>{
-										counting_from_zero			=> sub{ return 0 },
-										boundary_flag_setting		=> sub{},
-										change_boundary_flag		=> sub{},
-										_has_shared_strings_file	=> sub{ return 1 },
-										_has_styles_file			=> sub{},
-										get_format_position			=> sub{},
-										get_epoch_year				=> sub{ return 1904 },
-										get_group_return_type		=> sub{},
-										set_group_return_type		=> sub{},
-										get_date_behavior			=> sub{},
-										set_date_behavior			=> sub{},
-										get_empty_return_type		=> sub{ return 'undef_string' },
-										get_values_only				=> sub{},
-										set_values_only				=> sub{},
-									},
-									add_attributes =>{
-										error_inst =>{
-											isa			=> 	HasMethods[qw(
-																error set_error clear_error set_warnings if_warn
-															) ],
-											clearer		=> '_clear_error_inst',
-											reader		=> 'get_error_inst',
-											required	=> 1,
-											handles =>[ qw(
-												error set_error clear_error set_warnings if_warn
-											) ],
-										},
-										empty_is_end =>{
-											isa		=> Bool,
-											writer	=> 'set_empty_is_end',
-											reader	=> 'is_empty_the_end',
-											default	=> 0,
-										},
-										from_the_edge =>{
-											isa		=> Bool,
-											reader	=> '_starts_at_the_edge',
-											writer	=> 'set_from_the_edge',
-											default	=> 1,
-										},
-										formatter_inst =>{
-											isa	=> 	ConsumerOf[ 'Spreadsheet::XLSX::Reader::LibXML::FormatInterface' ],# Interface
-											writer	=> 'set_formatter_inst',
-											reader	=> 'get_formatter_inst',
-											predicate => '_has_formatter_inst',
-											handles => { qw(
-												get_formatter_region			get_excel_region
-												has_target_encoding				has_target_encoding
-												get_target_encoding				get_target_encoding
-												set_target_encoding				set_target_encoding
-												change_output_encoding			change_output_encoding
-												set_defined_excel_formats		set_defined_excel_formats
-												get_defined_conversion			get_defined_conversion
-												parse_excel_format_string		parse_excel_format_string
-												set_date_behavior				set_date_behavior
-												set_european_first				set_european_first
-												set_formatter_cache_behavior	set_cache_behavior
-											)},
-										},
-										_shared_strings_instance =>{
-											isa			=> HasMethods[ 'get_shared_string_position' ],
-											predicate	=> '_has_shared_strings_file',
-											writer		=> '_set_shared_strings_instance',
-											reader		=> '_get_shared_strings_instance',
-											clearer		=> '_clear_shared_strings',
-											handles		=>{
-												'get_shared_string_position' => 'get_shared_string_position',
-												_demolish_shared_strings => 'DEMOLISH',
+			$workbook_instance = build_instance(
+										package	=> 'Spreadsheet::XLSX::Reader::LibXML',
+										add_attributes =>{
+											error_inst =>{
+												isa => 	HasMethods[qw(
+																	error set_error clear_error set_warnings if_warn
+																) ],
+												clearer		=> '_clear_error_inst',
+												reader		=> 'get_error_inst',
+												required	=> 1,
+												handles =>[ qw(
+													error set_error clear_error set_warnings if_warn
+												) ],
+												default => sub{ Spreadsheet::XLSX::Reader::LibXML::Error->new() },
+											},
+											epoch_year =>{
+												isa => Int,
+												reader => 'get_epoch_year',
+												default => 1904,
+											},
+											values_only =>{
+												isa		=> Bool,
+												writer	=> 'set_values_only',
+												reader	=> 'get_values_only',
+												default => 0,
+											},
+											group_return_type =>{
+												isa => Str,
+												reader => 'get_group_return_type',
+												writer => 'set_group_return_type',
+												default => 'value',
+											},
+											empty_is_end =>{
+												isa		=> Bool,
+												writer	=> 'set_empty_is_end',
+												reader	=> 'is_empty_the_end',
+												default => 0,
+											},
+											from_the_edge =>{
+												isa		=> Bool,
+												reader	=> '_starts_at_the_edge',
+												writer	=> 'set_from_the_edge',
+												default => 1,
+											},
+											shared_strings_interface =>{
+												isa => ConsumerOf[ 'Spreadsheet::XLSX::Reader::LibXML::SharedStrings' ],
+												predicate => 'has_shared_strings_interface',
+												writer => 'set_shared_strings_interface',
+												handles =>{
+													'get_shared_string_position' => 'get_shared_string_position',
+													'start_the_ss_file_over' => 'start_the_file_over',
+												},
+											},
+											formatter_inst =>{
+												isa	=> 	ConsumerOf[ 'Spreadsheet::XLSX::Reader::LibXML::FormatInterface' ],# Interface
+												writer	=> 'set_formatter_inst',
+												reader	=> 'get_formatter_inst',
+												predicate => '_has_formatter_inst',
+												handles => { qw(
+														get_formatter_region			get_excel_region
+														has_target_encoding				has_target_encoding
+														get_target_encoding				get_target_encoding
+														set_target_encoding				set_target_encoding
+														change_output_encoding			change_output_encoding
+														set_defined_excel_formats		set_defined_excel_formats
+														get_defined_conversion			get_defined_conversion
+														parse_excel_format_string		parse_excel_format_string
+														set_date_behavior				set_date_behavior
+														set_european_first				set_european_first
+														set_formatter_cache_behavior	set_cache_behavior
+														get_excel_region				get_excel_region
+													),
+												},
 											},
 										},
-									},
-									error_inst => $error_instance,
-									_shared_strings_instance => $shared_strings_instance,
+										add_methods =>{
+											get_empty_return_type => sub{ 1 },
+										},
+			###LogSD				log_space=> 'Test',
 								);
+			$shared_strings_instance = build_instance(
+									superclasses => ['Spreadsheet::XLSX::Reader::LibXML::XMLReader'],
+									file => $shared_strings_file,
+									package => 'SharedStrings',
+									add_roles_in_sequence => [
+										'Spreadsheet::XLSX::Reader::LibXML::XMLToPerlData',
+										'Spreadsheet::XLSX::Reader::LibXML::SharedStrings',
+									],
+			###LogSD				log_space=> 'Test',
+									workbook_inst => $workbook_instance,
+								);
+			$workbook_instance->set_shared_strings_interface( $shared_strings_instance );
 			$format_instance = build_instance(
 									package	=> 'FormatInterfaceTest',
 									superclasses =>[
@@ -469,18 +453,29 @@ lives_ok{
 										'Spreadsheet::XLSX::Reader::LibXML::FormatInterface'
 									],
 									workbook_inst => $workbook_instance,
-###LogSD							log_space	=> 'Test',
+			###LogSD				log_space	=> 'Test',
 								);
 			$workbook_instance->set_formatter_inst( $format_instance );
-			$test_instance	= Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow->new(
-				file				=> $test_file,
-				error_inst			=> $error_instance,
-				workbook_instance	=> $workbook_instance,
-				is_hidden 			=> 0,
-			###LogSD	log_space	=> 'Test',
+			$test_instance = build_instance(
+								superclasses => ['Spreadsheet::XLSX::Reader::LibXML::XMLReader'],
+								package => 'WorksheetReader',
+								file => $test_file,
+								is_hidden => 0,
+			###LogSD			log_space	=> 'Test',
+								workbook_inst => $workbook_instance,
+								add_roles_in_sequence =>[ 
+									'Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow',
+									'Spreadsheet::XLSX::Reader::LibXML::XMLToPerlData',
+									'Spreadsheet::XLSX::Reader::LibXML::WorksheetToRow',
+								],
 			);
 			###LogSD	$phone->talk( level => 'info', message =>[ "Loaded test instance" ] );
 }										"Prep a new WorksheetToRow instance";
+map{
+has_attribute_ok
+			$test_instance, $_,
+										"Check that " . ref( $test_instance ) . " has the -$_- attribute"
+} 			@class_attributes;
 			#~ exit 1;
 map{
 can_ok		$test_instance, $_,
@@ -538,12 +533,12 @@ explain									"read row columns through cells in sequence...";
 explain									"Running cycle: $y";
 			if( $y == 3 ){
 lives_ok{
-			$test_instance	= Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow->new(
-				file				=> $test_file,
-				error_inst			=> $error_instance,
-				workbook_instance	=> $workbook_instance,
-				is_hidden 			=> 0,
-			###LogSD	log_space	=> 'Test',
+			$test_instance = build_instance(
+								file => $test_file,
+								is_hidden => 0,
+								package => 'WorksheetReader',
+			###LogSD			log_space	=> 'Test',
+								workbook_inst => $workbook_instance,
 			);
 			###LogSD	$phone->talk( level => 'info', message =>[ "Loaded test instance" ] );
 }										"Prep a new WorksheetToRow instance";
@@ -598,12 +593,12 @@ explain									"read rows through sheet in sequence...";
 explain									"Running cycle: $y";
 			if( $y == 3 ){
 lives_ok{
-			$test_instance	= Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow->new(
-				file				=> $test_file,
-				error_inst			=> $error_instance,
-				workbook_instance	=> $workbook_instance,
-				is_hidden 			=> 0,
-			###LogSD	log_space	=> 'Test',
+			$test_instance = build_instance(
+								file => $test_file,
+								is_hidden => 0,
+								package => 'WorksheetReader',
+			###LogSD			log_space	=> 'Test',
+								workbook_inst => $workbook_instance,
 			);
 			###LogSD	$phone->talk( level => 'info', message =>[ "Loaded test instance" ] );
 }										"Prep a new WorksheetToRow instance";
@@ -651,12 +646,12 @@ is_deeply	$result, $answer_ref->[$test]->[$x++],"..and see if test -$test- and i
 lives_ok{
 			$workbook_instance->set_empty_is_end( 1 );
 			$workbook_instance->set_from_the_edge( 0 );
-			$test_instance	= Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow->new(
-				file				=> $test_file,
-				error_inst			=> $error_instance,
-				workbook_instance	=> $workbook_instance,
-				is_hidden			=> 0,
-			###LogSD	log_space	=> 'Test',
+			$test_instance = build_instance(
+								file => $test_file,
+								is_hidden => 0,
+								package => 'WorksheetReader',
+			###LogSD			log_space	=> 'Test',
+								workbook_inst => $workbook_instance,
 			);
 ###LogSD	$phone->talk( level => 'trace', message =>[ "Loaded new test instance - without the edges" ] );
 }										"Build a Worksheet instance with the edges cut off";
@@ -681,12 +676,12 @@ explain									"read row columns through cells without edges in sequence...";
 explain									"Running cycle: $y";
 			if( $y == 3 ){
 lives_ok{
-			$test_instance	= Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow->new(
-				file				=> $test_file,
-				error_inst			=> $error_instance,
-				workbook_instance	=> $workbook_instance,
-				is_hidden 			=> 0,
-			###LogSD	log_space	=> 'Test',
+			$test_instance = build_instance(
+								file => $test_file,
+								is_hidden => 0,
+								package => 'WorksheetReader',
+			###LogSD			log_space	=> 'Test',
+								workbook_inst => $workbook_instance,
 			);
 			###LogSD	$phone->talk( level => 'info', message =>[ "Loaded test instance" ] );
 }										"Prep a new WorksheetToRow instance";
@@ -742,12 +737,12 @@ explain									"read rows through sheet without edges in sequence...";
 explain									"Running cycle: $y";
 			if( $y == 3 ){
 lives_ok{
-			$test_instance	= Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow->new(
-				file				=> $test_file,
-				error_inst			=> $error_instance,
-				workbook_instance	=> $workbook_instance,
-				is_hidden 			=> 0,
-			###LogSD	log_space	=> 'Test',
+			$test_instance = build_instance(
+								file => $test_file,
+								is_hidden => 0,
+								package => 'WorksheetReader',
+			###LogSD			log_space	=> 'Test',
+								workbook_inst => $workbook_instance,
 			);
 			###LogSD	$phone->talk( level => 'info', message =>[ "Loaded test instance" ] );
 }										"Prep a new WorksheetToRow instance";

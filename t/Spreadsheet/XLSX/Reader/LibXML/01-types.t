@@ -86,7 +86,7 @@ my			$answer_ref = [
 				[	undef,
 					qr/IO::File=GLOB\(.{6,20}\)'\s+is not a string value/,#IO::
 					qr/GLOB\(.{6,20}\)'\s+is not a string value/,
-					qr/The string -badfile.not- does not have an xlsx file extension/, ],
+					qr/The string -badfile.not- does not have an xlsx|xlsm|xml file extension/, ],
 				[undef, qr/The string -badfile.not- does not have an xml file extension/, ],
 				[	undef,
 					qr/Value "dom" did not pass type constraint "ParserType"/,

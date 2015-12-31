@@ -1,11 +1,11 @@
 package Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings;
-use version; our $VERSION = version->declare('v0.38.22');
+use version; our $VERSION = version->declare('v0.40.2');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings-$VERSION";
 
 use 5.010;
 use Moose::Role;
-requires	'get_excel_region', 'set_error', 'get_defined_excel_format',
-###LogSD		'get_all_space',
+requires qw( get_defined_excel_format );
+###LogSD	requires 'get_all_space',
 		;
 use Types::Standard qw(
 		Int							Str						Maybe
@@ -14,7 +14,7 @@ use Types::Standard qw(
 		InstanceOf					HasMethods				Bool
 		is_Object					is_Num					is_Int
     );
-use Carp qw( confess );# cluck
+use Carp qw( confess );
 use	Type::Coercion;
 use	Type::Tiny;
 use DateTimeX::Format::Excel 0.012;
@@ -22,6 +22,7 @@ use DateTime::Format::Flexible;
 use DateTime;
 use Clone 'clone';
 use lib	'../../../../../lib',;
+#~ ###LogSD	use Capture::Tiny 'capture_stderr';
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
 use	Spreadsheet::XLSX::Reader::LibXML::Types qw(
@@ -90,11 +91,12 @@ my	$number_build_dispatch ={
 
 #########1 Public Attributes  3#########4#########5#########6#########7#########8#########9
 
-has	epoch_year =>( # Move to required?
-		isa		=> Int,
-		reader	=> 'get_epoch_year',
-		writer	=> 'set_epoch_year',
-		default	=> 1900,
+has workbook_inst =>(
+		isa	=> 'Spreadsheet::XLSX::Reader::LibXML', 
+		handles =>[ qw(
+			error set_error clear_error get_epoch_year
+		)],
+		writer	=> 'set_workbook_inst',
 	);
 	
 has	cache_formats =>(
@@ -120,7 +122,7 @@ has	european_first =>(
 
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
 
-sub get_defined_conversion{
+sub get_defined_conversion{#  Add a test for this function in 08-parse...
 	my( $self, $position, $target_name ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
 	###LogSD			$self->get_all_space . '::get_defined_conversion', );
@@ -195,6 +197,7 @@ sub parse_excel_format_string{
 	my	$action_type;
 	my	$is_date = 0;
 	my	$date_text = 0;
+	my	$last_deconstructed_list;
 	for my $format_string ( @format_string_list ){
 		$format_string =~ s/_.//g;# no character justification to other rows
 		$format_string =~ s/\*//g;# Remove the repeat character listing (not supported here)
@@ -306,11 +309,11 @@ sub parse_excel_format_string{
 				###LogSD		"With updated deconstruction list:", @deconstructed_list, ] );
 			}else{
 				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		"Early elements unusable - remaining string: $format_string", ] );
+				###LogSD		"Early elements unusable - remaining string: $format_string", $pre_action ] );
 			}
 			push @deconstructed_list, [ $pre_action, $fixed_value ];
 			if( $x++ == 30 ){
-				confess "Regex matching failed (with an infinite loop) for excel format string: $format_string";
+				confess "Attempts to use string |$format_string| as an excel custom format failed. Contact the author if you feel there is an error";
 			}
 			###LogSD	$phone->talk( level => 'debug', message => [
 			###LogSD		(($pre_action) ? "First action resolved to: $pre_action" : undef),
@@ -326,20 +329,26 @@ sub parse_excel_format_string{
 		###LogSD	$phone->talk( level => 'info', message => [ "Method: $method",  ] );
 		my $filter = ( $action_type and $action_type eq 'TEXT' ) ? Str : $used_type_list[$format_position++];
 		if( $action_type and $action_type eq 'DATESTRING' ){
+			###LogSD	$phone->talk( level => 'trace', message => [
+			###LogSD		"Found date string and making adjustments with:", @deconstructed_list, $last_deconstructed_list ] );
 			$date_text = 1;
 			$filter = Str;
+			@deconstructed_list = @$last_deconstructed_list if $last_deconstructed_list;
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"Updated deconstructed list:", @deconstructed_list, ] );
 		}
+		$last_deconstructed_list = clone( [@deconstructed_list] );
 		
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD		"Running method -$method- for list:", @deconstructed_list ] );
-		( my $intermediate_action, my @intermediate_coercions ) = $self->$method( $filter, \@deconstructed_list );
+		( my $intermediate_action, my @intermediate_coercions ) = $self->$method( $filter, \@deconstructed_list, $format_string );
 		###LogSD	$phone->talk( level => 'trace', message => [ "Returning from: $method", $intermediate_action, @intermediate_coercions ] );
 		push @coercion_list, @intermediate_coercions;
 		$action_type = $intermediate_action =~ /^(NUMBER|SCIENTIFIC|INTEGER|PERCENT|FRACTION|DECIMAL|DATE|DATESTRING)$/ ? $intermediate_action : $action_type;
 		###LogSD	$phone->talk( level => 'trace', message => [ "Action type: $action_type", $intermediate_action, @coercion_list ] );
 	}
 	if( $is_date and !$date_text ){
-		( my $intermediate_action, my @intermediate_coercions ) = $self->_build_datestring( Str, [ [ '@', '' ] ] );
+		( my $intermediate_action, my @intermediate_coercions ) = $self->_build_datestring( Str, $last_deconstructed_list );
 		push @coercion_list, @intermediate_coercions;
 		$action_type = $intermediate_action =~ /^(NUMBER|SCIENTIFIC|INTEGER|PERCENT|FRACTION|DECIMAL|DATE|DATESTRING)$/ ? $intermediate_action : $action_type;
 		###LogSD	$phone->talk( level => 'info', message => [ "Adjusted action type: $action_type", ] );
@@ -416,9 +425,9 @@ sub _build_text{
 	###LogSD		"Final sprintf string: $sprintf_string" ] );
 	my	$return_sub = sub{
 			###LogSD	my $sub_phone = $phone;
-			###LogSD	if( length( $Spreadsheet::XLSX::Reader::LibXML::Cell::all_space ) > 0 ){
+			###LogSD	if( length( $Spreadsheet::XLSX::Reader::LibXML::Cell::log_space ) > 0 ){
 			###LogSD		$sub_phone = Log::Shiras::Telephone->new( name_space =>
-			###LogSD			$Spreadsheet::XLSX::Reader::LibXML::Cell::all_space . '::hidden::_return_value_only' . '::_build_text', );
+			###LogSD			$Spreadsheet::XLSX::Reader::LibXML::Cell::log_space . '::hidden::_return_value_only' . '::_build_text', );
 			###LogSD	}
 			###LogSD	$sub_phone->talk( level => 'debug', message => [
 			###LogSD		"Updated Input: $_[0]" ] );
@@ -434,124 +443,13 @@ sub _build_date{
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			"Building an anonymous sub to process date values", $list_ref ] );
 	
-	my ( $cldr_string, $format_remainder );
-	my	$is_duration = 0;
-	my	$sub_seconds = 0;
-	if( !$self->get_date_behavior ){
-		# Process once to build the cldr string
-		my $prior_duration;
-		for my $piece ( @$list_ref ){
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"processing date piece:", $piece ] );
-			if( defined $piece->[0] ){
-				###LogSD	$phone->talk( level => 'debug', message =>[
-				###LogSD		"Manageing the cldr part: " . $piece->[0] ] );
-				if( $piece->[0] =~ /\[(.+)\]/ ){
-					###LogSD	$phone->talk( level => 'debug', message =>[ "Possible duration" ] );
-					(my $initial,) = split //, $1;
-					my $length = length( $1 );
-					$is_duration = [ $initial, 0, [ $piece->[1] ], [ $length ] ];
-					if( $is_duration->[0] =~ /[hms]/ ){
-						$piece->[0] = '';
-						$piece->[1] = '';
-						$prior_duration = 	$is_duration->[0];
-						###LogSD	$phone->talk( level => 'debug', message => [
-						###LogSD		"found a duration piece:", $is_duration,
-						###LogSD		"with prior duration: $prior_duration"		] );
-					}else{
-						confess "Bad duration element found: $is_duration->[0]";
-					} 
-				}elsif( ref( $is_duration ) eq 'ARRAY' ){
-					###LogSD	$phone->talk( level => 'debug', message =>[ "adding to duration", $piece ] );
-					my	$next_duration = $duration_order->{$prior_duration};
-					if( $piece->[0] eq '.' ){
-						push @{$is_duration->[2]}, $piece->[0];
-						###LogSD	$phone->talk( level => 'debug', message => [
-						###LogSD		"found a period" ] );
-					}elsif( $piece->[0] =~ /$next_duration/ ){
-						my $length = length( $piece->[0] );
-						$is_duration->[1]++;
-						push @{$is_duration->[2]}, $piece->[1] if $piece->[1];
-						push @{$is_duration->[3]}, $length;
-						($prior_duration,) = split //, $piece->[0];
-						if( $piece->[0] =~ /^0+$/ ){
-							$piece->[0] =~ s/0/S/g;
-							$sub_seconds = $piece->[0];
-							###LogSD	$phone->talk( level => 'debug', message => [
-							###LogSD		"found a subseconds format piece: $sub_seconds" ] );
-						}
-						$piece->[0] = '';
-						$piece->[1] = '';
-						###LogSD	$phone->talk( level => 'debug', message => [
-						###LogSD		"Current duration:", $is_duration,
-						###LogSD		"with prior duration: $prior_duration"	 ] );
-					}else{
-						confess "Bad duration element found: $piece->[0]";
-					} 
-				}elsif( $piece->[0] =~ /m/ ){
-					###LogSD	$phone->talk( level => 'debug', message =>[ "Minutes or Months" ] );
-					if( ($cldr_string and $cldr_string =~ /:'?$/) or ($piece->[1] and $piece->[1] eq ':') ){
-						###LogSD	$phone->talk( level => 'debug', message => [
-						###LogSD		"Found minutes - leave them alone" ] );
-					}else{
-						$piece->[0] =~ s/m/L/g;
-						###LogSD	$phone->talk( level => 'debug', message => [
-						###LogSD		"Converting to cldr stand alone months (m->L)" ] );
-					}
-				}elsif( $piece->[0] =~ /h/ ){
-					$piece->[0] =~ s/h/H/g;
-					###LogSD	$phone->talk( level => 'debug', message => [
-					###LogSD		"Converting 12 hour clock to 24 hour clock" ] );
-				}elsif( $piece->[0] =~ /AM?\/PM?/i ){
-					$cldr_string =~ s/H/h/g;
-					$piece->[0] = 'a';
-					###LogSD	$phone->talk( level => 'debug', message =>[ "Set 12 hour clock and AM/PM" ] );
-				}elsif( $piece->[0] =~ /d{3,5}/ ){
-					$piece->[0] =~ s/d/E/g;
-					###LogSD	$phone->talk( level => 'debug', message =>[ "Found a weekday request" ] );
-				}elsif( !$sub_seconds and $piece->[0] =~ /[\.]/){#
-					$piece->[0] = "'.'";
-					#~ $piece->[0] = "':'";
-					$sub_seconds = 1;
-					###LogSD	$phone->talk( level => 'debug', message =>[ "Starting sub seconds" ] );
-				}elsif( $sub_seconds eq '1' ){
-					###LogSD	$phone->talk( level => 'debug', message =>[ "Formatting sub seconds" ] );
-					if( $piece->[0] =~ /^0+$/ ){
-						$piece->[0] =~ s/0/S/g;
-						$sub_seconds = $piece->[0];
-						$piece->[0] = '';
-						###LogSD	$phone->talk( level => 'debug', message => [
-						###LogSD		"found a subseconds format piece: $sub_seconds" ] );
-					}else{
-						confess "Bad sub-seconds element after [$cldr_string] found: $piece->[0]";
-					}
-				}
-				if( $sub_seconds and $sub_seconds ne '1' ){
-					$format_remainder .= $piece->[0];
-				}else{
-					$cldr_string .= $piece->[0];
-				}
-			}
-			if( $piece->[1] ){
-				if( $sub_seconds and $sub_seconds ne '1' ){
-					$format_remainder .= $piece->[1];
-				}else{
-					$cldr_string .= $piece->[1];
-				}
-			}
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		(($cldr_string) ? "Updated CLDR string: $cldr_string" : undef),
-			###LogSD		(($format_remainder) ? "Updated format remainder: $format_remainder" : undef),
-			###LogSD		(($is_duration) ? ('Duration ref:', $is_duration) : undef)			] );
-		}
-		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"Updated CLDR string: $cldr_string",
-		###LogSD		(($is_duration) ? ('...and duration:', $is_duration) : undef )	] );
-		$last_date_cldr 	= $cldr_string;# This is critical to getting the next string to date conversion right
-		$last_duration		= $is_duration;
-		$last_sub_seconds	= $sub_seconds;
-		$last_format_rem	= $format_remainder;
-	}
+	my	$build_ref;#
+	@$build_ref{qw( is_duration sub_seconds )} = ( 0, 0 );
+	# Process once to build the cldr string and other flags
+	@$build_ref{qw( cldr_string is_duration sub_seconds format_remainder )} = $self->_build_date_cldr( $list_ref );
+	my	$clone_ref = clone( $build_ref );
+	###LogSD		$phone->talk( level => 'debug', message => [
+	###LogSD			"Conversion sub will use ref: ", $clone_ref ] );
 	my	@args_list = ( $self->get_epoch_year == 1904 ) ? ( system_type => 'apple_excel' ) : ();
 	my	$converter = DateTimeX::Format::Excel->new( @args_list );
 	###LogSD	$phone->talk( level => 'debug', message => [
@@ -562,29 +460,27 @@ sub _build_date{
 				return undef;
 			}
 			###LogSD	my $sub_phone = $phone;
-			###LogSD	if( length( $Spreadsheet::XLSX::Reader::LibXML::Cell::all_space ) > 0 ){
+			###LogSD	if( length( $Spreadsheet::XLSX::Reader::LibXML::Cell::log_space ) > 0 ){
 			###LogSD		$sub_phone = Log::Shiras::Telephone->new( name_space =>
-			###LogSD			$Spreadsheet::XLSX::Reader::LibXML::Cell::all_space . '::hidden::_return_value_only' . '::_build_date', );
+			###LogSD			$Spreadsheet::XLSX::Reader::LibXML::Cell::log_space . '::hidden::_return_value_only' . '::_build_date', );
 			###LogSD	}
 			###LogSD	$sub_phone->talk( level => 'debug', message => [
 			###LogSD		"Processing date number: $num",
-			###LogSD		'..with duration:', $is_duration,
-			###LogSD		"..and sub-seconds: $sub_seconds",
-			###LogSD		(($format_remainder) ? "..and format_remainder: $format_remainder" : undef) ] );
+			###LogSD		'..with adjustement ref:', $clone_ref, ] );
 			my	$dt = $converter->parse_datetime( $num );
 			my $return_string;
 			my $calc_sub_secs;
-			if( $is_duration ){
+			if( $clone_ref->{is_duration} ){
 				my	$di = $dt->subtract_datetime_absolute( $converter->_get_epoch_start );
 				if( $self->get_date_behavior ){
 					return $di;
 				}
 				my	$sign = DateTime->compare_ignore_floating( $dt, $converter->_get_epoch_start );
 				$return_string = ( $sign == -1 ) ? '-' : '' ;
-				my $key = $is_duration->[0];
+				my $key = $clone_ref->{is_duration}->[0];
 				my $delta_seconds	= $di->seconds;
 				my $delta_nanosecs	= $di->nanoseconds;
-				$return_string .= $self->_build_duration( $is_duration, $delta_seconds, $delta_nanosecs );
+				$return_string .= $self->_build_duration( $clone_ref->{is_duration}, $delta_seconds, $delta_nanosecs );
 				###LogSD	$sub_phone->talk( level => 'debug', message => [
 				###LogSD		"Duration return string: $return_string" ] );
 			}else{
@@ -593,8 +489,8 @@ sub _build_date{
 					###LogSD		"Returning the DateTime object rather than the format string" ] );
 					return $dt;
 				}
-				if( $sub_seconds ){
-					$calc_sub_secs = $dt->format_cldr( $sub_seconds );
+				if( $clone_ref->{sub_seconds} ){
+					$calc_sub_secs = $dt->format_cldr( $clone_ref->{sub_seconds} );
 					###LogSD	$sub_phone->talk( level => 'debug', message => [
 					###LogSD		"Processing sub-seconds: $calc_sub_secs" ] );
 					if( "0.$calc_sub_secs" >= 0.5 ){
@@ -604,54 +500,65 @@ sub _build_date{
 					}
 				}
 				###LogSD	$sub_phone->talk( level => 'debug', message => [
-				###LogSD		"Converting it with CLDR string: $cldr_string" ] );
-				$return_string .= $dt->format_cldr( $cldr_string );
-				if( $sub_seconds and $sub_seconds ne '1' ){
+				###LogSD		"Converting it with CLDR string: " . ($clone_ref->{cldr_string}//'undef') ] );
+				if( $clone_ref->{cldr_string} ){
+					$return_string .= $dt->format_cldr( $clone_ref->{cldr_string} );
+				}else{
+					$self->set_error( "No cldr string passed where one is expected while processing |$num|" );
+					$return_string .= scalar( $dt );
+				}
+				if( $clone_ref->{sub_seconds} and $clone_ref->{sub_seconds} ne '1' ){
 					$return_string .= $calc_sub_secs;
 				}
-				$return_string .= $dt->format_cldr( $format_remainder ) if $format_remainder;
+				$return_string .= $dt->format_cldr( $clone_ref->{format_remainder} ) if $clone_ref->{format_remainder};
 			}
 			###LogSD	$sub_phone->talk( level => 'debug', message => [
 			###LogSD		"returning: $return_string" ] );
 			return $return_string;
 		};
-	return( 'DATE', $type_filter, $conversion_sub );
+	return( 'DATE', $type_filter, $conversion_sub, );
 }
 
 sub _build_datestring{
 	my( $self, $type_filter, $list_ref ) = @_;
-	my $this_date_cldr 		= $last_date_cldr;# This is critical to getting the string to date conversion right (matching the number to date equivalent)
-	my $this_duration		= $last_duration;
-	my $this_sub_seconds	= $last_sub_seconds;
-	my $this_format_rem		= $last_format_rem;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
 	###LogSD			$self->get_all_space . '::hidden::_build_datestring', );
 	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"Building an anonymous sub to process date strings", $this_date_cldr ] );
+	###LogSD			"Building an anonymous sub to process date strings", $list_ref, ] );
 	
-	my ( $cldr_string, $format_remainder );
+	my	$build_ref;#
+	@$build_ref{qw( is_duration sub_seconds )} = ( 0, 0 );
+	# Process once to build the cldr string and other flags
+	@$build_ref{qw( cldr_string is_duration sub_seconds format_remainder )} = $self->_build_date_cldr( $list_ref );
+	my	$clone_ref = clone( $build_ref );
+	###LogSD		$phone->talk( level => 'debug', message => [
+	###LogSD			"Conversion sub will use ref: ", $clone_ref ] );
 	my	$conversion_sub = sub{ 
 			my	$date = $_[0];
 			if( !$date ){
 				return undef;
 			}
+			###LogSD	my $sub_phone = $phone;
+			###LogSD	if( $Spreadsheet::XLSX::Reader::LibXML::Cell::log_space and length( $Spreadsheet::XLSX::Reader::LibXML::Cell::log_space ) > 0 ){
+			###LogSD		$sub_phone = Log::Shiras::Telephone->new( name_space =>
+			###LogSD			$Spreadsheet::XLSX::Reader::LibXML::Cell::log_space . '::hidden::_return_value_only::_build_datestring', );
+			###LogSD	}
 			my $calc_sub_secs;
+			###LogSD	$sub_phone->talk( level => 'debug', message => [
+			###LogSD		"Processing date: $date", "..with clone_ref:", $clone_ref] );
 			if( $date =~ /(.*:\d+)\.(\d+)(.*)/ ){
 				$calc_sub_secs = $2;
+				###LogSD	$sub_phone->talk( level => 'debug', message => [
+				###LogSD		"updated sub seconds: " . ($calc_sub_secs//'undef') ] );
 				$date = $1;
 				$date .= $3 if $3;
 				$calc_sub_secs .= 0 x (9 - length( $calc_sub_secs ));
 			}
-			###LogSD	my $sub_phone = $phone;
-			###LogSD	if( length( $Spreadsheet::XLSX::Reader::LibXML::Cell::all_space ) > 0 ){
-			###LogSD		$sub_phone = Log::Shiras::Telephone->new( name_space =>
-			###LogSD			$Spreadsheet::XLSX::Reader::LibXML::Cell::all_space . '::hidden::_return_value_only' . '::_build_datestring', );
-			###LogSD	}
 			###LogSD	$sub_phone->talk( level => 'debug', message => [
-			###LogSD		"Processing date string: $date",
-			###LogSD		"..with duration:", $last_duration,
-			###LogSD		"..and sub-seconds: $last_sub_seconds",
-			###LogSD		"..and stripped nanoseconds: $calc_sub_secs"		] );
+			###LogSD		"Processing new date string: $date",
+			###LogSD		"..with stripped nanoseconds: " . ($calc_sub_secs//'undef'),
+			###LogSD		"..against date return behaviour: " . $self->get_date_behavior,
+			###LogSD		"..and format ref:", $clone_ref ] );
 			my ( $dt_us, $dt_eu );
 			eval '$dt_us = DateTime::Format::Flexible->parse_datetime( $date )';
 			eval '$dt_eu = DateTime::Format::Flexible->parse_datetime( $date, european => 1, )';
@@ -692,7 +599,7 @@ sub _build_datestring{
 				return $date;
 			}
 			my $return_string;
-			if( $this_duration ){
+			if( $clone_ref->{is_duration} ){
 				my	@args_list = ( $self->get_epoch_year == 1904 ) ? ( system_type => 'apple_excel' ) : ();
 				my	$converter = DateTimeX::Format::Excel->new( @args_list );
 				my	$di = $dt->subtract_datetime_absolute( $converter->_get_epoch_start );
@@ -701,21 +608,21 @@ sub _build_datestring{
 				}
 				my	$sign = DateTime->compare_ignore_floating( $dt, $converter->_get_epoch_start );
 				$return_string = ( $sign == -1 ) ? '-' : '' ;
-				my $key = $this_duration->[0];
+				my $key = $clone_ref->{is_duration}->[0];
 				my $delta_seconds	= $di->seconds;
 				my $delta_nanosecs	= $di->nanoseconds;;
 				###LogSD	$sub_phone->talk( level => 'debug', message => [
 				###LogSD		"Delta seconds: $delta_seconds",
 				###LogSD		(($delta_nanosecs) ? "Delta nanoseconds: $delta_nanosecs" : undef) ] );
-				$return_string .= $self->_build_duration( $this_duration, $delta_seconds, $delta_nanosecs );
+				$return_string .= $self->_build_duration( $clone_ref->{is_duration}, $delta_seconds, $delta_nanosecs );
 				###LogSD	$phone->talk( level => 'debug', message => [
 				###LogSD		"Duration return string: $return_string" ] );
 			}else{
 				if( $self->get_date_behavior ){
 					return $dt;
 				}
-				if( $this_sub_seconds ){
-					$calc_sub_secs = $dt->format_cldr( $this_sub_seconds );
+				if( $clone_ref->{sub_seconds} ){
+					$calc_sub_secs = $dt->format_cldr( $clone_ref->{sub_seconds} );
 					###LogSD	$sub_phone->talk( level => 'debug', message => [
 					###LogSD		"Processing sub-seconds: $calc_sub_secs" ] );
 					if( "0.$calc_sub_secs" >= 0.5 ){
@@ -724,13 +631,18 @@ sub _build_datestring{
 						$dt->subtract( seconds => 1 );
 					}
 				}
-				###LogSD	$sub_phone->talk( level => 'debug', message => [
-				###LogSD		"Converting it with CLDR string: $this_date_cldr" ] );
-				$return_string .= $dt->format_cldr( $this_date_cldr );
-				if( $this_sub_seconds and $this_sub_seconds ne '1' ){
+				if( $clone_ref->{cldr_string} ){
+					###LogSD	$sub_phone->talk( level => 'debug', message => [
+					###LogSD		"Using CLDR string: $clone_ref->{cldr_string}\n", ] );
+					$return_string .= $dt->format_cldr( $clone_ref->{cldr_string} );
+				}else{
+					$self->set_error( "No cldr string passed where one is expected while processing |$date|" );
+					$return_string .= scalar( $dt );
+				}
+				if( $clone_ref->{sub_seconds} and $clone_ref->{sub_seconds} ne '1' ){
 					$return_string .= $calc_sub_secs;
 				}
-				$return_string .= $dt->format_cldr( $this_format_rem ) if $this_format_rem;
+				$return_string .= $dt->format_cldr( $clone_ref->{format_remainder} ) if $clone_ref->{format_remainder};
 				###LogSD	$sub_phone->talk( level => 'debug', message => [
 				###LogSD		"returning: $return_string" ] );
 			}
@@ -739,6 +651,130 @@ sub _build_datestring{
 	###LogSD	$phone->talk( level => 'trace', message => [
 	###LogSD		"returning:",  'DATESTRING', $type_filter, $conversion_sub ] );
 	return( 'DATESTRING', $type_filter, $conversion_sub );
+}
+
+sub _build_date_cldr{
+	my( $self, $list_ref ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::hidden::_build_date_cldr', );
+	###LogSD		$phone->talk( level => 'debug', message => [
+	###LogSD			"transforming an excel format string to the cldr equivalent", $list_ref ] );
+	
+	my ( $cldr_string, $format_remainder );
+	my	$is_duration = 0;
+	my	$sub_seconds = 0;
+	# Process once to build the cldr string
+	my $prior_duration;
+	for my $piece ( @$list_ref ){
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"processing date piece:", $piece ] );
+		if( defined $piece->[0] ){
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD		"Manageing the cldr part: " . $piece->[0] ] );
+			if( $piece->[0] =~ /\[(.+)\]/ ){
+				###LogSD	$phone->talk( level => 'debug', message =>[ "Possible duration" ] );
+				(my $initial,) = split //, $1;
+				my $length = length( $1 );
+				$is_duration = [ $initial, 0, [ $piece->[1] ], [ $length ] ];
+				if( $is_duration->[0] =~ /[hms]/ ){
+					$piece->[0] = '';
+					$piece->[1] = '';
+					$prior_duration = 	$is_duration->[0];
+					###LogSD	$phone->talk( level => 'debug', message => [
+					###LogSD		"found a duration piece:", $is_duration,
+					###LogSD		"with prior duration: $prior_duration"		] );
+				}else{
+					confess "Bad duration element found: $is_duration->[0]";
+				} 
+			}elsif( ref( $is_duration ) eq 'ARRAY' ){
+				###LogSD	$phone->talk( level => 'debug', message =>[ "adding to duration", $piece ] );
+				my	$next_duration = $duration_order->{$prior_duration};
+				if( $piece->[0] eq '.' ){
+					push @{$is_duration->[2]}, $piece->[0];
+					###LogSD	$phone->talk( level => 'debug', message => [
+					###LogSD		"found a period" ] );
+				}elsif( $piece->[0] =~ /$next_duration/ ){
+					my $length = length( $piece->[0] );
+					$is_duration->[1]++;
+					push @{$is_duration->[2]}, $piece->[1] if $piece->[1];
+					push @{$is_duration->[3]}, $length;
+					($prior_duration,) = split //, $piece->[0];
+					if( $piece->[0] =~ /^0+$/ ){
+						$piece->[0] =~ s/0/S/g;
+						$sub_seconds = $piece->[0];
+						###LogSD	$phone->talk( level => 'debug', message => [
+						###LogSD		"found a subseconds format piece: $sub_seconds" ] );
+					}
+					$piece->[0] = '';
+					$piece->[1] = '';
+					###LogSD	$phone->talk( level => 'debug', message => [
+					###LogSD		"Current duration:", $is_duration,
+					###LogSD		"with prior duration: $prior_duration"	 ] );
+				}else{
+					confess "Bad duration element found: $piece->[0]";
+				} 
+			}elsif( $piece->[0] =~ /m/ ){
+				###LogSD	$phone->talk( level => 'debug', message =>[ "Minutes or Months" ] );
+				if( ($cldr_string and $cldr_string =~ /:'?$/) or ($piece->[1] and $piece->[1] eq ':') ){
+					###LogSD	$phone->talk( level => 'debug', message => [
+					###LogSD		"Found minutes - leave them alone" ] );
+				}else{
+					$piece->[0] =~ s/m/L/g;
+					###LogSD	$phone->talk( level => 'debug', message => [
+					###LogSD		"Converting to cldr stand alone months (m->L)" ] );
+				}
+			}elsif( $piece->[0] =~ /h/ ){
+				$piece->[0] =~ s/h/H/g;
+				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD		"Converting 12 hour clock to 24 hour clock" ] );
+			}elsif( $piece->[0] =~ /AM?\/PM?/i ){
+				$cldr_string =~ s/H/h/g;
+				$piece->[0] = 'a';
+				###LogSD	$phone->talk( level => 'debug', message =>[ "Set 12 hour clock and AM/PM" ] );
+			}elsif( $piece->[0] =~ /d{3,5}/ ){
+				$piece->[0] =~ s/d/E/g;
+				###LogSD	$phone->talk( level => 'debug', message =>[ "Found a weekday request" ] );
+			}elsif( !$sub_seconds and $piece->[0] =~ /[\.]/){#
+				$piece->[0] = "'.'";
+				#~ $piece->[0] = "':'";
+				$sub_seconds = 1;
+				###LogSD	$phone->talk( level => 'debug', message =>[ "Starting sub seconds" ] );
+			}elsif( $sub_seconds eq '1' ){
+				###LogSD	$phone->talk( level => 'debug', message =>[ "Formatting sub seconds" ] );
+				if( $piece->[0] =~ /^0+$/ ){
+					$piece->[0] =~ s/0/S/g;
+					$sub_seconds = $piece->[0];
+					$piece->[0] = '';
+					###LogSD	$phone->talk( level => 'debug', message => [
+					###LogSD		"found a subseconds format piece: $sub_seconds" ] );
+				}else{
+					confess "Bad sub-seconds element after [$cldr_string] found: $piece->[0]";
+				}
+			}
+			if( $sub_seconds and $sub_seconds ne '1' ){
+				$format_remainder .= $piece->[0];
+			}else{
+				$cldr_string .= $piece->[0];
+			}
+		}
+		if( $piece->[1] ){
+			if( $sub_seconds and $sub_seconds ne '1' ){
+				$format_remainder .= $piece->[1];
+			}else{
+				$cldr_string .= $piece->[1];
+			}
+		}
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		(($cldr_string) ? "Updated CLDR string: $cldr_string" : undef),
+		###LogSD		(($format_remainder) ? "Updated format remainder: $format_remainder" : undef),
+		###LogSD		(($is_duration) ? ('Duration ref:', $is_duration) : undef)			] );
+	}
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		"Updated CLDR string: $cldr_string",
+	###LogSD		(($is_duration) ? ('...and duration:', $is_duration) : undef ),
+	###LogSD		(($sub_seconds) ? ('...and sub seconds:' . $sub_seconds) : undef ),
+	###LogSD		(($format_remainder) ? ('...and format_remainder:' . $format_remainder) : undef )	] );
+	return( $cldr_string, $is_duration, $sub_seconds, $format_remainder );
 }
 
 sub _build_duration{
@@ -945,9 +981,9 @@ sub _build_integer_sub{
 	
 	my 	$conversion_sub = sub{
 			###LogSD	my $sub_phone = $phone;
-			###LogSD	if( length( $Spreadsheet::XLSX::Reader::LibXML::Cell::all_space ) > 0 ){
+			###LogSD	if( length( $Spreadsheet::XLSX::Reader::LibXML::Cell::log_space ) > 0 ){
 			###LogSD		$sub_phone = Log::Shiras::Telephone->new( name_space =>
-			###LogSD			$Spreadsheet::XLSX::Reader::LibXML::Cell::all_space . '::hidden::_return_value_only' . '::_build_number::_build_integer_sub', );
+			###LogSD			$Spreadsheet::XLSX::Reader::LibXML::Cell::log_space . '::hidden::_return_value_only' . '::_build_number::_build_integer_sub', );
 			###LogSD	}
 			my $adjusted_input = $_[0];
 			if( !defined $adjusted_input or $adjusted_input eq '' ){
@@ -1008,9 +1044,9 @@ sub _build_decimal_sub{
 	
 	my 	$conversion_sub = sub{
 			###LogSD	my $sub_phone = $phone;
-			###LogSD	if( length( $Spreadsheet::XLSX::Reader::LibXML::Cell::all_space ) > 0 ){
+			###LogSD	if( length( $Spreadsheet::XLSX::Reader::LibXML::Cell::log_space ) > 0 ){
 			###LogSD		$sub_phone = Log::Shiras::Telephone->new( name_space =>
-			###LogSD			$Spreadsheet::XLSX::Reader::LibXML::Cell::all_space . '::hidden::_return_value_only' . '::_build_number::_build_decimal_sub', );
+			###LogSD			$Spreadsheet::XLSX::Reader::LibXML::Cell::log_space . '::hidden::_return_value_only' . '::_build_number::_build_decimal_sub', );
 			###LogSD	}
 			my $adjusted_input = $_[0];
 			if( !defined $adjusted_input or $adjusted_input eq '' ){
@@ -1077,9 +1113,9 @@ sub _build_percent_sub{
 	
 	my 	$conversion_sub = sub{
 			###LogSD	my $sub_phone = $phone;
-			###LogSD	if( length( $Spreadsheet::XLSX::Reader::LibXML::Cell::all_space ) > 0 ){
+			###LogSD	if( length( $Spreadsheet::XLSX::Reader::LibXML::Cell::log_space ) > 0 ){
 			###LogSD		$sub_phone = Log::Shiras::Telephone->new( name_space =>
-			###LogSD			$Spreadsheet::XLSX::Reader::LibXML::Cell::all_space . '::hidden::_return_value_only' . '::_build_number::_build_percent_sub', );
+			###LogSD			$Spreadsheet::XLSX::Reader::LibXML::Cell::log_space . '::hidden::_return_value_only' . '::_build_number::_build_percent_sub', );
 			###LogSD	}
 			my $adjusted_input = $_[0];
 			if( !defined $adjusted_input or $adjusted_input eq '' ){
@@ -1221,9 +1257,9 @@ sub _build_fraction_sub{
 	my $dispatch_sequence = $number_build_dispatch->{fraction};
 	my $conversion_sub = sub{
 			###LogSD	my $sub_phone = $phone;
-			###LogSD	if( length( $Spreadsheet::XLSX::Reader::LibXML::Cell::all_space ) > 0 ){
+			###LogSD	if( length( $Spreadsheet::XLSX::Reader::LibXML::Cell::log_space ) > 0 ){
 			###LogSD		$sub_phone = Log::Shiras::Telephone->new( name_space =>
-			###LogSD			$Spreadsheet::XLSX::Reader::LibXML::Cell::all_space . '::hidden::_return_value_only' . '::_build_number::_build_fraction_sub', );
+			###LogSD			$Spreadsheet::XLSX::Reader::LibXML::Cell::log_space . '::hidden::_return_value_only' . '::_build_number::_build_fraction_sub', );
 			###LogSD	}
 			my $adjusted_input = $_[0];
 			if( !defined $adjusted_input or $adjusted_input eq '' ){
@@ -1753,95 +1789,93 @@ __END__
 
 =head1 NAME
 
-Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings - Parser of XLSX format strings
+Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings - Convert Excel format strings to code
 
 =head1 SYNOPSYS
 
-See the L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/SYNOPSYS>
+See the L<Spreadsheet::XLSX::Reader::LibXML::FormatInterface/SYNOPSYS>
 
 =head1 DESCRIPTION
 
-To use the general package for excel 
-parsing out of the box please review the documentation for L<Workbooks
-|Spreadsheet::XLSX::Reader::LibXML>, L<Worksheets
-|Spreadsheet::XLSX::Reader::LibXML::Worksheet>, and 
-L<Cells|Spreadsheet::XLSX::Reader::LibXML::Cell>
+This is the parser that converts Excel custom format strings into code that can be used 
+to transform values into output matching the form defined by the format string.  The goal 
+of this code is to support as much as possible the definition of L<excel custom format strings
+|https://support.office.com/en-us/article/Create-or-delete-a-custom-number-format-78f2a361-936b-4c03-8772-09fab54be7f4>.  
+If you find cases where this parser and the Excel definition differ please log a case in 
+L<github|https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML/issues>.
 
-This is a general purpose L<Moose Role|Moose::Manual::Roles> that will convert Excel 
-L<format strings
-|https://support.office.com/en-us/article/Create-or-delete-a-custom-number-format-83657ca7-9dbe-4ee5-9c89-d8bf836e028e?ui=en-US&rs=en-US&ad=US> 
-into L<Type::Tiny> objects in order to implement the conversion defined by the format 
-string.  Excel defines the format strings as number conversions only (They do not act 
-on text).  Excel format strings can have up to four parts separated by semi-colons.  
-The four parts are positive, zero, negative, and text.  In Excel the text section is 
-just a pass through.  This is how excel handles dates earlier than 1900sh.  This 
-parser deviates from that for dates.  Since this parser parses dates into a L<DateTime> 
-objects (and then L<potentially back|datetime_dates> to a differently formatted string) 
-it also attempts to parse strings to DateTime objects if the cell has a date format 
-applied.  All other types of Excel number conversions still treat strings as a pass 
-through.
+This parser converts the format strings to L<Type::Tiny> objects that have the appropriate 
+built in coercions.  Any replacement of this engine for use with 
+L<Spreadsheet::XLSX::Reader::LibXML> must output code that has the methods 'display_name' 
+and 'assert_coerce'.  Display name is used by the overall package to determine the cell 
+type and should return a name containing the work date or number for date and number types 
+othewise the cell type is assumed to be text.  The package uses 'assert_coerce' as the 
+method to transform the raw value to the formatted value.  Excel defines the format 
+strings as number conversions only (They do not act on text).  Excel format strings can 
+have up to four parts separated by semi-colons.  The four parts are positive, zero, 
+negative, and text.  In Excel the text section is just a pass through.  I<This is how excel 
+handles L<dates earlier than 1900sh|DateTimeX::Format::Excel/DESCRIPTION>>.  This parser 
+deviates from that for dates.  Since this parser provides code that parses Excel date 
+numbers into a L<DateTime> object (and then L<potentially back|/datetime_dates> to a 
+differently formatted string) it also attempts to parse strings to DateTime objects if 
+the cell has a date format applied.  All other types of Excel number conversions still 
+treat strings as a pass through.
 
 To replace this module just build a L<Moose::Role|Moose::Manual::Roles> that delivers 
-the method L<parse_excel_format_string|/parse_excel_format_string>  and 
-L<get_defined_conversion|/get_defined_conversion( $position )>. Then use it when building 
-a replacement for L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault>.
+the method L<parse_excel_format_string|/parse_excel_format_string( $string, $name )>  and 
+L<get_defined_conversion|/get_defined_conversion( $position )>. See the L<documentation 
+for the format interface to integrate it in the package formatter
+|Spreadsheet::XLSX::Reader::LibXML::FormatInterface>.
 
-The decimal (real number) to fractions conversion can be top heavy to build.  If you 
-are experiencing delays when reading values then this is another place to investigate.  
-In order to get the most accurate answer this parser initially uses the L<continued 
-fraction|http://en.wikipedia.org/wiki/Continued_fraction> algorythm to calculate a 
-possible fraction for the pased $decimal value with the setting of 20 max iterations 
-and a maximum denominator width defined by the format string.  If that does not 
-resolve satisfactorily it then calculates an over/under numerator with decreasing 
-denominators from the maximum denominator (based on the format string) all the way 
-to the denominator of 2 and takes the most accurate result.  There is no early-out 
-set in this computation so if you reach this point for multi digit denominators it 
-is computationally intensive.  (Not that continued fractions are computationally 
-so cheap.).  However, doing the calculation this way generally yields the same result as Excel.  
-In some few cases the result is more accurate.  I was unable to duplicate the results from 
-Excel exactly (or even come close otherwise).  If you have a faster conversion then 
-implemenation of the speed-up can be acheived by 
-substituting the fraction coercion using 
-L<Spreadsheet::XLSX::Reader::LibXML::GetCell/set_custom_formats( { $key =E<gt> $conversion } )>
+For an explanation of functionality for a fully built Formatter class see the 
+documentation for L<Spreadsheet::XLSX::Reader::LibXML::FormatInterface>.  This 
+will include the class L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault>.
+
+=head2 Caveat Utilitor
+
+The decimal (real number) to fraction conversion implementation here is processing 
+intensive.  I erred on the side of accuracy over speed.  While I tried my best to 
+provide equivalent accuracy to the Excel output I was unable to duplicate the results 
+in all cases.  In those cases this package provides a more precise result than Excel.  
+If you are experiencing delays when reading fraction formatted values then this package 
+is a place to investigate.  In order to get the most accurate answer this parser 
+initially uses the L<continued fraction|http://en.wikipedia.org/wiki/Continued_fraction> 
+algorythm to calculate a possible fraction for the pased $decimal value with the 
+setting of 20 max iterations and a maximum denominator width defined by the format 
+string.  If that does not resolve satisfactorily it then calculates -all- over/under 
+numerators with decreasing denominators from the maximum denominator (based on the 
+format string) all the way to the denominator of 2 and takes the most accurate result.  
+There is no early-out available in this computation so if you reach this point for multi 
+digit denominators it is computationally intensive.  (Not that continued fractions are 
+computationally so cheap.)  However, dual staging the calculation this way yields either 
+the same result as Excel or a more accurate result while providing a possible early out 
+in the continued fraction portion.  I was unable to even come close to Excel output 
+otherwise.  If you have a faster conversion or just want to opt out for specific cells 
+without replacing this whole parser then use the worksheet method 
+L<Spreadsheet::XLSX::Reader::LibXML::Worksheet/set_custom_formats( $key =E<gt> $format_object_or_string )>.  
+$format_object_or_string = '@' is a pass through.
 
 =head2 requires
 
 These are method(s) used by this role but not provided by the role.  Any class consuming this 
-role will not build without first providing these methods prior to loading this role.
-
-=head3 get_excel_region
-
-=over
-
-B<Definition:> Used to return the two letter region ID.  This ID is then used by 
-L<DateTime::Format::Flexible> to interpret date strings.  Currently this method is 
-provided by L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault> and (potentially) reset 
-when that instance is loaded to the parser.
-
-=back
-
-=head3 set_error
-
-=over
-
-B<Definition:> Used to set the error string in a shared error instance.
-
-=back
+role will not build without first providing this(ese) methods prior to loading this role.
 
 =head3 get_defined_excel_format
 
 =over
 
-B<Definition:> Used to return the default error string for a defined position.
+B<Definition:> Used to return the standard error string for a defined format position.
 
 See L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/defined_excel_translations>
 
 =back
 
-=head2 Primary Methods
+=head2 Methods
 
-These are the primary ways to use this Role.  For additional ParseExcelFormatStrings options 
-see the L<Attributes|/Attributes> section.
+These are the methods provided by this role to whatever class or instance inherits this 
+role.  For additional ParseExcelFormatStrings options see the L<Attributes|/Attributes> 
+section.  See the documentation for L<Spreadsheet::XLSX::Reader::LibXML/format_inst> to 
+see which methods are delegated all the way to the workbook level.
 
 =head3 parse_excel_format_string( $string, $name )
 
@@ -1871,8 +1905,6 @@ none is given
 B<Returns:> a L<Type::Tiny> object with type coercions and pre-filters set for each input type 
 from the formatting string
 
-B<Delegated to the workbook class:> yes
-
 =back
 
 =head3 get_defined_conversion( $position )
@@ -1881,58 +1913,99 @@ B<Delegated to the workbook class:> yes
 
 B<Definition:> This is a helper method that combines the call to 
 L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/get_defined_excel_format( $position )> and 
-parse_excel_format_string above in order to get all the information with one request.
+parse_excel_format_string above in order to get the final result with one call.
 
-B<Accepts:> an Excel format position
+B<Accepts:> an Excel default format position
 
 B<Returns:> a L<Type::Tiny> object with type coercions and pre-filters set for each input type 
 from the formatting string
-
-B<Delegated to the workbook class:> no
 
 =back
 
 =head2 Attributes
 
-Data passed to new when creating the L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault> 
-instance.   For modification of these attributes see the listed 'attribute methods'.
-For more information on attributes see L<Moose::Manual::Attributes>.  Most of these are 
-not exposed to the top level of L<Spreadsheet::XLSX::Reader::LibXML>.
-
-=head3 epoch_year
+Data passed to new when creating a class or instance containing this role.   For 
+modification of these attributes see the listed 'attribute methods'.  For more 
+information on attributes see L<Moose::Manual::Attributes>.  See the documentation 
+for L<Spreadsheet::XLSX::Reader::LibXML/format_inst> to see which attribute methods 
+are delegated all the way to the workbook level.
+		
+=head3 workbook_inst
 
 =over
 
-B<Definition:> This is the epoch year in the Excel sheet.  It differentiates between 
-Windows and Apple Excel implementations.  For more information see 
-L<DateTimeX::Format::Excel|DateTimeX::Format::Excel/DESCRIPTION>.  It is generally 
-(re)set by the workbook when the formatter instance is passed to the workbook.
+B<Definition:> This role needs visibility to several attributes held at the 
+workbook level.  This instance is a way for this role to see those settings.
 
-B<Default:> 1900
+B<Required:> Since the only way this package is used is when it is installed 
+in the workbook object as an instance the workbook itself will add this instance 
+when it recieves the formatter instance.
 
-B<Range:> 1900 or 1904
+B<Range:> an instance of the L<Spreadsheet::XLSX::Reader::LibXML> class
 
 B<attribute methods> Methods provided to adjust this attribute
 		
 =over
 
-B<get_epoch_year>
+B<set_workbook_inst( $instance )>
 
 =over
 
-B<Definition:> returns the value of the attribute
-
-B<Delegated to the workbook class:> no
+B<Definition:> sets the workbook instance
 
 =back
 
-B<set_epoch_year>
+=back
+
+B<delegated methods> Methods provided from the object stored in the attribute
+
+	method_name => method_delegated_from_link
+		
+=over
+
+B<error> => L<Spreadsheet::XLSX::Reader::LibXML/error>
+
+B<set_error( $error_string )> => L<Spreadsheet::XLSX::Reader::LibXML/set_error>
+
+B<clear_error> => L<Spreadsheet::XLSX::Reader::LibXML/clear_error>
+
+B<get_epoch_year> => L<Spreadsheet::XLSX::Reader::LibXML/get_epoch_year>
+
+=back
+
+=back
+
+=head3 cache_formats
 
 =over
 
-B<Definition:> sets the value of the attribute
+B<Definition:> In order to save re-building the coercion each time they are 
+requested, the built coercions can be cached with the format string as the key.  
+This attribute sets whether caching is turned on or not.
 
-B<Delegated to the workbook class:> no
+B<Rang:> Boolean
+
+B<Default:> 1 = caching is on
+
+B<attribute methods> Methods provided to adjust this attribute
+		
+=over
+
+B<get_cache_behavior>
+
+=over
+
+B<Definition:> returns the state of the attribute
+
+=back
+
+B<set_cache_behavior( $Bool )>
+
+=over
+
+B<Definition:> sets the value of the attribute to $Bool
+
+B<Range:> Boolean 1 = cache formats, 0 = Don't cache formats
 
 =back
 
@@ -1947,8 +2020,7 @@ B<Delegated to the workbook class:> no
 B<Definition:> It may be that you desire the full L<DateTime> object as output 
 rather than the finalized datestring when converting unformatted date data to 
 formatted date data. This attribute sets whether data coersions are built to do 
-the full conversion or just to a DateTime object level. It is generally 
-(re)set by the workbook when the formatter instance is passed to the workbook.
+the full conversion or just to a DateTime object in return.
 
 B<Default:> 0 = unformatted values are coerced completely to date strings (1 = 
 stop at DateTime)
@@ -1962,8 +2034,6 @@ B<get_date_behavior>
 =over
 
 B<Definition:> returns the value of the attribute
-
-B<Delegated to the workbook class:> yes
 
 =back
 
@@ -1988,46 +2058,6 @@ B<Delegated to the workbook class:> yes
 
 =back
 
-=head3 cache_formats
-
-=over
-
-B<Definition:> In order to save re-building the coercion each time they are 
-used, the built coercions can be cached with the format string as the key.  
-This attribute sets whether caching is turned on or not.
-
-B<Default:> 1 = caching is on
-
-B<attribute methods> Methods provided to adjust this attribute
-		
-=over
-
-B<get_cache_behavior>
-
-=over
-
-B<Definition:> returns the value of the attribute
-
-B<Delegated to the workbook class:> inherited
-
-=back
-
-B<set_cache_behavior>
-
-=over
-
-B<Definition:> sets the value of the attribute
-
-B<Range:> Boolean 1 = cache formats, 0 = Don't cache formats
-
-B<Delegated to the workbook class:> inherited
-
-=back
-
-=back
-
-=back
-
 =head3 european_first
 
 =over
@@ -2037,7 +2067,7 @@ dates prior to checking for MM-DD-YY.  Since this checks both ways the
 goal is to catch ambiguous data where the substring for DD < 13 and 
 assign it correctly.
 
-B<Default:> 0 = MM-DD-YY is tested first
+B<Default:> 0 = MM-DD-YY[YY] is tested first
 
 B<attribute methods> Methods provided to adjust this attribute
 		
@@ -2051,15 +2081,13 @@ B<Definition:> returns the value of the attribute
 
 =back
 
-B<set_european_first>
+B<set_european_first( $Bool )>
 
 =over
 
 B<Definition:> sets the value of the attribute
 
 B<Range:> Boolean 0 = MM-DD-YY is tested first, 1 = DD-MM-YY is tested first
-
-B<Delegated to the workbook class:> yes
 
 =back
 

@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::Error;
-use version; our $VERSION = version->declare('v0.38.22');
+use version; our $VERSION = version->declare('v0.40.2');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::Error-$VERSION";
 
 use Moose;
@@ -7,6 +7,7 @@ use Carp qw( cluck longmess );
 #~ our @CARP_NOT = qw(
 		#~ Spreadsheet::XLSX::Reader::LibXML::Error
 		#~ Class::MOP::Class
+		#~ Moose::Meta::Method::Delegation
 	#~ );
 use MooseX::StrictConstructor;
 use MooseX::HasDefaults::RO;
@@ -71,7 +72,14 @@ has spew_longmess =>(
 
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
 
-
+#~ sub DEMOLISH{
+	#~ my ( $self ) = @_;
+	#~ ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	#~ ###LogSD				$self->get_all_space . '::hidden::DEMOLISH', );
+	#~ ###LogSD		$phone->talk( level => 'debug', message => [
+	#~ ###LogSD			"Closing the error instance" ] );
+	#~ print "Error closed\n";
+#~ }
 
 #########1 Phinish            3#########4#########5#########6#########7#########8#########9
 

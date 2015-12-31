@@ -1,14 +1,15 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLToPerlData;
-use version; our $VERSION = version->declare('v0.38.22');
+use version; our $VERSION = version->declare('v0.40.2');
 
 use	Moose::Role;
 use Data::Dumper;
 use 5.010;
 requires qw(
 	get_empty_return_type		get_text_node				get_attribute_hash_ref
-	advance_element_position	location_status
+	advance_element_position	location_status				skip_siblings
+	next_sibling
 );#text_value
-use Types::Standard qw(	Int	ArrayRef	is_HashRef 	is_Int );
+use Types::Standard qw(	Int	ArrayRef is_HashRef is_Int StrMatch Bool );
 use Clone qw( clone );
 ###LogSD	requires 'get_all_space';
 ###LogSD	use Log::Shiras::Telephone;
@@ -19,14 +20,28 @@ use Clone qw( clone );
 
 #########1 Public Attributes  3#########4#########5#########6#########7#########8#########9
 
+has exclude_match =>(
+		isa		=> StrMatch[qr/^\([^\)]+\)$/],
+		reader	=> '_get_exclude_match',
+		writer	=> 'set_exclude_match',
+		clearer	=> '_clear_exclude_match',
+		predicate => '_has_exclude_match',
+	);
 
+has strip_keys =>(
+		isa		=> Bool,
+		reader	=> '_should_strip_keys',
+		writer	=> 'set_strip_keys',
+		clearer	=> '_clear_strip_keys',
+		default => 0,
+	);
 
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
 
 sub parse_element{
 	my ( $self, $level, $attribute_ref ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::parse_element', );
+	###LogSD			$self->get_all_space . '::XMLToPerlData::parse_element', );
 	###LogSD		$phone->talk( level => 'debug', message =>[
 	###LogSD			"Parsing current element", (defined $level ? "..to level: $level" : undef),
 	###LogSD			(defined $attribute_ref ? "..with attribute_ref:" : undef), $attribute_ref ] );
@@ -77,7 +92,8 @@ sub parse_element{
 		# Record progress
 		if( $node_depth == $last_level ){# Stack the same level
 			###LogSD	$phone->talk( level => 'trace', message => [
-			###LogSD		"Found another node at level: $node_depth", ] );
+			###LogSD		"Found another node at level: $node_depth",
+			###LogSD		"..node_named: $node_name", ] );
 			$self->_stack( $node_name );
 			###LogSD	$phone->talk( level => 'trace', message => [
 			###LogSD		"Finished stacking with :", $self->_get_partial_ref, $self->_get_bread_crumbs ] );
@@ -94,55 +110,124 @@ sub parse_element{
 		if( !$self->_has_max_level or $self->_get_max_level > $node_depth ){# Check for the bottom
 			# Check for a text node
 			my( $result, $node_text, ) = $attribute_ref ? ( undef, undef ) : $self->get_text_node;
-			###LogSD	$phone->talk( level => 'trace', message => [
-			###LogSD		"Finished text node search with:", $result, $node_text, ] );
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"result: " . ($result//'fail'), $node_text] );
 			
 			# If no text node check for an attribute_ref
 			my $next_ref;
 			if( $result ){
 				###LogSD	$phone->talk( level => 'debug', message =>[
-				###LogSD		"That was a text node - adding |$node_text|" ] );
+				###LogSD		"The next node is a text node - adding |$node_text|" ] );
 				$has_value = 1;
-				$self->_accrete_node( $node_text, 'text' );
-				$last_level++;
+				my $increment = $self->_accrete_node( $node_text, 'text' );
+				$last_level += $increment;
 				###LogSD	$phone->talk( level => 'debug', message =>[ "Loaded the text node"] );
 			}else{
 				###LogSD	$phone->talk( level => 'debug', message =>[
 				###LogSD		"Not a text node - Checking for an attribute ref: " . ref $attribute_ref, $attribute_ref ] );
+				my $is_attribute = 0;
 				if( ref $attribute_ref ){
 					###LogSD	$phone->talk( level => 'debug', message =>[
 					###LogSD		"Using the pre-parsed attribute ref", $attribute_ref->{attribute_hash} ] );
 					( $result, $next_ref ) = ( 1, $attribute_ref->{attribute_hash} );
 					$attribute_ref = undef;
+					$is_attribute = 1;
 				}else{
 					( $result, $next_ref ) = $self->get_attribute_hash_ref;
+					$is_attribute = $result;
 				}
 				###LogSD	$phone->talk( level => 'debug', message =>[
 				###LogSD		"The attribute hash_ref search result -$result- produced the ref:", $next_ref ] );
 				if( $result ){
-					my	$ref_type = ( ref $next_ref eq 'HASH' ) ? undef : 'text';
+					my	$ref_type = 
+							$is_attribute ? 'attribute' :
+							is_HashRef( $next_ref ) ? undef : 'text';
 					###LogSD	$phone->talk( level => 'trace', message => [
 					###LogSD		"Adding attribute hash ref type:", $ref_type, $next_ref,	] );
+					
+					# Scrub out namespace tags in sub keys
+					if( $self->_should_strip_keys ){
+						###LogSD	$phone->talk( level => 'debug', message =>[
+						###LogSD		"The strip keys flag is on" ] );
+						if( $self->_has_strip_match ){
+							my $exclude = $self->_get_strip_match;
+							###LogSD	$phone->talk( level => 'debug', message =>[
+							###LogSD		"stripping any namespace labels with: $exclude" ] );
+							for my $key ( keys %$next_ref ){
+								###LogSD	$phone->talk( level => 'debug', message =>[
+								###LogSD		"Checking key: $key" ] );
+								$key =~ /($exclude\:)?(.)(.+)/;
+								if( $1 ){
+									my $new_key = lc( $3 ) . $4;
+									###LogSD	$phone->talk( level => 'debug', message =>[
+									###LogSD		"Key updated to: $new_key" ] );
+									$next_ref->{$new_key} = $next_ref->{$key};
+									delete $next_ref->{$key};
+								}
+							}
+						}else{
+							###LogSD	$phone->talk( level => 'debug', message =>[
+							###LogSD		"Attempting to find namespace labels" ] );
+							my @key_list;
+							for my $key ( keys %$next_ref ){
+								###LogSD	$phone->talk( level => 'debug', message =>[
+								###LogSD		"Checking key: $key" ] );
+								$key =~ /xmlns\:?(.*)/;
+								push @key_list, $1 if $1;
+							}
+							if( scalar( @key_list ) > 0 ){
+								my $exclude = '(' . join( '|', @key_list ) . ')';
+								###LogSD	$phone->talk( level => 'debug', message =>[
+								###LogSD		"Exclude string resolved to: $exclude" ] );
+								$self->_set_strip_match( $exclude );
+							}
+						}
+					}
+					
 					$has_value = 1;
-					$self->_accrete_node( $next_ref, $ref_type );
-					$last_level++;
+					my $increment = $self->_accrete_node( $next_ref, $ref_type );
+					$last_level += $increment;
 				}
 			}
 		}
 		
-		my $move = 'first';
-		while(	$move eq 'first' or 
-				($self->_has_max_level and $self->_get_max_level < $node_depth) ){
-			$move = 'not_first';
-			# Move one step forward
-			###LogSD	$phone->talk( level => 'trace', message => [
-			###LogSD		"Advancing to the next node",	] );
-			my $result  = $self->advance_element_position;
-			last PARSETHELAYERS if !$result;
+		# Move one step forward
+		###LogSD	$phone->talk( level => 'trace', message => [
+		###LogSD		"Advancing to the next node",	] );
+		my $result  = $self->advance_element_position;
+		last PARSETHELAYERS if !$result;# End of file?
+		( $node_depth, $node_name, $node_type ) = $self->location_status;
+		if( $self->_has_exclude_match ){
+			my $string = $self->_get_exclude_match;
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD		"Checking if node -$node_name- matches: $string" ] );
+			while( $node_name =~ /$string/i ){
+				###LogSD	$phone->talk( level => 'debug', message =>[
+				###LogSD		"Found a match" ] );
+				$result = $self->next_sibling;
+				last PARSETHELAYERS if !$result;# End of file?
+				( $node_depth, $node_name, $node_type ) = $self->location_status;
+				###LogSD	$phone->talk( level => 'debug', message =>[
+				###LogSD		"Next sibling node is: $node_name", "..checking against: $string" ] );
+			}
+		}
+		###LogSD	$phone->talk( level => 'debug', message =>[
+		###LogSD		"Result of the next node process: $result", 
+		###LogSD		"Next node name: $node_name",
+		###LogSD		"..of type: $node_type",
+		###LogSD		"..at libxml2 level: $node_depth",
+		###LogSD		"..against base depth: $base_depth",
+		###LogSD		(($self->_has_max_level) ? 
+		###LogSD			('..and for max allowed level: ' . $self->_get_max_level) : ''),] );
+		
+		# Skip any additional nodes that are too low
+		if( $self->_has_max_level and $self->_get_max_level < $node_depth ){
+			$self->skip_siblings;
+			my $result  = $self->advance_element_position;# Go from the end of the last to the begining of the new
+			last PARSETHELAYERS if !$result;# End of file?
 			( $node_depth, $node_name, $node_type ) = $self->location_status;
 			###LogSD	$phone->talk( level => 'debug', message =>[
-			###LogSD		"Result of the next node process: $result", 
-			###LogSD		"Next node name: $node_name",
+			###LogSD		"After skip_siblings next node name is: $node_name",
 			###LogSD		"..of type: $node_type",
 			###LogSD		"..at libxml2 level: $node_depth",
 			###LogSD		"..against base depth: $base_depth",
@@ -172,6 +257,19 @@ sub parse_element{
 	my $rewind = $self->_ref_depth - 2;
 	###LogSD	$phone->talk( level => 'trace', message => [
 	###LogSD		"Rewinding finally: $rewind", ] );
+	
+	# Clear every time
+	$self->_clear_exclude_match;
+	$self->set_strip_keys( 0 );
+	$self->_clear_strip_match;
+	
+	# Handle the empty return case
+	if( $rewind < 0 ){
+		###LogSD	$phone->talk( level => 'debug', message =>[
+		###LogSD		"It seems there was no data at this position", ] );
+		return undef;
+	}
+	
 	my $eof_flag = $self->_rewind( $rewind );
 	if( $eof_flag ){
 		###LogSD	$phone->talk( level => 'trace', message => [
@@ -180,11 +278,79 @@ sub parse_element{
 	}else{
 		###LogSD	$phone->talk( level => 'trace', message =>[
 		###LogSD		"Finished processing with:", $self->_get_partial_ref ] );
-		return( $self->_last_ref_level );#$self->_last_bread_crumb, 
+		my $final_answer =  $self->_last_ref_level;
+		delete $final_answer->{list_ref} if is_HashRef( $final_answer );
+		###LogSD	$phone->talk( level => 'trace', message =>[
+		###LogSD		"returning:", $final_answer ] );
+		return $final_answer;
 	}
 }
 
+sub grep_node{
+	my( $self, $ref, $node_name ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::XMLToPerlData::grep_node', );
+	###LogSD		$phone->talk( level => 'debug', message => [
+	###LogSD			"Extracting the node -$node_name- from the general ref:", $ref, ]);# caller( 0 ), caller( 1 ), caller( 2 ), caller( 3 ), caller( 4 ), caller( 5 )]
+	my $sub_node;
+	my $x = 0;
+	my $success = 0;
+	for my $key ( @{$ref->{list_keys}} ){
+		if( $key eq $node_name ){
+			$sub_node = $ref->{list}->[$x];
+			$success = 1;
+			last;
+		}
+		$x++;
+	}
+	###LogSD		$phone->talk( level => 'debug', message => [
+	###LogSD			"Returning: $success", $sub_node] );
+	return ( $success, $sub_node );
+}
+
+sub squash_node{
+	my( $self, $ref, ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::XMLToPerlData::squash_node', );
+	###LogSD		$phone->talk( level => 'debug', message => [
+	###LogSD			"reducing the xml style node to a perl style data structure:", $ref,] );# caller( 1 )
+	my $perl_node;
+	my $success = 0;
+	if( exists $ref->{attributes} ){
+		$perl_node = $ref->{attributes};
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Perl node with attributes added:", $perl_node,] );
+		$success = 1;
+	}
+	if( exists $ref->{list_keys} ){
+		$success = 1;
+		my $x = 0;
+		for my $key ( @{$ref->{list_keys}} ){
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"Processing the node for key -$key- from:", $ref->{list}->[$x],] );
+			$perl_node->{$key} = 
+				!defined $ref->{list}->[$x] ? undef :
+				( exists $ref->{list}->[$x]->{list} or exists $ref->{list}->[$x]->{attributes} ) ?
+					$self->squash_node( $ref->{list}->[$x] ) : $ref->{list}->[$x];
+			$x++;
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"Perl node with key -$key- added:", $perl_node,] );
+		}
+	}
+	###LogSD		$phone->talk( level => 'debug', message => [
+	###LogSD			"Returning: $success", $perl_node] );
+	return ( $success, $perl_node );
+}
+
 #########1 Private Attributes 3#########4#########5#########6#########7#########8#########9
+
+has _strip_match =>(
+		isa		=> StrMatch[qr/^\([^\)]+\)$/],
+		reader	=> '_get_strip_match',
+		writer	=> '_set_strip_match',
+		clearer	=> '_clear_strip_match',
+		predicate => '_has_strip_match',
+	);
 
 has	_max_level =>(
 		isa			=> 	Int,
@@ -229,24 +395,121 @@ has	_bread_crumbs =>(
 sub _accrete_node{
 	my ( $self, $node_id, $node_type ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::parse_element::_accrete_node', );
+	###LogSD			$self->get_all_space . '::XMLToPerlData::parse_element::_accrete_node', );
 	###LogSD		$phone->talk( level => 'debug', message =>[
-	###LogSD			"Accreting the node:", $node_id, $node_type, $self->_get_partial_ref] );
-	my $ref =
-		( $node_type and $node_type eq 'text' ) ? $node_id :
-		( ref $node_id ) ? $node_id : { $node_id => undef };
-	$self->_add_ref_level( $ref );
-	$self->_add_bread_crumb( $node_id );
+	###LogSD			"Accreting the node:", $node_id, $node_type, $self->_get_ref_level( -1 ), $self->_get_bread_crumb( -1 )] );
+	my ( $ref, $crumb, $add );
+	if( $node_type ){
+		###LogSD	$phone->talk( level => 'debug', message =>[
+		###LogSD		"This has a node type: $node_type" ] );
+		if( $node_type eq 'text' ){
+			my $last_ref = $self->_last_ref_level;
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD		"Working with node id -$node_id- and text ref:", $last_ref] );
+			if( exists $last_ref->{raw_text} ){
+			#~ if( exists $last_ref->{list_keys} and $last_ref->{list_keys}->[-1] eq 'raw_text' ){
+				###LogSD	$phone->talk( level => 'debug', message =>[
+				###LogSD		"Attaching text to a raw_text node" ] );
+				if( $node_id and $node_id =~ /^\s+$/ ){
+					###LogSD	$phone->talk( level => 'debug', message =>[
+					###LogSD		"Deleting space nodes"] );
+					$self->_last_bread_crumb;
+					$add = -1;
+				}else{
+					$last_ref->{raw_text} = $node_id;
+					###LogSD	$phone->talk( level => 'debug', message =>[
+					###LogSD		"Added node id (text) -$node_id- to the last ref:", $last_ref ] );
+					$self->_add_ref_level( $last_ref );
+					$add = 0;
+				}
+			}elsif( $node_id  =~ /^\s+$/ and
+					(	!exists $last_ref->{attributes} or
+						!exists $last_ref->{attributes}->{'xml:space'} or 
+						$last_ref->{attributes}->{'xml:space'} ne 'preserve') ){
+				###LogSD	$phone->talk( level => 'debug', message =>[
+				###LogSD		"Deleting space node from list"] );
+				if( !$self->_get_bread_crumb( -1 ) ){
+					###LogSD	$phone->talk( level => 'debug', message =>[
+					###LogSD		"Deleting the whole node list set", $last_ref ] );
+					$self->_last_bread_crumb;
+					if( exists $last_ref->{attributes} ){
+						delete $last_ref->{list};
+						delete $last_ref->{list_keys};
+						$self->_add_bread_crumb( 'attributes' );
+						$self->_add_ref_level( $last_ref );
+						$add = 0;
+					}else{
+						$add = -1;
+					}
+				}else{
+					###LogSD	$phone->talk( level => 'debug', message =>[
+					###LogSD		"Just deleting the last list element"] );
+					pop @{$last_ref->{list}};
+					pop @{$last_ref->{list_keys}};
+					#~ delete $last_ref->{attributes};
+					$self->_add_bread_crumb( ($self->_last_bread_crumb-1) );
+					$self->_add_ref_level( $last_ref );
+					$add = 0;
+				}
+			}else{
+				###LogSD	$phone->talk( level => 'debug', message =>[
+				###LogSD		"Adding the text node element"] );
+				my $new_ref;
+				if( scalar( @{$last_ref->{list}} ) == 1 ){
+					$new_ref->{raw_text} = $node_id;
+				}
+				#~ else{
+					#~ $last_ref->{list}->[$self->_get_bread_crumb( -1 )] = $node_id;
+					#~ delete $last_ref->{attributes};
+				#~ }
+				if( exists $last_ref->{attributes} ){
+					map{ $new_ref->{$_} = $last_ref->{attributes}->{$_} } keys %{$last_ref->{attributes}};
+				}
+				###LogSD	$phone->talk( level => 'debug', message =>[
+				###LogSD		"Loading new last ref:", $new_ref ] );
+				$self->_add_ref_level( $new_ref );
+				$add = 0;
+			}
+		}elsif( $node_type eq 'attribute' ){
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD		"building an attribute node"] );
+			$ref = { attributes => $node_id };
+			$crumb = 'attributes';
+			$add = 1;
+		}else{
+			confess "Unable to accrete type -$node_type- with content: $node_id";
+		}
+	}elsif( $node_id and $node_id eq 'raw_text' ){
+		###LogSD	$phone->talk( level => 'debug', message =>[
+		###LogSD		"building a text node"] );
+		$ref = { raw_text => undef };
+		$crumb = 'raw_text';
+		$add = 1;
+	}else{
+		###LogSD	$phone->talk( level => 'debug', message =>[
+		###LogSD		"building a list node"] );
+		$ref = { list => [undef], list_keys =>[ $node_id ] };
+		$crumb = 0;
+		$add = 1;
+	}
+	#~ my $ref = { $
+		#~ ( $node_type and $node_type eq 'text' ) ? $node_id :
+		#~ ( ref $node_id ) ? $node_id : { $node_id => undef };
+	if( $add > 0 ){
+		$self->_add_ref_level( $ref );
+		$self->_add_bread_crumb( $crumb );
+	}
 	###LogSD	$phone->talk( level => 'debug', message =>[
 	###LogSD		"Current node representations:", $self->_get_partial_ref, $self->_get_bread_crumbs,] );
+	return $add;
 }
 
 sub _rewind{
 	my ( $self, $rewind_count ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::parse_element::_rewind', );
+	###LogSD			$self->get_all_space . '::XMLToPerlData::parse_element::_rewind', );
 	###LogSD		$phone->talk( level => 'debug', message =>[
-	###LogSD			"Rewinding: $rewind_count", $self->_get_bread_crumbs->[-1], $self->_get_partial_ref->[-1], ] );
+	###LogSD			"Rewinding: $rewind_count", '----', $self->_get_bread_crumb( -1 ), '^^^', '---',  $self->_get_ref_level( -1 ), '^^^', ] );
 	if( !defined $rewind_count or $rewind_count < 0 ){
 		$self->set_error( "Can't rewind |$rewind_count| times! - possible end of file" );
 		return 'EOF'
@@ -261,35 +524,42 @@ sub _rewind{
 			$next_value		= $self->_last_bread_crumb;
 			$current_ref	= $self->_last_ref_level;
 			###LogSD	$phone->talk( level => 'debug', message =>[
-			###LogSD		"Rewinding:", $current_value, "from current ref:", $current_ref, ] );
-			if( ref $current_ref eq 'HASH' ){
-				if( exists $current_ref->{list} ){
-					if( $current_value =~ /^\s+/ and is_HashRef( $current_ref->{list}->[$next_value - 1] ) ){
-						###LogSD	$phone->talk( level => 'debug', message =>[
-						###LogSD		"The value:", $current_value, "..is a string of spaces and and doesn't belong in a list of hashrefs",] );
-						pop @{$current_ref->{list}};
-					}else{
-						###LogSD	$phone->talk( level => 'debug', message =>[
-						###LogSD		"Pushing:", $current_value, "..at position: $next_value", "on the list in:", $current_ref, ] );
-						$current_ref->{list}->[$next_value] = $current_value;
-					}
+			###LogSD		"Rewinding:", $current_value, "to current ref:", $current_ref, "..with placement: $next_value" ] );
+			if( is_HashRef( $current_value ) ){
+				if( exists $current_value->{raw_text} and !exists $current_value->{'xml:space'} and
+						( !defined $current_value->{raw_text} or $current_value->{raw_text} =~ /^\s+$/ ) ){
+					###LogSD	$phone->talk( level => 'debug', message =>[
+					###LogSD		"Skipping rewind for unwanted raw_text node" ] );
 				}else{
-					if( $next_value eq 'raw_text' and scalar( keys %$current_ref ) > 1){# Check for bad spaces before a tag
+				
+					# Delete unwanted spaces between nodes
+					if( exists $current_value->{list_keys} and $current_value->{list_keys}->[-1] eq 'raw_text' and
+						(!$current_value->{list}->[-1] or $current_value->{list}->[-1] =~ /^\s+$/ ) ){
 						###LogSD	$phone->talk( level => 'debug', message =>[
-						###LogSD		"Found a bad space after a tag with value |$current_value|" ] );
-						delete $current_ref->{$next_value};
-						$next_value = (keys %$current_ref)[0];# Choose the first random one in the absence of a better decision
-					}else{
+						###LogSD		"Deleting final unwanted raw_text node" ] );
+						pop @{$current_value->{list}};
+						pop @{$current_value->{list_keys}};
+					}elsif( $next_value eq 'raw_text' and (!$current_value or $current_value =~ /^\s+$/) ){
 						###LogSD	$phone->talk( level => 'debug', message =>[
-						###LogSD		"Loading:", $current_value, "to key -$next_value- in:", $current_ref, ] );
-						$current_ref->{$next_value} = $current_value;
+						###LogSD		"Removing unwanted spaces between nodes |" . ($current_value//'undef') . '|' ] );
+						$current_value = undef;
+						$next_value = undef;
+						delete $current_ref->{raw_text};
+					}
+					
+					if( defined $next_value ){
+						if( is_Int( $next_value ) ){
+							$current_ref->{list}->[$next_value] = $current_value;
+						}else{
+							$current_ref->{list}->{$next_value} = $current_value;
+						}
 					}
 				}
 			}else{
-				confess "I don't know how to rewind -" . ref $current_ref . "- types";
+				confess "I don't know how to handle: " . Dumper( $current_ref, $next_value, $current_value );
 			}
 			###LogSD	$phone->talk( level => 'debug', message =>[
-			###LogSD		"Updated current ref:", $current_ref ] );
+			###LogSD		"Updated current ref/value:", $current_ref ] );
 			$current_value = $current_ref;
 		}
 		
@@ -309,48 +579,33 @@ sub _stack{
 	my	$replace_key	= $self->_last_bread_crumb;
 	my	$current_value	= $self->_last_ref_level;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::parse_element::_stack', );
+	###LogSD			$self->get_all_space . '::XMLToPerlData::parse_element::_stack', );
 	###LogSD		$phone->talk( level => 'debug', message =>[
-	###LogSD			"Stacking node id: " . ($node_id//''),( ( (defined $replace_key and is_Int( $replace_key ))  ?  "..to position: " :  "..to key: ") . ($replace_key//'undef')) , "in:",$current_value ] );
+	###LogSD			"Stacking node id: " . ($node_id//''),
+	###LogSD			( ( (defined $replace_key and is_Int( $replace_key ))  ?  "..against position: " :  "..to key: ") . ($replace_key//'undef')) ,
+	###LogSD			 "in:",$current_value ] );
 	my ( $alt_key, $alt_value );
 	
-	if( $replace_key and $replace_key eq 'raw_text' ){# Check for bad spaces before a tag
-		###LogSD	$phone->talk( level => 'debug', message =>[
-		###LogSD		"Found a bad space before the tag -$node_id- with value |$current_value->{$replace_key}|" ] );
-		delete $current_value->{$replace_key};
-		$current_value->{$node_id} = undef;
-		$replace_key = $node_id;
-	}else{
-		if( ref $current_value eq 'HASH' and exists $current_value->{$node_id}){# Change from a hash to a list
+	# Check for bad spaces before a tag
+	if( $replace_key ){
+		if( $replace_key eq 'raw_text' ){
 			###LogSD	$phone->talk( level => 'debug', message =>[
-			###LogSD		"Changing the current level hash to have a list reference from: $replace_key", ] );
-			$current_value->{list}->[0] = ($current_value->{$node_id} // $node_id);
-			delete $current_value->{$node_id};
-		}
-		
-		if( exists $current_value->{list} ){
-			###LogSD	$phone->talk( level => 'debug', message =>[
-			###LogSD		"Pushing -$node_id- to the array" ] );
-			if( $current_value->{list}->[-1] =~ /^\s*$/ and $node_id !~ /^\s*$/ ){
-				pop @{$current_value->{list}};
-			}
-			push @{$current_value->{list}}, $node_id;
-			$replace_key = $#{$current_value->{list}};
-		}elsif( exists $current_value->{count} ){
-			###LogSD	$phone->talk( level => 'debug', message =>[
-			###LogSD		"Starting a list to support count of: " . $current_value->{count}, ] );
-			$current_value->{list}->[0] = $node_id;
-			$replace_key = 0;
-		}else{
-			###LogSD	$phone->talk( level => 'debug', message =>[
-			###LogSD		"managing a hash ref:", $current_value, $replace_key ] );
-			$current_value->{$node_id} = undef;
+			###LogSD		"Found a bad text callout in a HashRef before the tag -$node_id- with value:", $current_value, $replace_key ] );
+			delete $current_value->{$replace_key};
+			#~ $current_value->{$node_id} = undef;
 			$replace_key = $node_id;
-			if( $node_id eq 'raw_text' and exists $current_value->{'xml:space'} ){
-				delete $current_value->{'xml:space'};
-			}
+		}elsif( is_Int( $replace_key ) and exists $current_value->{list} and $current_value->{list_keys}->[-1] eq 'raw_text' ){
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD		"Found a bad text callout in a list before the tag -$node_id- with value:", $current_value,
+			###LogSD		"..at position: $replace_key" ] );
+			pop @{$current_value->{list}};
+			pop @{$current_value->{list_keys}};
 		}
 	}
+	push @{$current_value->{list}}, undef;
+	$replace_key = $#{$current_value->{list}};
+	push @{$current_value->{list_keys}}, $node_id;
+		
 	#Reload last pop
 	$self->_add_bread_crumb( $replace_key );
 	$self->_add_ref_level( $current_value );
@@ -362,7 +617,7 @@ sub _stack{
 sub _empty_node{
 	my ( $self, $node_name ) = @_;# Need to do a '_has_class_space' to get class space transition
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::parse_element::_empty_node', );
+	###LogSD			$self->get_all_space . '::XMLToPerlData::parse_element::_empty_node', );
 	###LogSD		$phone->talk( level => 'debug', message =>[
 	###LogSD			"Handling an empty node: $node_name", ] );
 	my $final_value =

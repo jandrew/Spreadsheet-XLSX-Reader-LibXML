@@ -1,14 +1,18 @@
 package Spreadsheet::XLSX::Reader::LibXML::Worksheet;
-use version; our $VERSION = version->declare('v0.38.22');
+use version; our $VERSION = version->declare('v0.40.2');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::Worksheet-$VERSION";
+
 use Modern::Perl;
 use Carp 'confess';
 use Data::Dumper;
 use	Moose::Role;
 requires qw(
 	_min_row					_max_row					_min_col
-	_max_col					_get_col_row				_get_next_value_cell		
+	_max_col					_get_col_row				_get_next_value_cell
 	_get_row_all				_get_merge_map				is_sheet_hidden
+	change_output_encoding		get_error_inst				boundary_flag_setting
+	has_styles_interface		get_format					_get_excel_position
+	_get_used_position			_parse_column_row
 );
 ###LogSD	requires 'get_log_space', 'get_all_space';
 use Types::Standard qw(
@@ -94,61 +98,125 @@ has max_header_col =>(
 sub min_row{
 	my( $self ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::Interface::row_bound::min_row', );
+	###LogSD			$self->get_all_space . '::row_bound::min_row', );
 	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"Returning the minimum row: " . $self->_min_row ] );
-	return $self->_min_row;
+	###LogSD			"Returning the minimum row" ] );
+	my $code_min = $self->_min_row;
+	# Convert to user numbers
+	my $user_min = $self->_get_used_position( $code_min );
+	###LogSD	$phone->talk( level => 'debug', message =>[
+	###LogSD		"Returning -$user_min- for row: $code_min" ] );
+	return $user_min;
 }
 
 sub max_row{
 	my( $self ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::Interface::row_bound::max_row', );
+	###LogSD			$self->get_all_space . '::row_bound::max_row', );
 	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"Returning the maximum row: " . ($self->_max_row//'undef') ] );
-	return $self->_max_row;
+	###LogSD			"Returning the maximum row" ] );
+	my $code_max = $self->_max_row;
+	if( defined $code_max ){
+		# Convert to user numbers
+		my $user_max = $self->_get_used_position( $code_max );
+		###LogSD	$phone->talk( level => 'debug', message =>[
+		###LogSD		"Returning -$user_max- for row: $code_max" ] );
+		return $user_max;
+	}else{
+		###LogSD	$phone->talk( level => 'debug', message =>[
+		###LogSD		"No stored value for max row" ] );
+		return undef;
+	}
 }
 
 sub min_col{
 	my( $self ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::Interface::row_bound::min_col', );
+	###LogSD			$self->get_all_space . '::row_bound::min_col', );
 	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"Returning the minimum column: " . $self->_min_col ] );
-	return $self->_min_col;
+	###LogSD			"Returning the minimum column" ] );
+	my $code_min = $self->_min_col;
+	# Convert to user numbers
+	my $user_min = $self->_get_used_position( $code_min );
+	###LogSD	$phone->talk( level => 'debug', message =>[
+	###LogSD		"Returning -$user_min- for column: $code_min" ] );
+	return $user_min;
 }
 
 sub max_col{
 	my( $self ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::Interface::row_bound::max_col', );
+	###LogSD			$self->get_all_space . '::row_bound::max_col', );
 	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"Returning the maximum column: " . ($self->_max_col//'undef') ] );
-	return $self->_max_col;
+	###LogSD			"Returning the maximum column" ] );
+	my $code_max = $self->_max_col;
+	if( defined $code_max ){
+		# Convert to user numbers
+		my $user_max = $self->_get_used_position( $code_max );
+		###LogSD	$phone->talk( level => 'debug', message =>[
+		###LogSD		"Returning -$user_max- for column: $code_max" ] );
+		return $user_max;
+	}else{
+		###LogSD	$phone->talk( level => 'debug', message =>[
+		###LogSD		"No stored value for max column" ] );
+		return undef;
+	}
 }
 
 sub row_range{
 	my( $self ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::Interface::row_bound::row_range', );
+	###LogSD			$self->get_all_space . '::row_bound::row_range', );
 	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"Returning row range( " . $self->_min_row . ", " .  ($self->_max_row//'undef') . " )" ] );
-	return( $self->_min_row, $self->_max_row );
+	###LogSD			"Returning row range" ] );
+	my $code_min = $self->_min_row;
+	# Convert to user numbers
+	my $user_min = $self->_get_used_position( $code_min );
+	###LogSD	$phone->talk( level => 'debug', message =>[
+	###LogSD		"Returning -$user_min- for row: $code_min" ] );
+	my $code_max = $self->_max_row;
+	my $user_max;
+	if( defined $code_max ){
+		# Convert to user numbers
+		$user_max = $self->_get_used_position( $code_max );
+		###LogSD	$phone->talk( level => 'debug', message =>[
+		###LogSD		"Returning -$user_max- for row: $code_max" ] );
+	}else{
+		###LogSD	$phone->talk( level => 'debug', message =>[
+		###LogSD		"No stored value for max row" ] );
+	}
+	return( $user_min, $user_max );
 }
 
 sub col_range{
 	my( $self ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::Interface::row_bound::col_range', );
+	###LogSD			$self->get_all_space . '::row_bound::col_range', );
 	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"Returning col range( " . $self->_min_col . ", " . ($self->_max_col//'undef') . " )" ] );
-	return( $self->_min_col, $self->_max_col );
+	###LogSD			"Returning col range" ] );
+	my $code_min = $self->_min_col;
+	# Convert to user numbers
+	my $user_min = $self->_get_used_position( $code_min );
+	###LogSD	$phone->talk( level => 'debug', message =>[
+	###LogSD		"Returning -$user_min- for column: $code_min" ] );
+	my $code_max = $self->_max_col;
+	my $user_max;
+	if( defined $code_max ){
+		# Convert to user numbers
+		$user_max = $self->_get_used_position( $code_max );
+		###LogSD	$phone->talk( level => 'debug', message =>[
+		###LogSD		"Returning -$user_max- for column: $code_max" ] );
+	}else{
+		###LogSD	$phone->talk( level => 'debug', message =>[
+		###LogSD		"No stored value for max row" ] );
+	}
+	return( $user_min, $user_max );
 }
 
 sub get_merged_areas{
 	my( $self, ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::Interface::get_merged_areas', );
+	###LogSD			$self->get_all_space . '::get_merged_areas', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			'Pulling the merge map ParseExcel style' ] );
 	
@@ -188,20 +256,21 @@ sub get_merged_areas{
 sub is_column_hidden{
 	my( $self, @column_requests ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::Interface::is_column_hidden', );
+	###LogSD			$self->get_all_space . '::is_column_hidden', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			'Pulling the hidden state for the columns:', @column_requests ] );
 	
 	my @number_list;
 	for my $item ( @column_requests ){
+		my $column;
 		if( is_Int( $item ) ){
-			push @number_list, $item;
+			$column = $self->_get_excel_position( $item );
 		}else{
-			my ( $column, $dummy_row ) =  $self->parse_column_row( $item );
+			( $column, my $dummy_row ) =  $self->_parse_column_row( $item );
 			###LogSD	$phone->talk( level => 'trace', message => [
 			###LogSD		"Parsed -$item- to column number: $column" ] );
-			push @number_list, $self->_get_excel_position( $column );# Convert to excel since 'around' didn't
 		}
+		push @number_list, $column;
 	}
 	my @tru_dat = $self->_is_column_hidden( @number_list );
 	my $true = 0;
@@ -214,18 +283,21 @@ sub is_column_hidden{
 sub is_row_hidden{
 	my( $self, @row_requests ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::Interface::is_row_hidden', );
+	###LogSD			$self->get_all_space . '::is_row_hidden', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			'Pulling the hidden state for the rows:', [@row_requests] ] );
 	
 	my @tru_dat;
 	my $true = 0;
 	for my $row ( @row_requests ){
-		my $answer = $self->_get_row_hidden( $row );
+		my $code_row = $self->_get_excel_position( $row );
+		###LogSD	$phone->talk( level => 'debug', message =>[
+		###LogSD		"Sending -$code_row- for row: $row" ] );
+		my $answer = $self->_get_row_hidden( $code_row );
 		###LogSD	$phone->talk( level => 'debug', message =>[
 		###LogSD		"Row answer is:", $answer ] );
 		$true = 1 if $answer;
-		push @tru_dat, ( ($self->min_row > $row or $self->max_row < $row) ? undef :  $answer ? 1 : 0 );
+		push @tru_dat, ( ($self->_min_row > $code_row or $self->_max_row < $code_row) ? undef :  $answer ? 1 : 0 );
 	}
 	###LogSD	$phone->talk( level => 'info', message =>[
 	###LogSD		"Final row hidden state is -$true- with list:", @tru_dat] );
@@ -235,7 +307,7 @@ sub is_row_hidden{
 sub get_cell{
     my ( $self, $requested_row, $requested_column ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::Interface::get_cell', );
+	###LogSD			$self->get_all_space . '::get_cell', );
 	###LogSD		$phone->talk( level => 'info', message =>[
 	###LogSD			"Arrived at get_cell with: ",
 	###LogSD			"Requested row: " . (defined( $requested_row ) ? $requested_row : ''),
@@ -245,10 +317,18 @@ sub get_cell{
 	if( !defined $requested_row ){
 		$self->set_error( "No row provided" );
 		return undef;
+	}else{
+		$requested_row = $self->_get_excel_position( $requested_row );
+		###LogSD	$phone->talk( level => 'info', message =>[
+		###LogSD		"Updated row to (count from 0): " . ((defined $requested_row) ? $requested_row : ''), ] );
 	}
 	if( !defined $requested_column ){
 		$self->set_error( "No column provided" );
 		return undef;
+	}else{
+		$requested_column = $self->_get_excel_position( $requested_column );
+		###LogSD	$phone->talk( level => 'info', message =>[
+		###LogSD		"Updated column to (count from 0): " . ((defined $requested_column) ? $requested_column : ''), ] );
 	}
 	
 	# Get information
@@ -292,7 +372,7 @@ sub get_cell{
 sub get_next_value{
     my ( $self, ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::Interface::get_next_value', );
+	###LogSD			$self->get_all_space . '::get_next_value', );
 	###LogSD		$phone->talk( level => 'info', message =>[ 'Arrived at get_next_value', ] );
 	
 	my $result = $self->_get_next_value_cell;
@@ -319,7 +399,7 @@ sub get_next_value{
 sub fetchrow_arrayref{
     my ( $self, $row ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::Interface::fetchrow_arrayref', );
+	###LogSD			$self->get_all_space . '::fetchrow_arrayref', );
 	###LogSD		$phone->talk( level => 'info', message =>[
 	###LogSD			"Arrived at fetchrow_arrayref for row: " . ((defined $row) ? $row : ''), ] );
 	
@@ -329,6 +409,10 @@ sub fetchrow_arrayref{
 		$row = $last_row + 1;
 		###LogSD	$phone->talk( level => 'debug', message =>[
 		###LogSD			"Resolved an implied 'next' row request to row: $row", ] );
+	}else{
+		$row = $self->_get_excel_position( $row );
+		###LogSD	$phone->talk( level => 'info', message =>[
+		###LogSD		"Updated row to (count from 0): " . ((defined $row) ? $row : ''), ] );
 	}
 	
 	my $result = $self->_get_row_all( $row );
@@ -373,7 +457,7 @@ sub fetchrow_arrayref{
 sub fetchrow_array{
     my ( $self, $row ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::Interface::fetchrow_array', );
+	###LogSD			$self->get_all_space . '::fetchrow_array', );
 	###LogSD		$phone->talk( level => 'info', message =>[
 	###LogSD			"Arrived at fetchrow_array for row: " . ((defined $row) ? $row : ''), ] );
 	my $array_ref = $self->fetchrow_arrayref( $row );
@@ -388,7 +472,7 @@ sub fetchrow_array{
 sub set_headers{
     my ( $self, @header_row_list ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::Interface::set_headers', );
+	###LogSD			$self->get_all_space . '::set_headers', );
 	###LogSD		$phone->talk( level => 'info', message =>[
 	###LogSD			"Arrived at set_headers for row: ", @header_row_list, ] );
 	my $header_ref;
@@ -447,7 +531,7 @@ sub set_headers{
 sub fetchrow_hashref{
     my ( $self, $row ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::Interface::fetchrow_hashref', );
+	###LogSD			$self->get_all_space . '::fetchrow_hashref', );
 	###LogSD		$phone->talk( level => 'info', message =>[
 	###LogSD			"Arrived at fetchrow_hashref for row: " . ((defined $row) ? $row : ''), ] );
 	# Check that the headers are set
@@ -496,7 +580,7 @@ sub set_custom_formats{
     my ( $self, @input_args ) = @_;
 	my $args; 
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::Interface::set_custom_formats', );
+	###LogSD			$self->get_all_space . '::set_custom_formats', );
 	###LogSD		$phone->talk( level => 'info', message =>[
 	###LogSD			"Arrived at set_custom_formats with: ", @input_args, ] );
 	my $worksheet_custom = 0;
@@ -587,7 +671,7 @@ has _reported_row_col =>(# Manage (store and retreive) in count from 1 mode
 sub _build_out_the_cell{
 	my ( $self, $result, ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::Interface::_hidden::_build_out_the_cell', );
+	###LogSD			$self->get_all_space . '::_hidden::_build_out_the_cell', );
 	###LogSD		$phone->talk( level => 'debug', message =>[  
 	###LogSD			 "Building out the cell ref:", $result, "..with results as: ". $self->get_group_return_type ] );
 	my ( $return, $hidden_format );
@@ -662,6 +746,7 @@ sub _build_out_the_cell{
 		}
 		
 		#Implement user defined changes in encoding
+		###LogSD	$phone->talk( level => 'debug', message =>[ "Current cell: " . $return ] );
 		if( $return->{cell_unformatted} and length( $return->{cell_unformatted} ) > 0 ){
 			$return->{cell_unformatted} = $self->change_output_encoding( $return->{cell_unformatted} );
 			$return->{cell_xml_value} = $self->change_output_encoding( $return->{cell_xml_value} );
@@ -715,7 +800,7 @@ sub _build_out_the_cell{
 				return	Spreadsheet::XLSX::Reader::LibXML::Cell->_return_value_only(
 							$return->{cell_unformatted}, 
 							$custom_format,
-							$self->_get_error_inst,
+							$self->get_error_inst,
 				###LogSD	$self->get_log_space,
 						);
 			}
@@ -741,12 +826,12 @@ sub _build_out_the_cell{
 			if( $header and $exclude_header and $header eq $exclude_header ){
 				###LogSD	$phone->talk( level => 'info', message =>[
 				###LogSD		"It looks like you just want to just return the formatted value but there is already a custom format" ] );
-			}elsif( $self->_has_styles_file ){
+			}elsif( $self->has_styles_interface ){
 				###LogSD	$phone->talk( level => 'debug', message =>[
-				###LogSD		"Pulling formats with:", $result->{s}, $header, $exclude_header ] );
-				$format = $self->get_format_position( $result->{s}, $header, $exclude_header );
+				###LogSD		"Pulling formats with:", $result->{s}, $header, $exclude_header,	] );
+				$format = $self->get_format( $result->{s}, $header, $exclude_header );
 				###LogSD	$phone->talk( level => 'trace', message =>[
-				###LogSD		"format position is:", $format ] );
+				###LogSD		"format is:", $format ] );
 			}else{
 				confess "'s' element called out but the style file is not available!";
 			}
@@ -773,11 +858,11 @@ sub _build_out_the_cell{
 				return	Spreadsheet::XLSX::Reader::LibXML::Cell->_return_value_only(
 							$return->{cell_unformatted}, 
 							$return->{cell_coercion} // $format->{cell_coercion},
-							$self->_get_error_inst,
+							$self->get_error_inst,
 				###LogSD	$self->get_log_space,
 						);
 			}
-			if( $self->_has_styles_file ){
+			if( $self->has_styles_interface ){
 				###LogSD	$phone->talk( level => 'debug', message =>[
 				###LogSD		"Format headers are:", $format_headers ] );
 				for my $header ( @$format_headers ){
@@ -823,14 +908,13 @@ sub _build_out_the_cell{
 			return	Spreadsheet::XLSX::Reader::LibXML::Cell->_return_value_only(
 						$return->{cell_unformatted}, 
 						$return->{cell_coercion},
-						$self->_get_error_inst,
+						$self->get_error_inst,
 			###LogSD	$self->get_log_space,
 					);
 		}
-		$return->{error_inst} = $self->_get_error_inst;
-		###LogSD	$result->{log_space} = $self->get_log_space;
+		$return->{error_inst} = $self->get_error_inst;
 		###LogSD	$phone->talk( level => 'debug', message =>[
-		###LogSD		"Final args ref is:", $return] );
+		###LogSD		"Current args ref is:", $return] );
 	}elsif( $result ){
 		# This is where you return 'EOF' and 'EOR' flags
 		return ( $self->boundary_flag_setting ) ? $result : undef;
@@ -838,68 +922,33 @@ sub _build_out_the_cell{
 
 	# build a cell
 	delete $return->{cell_coercion} if !$return->{cell_coercion};# Fixes github issue # 75
+	###LogSD	$return->{log_space} = $self->get_log_space;
+	###LogSD	$phone->talk( level => 'debug', message =>[
+	###LogSD		"Building cell with:", $return] );
 	my $cell = Spreadsheet::XLSX::Reader::LibXML::Cell->new( %$return );
 	###LogSD		$phone->talk( level => 'debug', message =>[
 	###LogSD			"Cell is:", $cell ] );
 	return $cell;
 }
 
-around [ qw( build_cell_label get_cell fetchrow_arrayref is_column_hidden is_row_hidden ) ] => sub{ #
-	my ( $method, $self, @input_list ) = @_;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::Interface::_hidden::scrubbing_input', );
-	###LogSD		$phone->talk( level => 'debug', message =>[ 'Received:', @input_list ] );
-	my @new_list;
-	for my $input ( @input_list ){
-		push @new_list, ( is_Int( $input ) ? $self->_get_excel_position( $input ) : $input );
-	}
-	###LogSD	$phone->talk( level => 'debug', message =>[ 'executing list:', @new_list ] );
-	my @output_list = $self->$method( @new_list );
-	###LogSD	$phone->talk( level => 'debug', message =>[ 'returning list:', @output_list ] );
-	return  wantarray ? @output_list : $output_list[0];
-};
+#~ around [ qw( min_col max_col min_row max_row row_range col_range ) ] => sub{
+	#~ my ( $method, $self, @input_list ) = @_;
+	#~ ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	#~ ###LogSD			$self->get_all_space . '::_hidden::scrubbing_output', );
+	#~ ###LogSD		$phone->talk( level => 'debug', message =>[ 'Executing ' . (caller( 2 ))[3] . '(' . join( ', ', @input_list) . ')'  ] );
+	#~ my @new_list = $self->$method( @input_list );
+	#~ ###LogSD	$phone->talk( level => 'debug', message =>[ 'method result:', @new_list ] );
+	#~ my @output_list = ();
+	#~ for my $output ( @new_list ){
+		#~ push @output_list, ( is_Int( $output ) ? $self->_get_used_position( $output ) : $output );
+	#~ }
+	#~ ###LogSD	$phone->talk( level => 'debug', message =>[ 'returning list:', @output_list ] );
+	#~ return wantarray ? @output_list : $output_list[0];
+#~ };
 
-around [ qw( parse_column_row min_col max_col min_row max_row row_range col_range ) ] => sub{
-	my ( $method, $self, @input_list ) = @_;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::Interface::_hidden::scrubbing_output', );
-	###LogSD		$phone->talk( level => 'debug', message =>[ 'Executing ' . (caller( 2 ))[3] . '(' . join( ', ', @input_list) . ')'  ] );
-	my @new_list = $self->$method( @input_list );
-	###LogSD	$phone->talk( level => 'debug', message =>[ 'method result:', @new_list ] );
-	my @output_list = ();
-	for my $output ( @new_list ){
-		push @output_list, ( is_Int( $output ) ? $self->_get_used_position( $output ) : $output );
-	}
-	###LogSD	$phone->talk( level => 'debug', message =>[ 'returning list:', @output_list ] );
-	return wantarray ? @output_list : $output_list[0];
-};
-
-sub _get_excel_position{
-	my ( $self, $used_int ) = @_;
-	return undef if !defined $used_int;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::Interface::_hidden::scrubbing_input::_get_excel_position', );
-	###LogSD		$phone->talk( level => 'debug', message =>[
-	###LogSD			"Converting used number  -$used_int- to Excel" ] );
-	my	$excel_position = $used_int;
-	$excel_position += 1 if $self->counting_from_zero;
-	###LogSD		$phone->talk( level => 'debug', message =>[
-	###LogSD			"New position is: $excel_position" ] );
-	return $excel_position;
-}
-
-sub _get_used_position{
-	my ( $self, $excel_int ) = @_;
-	return undef if !defined $excel_int;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::Interface::_hidden::scrubbing_output::_get_used_position', );
-	###LogSD		$phone->talk( level => 'debug', message =>[
-	###LogSD			"Converting Excel  -$excel_int- to the used number" ] );
-	my	$used_position = $excel_int;
-	$used_position -= 1 if $self->counting_from_zero;
-	###LogSD		$phone->talk( level => 'debug', message =>[
-	###LogSD			"The used position is: $used_position" ] );
-	return $used_position;
+sub _intermediate_get_row_all{ # there are layers between fetchrow_hashref and here
+	my( $self, $row_num ) = @_;
+	$self->_get_row_all( $row_num );
 }
 
 #########1 Phinish            3#########4#########5#########6#########7#########8#########9
@@ -1475,8 +1524,9 @@ Column letter. As an example you could say;
 	} );
 	
 And any subsequent call for a $cell->value from column 'A' will attempt to convert the 
-contents of that cell to a fraction with on position in the denominator or less.  If 
-the cell is text then it will act as a pass-through.
+contents of that cell to an integer and fraction combination with one position in the 
+denominator or less (an integer only).  If the cell is text then it will act as a 
+pass-through.
 
 For the truly adventurous you can build an object instance that has the two following 
 methods; 'assert_coerce' and 'display_name'.  Then add it to the attribute as above.
@@ -1556,7 +1606,7 @@ B<attribute methods> Methods provided to adjust this attribute
 
 =over
 
-B<set_custom_formats>
+B<set_custom_formats( $key => $format_object_or_string )>
 
 =over
 

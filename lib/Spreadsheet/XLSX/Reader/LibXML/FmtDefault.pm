@@ -1,17 +1,16 @@
 package Spreadsheet::XLSX::Reader::LibXML::FmtDefault;
-use version; our $VERSION = version->declare('v0.38.22');
+use version; our $VERSION = version->declare('v0.40.2');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::FmtDefault-$VERSION";
 
 use	5.010;
 use	Moose;
 use	Carp 'confess';
 use	Encode qw(decode);
-use Types::Standard qw( HashRef is_ArrayRef is_HashRef	Str is_StrictNum HasMethods Bool );
+use Types::Standard qw( HashRef	Str is_ArrayRef is_HashRef is_StrictNum );#
 use lib	'../../../../../lib',;
 ###LogSD	use Log::Shiras::Telephone;
-###LogSD	use Log::Shiras::UnhideDebug;
+#~ ###LogSD	use Log::Shiras::UnhideDebug;
 ###LogSD	with 'Log::Shiras::LogSpace';
-###LogSD	sub get_class_space{ 'ExcelFmtDefault' }
 
 #########1 Dispatch Tables    3#########4#########5#########6#########7#########8#########9
 
@@ -19,35 +18,18 @@ use lib	'../../../../../lib',;
 
 #########1 Public Attributes  3#########4#########5#########6#########7#########8#########9
 
-has error_inst =>(
-		isa	=> 	HasMethods[qw(
-							error set_error clear_error
-						) ],
-		handles =>[ qw(
-			error set_error clear_error
-		) ],
-		writer	=> 'set_error_inst',
-	);
-
 has excel_region =>(
 		isa		=> Str,
 		default	=> 'en',
 		reader	=> 'get_excel_region',
 		writer	=> 'set_excel_region',
 	);
-with 'Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings';#<--- NOTE: PLACED HERE FOR PREREQS
 	
 has	target_encoding =>(
 		isa			=> Str,
 		reader		=> 'get_target_encoding',
 		writer		=> 'set_target_encoding',
 		predicate	=> 'has_target_encoding',
-	);
-
-has dont_inherit =>(
-		isa		=> Bool,
-		reader	=> 'block_inherit',
-		default => 0,
 	);
 
 has defined_excel_translations =>(
@@ -170,7 +152,14 @@ sub	change_output_encoding{
 
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
 
-
+#~ sub DEMOLISH{
+	#~ my ( $self ) = @_;
+	#~ ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	#~ ###LogSD				$self->get_all_space . '::hidden::DEMOLISH', );
+	#~ ###LogSD		$phone->talk( level => 'debug', message => [
+	#~ ###LogSD			"Closing the format instance" ] );
+	#~ print "Format closed\n";
+#~ }
 
 #########1 Phinish            3#########4#########5#########6#########7#########8#########9
 
@@ -184,47 +173,9 @@ __END__
 
 =head1 NAME
 
-Spreadsheet::XLSX::Reader::LibXML::FmtDefault - Default xlsx number formats and localization
+Spreadsheet::XLSX::Reader::LibXML::FmtDefault - Default number and string formats
 
-=head1 PACKAGE SYNOPSIS
-
-    #!/usr/bin/env perl
-	use	Spreadsheet::XLSX::Reader::LibXML::FmtDefault;
-	use	Spreadsheet::XLSX::Reader::LibXML;
-	my	$formatter = 	Spreadsheet::XLSX::Reader::LibXML::FmtDefault->new(
-								target_encoding => 'latin1',
-								datetime_dates	=> 1,
-								dont_inherit	=> 1,
-							);
-		$formatter->set_defined_excel_formats( 0x2C => 'MyCoolFormatHere' );
-	my	$parser	= Spreadsheet::XLSX::Reader::LibXML->new;
-	my	$workbook = $parser->parse( $file, $formatter );
-		$workbook = Spreadsheet::XLSX::Reader::LibXML->new(# This is an alternate way
-						file_name		=> $file,
-						formatter_inst	=> $formatter,
-					);
-    
-=head1 PACKAGE DESCRIPTION
-
-If you wish to set attributes for the formatter class that are fixed and not inherited by the package 
-then you can build the formatter class with the attribute L<dont_inherit|/dont_inherit> set to 1 and then 
-pass that instance as either the second argument to the 
-L<Spreadsheet::XLSX::Reader::LibXML/parse( $file_nameE<verbar>$file_handle, $formatter )> command or to the 
-attribute L<Spreadsheet::XLSX::Reader::LibXML/formatter_inst> when calling new.  The following formatter 
-attributes are inherited if 'dont_inherit' is not set.  It should be noted that datetime_dates can be 
-set via a method L<inherited by the workbook|Spreadsheet::XLSX::Reader::LibXML/set_date_behavior>
-
-	package                 => formatter
-	################           ################
-	error_inst              => error_inst
-	get_epoch_year (method) => epoch_year
-	cache_positions         => cache_formats
-	
-If you want to modify the default output formats you can do that here and they won't be 
-overwritten even if 'dont_inherit => 0'.
-	
-
-=head1 CLASS SYNOPSIS
+=head1 SYNOPSIS
 
 	#!/usr/bin/env perl
 	use		Spreadsheet::XLSX::Reader::LibXML::FmtDefault;
@@ -255,158 +206,50 @@ overwritten even if 'dont_inherit => 0'.
 	# 06: Unformatted value: 7/4/1776 11:00.234 AM
 	# 07: ..coerces to: Thursday, July 04, 1776
 	# 08: Unformatted value: 0.112311
-	# 09: ..coerces to: Friday, January 01, 1904
+	# 09: ..coerces to: Friday, January 01, 1900
 	###########################
     
-=head1 CLASS DESCRIPTION
+=head1 DESCRIPTION
 
-This documentation is written to explain the lesser used options and features of this class.  
-The general use of the main package is explained in the documentation for 
-L<Workbooks|Spreadsheet::XLSX::Reader::LibXML>.  In general replacement of this class 
-requires replacement of the methods and attributes documented here and in 
-L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings>.  The private methods 
-and attributes here (if any) are up to you.  It is possible to replace only this class 
-and use the role ~::ParseExcelFormatStrings with it.  Additionally while this class has 
-been changed from a role to better match the flow of L<Spreadsheet::ParseExcel> The actual 
-implementation is very different since the underlying architecture is different as 
-well.  (The ~::ParseExcel equivalent is therefore not interchangeable)
+This is the default class used by Spreadsheet::XLSX::Reader::LibXML.  It is separate 
+from the other parts of the formatter class to isolate the elements of localization in 
+this package.  It can be configured or adjused in two ways.  First use the class as it 
+stand and adjust the attributes to change the outcome of the methods.  Second re-write 
+the class to have the same method names but produce different results and then integrate 
+it with the general L<formatter interface|Spreadsheet::XLSX::Reader::LibXML::FormatInterface>.
 
-This class is the tool for number and string localization.  It stores the number conversion 
-format strings and the code of the defined region.  In this particular case this module is 
-set for the base L<english conversion
-|http://openxmldeveloper.org/blog/b/openxmldeveloper/archive/2012/02/16/dates-in-spreadsheetml.aspx> 
-set.  It does rely on L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings> 
-to build the actual coercions used to transform numbers for each format string.  However, 
-the ParseExcelFormatStrings transformation should work for all region specific strings.  
-When changing the number formats (output) for this class you could just set a different 
-L<hash ref|/defined_excel_translations> when calling a new or update the values with the 
-method L<set_defined_excel_formats|/set_defined_excel_formats( %args )>.  This package also 
-uses L<Encode> to provide for encoding changes for strings.  In general the package 
-L<XML::LibXML> pulls the defined encoding for the Excel file from the underlying XML encoding 
-and auto parses it to perl coding for storage.  This package does provide a way to export the 
-data out to your L<target_encoding|/target_encoding>.
-	
-=head2 Primary Methods
+This class provides two basic functionalities.  First, it stores and can retreive defined 
+excel format strings.  Excel uses these (common) formats to assign conversions to various 
+cells in the sheet rather than storing a conversion string.  Additionally these are the 
+conversions provided to Excel end users in the pull down menu if they do not want to 
+write their own custom conversion strings.  This class represents the standard set of 
+parsing strings localized for the United States found in Excel.  There is one exception 
+where position 14 (0x0E) is different than the Excel implementation since the Excel 
+setting for that position breaks so many database data types.  Where excel users have 
+written their own custom conversion definition strings they are stored in the 
+L<Styles|Spreadsheet::XLSX::Reader::LibXML::Styles> file of the sheet.  These strings 
+are implemented by a parsing engine to convert raw values to formatted values.  The 
+rules for these conversions are layed out in L<the Excel documentation
+|https://support.office.com/en-us/article/Create-or-delete-a-custom-number-format-78f2a361-936b-4c03-8772-09fab54be7f4>.  
+The default implementation of these rules is done in 
+L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings>.  The second 
+functionality is string decoding.  It is assumed that any file encoding is handled by 
+L<XML::LibXML/ENCODINGS SUPPORT IN XML::LIBXML>.  However, once the file has been 
+read into memory you may wish to decode it to some specific output format.  The 
+attribute L<target_encoding|/target_encoding> and the method 
+L<change_output_encoding|/change_output_encoding( $string )> use L<Encode> to do this.
 
-These are the primary ways to use this class.  For additional FmtDefault options see the 
-L<Attributes|/Attributes> section.
-
-=head3 get_defined_excel_format( $position )
-
-=over
-
-B<Definition:> This will return the preset excel format string for the stored position. 
-The positions are actually stored in a hash where the keys are integers representing a 
-position in an order list.
-
-B<Accepts:> an integer or an octal number or octal string for the for the format string 
-$position
-
-B<Returns:> an excel format string
-
-B<Delegated to the workbook class:> yes
-
-=back
-
-=head3 set_defined_excel_formats( %args )
-
-=over
-
-B<Definition:> This will set the excel format strings for the stored positions. 
-The positions are actually stored in a hash where the keys are integers representing a 
-position in an order list.
-
-B<Accepts:> a Hash list, a hash ref (both with keys representing positions), or an array 
-of strings with the update strings in the equivalent position.  All empty positions are 
-ignored meaning that the defalt value is left in force.  To erase the default value send 
-'@' (passthrough) as the format string for that position.  This function does not do any 
-string validation.  The validation is done when the coercion is generated.
-
-B<Returns:> 1 for success
-
-=back
-
-=head3 total_defined_excel_formats
-
-=over
-
-B<Definition:> This returns the current count of excel formats that are defined
-
-B<Accepts:> nothing
-
-B<Returns:> $count (an integer)
-
-B<Delegated to the workbook class:> yes
-
-=back
-
-=head3 change_output_encoding( $string )
-
-=over
-
-B<Definition:> This is always called by the L<Worksheet
-|Spreadsheet::XLSX::Reader::LibXML::Worksheet> when a cell value is retreived in order to allow 
-for encoding adjustments on the way out.  See 
-L<XML::LibXML/ENCODINGS SUPPORT IN XML::LIBXML> for an explanation of how the input encoding 
-is handled.  This conversion out is done prior to any number formatting.  If you are replacing 
-this role you need to have the function and you can use it to mangle your output string any 
-way you want.
-
-B<Accepts:> a perl coded string
-
-B<Returns:> the converted $string decoded to the L<defined format|/target_encoding>
-
-B<Delegated to the workbook class:> yes
-
-=back
-
-=head3 get_defined_conversion( $position )
-
-Defined in L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/get_defined_conversion( $position )>
-
-=head3 parse_excel_format_string( $format_string, $name )
-
-Defined in L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/parse_excel_format_string( $string, $name )>
-
-B<Delegated to the workbook class:> no
+For an explanation of functionality for a fully built Formatter class see the 
+documentation for L<Spreadsheet::XLSX::Reader::LibXML::FormatInterface>.  This 
+will include the role L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings>.
 
 =head2 Attributes
 
-Data passed to new when creating an instance of this class. For modification of these attributes 
-see the listed 'attribute methods'.  For more information on attributes see 
-L<Moose::Manual::Attributes>.  The easiest way to modify these attributes are when a class
-instance is created and before it is passed to the workbook or parser.
-
-=head3 error_inst
-
-=over
-
-B<Definition:> This is mostly a place to store the shared error reporting instance from 
-the workbook.  It is not necessary to define this attribute since it will be overwritten 
-by the workbook when the Spreadsheet::XLSX::Reader::LibXML instance is loaded to the 
-parser / workbook.
-
-B<Required Methods:> (of the instance) error, set_error, clear_error
-
-B<Default:> none
-
-B<Attribute required:> no
-
-B<attribute methods> Methods provided to adjust this attribute
-		
-=over
-
-B<set_error_inst>
-
-=over
-
-B<Definition:> use to set a new error instance.
-
-=back
-
-=back
-
-=back
+Data passed to new when creating an instance containing this class. For modification 
+of these attributes see the listed 'attribute methods' and L<Methods|/Methods>.  For 
+more information on attributes see L<Moose::Manual::Attributes>.  See the documentation 
+for L<Spreadsheet::XLSX::Reader::LibXML/format_inst> to see which attribute methods 
+are delegated all the way to the workbook level.
 
 =head3 excel_region
 
@@ -431,7 +274,7 @@ B<Definition:> returns the value of the attribute (en)
 
 =back
 
-B<set_excel_region>
+B<set_excel_region( $region )>
 
 =over
 
@@ -448,16 +291,17 @@ B<Definition:> sets the value of the attribute.
 =over
 
 B<Definition:> This is the target output encoding.  If it is not defined the string 
-transformation step becomes a passthrough.  When the value is loaded it is used as a 
-'decode' target by L<Encode> to transform the internally stored perl string to some 
-target 'output' formatting.  The testing for the results of entering actual values 
-here is weak.
+transformation step L<change_output_encoding|/change_output_encoding( $string )> becomes a 
+passthrough.  When the value is loaded it is used as a 'decode' target by L<Encode> 
+to transform the internally (unicode) stored perl string to some target 'output' 
+formatting.
 
 B<Attribute required:> no
 
 B<Default:> none
 
-B<Range:> Any encoding recognized by L<Encode>
+B<Range:> Any encoding recognized by L<Encode|Encode/Listing available encodings> 
+(No type certification is done)
 
 B<attribute methods> Methods provided to adjust this attribute
 		
@@ -489,17 +333,58 @@ B<Definition:> Returns the currently set attribute value
 
 B<Definition:> In Excel part of localization is the way numbers are displayed.  
 Excel manages that with a default list of format strings that make the numbers appear 
-in a familiar way.  This is where you store / change that list for this package.  
-In this case the numbers are stored as hash key => value pairs where the keys are 
-integers representing the format string position and the values are the Excel 
+in a familiar way.  These are the choices provided in the pull down menu for formats 
+if you did not want to write your own custom format string.  This is where you store 
+that list for this package.  In this case the numbers are stored as hash key => value 
+pairs where the keys are array positions (written in hex) and the values are the Excel 
 readable format strings (definitions).  Beware that if you change the list your 
-reader may break if you don't supply replacements for all the values in the default 
+parser may break if you don't supply replacements for all the values in the default 
 list.  If you just want to replace some of the values use the method 
 L<set_defined_excel_formats|/set_defined_excel_formats( %args )>.
 
 B<Attribute required:> yes
 
-B<Default:> see the code
+B<Default:>
+
+	{
+		0x00 => 'General',
+		0x01 => '0',
+		0x02 => '0.00',
+		0x03 => '#,##0',
+		0x04 => '#,##0.00',
+		0x05 => '$#,##0_);($#,##0)',
+		0x06 => '$#,##0_);[Red]($#,##0)',
+		0x07 => '$#,##0.00_);($#,##0.00)',
+		0x08 => '$#,##0.00_);[Red]($#,##0.00)',
+		0x09 => '0%',
+		0x0A => '0.00%',
+		0x0B => '0.00E+00',
+		0x0C => '# ?/?',
+		0x0D => '# ??/??',
+		0x0E => 'yyyy-mm-dd',      # Was 'm-d-yy', which is bad as system default
+		0x0F => 'd-mmm-yy',
+		0x10 => 'd-mmm',
+		0x11 => 'mmm-yy',
+		0x12 => 'h:mm AM/PM',
+		0x13 => 'h:mm:ss AM/PM',
+		0x14 => 'h:mm',
+		0x15 => 'h:mm:ss',
+		0x16 => 'm-d-yy h:mm',
+		0x1F => '#,##0_);(#,##0)',
+		0x20 => '#,##0_);[Red](#,##0)',
+		0x21 => '#,##0.00_);(#,##0.00)',
+		0x22 => '#,##0.00_);[Red](#,##0.00)',
+		0x23 => '_(*#,##0_);_(*(#,##0);_(*"-"_);_(@_)',
+		0x24 => '_($*#,##0_);_($*(#,##0);_($*"-"_);_(@_)',
+		0x25 => '_(*#,##0.00_);_(*(#,##0.00);_(*"-"??_);_(@_)',
+		0x26 => '_($*#,##0.00_);_($*(#,##0.00);_($*"-"??_);_(@_)',
+		0x27 => 'mm:ss',
+		0x28 => '[h]:mm:ss',
+		0x29 => 'mm:ss.0',
+		0x2A => '##0.0E+0',
+		0x2B => '@',
+		0x31 => '@',
+	}
 
 B<Range:> Any hashref of formats recognized by 
 L<Spreadsheet::XLSX::Reader::::LibXML::ParseExcelFormatStrings>
@@ -523,93 +408,64 @@ L<set_defined_excel_formats|/set_defined_excel_formats( %args )>
 
 =back
 
-=head3 dont_inherit
+=head2 Methods
+
+These are methods to use this class.  For additional FmtDefault options see the 
+L<Attributes|/Attributes> section.  See the documentation for 
+L<Spreadsheet::XLSX::Reader::LibXML/format_inst> to see which attribute methods 
+are delegated all the way to the workbook level.
+
+=head3 get_defined_excel_format( $position )
 
 =over
 
-B<Definition:> If for some reason you wish to set the formatter instance with 
-settings that do not inherit from the workbook then this attribute if for you.  
-The package to formtter inheritances are identified in the L<PACKAGE DESCRIPTION
-|/PACKAGE DESCRIPTION>
+B<Definition:> This will return the preset excel format string for the stored position 
+from the attribute L<defined_excel_translations|/defined_excel_translations>.  
+The positions are actually stored in a hash where the keys are integers representing a 
+position in an order list.
 
-B<Attribute required:> no
+B<Accepts:> an integer or an octal number or octal string for the for the format string 
+$position
 
-B<Default:> 0 = inherit from the package
-
-B<Range:> 1|0
-
-B<attribute methods> Methods provided to by the attribute to adjust it.
-		
-=over
-
-B<block_inherit>
-
-=over
-
-B<Definition:> This is the reader for the attribute value
+B<Returns:> an excel format string
 
 =back
 
-=back
-
-=back
-
-=head3 epoch_year
+=head3 set_defined_excel_formats( %args )
 
 =over
 
-Defined at L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/epoch_year>
+B<Definition:> This will set the excel format strings for the indicated positions 
+in the attribute L<defined_excel_translations|/defined_excel_translations>.
+
+B<Accepts:> a Hash list, a hash ref (both with keys representing positions), or an arrayref 
+of strings with the update strings in the target position.  All passed argument lists greater 
+than one will be assumed to be hash arguments and must come in pairs.  If a single argument is 
+passed then that value is checked to see if it is a hashref or an arrayref.  For passed 
+arrayrefs all empty positions are ignored meaning that any preexisting value in that positions 
+is left in force.  To erase the default value send '@' (passthrough) as the format string for 
+that position.  This function does not do any string validation.  The validation is done when 
+the coercion is generated.
+
+B<Returns:> 1 for success
 
 =back
 
-=head3 cache_formats
+=head3 change_output_encoding( $string )
 
 =over
 
-Defined at L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/cache_formats>
+B<Definition:> This is always called by the L<Worksheet
+|Spreadsheet::XLSX::Reader::LibXML::Worksheet> when a cell value is retreived in order to allow 
+for encoding adjustments on the way out.  See 
+L<XML::LibXML/ENCODINGS SUPPORT IN XML::LIBXML> for an explanation of how the input encoding 
+is handled.  This conversion out is done prior to any number formatting.  If you are replacing 
+this class you need to have this function and you can use it to mangle your output string any 
+way you want.
 
-=back
+B<Accepts:> a perl unicode coded string
 
-=head3 datetime_dates
-
-=over
-
-Defined at L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/datetime_dates>
-
-=back
-
-=head2 Replacement
-
-Any replacement of this class must provide the following methods in order to interact 
-correctly with the workbook
-
-=over
-
-L<set_error_inst|/error_inst>
-
-L<set_excel_region|/excel_region>
-
-L<set_target_encoding|/target_encoding>
-
-L<get_defined_excel_format|/get_defined_excel_format( $position )>
-
-L<set_defined_excel_formats|/set_defined_excel_formats( %args )>
-
-L<change_output_encoding|/change_output_encoding( $string )>
-
-L<block_inherit|/dont_inherit>
-
-L<set_epoch_year|Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/epoch_year>
-
-L<set_cache_behavior|Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/cache_formats>
-
-L<set_date_behavior|Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/datetime_dates>
-
-L<get_date_behavior|Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/datetime_dates>
-
-L<get_defined_conversion|Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/get_defined_conversion( $position )>
-
-L<parse_excel_format_string|Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/parse_excel_format_string( $string, $name )>
+B<Returns:> the converted $string decoded to the L<defined format|/target_encoding>
 
 =back
 
