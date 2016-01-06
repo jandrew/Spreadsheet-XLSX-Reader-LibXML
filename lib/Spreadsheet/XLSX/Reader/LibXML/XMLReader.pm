@@ -295,7 +295,7 @@ has _xml_reader =>(
 sub _start_xml_reader{
 	my( $self, $file_handle ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::XMLReader::_build_xml_reader', );
+	###LogSD			$self->get_all_space . '::XMLReader::_start_xml_reader', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			"turning a file handle into an xml reader", ] );
 	
@@ -328,7 +328,7 @@ sub _start_xml_reader{
 				###LogSD		"Finished loading unique bits" 			], );
 			}
 			###LogSD	$phone->talk( level => 'debug', message => [ "file built" ], );
-			$self->start_the_file_over;
+			$self->start_the_file_over if $self->has_file;
 		}else{
 			###LogSD	$phone->talk( level => 'debug', message =>[
 			###LogSD		'Initial read failed - clearing the reader' ], );
@@ -343,6 +343,7 @@ sub _start_xml_reader{
 		###LogSD	$phone->talk( level => 'debug', message =>[ "location is cleared" ] );
 		$self->_clear_xml_parser;
 	}
+	###LogSD	$phone->talk( level => 'debug', message => [ "finished all xml reader build steps" ], );
 }
 
 sub _reader_init{
@@ -426,16 +427,16 @@ sub _close_file_and_reader{
 	if( $self->_has_xml_parser ){
 		###LogSD	$phone->talk( level => 'debug', message =>[ "Disconnecting the file handle from the xml parser", ] );
 		$self->_clear_xml_parser;
-		print "parser cleared\n";
+		#~ print "parser cleared\n";
 	}
-	print "parser check complete\n";
+	#~ print "parser check complete\n";
 	
 	# Close the file
 	if( $self->has_file ){
 		###LogSD	$phone->talk( level => 'debug', message =>[ "Closing the file handle", ] );
 		$self->clear_file
 	}
-	print "XMLReader file check complete\n";
+	#~ print "XMLReader file check complete\n";
 	
 }
 

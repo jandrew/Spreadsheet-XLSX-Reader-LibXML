@@ -303,26 +303,31 @@ has formatter_inst =>(
 						),
 					},
 	);
+
+has file =>(
+		isa			=> XLSXFile|IOFileType,
+		writer		=> 'set_file',
+		reader		=> '_file',
+		clearer		=> '_clear_file',
+		predicate	=> '_has_file',
+		coerce		=> 1,
+	);
 	
-has file_name =>(
+has file_name =>(# Depricated and move to private attribute in 2017
 		isa			=> XLSXFile,
-		writer		=> 'set_file_name',# Add an after method for this
-		reader		=> 'file_name',
+		writer		=> 'set_file_name',
+		reader		=> 'file_name',# Leave public when moving attribute to private
 		clearer		=> '_clear_file_name',
 		predicate	=> 'has_file_name',
-		#~ trigger		=> \&_build_workbook, 
 	);
 
-has file_handle =>(
-		isa			=> IOFileType,
-		writer		=> 'set_file_handle', # Add an after method for this
+has file_handle =>(# Depricated and remove in 2017
+		isa			=> IOFileType|Bool,
+		writer		=> 'set_file_handle',
 		reader		=> 'file_handle',
 		clearer		=> '_clear_file_handle',
 		predicate	=> 'has_file_handle',
 		coerce		=> 1,
-		handles =>{
-			_file_handle_seek => 'seek',
-		},
 	);
 
 has sheet_parser =>(
@@ -428,25 +433,13 @@ sub parse{
 	###LogSD		$phone->talk( level => 'info', message =>[
 	###LogSD			"Arrived at parse for:", $file,
 	###LogSD			(($formatter) ? "with formatter: $formatter" : '') ] );
-	$self->set_formatter_inst( $formatter ) if $formatter;
-	if( IOFileType->check( $file ) ){
-		###LogSD	$phone->talk( level => 'info', message =>[ 'passed a file handle:', $file, ] );
-		$self->set_file_handle( $file );
-	}elsif( XLSXFile->check( $file ) ){
-		###LogSD	$phone->talk( level => 'info', message =>[ 'passed a file name: ' . $file, ] );
-		$self->set_file_handle( $file );
-	}else{
-		###LogSD	$phone->talk( level => 'info', message =>[ "Could not validate: $file", ] );
-		$self->_clear_file_handle;
+	if( $formatter ){
+		$self->set_formatter_inst( $formatter );
+		###LogSD	$phone->talk( level => 'info', message =>[ "Formatter added" ] );
 	}
-	if( $self->has_file_handle ){
-		return $self;
-	}else{
-		my $error_message = length( $@ ) > 0 ? $@ : XLSXFile->get_message( $file );
-		###LogSD	$phone->talk( level => 'info', message =>[ "saving error |$error_message|", ] );
-		$self->set_error( $error_message );
-		return undef;
-	}
+	my $result = $self->_build_workbook( $file );
+	###LogSD	$phone->talk( level => 'info', message =>[ "Build workbook attempt complete" ] );
+	return $result;
 }
 
 sub worksheets{
@@ -541,6 +534,12 @@ sub worksheet{
 }
 
 #########1 Private Attributes 3#########4#########5#########6#########7#########8#########9
+
+has _successful =>(
+		isa		=> Bool,
+		writer	=> '_set_successful',
+		reader	=> 'file_opened',
+	);
 
 has _epoch_year =>(
 		isa			=> Enum[qw( 1900 1904 )],
@@ -664,6 +663,7 @@ has _shared_strings_interface =>(
 			'get_shared_string_position' => 'get_shared_string_position',
 			'start_the_ss_file_over' => 'start_the_file_over',
 		},
+		weak_ref => 1,
 	);
 	
 has _styles_insterface =>(
@@ -675,6 +675,7 @@ has _styles_insterface =>(
 		handles		=>{
 			get_format	=> 'get_format',
 		},
+		weak_ref => 1,
 	);
 
 has _current_worksheet_position =>(
@@ -694,9 +695,10 @@ has _workbook_file_interface =>(
 		handles =>{qw( 
 			_extract_file				extract_file 
 			_get_workbook_file_type		get_file_type
-			_demolish_workbook_file		DEMOLISH
 		)},
+		#~ weak_ref => 1,
 	);
+			#~ _demolish_workbook_file		DEMOLISH
 
 #~ has _calc_chain_instance =>(
 		#~ isa	=> 	HasMethods[qw( get_calc_chain_position )],
@@ -737,19 +739,6 @@ around BUILDARGS => sub {
 	###LogSD		$phone->talk( level => 'trace', message =>[
 	###LogSD			'Arrived at BUILDARGS with: ', %args ] );
 	
-	# Check if this was called by Spreadsheet::Read; Warning discontinuing after 1-Jan-2016 unless someone asks
-	my $like_ParseExcel = 0;
-	for my $x ( 2 .. 5 ){
-		###LogSD	$phone->talk( level => 'trace', message =>[
-		###LogSD		"Caller is:", caller( $x ) ] );
-		if( (caller( $x ))[0] and (caller( $x ))[0] =~ /Spreadsheet::Read/ ){
-			$like_ParseExcel = 1;
-			###LogSD	$phone->talk( level => 'trace', message =>[
-			###LogSD		"Spreadsheet::XLSX::Reader::LibXML is being called by Spreadsheet::Read - enforcing the :like_ParseExcel flag" ] );
-			last;
-		}
-	}
-	
 	# Handle depricated cache_positions
 	if( exists $args{cache_positions} ){
 		###LogSD	$phone->talk( level => 'trace', message =>[
@@ -773,7 +762,6 @@ around BUILDARGS => sub {
 			}
 		}
 	}
-	
 		
 	# Add any defaults
 	for my $key ( keys %$attribute_defaults ){
@@ -784,15 +772,6 @@ around BUILDARGS => sub {
 			###LogSD	$phone->talk( level => 'trace', message =>[
 			###LogSD		"Setting default -$key- with value: $attribute_defaults->{$key}" ] );
 			$args{$key} = clone( $attribute_defaults->{$key} );
-		}
-	}
-	
-	# Enforce Spreadsheet::Read requirements - Warning discontinuing after 1-Jan-2016 unless someone asks
-	if( $like_ParseExcel ){
-		###LogSD	$phone->talk( level => 'trace', message =>[
-		###LogSD		"Enforcing like_ParseExcel defaults" ] );
-		for my $key ( %{$flag_settings->{like_ParseExcel}} ){
-			$args{$key} = clone( $flag_settings->{like_ParseExcel}->{$key} );
 		}
 	}
 	
@@ -844,19 +823,12 @@ sub BUILD {
 	}
 	
 	# Manage passed file names or handles
-	$self->clear_error;
-	if( $self->has_file_name ){
-		###LogSD	$phone->talk( level => 'info', message =>[ 'Managing the file name: ' . $self->file_name, ] );
-		$self->set_file_handle( $self->file_name  );
-	}elsif( $self->has_file_handle ){
-		$self->_build_workbook;
-	}
-	if( $@ ){
-		my $error_message = ($@//"Unable to use the main file correctly");
-		###LogSD	$phone->talk( level => 'info', message =>[ 'saving error:', $error_message, ] );
-		$self->set_error( $error_message );
-		$self->_clear_file_name;
-		$self->_clear_file_handle
+	my $build_value = $self->_has_file ? $self->_file :
+			$self->has_file_name ? $self->file_name : $self->file_handle;# Depricate this to just $self->_file in 2017
+	if( $build_value ){# Or handle it later by passing ->set_file or ->parse(
+		###LogSD	$phone->talk( level => 'trace', message =>[
+		###LogSD		"Building base workbook file extractor with:", $build_value, $self->_file, $self->file_name, $self->file_handle  ] );
+		$self->_build_workbook( $build_value );
 	}
 }
 
@@ -878,18 +850,26 @@ around set_formatter_inst => sub {
 	$self->$method( $instance );
 };
 
-sub _file_name_to_filehandle{
-    my ( $self, $file_name ) = ( @_ );
-	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_log_space . '::_hidden::_file_name_to_filehandle', );
-	###LogSD		$phone->talk( level => 'trace', message =>[
-	###LogSD			"Turning the file name -$file_name- into a file handle" ] );
-	$self->set_file_handle( $file_name );
-}
+#~ sub _file_name_to_filehandle{
+    #~ my ( $self, $file_name ) = ( @_ );
+	#~ ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	#~ ###LogSD			$self->get_log_space . '::_hidden::_file_name_to_filehandle', );
+	#~ ###LogSD		$phone->talk( level => 'trace', message =>[
+	#~ ###LogSD			"Turning the file name -$file_name- into a file handle" ] );
+	#~ $self->set_file_handle( $file_name );
+#~ }
 
-after set_file_name => \&_file_name_to_filehandle;
+after [qw( set_file set_file_name set_file_handle ) ] => \&_build_workbook;# Last two expire in 2017
+
+# Recursion avoidance flag
+my $should_build_workbook = 1;
 
 sub _build_workbook{
+	
+	# Avoid recursion for file name storage
+	if( !$should_build_workbook ){
+		return undef;
+	}
 
     my ( $self, $file ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
@@ -912,6 +892,26 @@ sub _build_workbook{
 	$self->_clear_date_modified,
 	$self->_clear_shared_strings_interface;
 	$self->_clear_styles_interface;
+	$self->_set_successful( 0 );
+	
+	#save any file name
+	if( XLSXFile->check( $file ) ){
+		###LogSD	$phone->talk( level => 'info', message =>[ "Storing the file name: $file" ] );
+		$should_build_workbook = 0;
+		$self->set_file_name( $file );
+		$should_build_workbook = 1;
+	}
+	
+	$file = IOFileType->assert_coerce( $file );
+	if( $file ){
+		###LogSD	$phone->talk( level => 'info', message =>[
+		###LogSD		"Successfully created the file handle:", $file ] );
+	}else{
+		my $error_message = length( $@ ) > 0 ? $@ : IOFileType->get_message( $file );
+		###LogSD	$phone->talk( level => 'info', message =>[ "saving error |$error_message|", ] );
+		$self->set_error( $error_message );
+		return undef;
+	}
 	
     # Attempt to build both a zip and an xml style workbook file extractor to see if either works
 	if( !exists $parser_modules->{$self->get_parser_type} ){
@@ -926,6 +926,8 @@ sub _build_workbook{
 		###LogSD	$phone->talk( level	=> 'trace', message =>[
 		###LogSD		'Attempting to build:', $args_ref] );
 		$result = build_instance( $args_ref );
+		###LogSD	$phone->talk( level	=> 'trace', message =>[
+		###LogSD		"Returned from building: $key" ] );
 		if( $result ){
 			###LogSD	$phone->talk( level	=> 'trace', message =>[
 			###LogSD		'Workbook build attempt returned:', $result] );
@@ -944,14 +946,16 @@ sub _build_workbook{
 	}
 	###LogSD	$phone->talk( level	=> 'trace', message =>[
 	###LogSD		'Test for build success with:', $result,] );# ( $result ? $result->meta->dump(6) : undef)
+	$self->_clear_file;
+	$self->_clear_file_handle;
 	if( !$result ){
 		###LogSD	$phone->talk( level	=> 'debug', message =>[
 		###LogSD		'Base workbook load failed' ] );
 		$self->set_error( "|$file| didn't pass either the zip or xml file initial tests" );
 		$self->_clear_file_name;
-		$self->_clear_file_handle;
 		return undef;
 	}
+	$self->_set_successful( 1 );
 	###LogSD	$phone->talk( level	=> 'debug', message =>[
 	###LogSD		"Setting the workbook interface of type: " . $result->get_file_type ] );
 	$self->_set_workbook_file_interface( $result );
@@ -965,10 +969,13 @@ sub _build_workbook{
 		###LogSD	$phone->talk( level	=> 'debug', message =>[
 		###LogSD		"Processing workbook level element: $element" ] );
 		my $file_ref = clone( $parser_modules->{$self->get_parser_type}->{$element} );
+		###LogSD	$phone->talk( level	=> 'debug', message =>[
+		###LogSD		"element ref cloned:", $file_ref ] );
 		$result = $self->_build_file_interface( $element, $file_ref );
+		###LogSD	$phone->talk( level	=> 'debug', message =>[
+		###LogSD		"$element build attempt returned" ] );
+		###LogSD	$phone->talk( level	=> 'trace', message =>[ $result] );
 		if( $result ){
-			###LogSD	$phone->talk( level	=> 'trace', message =>[
-			###LogSD		"$element build attempt returned:", $result] );
 			if( is_Object( $result ) and $result->loaded_correctly ){
 				my $setter = '_set_' . $element;
 				###LogSD	$phone->talk( level	=> 'debug', message =>[
@@ -1020,7 +1027,12 @@ sub _build_file_interface{
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD		"Building an instance with (minus the workbook):", $file_ref ] );
 		$file_ref->{workbook_inst} = $self;
-		return build_instance( $file_ref );
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Workbook instance added" ] );
+		my $built_instance = build_instance( $file_ref );
+		###LogSD	$phone->talk( level => 'debug', message => [ "Built instance"] );
+		###LogSD	$phone->talk( level => 'trace', message => [ $built_instance ] );
+		return $built_instance;
 	}else{
 		confess "Unable to build a file for: $interface_type";
 	}
@@ -1362,48 +1374,48 @@ sub _set_workbook_props_interface{
 	#~ }
 #~ }
 
-#~ sub DEMOLISH{
-	#~ my ( $self ) = @_;
-	#~ ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	#~ ###LogSD			$self->get_all_space . '::_hidden::DEMOLISH', );
-	#~ ###LogSD	$phone->talk( level => 'debug', message => [
-	#~ ###LogSD			"Last recorded error: " . ($self->error//'none') ] );
+sub DEMOLISH{
+	my ( $self ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::_hidden::DEMOLISH', );
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD			"Last recorded error: " . ($self->error//'none') ] );
 	
-	#~ if( $self and $self->has_error_inst ){
-		#~ print "closing the error instance\n";
-		#~ ###LogSD	$phone->talk( level => 'debug', message => [
-		#~ ###LogSD			"closing the error instance" ] );
-		#~ $self->_clear_error_inst;
-	#~ }
+	if( $self and $self->has_file_handle ){
+		print "closing general file handle\n";
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Clearing the top level file handle" ] );
+		$self->_clear_file_handle;
+	}
 	
-	#~ if( $self and $self->has_shared_strings_interface ){
-		#~ ###LogSD	$phone->talk( level => 'debug', message => [
-		#~ ###LogSD			"Clearing the sharedStrings.xml file" ] );
-		#~ $self->_clear_shared_strings_interface;
-	#~ }
+	if( $self and $self->has_error_inst ){
+		print "closing the error instance\n";
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD			"closing the error instance" ] );
+		$self->_clear_error_inst;
+	}
 	
-	#~ if( $self and $self->has_styles_interface ){
-		#~ print "closing styles.xml\n";# . Dumper( $instance )
-		#~ ###LogSD	$phone->talk( level => 'debug', message => [
-		#~ ###LogSD			"Clearing the styles.xml file" ] );
-		#~ $self->_clear_styles_interface;
-	#~ }
+	if( $self and $self->has_shared_strings_interface ){
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD			"Clearing the sharedStrings.xml file" ] );
+		$self->_clear_shared_strings_interface;
+	}
 	
-	#~ if( $self and $self->has_file_handle ){
-		#~ print "closing general file handle\n";
-		#~ ###LogSD	$phone->talk( level => 'debug', message => [
-		#~ ###LogSD		"Clearing the top level file handle" ] );
-		#~ $self->_clear_file_handle;
-	#~ }
+	if( $self and $self->has_styles_interface ){
+		print "closing styles.xml\n";# . Dumper( $instance )
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD			"Clearing the styles.xml file" ] );
+		$self->_clear_styles_interface;
+	}
 	
-	#~ if( $self and $self->_has_workbook_file_interface ){
-		#~ print "closing styles.xml\n";
-		#~ ###LogSD	$phone->talk( level => 'debug', message => [
-		#~ ###LogSD			"Clearing the styles.xml file" ] );
-		#~ $self->_clear_workbook_file_interface;
-	#~ }
-	#~ print "~Reader::LibXML closed\n";
-#~ }
+	if( $self and $self->_has_workbook_file_interface ){
+		print "closing styles.xml\n";
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD			"Clearing the styles.xml file" ] );
+		$self->_clear_workbook_file_interface;
+	}
+	print "~Reader::LibXML closed\n";
+}
 
 #########1 Phinish            3#########4#########5#########6#########7#########8#########9
 
@@ -1579,7 +1591,7 @@ The goal here is to be able to read any spreadsheet Excel can read.  Please L<su
 examples|https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML/issues> where this is 
 not true to my github repo so I can work to improve this package.  Specifcally the new 
 capability to parse the Excel 2003 xml format is most at risk. Any examples that can be 
-parsed by Excel 2007 that this package cannont would be appreciated.  All in all this 
+parsed by Excel 2007 that this package can not would be appreciated.  All in all this 
 package solves many of the issues I found parsing Excel in the wild.  I hope it solves 
 some of yours as well.
 
@@ -1676,6 +1688,14 @@ run (slowly) when they didn't run at all before without forcing small sheets to 
 if you do have caching turned off explicitly in your code this package will see it and fix it 
 upon load with a warning.  This warning will stay till 1/1/2017 and then the old callout will 
 no longer be supported.
+
+B<8.> Version v0.40.2 introduces the L<file|/file> attribute and will start the deprication of the 
+L<file_name|/file_name> and L<file_handle|/file_handle> attributes as well as the following methods: 
+L<set_file_name|/set_file_name>, L<set_file_handle|/set_file_handle>, L<file_handle|/file_handle>, 
+and L<has_file_handle|/has_file_handle>.  This change is intended to remove an overly complex 
+set of dependancies that was causing trouble for garbage collection on cleanup.  Please use 
+the L<file|/file> attribute moving forward.  Support for backwards compatible use of the old 
+attributes and methods will be removed after 1/1/2017.
 
 =head2 Attributes
 

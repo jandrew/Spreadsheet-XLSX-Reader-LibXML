@@ -332,9 +332,13 @@ sub _load_unique_bits{
 			###LogSD	$phone->talk( level => 'trace', message => [
 			###LogSD		"Final generic caches:", $self->_get_all_generic_cache ] );
 		}
+		###LogSD	$phone->talk( level => 'trace', message => [
+		###LogSD		"Completed caching" ] );
 	}
 	$self->_good_load( 1 );
-	return undef;
+	###LogSD	$phone->talk( level => 'trace', message => [
+	###LogSD		"The load is good returning undef" ] );
+	return 1;
 }
 
 sub _build_perl_style_formats{
@@ -461,9 +465,13 @@ sub _build_perl_node_from_xml_perl{
 	my $new_ref;
 	
 	if( is_HashRef( $current_ref ) ){
+		###LogSD	$phone->talk( level => 'trace', message => [
+		###LogSD		"processing a hashref" ] );
 		
 		# Handle attributes
 		if( is_HashRef( $current_ref->{attributes} ) ){
+			###LogSD	$phone->talk( level => 'trace', message => [
+			###LogSD		"processing the attributes of a hashref" ] );
 			for my $attribute ( keys %{$current_ref->{attributes}} ){
 				###LogSD	$phone->talk( level => 'debug', message => [
 				###LogSD		"Processing the attribute $attribute => $current_ref->{attributes}->{$attribute}", ] );
