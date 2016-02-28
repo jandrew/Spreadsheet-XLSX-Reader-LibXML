@@ -1349,11 +1349,11 @@ Workbook level (This doc)
 
 =over
 
-=item* General attribute settings that affect parsing of the file in general
-=item* The place to L<set workbook level output formatting|Spreadsheet::XLSX::Reader::LibXML::FormatInterface>
-=item* Object methods to retreive document level metadata
-=item* Object methods to return specific Worksheet instances for data retrieval
-=item* The place to L<set workbook level formatting|Spreadsheet::XLSX::Reader::LibXML::FormatInterface>
+=item * General attribute settings that affect parsing of the file in general
+=item * The place to L<set workbook level output formatting|Spreadsheet::XLSX::Reader::LibXML::FormatInterface>
+=item * Object methods to retreive document level metadata
+=item * Object methods to return specific Worksheet instances for data retrieval
+=item * The place to L<set workbook level formatting|Spreadsheet::XLSX::Reader::LibXML::FormatInterface>
 
 =over
 
@@ -1361,9 +1361,9 @@ L<Worksheet level|Spreadsheet::XLSX::Reader::LibXML::Worksheet>
 
 =over
 
-=item* Object methods to return specific cell instances/L<data|/group_return_type>
-=item* Access to some worksheet level format information (more access pending)
-=item* The place to L<customize|Spreadsheet::XLSX::Reader::LibXML::Worksheet/custom_formats> 
+=item * Object methods to return specific cell instances/L<data|/group_return_type>
+=item * Access to some worksheet level format information (more access pending)
+=item * The place to L<customize|Spreadsheet::XLSX::Reader::LibXML::Worksheet/custom_formats> 
 data output formats targeting specific cell ranges
 
 =over
@@ -1372,8 +1372,8 @@ L<Cell level|Spreadsheet::XLSX::Reader::LibXML::Cell>
 
 =over
 
-=item* Access to the cell contents
-=item* Access to the cell formats (more access pending)
+=item * Access to the cell contents
+=item * Access to the cell formats (more access pending)
 
 =back
 
