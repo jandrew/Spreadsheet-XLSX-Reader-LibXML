@@ -1,35 +1,22 @@
-package Spreadsheet::XLSX::Reader::LibXML::WorkbookPropsInterface;
+package Spreadsheet::XLSX::Reader::LibXML::ZipReader::WorkbookRels;
 use version; our $VERSION = version->declare('v0.40.2');
-###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::WorkbookPropsInterface-$VERSION";
+###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::ZipReader::WorkbookRels-$VERSION";
 
 use	Moose::Role;
 requires qw(
 	location_status			advance_element_position		parse_element
-	squash_node
+	_get_rel_info			_get_sheet_info					get_sheet_names
+	_get_workbook_file_type
 );
-	#~ _get_rel_info			_get_sheet_info					_set_sheet_info
-	#~ get_sheet_names
 ###LogSD	requires 'get_log_space', 'get_all_space';
-use Types::Standard qw( Bool StrMatch Str );#Enum ArrayRef HashRef 
+use Types::Standard qw( Enum ArrayRef HashRef Bool );
 use Data::Dumper;
 use lib	'../../../../../lib',;
 ###LogSD	use Log::Shiras::Telephone;
 
 #########1 Dispatch Tables    3#########4#########5#########6#########7#########8#########9
 
-my 	$potential_top_headers =[qw(
-		DocumentProperties		cp:coreProperties 
-	)];
 
-my	$method_lookup = {
-		Author				=> '_set_creator',
-		'dc:creator'		=> '_set_creator',
-		LastAuthor			=> '_set_modified_by',
-		'cp:lastModifiedBy'	=> '_set_modified_by',
-		Created				=> '_set_date_created',
-		'dcterms:created'	=> '_set_date_created',
-		'dcterms:modified'	=> '_set_date_modified',
-	};
 
 #########1 Public Attributes  3#########4#########5#########6#########7#########8#########9
 
@@ -37,7 +24,7 @@ my	$method_lookup = {
 
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
 
-###LogSD	sub get_class_space{ 'WorkbookPropsInterface' }
+
 
 #########1 Private Attributes 3#########4#########5#########6#########7#########8#########9
 
@@ -47,33 +34,35 @@ has _loaded =>(
 		reader		=> 'loaded_correctly',
 		default		=> 0,
 	);
-	
-has _file_creator =>(
-		isa		=> Str,
-		reader	=> '_get_creator',
-		writer	=> '_set_creator',
-		clearer	=> '_clear_creator',
+
+has _sheet_lookup =>(
+		isa		=> HashRef,
+		traits	=> ['Hash'],
+		reader	=> '_get_sheet_lookup',
+		handles	=>{
+			_set_sheet_info => 'set',
+		},
+		default	=> sub{ {} },
 	);
-	
-has _file_modified_by =>(
-		isa		=> Str,
-		reader	=> '_get_modified_by',
-		writer	=> '_set_modified_by',
-		clearer	=> '_clear_modified_by',
+
+has _worksheet_list =>(
+		isa		=> ArrayRef,
+		traits	=> ['Array'],
+		reader	=> '_get_worksheet_list',
+		handles	=>{
+			_add_worksheet	=> 'push',
+		},
+		default	=> sub{ [] },
 	);
-	
-has _file_date_created =>(
-		isa		=> StrMatch[qr/^\d{4}\-\d{2}\-\d{2}/],
-		reader	=> '_get_date_created',
-		writer	=> '_set_date_created',
-		clearer	=> '_clear_date_created',
-	);
-	
-has _file_date_modified =>(
-		isa		=> StrMatch[qr/^\d{4}\-\d{2}\-\d{2}/],
-		reader	=> '_get_date_modified',
-		writer	=> '_set_date_modified',
-		clearer	=> '_clear_date_modified',
+
+has _chartsheet_list =>(
+		isa		=> ArrayRef,
+		traits	=> ['Array'],
+		reader	=> '_get_chartsheet_list',
+		handles	=>{
+			_add_chartsheet  => 'push',
+		},
+		default	=> sub{ [] },
 	);
 
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
@@ -83,54 +72,69 @@ sub _load_unique_bits{
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
 	###LogSD			$self->get_all_space . '::_load_unique_bits', );
 	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"Setting the WorkbookPropsInterface unique bits" ] );
+	###LogSD			"Setting the WorkbookRelsInterface unique bits" ] );
 	
-	# Find the right header
-	my $result;
+	# Build the list
 	$self->start_the_file_over;
-	for my $potential ( @$potential_top_headers ){
-		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"Looking for: $potential", $self->location_status ] );
-		$self->start_the_file_over;
-		if( ($self->location_status)[1] eq $potential ){
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"Already at: $potential" ] );
-			$result = 1;
-		}else{
-			$result = $self->advance_element_position( $potential );
-		}
-		last if $result;
-	}
+	my ( $found_member_names, $worksheet_list, $chartsheet_list );
 	
-	# turn the sheet into a ref as available
-	my $sheet_ref;
-	if( $result ){
+	# Handle a zip based file
+	while( ($self->location_status)[1] eq 'Relationship' or $self->advance_element_position( 'Relationship' ) ){
+		my $relationship_ref = $self->parse_element;
 		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"Pulling the lookup ref" ] );
-		$sheet_ref = $self->parse_element;
-		###LogSD	$phone->talk( level => 'trace', message => [
-		###LogSD		"parsed sheet ref is:", $sheet_ref ] );
-		$sheet_ref = $self->squash_node( $sheet_ref );
-		###LogSD	$phone->talk( level => 'trace', message => [
-		###LogSD		"squashed sheet ref is:", $sheet_ref ] );
-		
-	}
-		
-	# Load values as available
-	if( $sheet_ref ){
-		my $x = 0;
-		for my $header ( keys %$sheet_ref ){
+		###LogSD		"parsed sheet ref is:", $relationship_ref ] );
+		my $rel_ref = $self->_get_rel_info( $relationship_ref->{attributes}->{Id} ) ;
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Current rel ref:", $rel_ref ] );
+		if( $rel_ref ){
+			my	$target = 'xl/' .  $relationship_ref->{attributes}->{Target};
+			my	$sheet_ref = $self->_get_sheet_info( $rel_ref );
 			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"processing header: $header" ] );
-			if( exists $method_lookup->{$header} and $sheet_ref->{$header}->{raw_text} ){
-				my $method = $method_lookup->{$header};
+			###LogSD		"Building relationship for: $relationship_ref->{attributes}->{Id}",
+			###LogSD		"With target: $target",
+			###LogSD		"For sheet -$rel_ref- with info:", $sheet_ref ] );
+			$target =~ s/\\/\//g;
+			if( $target =~ /worksheets(\\|\/)/ ){
+				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD		"Found a worksheet" ] );
+				$sheet_ref->{file} = $target;
+				$sheet_ref->{sheet_type} = 'worksheet';
+				$self->_set_sheet_info( $rel_ref => $sheet_ref );
+				$worksheet_list->[$sheet_ref->{sheet_position}] = $rel_ref;
+				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD		"Updating sheet member key -$rel_ref- with:", $sheet_ref,
+				###LogSD		"..and updated worksheet list:", $worksheet_list ] );
 				###LogSD	$phone->talk( level => 'trace', message => [
-				###LogSD		"Implementing -$method- with value: $sheet_ref->{$header}->{raw_text}" ] );
-				$self->$method( $sheet_ref->{$header}->{raw_text} );
+				###LogSD		"..resulting new sheet lookup for sheet: $rel_ref", $self->_get_sheet_info( $rel_ref ), ] );
+				$found_member_names = 1;
+			}elsif( $target =~ /chartsheets(\\|\/)/ ){
+				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD		"Found a chartsheet" ] );
+				$sheet_ref->{file} = $target;
+				$sheet_ref->{sheet_type} = 'chartsheet';
+				$self->_set_sheet_info( $rel_ref => $sheet_ref );
+				$chartsheet_list->[$sheet_ref->{sheet_position}] = $rel_ref;
+				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD		"Updating sheet member key -$rel_ref- with:", $sheet_ref,
+				###LogSD		"..and updated chartsheet list:", $chartsheet_list ] );
+				$found_member_names = 1;
+			}else{# Add method for pivot table lookup later
+				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD		"Not a worksheet or a chartsheet - possible pivot table lookup" ] );
+				#~ $pivot_lookup->{$rel_ID} = $target;
 			}
-			$x++;
 		}
 	}
+	if( !$found_member_names ){# Handle and xml based file
+		confess "Couldn't find any zip member (file) names for the sheets - is the workbook empty?";
+	}
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		"Loading the worksheet list with:", $worksheet_list ] );
+	map{ $self->_add_worksheet( $_ ) if $_ } @$worksheet_list if $worksheet_list;
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		"Loading the chartsheet list with:", $chartsheet_list ] );
+	map{ $self->_add_chartsheet( $_ ) if $_ } @$chartsheet_list if $chartsheet_list;
+	
 	###LogSD	$phone->talk( level => 'trace', message => [
 	###LogSD		"Closing out the xml file" ] );
 	$self->_close_file_and_reader;
@@ -147,7 +151,7 @@ __END__
 
 =head1 NAME
 
-Spreadsheet::XLSX::Reader::LibXML::WorkbookPropsInterface - Workbook docProps interface
+Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorkbookRels - XML file Workbook Rels unique reader
 
 =head1 SYNOPSIS
 
@@ -172,7 +176,7 @@ B<1.> Add the workbook attributute to the documentation
 
 =over
 
-B<1.> Possibly add caching?  This would only be valuable for non-sequential reads  
+Nothing Yet 
 
 =back
 

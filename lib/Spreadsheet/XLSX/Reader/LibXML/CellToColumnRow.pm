@@ -237,7 +237,7 @@ sub _get_used_position{
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
 	###LogSD			$self->get_all_space . '::_hidden::scrubbing_output::_get_used_position', );
 	###LogSD		$phone->talk( level => 'debug', message =>[
-	###LogSD			"Converting Excel  -$excel_int- to the used number" ] );
+	###LogSD			"Converting the Excel number -$excel_int- to the used number" ] );
 	my	$used_position = $excel_int;
 	$used_position -= 1 if $self->counting_from_zero;
 	###LogSD		$phone->talk( level => 'debug', message =>[

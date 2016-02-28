@@ -2,6 +2,7 @@
 #!/usr/bin/env perl
 my ( $lib, $test_file, $test_file2, $styles_file, $worksheet );
 BEGIN{
+	$SIG{__DIE__} = sub { require Carp; Carp::confess(@_) };
 	$ENV{PERL_TYPE_TINY_XS} = 0;
 	my	$start_deeper = 1;
 	$lib		= 'lib';
@@ -13,8 +14,8 @@ BEGIN{
 		}
 	}
 	if( $start_deeper ){
-		$lib		= '../../../../../../' . $lib;
-		$test_file	= '../../../../../test_files/';
+		$lib		= '../../../../../' . $lib;
+		$test_file	= '../../../../test_files/';
 	}
 }
 $| = 1;
@@ -25,15 +26,12 @@ use Data::Dumper;
 use	MooseX::ShortCut::BuildInstance qw( build_instance );
 use Types::Standard qw( Bool HasMethods );
 use	lib
-		'../../../../../../../Log-Shiras/lib',
+		'../../../../../../Log-Shiras/lib',
 		$lib,
 	;
 #~ use Log::Shiras::Switchboard qw( :debug );#
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(
 ###LogSD						name_space_bounds =>{
-###LogSD							UNBLOCK =>{
-###LogSD								log_file => 'warn',
-###LogSD							},
 ###LogSD							main =>{
 ###LogSD								UNBLOCK =>{
 ###LogSD									log_file => 'debug',
@@ -53,10 +51,15 @@ use	lib
 ###LogSD					);
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
-use	Spreadsheet::XLSX::Reader::LibXML::Error;
-#~ use	Spreadsheet::XLSX::Reader::LibXML::XMLReader;
-use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow;
+use	Spreadsheet::XLSX::Reader::LibXML::XMLReader;
+use Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow;
+use Spreadsheet::XLSX::Reader::LibXML::XMLToPerlData;
+###LogSD	use Log::Shiras::UnhideDebug;
+use	Spreadsheet::XLSX::Reader::LibXML::Worksheet;
+use	Spreadsheet::XLSX::Reader::LibXML::WorksheetToRow;
 use	Spreadsheet::XLSX::Reader::LibXML::FmtDefault;
+###LogSD	use Log::Shiras::UnhideDebug;
+use Spreadsheet::XLSX::Reader::LibXML;
 use	DateTimeX::Format::Excel;
 use	DateTime::Format::Flexible;
 use	Type::Coercion;
@@ -87,92 +90,34 @@ my			$answer_ref = [
 			];
 
 lives_ok{
-			$error_instance		= 	Spreadsheet::XLSX::Reader::LibXML::Error->new( should_warn => 0 );
-			$format_instance	=  	Spreadsheet::XLSX::Reader::LibXML::FmtDefault->new(
-										error_inst	=> $error_instance,
-				###LogSD				log_space	=> 'Test',
-									);
-			$workbook_instance	= build_instance(
-									package		=> 'WorkbookInstance',
-									add_methods =>{
-										counting_from_zero			=> sub{ return 1 },
-										boundary_flag_setting		=> sub{},
-										change_boundary_flag		=> sub{},
-										_has_shared_strings_file	=> sub{ return 1 },
-										get_shared_string_position	=> sub{},
-										_has_styles_file			=> sub{},
-										get_format_position			=> sub{},
-										get_epoch_year				=> sub{ return 1904 },
-										get_group_return_type		=> sub{},
-										set_group_return_type		=> sub{},
-										get_date_behavior			=> sub{},
-										set_date_behavior			=> sub{},
-										get_empty_return_type		=> sub{ return 'undef_string' },
-										get_values_only				=> sub{},
-										set_values_only				=> sub{},
-									},
-									add_roles => [ 'Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow' ],
-									add_attributes =>{
-										error_inst =>{
-											isa			=> 	HasMethods[qw(
-																error set_error clear_error set_warnings if_warn
-															) ],
-											clearer		=> '_clear_error_inst',
-											reader		=> 'get_error_inst',
-											required	=> 1,
-											handles =>[ qw(
-												error set_error clear_error set_warnings if_warn
-											) ],
-										},
-										empty_is_end =>{
-											isa		=> Bool,
-											writer	=> 'set_empty_is_end',
-											reader	=> 'is_empty_the_end',
-											default	=> 0,
-										},
-										from_the_edge =>{
-											isa		=> Bool,
-											reader	=> '_starts_at_the_edge',
-											writer	=> 'set_from_the_edge',
-											default	=> 1,
-										},
-										format_instance =>{
-											isa		=> HasMethods[qw( 
-															set_error_inst				set_excel_region
-															set_target_encoding			get_defined_excel_format
-															set_defined_excel_formats	change_output_encoding
-															set_epoch_year				set_cache_behavior
-															set_date_behavior			get_defined_conversion		
-															parse_excel_format_string							)],	
-											writer	=> 'set_format_instance',
-											reader	=> 'get_format_instance',
-											handles =>[qw(
-															get_defined_excel_format 	parse_excel_format_string
-															change_output_encoding		)],
-										},
-									},
-									error_inst => $error_instance,
-									format_instance => $format_instance,
-								);
-			$test_instance	=	build_instance(
-									package				=> 'WorksheetInterfaceTest',
-									superclasses 		=>[ 'Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow' ],
-									roles 				=>[ 'Spreadsheet::XLSX::Reader::LibXML::Worksheet' ],
-									file				=> $test_file,
-									error_inst			=> $error_instance,
-									workbook_instance	=> $workbook_instance,
-			###LogSD				log_space			=> 'Test',
-								);
-			#~ $test_instance	= Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow->new(
-				#~ file				=> $test_file,
-				#~ error_inst			=> $error_instance,
-				sheet_name			=> 'Sheet3',
-				#~ workbook_instance	=> $workbook_instance,
-			#~ ###LogSD	log_space	=> 'Test',
-			#~ );
+			$workbook_instance =	Spreadsheet::XLSX::Reader::LibXML->new(
+							count_from_zero		=> 1,
+							group_return_type	=> 'value',
+							empty_return_type	=> 'undef_string',
+			###LogSD		log_space			=> 'Test',
+						);
+			$test_instance = build_instance(
+								superclasses => ['Spreadsheet::XLSX::Reader::LibXML::XMLReader'],
+								package => 'WorksheetInterfaceTest',
+								file => $test_file,
+								is_hidden => 0,
+			###LogSD			log_space	=> 'Test',
+								workbook_inst => $workbook_instance,
+								add_roles_in_sequence =>[ 
+									'Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow',
+									'Spreadsheet::XLSX::Reader::LibXML::XMLToPerlData',
+									'Spreadsheet::XLSX::Reader::LibXML::ZipReader::Worksheet',
+									'Spreadsheet::XLSX::Reader::LibXML::WorksheetToRow',
+									'Spreadsheet::XLSX::Reader::LibXML::Worksheet',
+								],
+			);
 			###LogSD	$phone->talk( level => 'info', message =>[ "Loaded test instance" ] );
 }										"Prep a new Worksheet instance";
-###LogSD		$phone->talk( level => 'debug', message => [ "Max row is:" . $test_instance->max_row ] );
+###LogSD		$operator->add_name_space_bounds( {
+###LogSD			UNBLOCK =>{
+###LogSD				log_file => 'trace',
+###LogSD			},
+###LogSD		} );
 			my $x = 0;
 is_deeply	$test_instance->get_merged_areas, $answer_ref->[$x++],
 				'Check that get_merged_areas works';
@@ -184,6 +129,7 @@ lives_ok{
 			);
 			###LogSD	$phone->talk( level => 'info', message =>[ "Loaded test instance" ] );
 }										"Prep a workbook instance";
+###LogSD		exit 1;
 ###LogSD		$operator->add_name_space_bounds( {
 #~ ###LogSD			Test =>{
 #~ ###LogSD				Worksheet =>{

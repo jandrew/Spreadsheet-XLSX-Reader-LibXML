@@ -38,7 +38,7 @@ use	lib	'../../../../../Log-Shiras/lib',
 ###LogSD					);
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
-use Spreadsheet::XLSX::Reader::LibXML ':debug';
+use Spreadsheet::XLSX::Reader::LibXML;# ':debug'
 $test_file = ( @ARGV ) ? $ARGV[0] : $test_file;
 $test_file .= 'TestBook.xlsx';
 	#~ print "Test file is: $test_file\n";

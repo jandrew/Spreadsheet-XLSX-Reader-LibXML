@@ -19,7 +19,7 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 51;
+use	Test::Most tests => 50;
 use	Test::Moose;
 use IO::File;
 use XML::LibXML::Reader;
@@ -59,55 +59,59 @@ my 			@class_attributes = qw(
 				file
 			);
 my  		@instance_methods = qw(
-				extract_file		get_headers			empty_file
-				get_whole_node
+				extract_file
 			);
 				#~ '<?xml version="1.0" encoding="UTF-8"?>',
 my			$answer_ref = [
-				'<Worksheet xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet" ss:Name="Table1">',
-				'	<Table>',
-				'		<Column ss:Index="1" ss:AutoFitWidth="0" ss:Width="110"/>',
-				'		<Column ss:Index="3" ss:AutoFitWidth="0" ss:Width="110"/>',
-				'		<Column ss:Index="4" ss:AutoFitWidth="0" ss:Width="110"/>',
-				'		<Column ss:Index="6" ss:AutoFitWidth="0" ss:Width="110"/>',
-				'		<Column ss:Index="7" ss:AutoFitWidth="0" ss:Width="110"/>',
-				'		<Row>',
-				'			<Cell><Data ss:Type="String">id</Data></Cell>',
-				'			<Cell><Data ss:Type="String">count</Data></Cell>',
-				'			<Cell><Data ss:Type="String">dataSize</Data></Cell>',
-				'			<Cell><Data ss:Type="String">date</Data></Cell>',
-				'			<Cell><Data ss:Type="String">organizationId</Data></Cell>',
-				'			<Cell><Data ss:Type="String">region</Data></Cell>',
-				'			<Cell><Data ss:Type="String">succeeded</Data></Cell>',
-				'			<Cell><Data ss:Type="String">userId</Data></Cell>',
-				'			<Cell><Data ss:Type="String">documentTaskType</Data></Cell>',
-				'			<Cell><Data ss:Type="String">pageCount</Data></Cell>',
-				'		</Row>',
-				'',
-				'		<Row>',
-				'			<Cell><Data ss:Type="String">136</Data></Cell>',
-				'			<Cell><Data ss:Type="Number">13</Data></Cell>',
-				'			<Cell><Data ss:Type="String">13107380</Data></Cell>',
-				'			<Cell><Data ss:Type="String">2013-10-21</Data></Cell>',
-				'			<Cell><Data ss:Type="Number">406</Data></Cell>',
-				'			<Cell><Data ss:Type="String"/></Cell>',
-				'			<Cell><Data ss:Type="String">1</Data></Cell>',
-				'			<Cell><Data ss:Type="Number">468</Data></Cell>',
-				'			<Cell><Data ss:Type="Number"/></Cell>',
-				'			<Cell><Data ss:Type="Number">13</Data></Cell>',
-				'		</Row>',
-				'		<Row>',
-				'			<Cell><Data ss:Type="String">137</Data></Cell>',
-				'			<Cell><Data ss:Type="Number">11</Data></Cell>',
-				'			<Cell><Data ss:Type="String">21668650</Data></Cell>',
-				'			<Cell><Data ss:Type="String">2013-10-21</Data></Cell>',
-				'			<Cell><Data ss:Type="Number">417</Data></Cell>',
-				'			<Cell><Data ss:Type="String"/></Cell>',
-				'			<Cell><Data ss:Type="String">1</Data></Cell>',
-				'			<Cell><Data ss:Type="Number">479</Data></Cell>',
-				'			<Cell><Data ss:Type="Number"/></Cell>',
-				'			<Cell><Data ss:Type="Number">23</Data></Cell>',
-				'		</Row>',
+				[
+					'<?xml version="1.0" encoding="UTF-8"?><Worksheet xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet" ss:Name="Table1">',
+					'	<Table>',
+					'		<Column ss:Index="1" ss:AutoFitWidth="0" ss:Width="110"/>',
+					'		<Column ss:Index="3" ss:AutoFitWidth="0" ss:Width="110"/>',
+					'		<Column ss:Index="4" ss:AutoFitWidth="0" ss:Width="110"/>',
+					'		<Column ss:Index="6" ss:AutoFitWidth="0" ss:Width="110"/>',
+					'		<Column ss:Index="7" ss:AutoFitWidth="0" ss:Width="110"/>',
+					'		<Row>',
+					'			<Cell><Data ss:Type="String">id</Data></Cell>',
+					'			<Cell><Data ss:Type="String">count</Data></Cell>',
+					'			<Cell><Data ss:Type="String">dataSize</Data></Cell>',
+					'			<Cell><Data ss:Type="String">date</Data></Cell>',
+					'			<Cell><Data ss:Type="String">organizationId</Data></Cell>',
+					'			<Cell><Data ss:Type="String">region</Data></Cell>',
+					'			<Cell><Data ss:Type="String">succeeded</Data></Cell>',
+					'			<Cell><Data ss:Type="String">userId</Data></Cell>',
+					'			<Cell><Data ss:Type="String">documentTaskType</Data></Cell>',
+					'			<Cell><Data ss:Type="String">pageCount</Data></Cell>',
+					'		</Row>',
+					'',
+					'		<Row>',
+					'			<Cell><Data ss:Type="String">136</Data></Cell>',
+					'			<Cell><Data ss:Type="Number">13</Data></Cell>',
+					'			<Cell><Data ss:Type="String">13107380</Data></Cell>',
+					'			<Cell><Data ss:Type="String">2013-10-21</Data></Cell>',
+					'			<Cell><Data ss:Type="Number">406</Data></Cell>',
+					'			<Cell><Data ss:Type="String"/></Cell>',
+					'			<Cell><Data ss:Type="String">1</Data></Cell>',
+					'			<Cell><Data ss:Type="Number">468</Data></Cell>',
+					'			<Cell><Data ss:Type="Number"/></Cell>',
+					'			<Cell><Data ss:Type="Number">13</Data></Cell>',
+					'		</Row>',
+					'		<Row>',
+					'			<Cell><Data ss:Type="String">137</Data></Cell>',
+					'			<Cell><Data ss:Type="Number">11</Data></Cell>',
+					'			<Cell><Data ss:Type="String">21668650</Data></Cell>',
+					'			<Cell><Data ss:Type="String">2013-10-21</Data></Cell>',
+					'			<Cell><Data ss:Type="Number">417</Data></Cell>',
+					'			<Cell><Data ss:Type="String"/></Cell>',
+					'			<Cell><Data ss:Type="String">1</Data></Cell>',
+					'			<Cell><Data ss:Type="Number">479</Data></Cell>',
+					'			<Cell><Data ss:Type="Number"/></Cell>',
+					'			<Cell><Data ss:Type="Number">23</Data></Cell>',
+					'		</Row>',
+				],
+				[
+					'<?xml version="1.0" encoding="UTF-8"?><Chartsheet/>',
+				],
 			];
 ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space => 'main', );
 ###LogSD		$phone->talk( level => 'info', message => [ "easy questions ..." ] );
@@ -167,23 +171,29 @@ can_ok		$test_instance, $_,
 } 			@instance_methods;
 
 ###LogSD		$phone->talk( level => 'info', message => [ "hardest questions ..." ] );
+			my $test = 0;
 			my $x = 0;
-#~ ok			$test_instance->get_headers( $fh ),# Broken since hash keys are not ordered (header attributes)
-										#~ "Extract the top headers into a file handle";
-			#~ $fh->seek( 0, 0 );
-			#~ while( $next_line = <$fh> ){
-#~ is			$next_line, $answer_ref->[$x++],
-							#~ "Check header file against answer position: $x";
-			#~ }exit 1;
-ok			$file_handle = $test_instance->extract_file( [qw( get_whole_node Worksheet )] ),
+ok			$file_handle = $test_instance->extract_file( [qw( Worksheet )] ),
 										"Pull the Worksheet file with headers";
 			$file_handle->seek( 0, 0 );
-			for my $y (1..44){
-			$next_line = <$file_handle>;
-			chomp $next_line;
-is			$next_line, $answer_ref->[$x++],
-										"Check Worksheet file row against answer position: $x";
-			#~ print "$next_line\n";
+			for my $y (1..scalar(@{$answer_ref->[$test]}) ){
+				$next_line = <$file_handle>;
+				chomp $next_line;
+is				$next_line, $answer_ref->[$test]->[$x++],
+											"Check Worksheet file row against answer position: $x";
+				#~ print "$next_line\n";
+			}
+			$test++;
+			$x = 0;
+ok			$file_handle = $test_instance->extract_file( [qw( Chartsheet )] ),
+										"Attempt to build a Chartsheet file with headers";
+			$file_handle->seek( 0, 0 );
+			for my $y (1..scalar(@{$answer_ref->[$test]}) ){
+				$next_line = <$file_handle>;
+				chomp $next_line;
+				#~ print "$next_line\n";
+is				$next_line, $answer_ref->[$test]->[$x++],
+											"Check Worksheet file row against answer position: $x";
 			}
 explain 								"...Test Done";
 done_testing();

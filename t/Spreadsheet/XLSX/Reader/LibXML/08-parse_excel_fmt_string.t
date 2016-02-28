@@ -15,7 +15,7 @@ use	lib
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(#
 ###LogSD						name_space_bounds =>{
 ###LogSD							UNBLOCK =>{
-###LogSD								log_file => 'warn',
+###LogSD								log_file => 'trace',
 ###LogSD							},
 #~ ###LogSD							Test =>{
 #~ ###LogSD								get_defined_excel_format =>{
@@ -55,6 +55,7 @@ use	lib
 use	Spreadsheet::XLSX::Reader::LibXML::Error;
 ###LogSD	use Log::Shiras::UnhideDebug;
 use	Spreadsheet::XLSX::Reader::LibXML::FmtDefault;
+###LogSD	use Log::Shiras::UnhideDebug;
 use	Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings;
 ###LogSD	use Spreadsheet::XLSX::Reader::LibXML::Cell;# Added to cover the namespace reporting (not required in the code outside of source filtered stuff)
 my  ( 
@@ -161,7 +162,7 @@ my			$answer_list =[
 					['FRACTION_10',undef,'1/3','-1 2/3','2 1/6','-3 5/6','4 1/9','-5 2/9','6 4/9','-7 5/9','8 7/9','-9 8/9','10 1/11','-11 2/11','12 1/12','-13 5/12','10/81','-1/8','3/4','-1/24','1/200000','-1/100000','1','19/1000','-999/1000'],
 					['DATESTRING_11',undef,'4-July-76','7-April-76','4-July-76','7-April-76', '30-May-11'],
 					['DATESTRING_11',undef,'7-April-76','4-July-76','7-April-76','4-July-76',],
-					[ undef, qr/Attempts to use string \|It's a mad mad world\| as an excel custom format failed. Contact the author if you feel there is an error/ ],
+					[ undef, qr/Attempts to use string \|It's a mad mad world\| as an excel custom format failed. Contact the author jandrew\@cpan \(\.org\) if you feel there is an error/ ],
 				],
 				[
 					[ 'General', 'Hello World', "It's a mad mad world" ],
@@ -197,10 +198,10 @@ my			$answer_list =[
 					['#,##0_);[Red](#,##0)',undef,'1','1','(111,111,111,111,115)','2','(1,235)','59','(60)'],
 					['#,##0.00_);(#,##0.00)',undef,'1.00','1.12','(111,111,111,111,115.00)','1.50','(1,234.57)','59.00','(60.00)'],
 					['#,##0.00_);[Red](#,##0.00)',undef,'1.00','1.12','(111,111,111,111,115.00)','1.50','(1,234.57)','59.00','(60.00)'],
-					['_(*#,##0_);_(*(#,##0);_(*"-"_);_(@_)','-','1','1','(111,111,111,111,115)','2','(1,235)','59','(60)'],
-					['_($*#,##0_);_($*(#,##0);_($*"-"_);_(@_)','$-','$1','$1','$(111,111,111,111,115)','$2','$(1,235)','$59','$(60)'],
-					['_(*#,##0.00_);_(*(#,##0.00);_(*"-"??_);_(@_)','-','1.00','1.12','(111,111,111,111,115.00)','1.50','(1,234.57)','59.00','(60.00)'],
-					['_($*#,##0.00_);_($*(#,##0.00);_($*"-"??_);_(@_)','$-','$1.00','$1.12','$(111,111,111,111,115.00)','$1.50','$(1,234.57)','$59.00','$(60.00)'],
+					['_(*#,##0_);_(*(#,##0);_(*"-"_);_(@_)',undef,'1','1','(111,111,111,111,115)','2','(1,235)','59','(60)'],
+					['_($*#,##0_);_($*(#,##0);_($*"-"_);_(@_)',undef,'$1','$1','$(111,111,111,111,115)','$2','$(1,235)','$59','$(60)'],
+					['_(*#,##0.00_);_(*(#,##0.00);_(*"-"??_);_(@_)',undef,'1.00','1.12','(111,111,111,111,115.00)','1.50','(1,234.57)','59.00','(60.00)'],
+					['_($*#,##0.00_);_($*(#,##0.00);_($*"-"??_);_(@_)',undef,'$1.00','$1.12','$(111,111,111,111,115.00)','$1.50','$(1,234.57)','$59.00','$(60.00)'],
 					['mm:ss',undef,'00:00','41:44','47:13','00:10','00:01','41:44','16:58'],
 					['[h]:mm:ss',undef,'-1117548:59:59','2:41:44','1463:47:13','36:00:10','1320:00:01','1418:41:44','1448:16:58'],
 					['mm:ss.0',undef,'00:00.2','41:43.7','47:13.0','00:09.7','00:00.9','41:43.7','16:57.7'],
@@ -335,7 +336,7 @@ lives_ok{	$test_instance->set_european_first( 0 ) }
 			if( $answer_list->[$test_group]->[$position] ){
 is			$test_instance->get_defined_excel_format( $position ), $answer_list->[$test_group]->[$position]->[0],
 										"Check that excel default position -$position- contains: $answer_list->[$test_group]->[$position]->[0]";
-###LogSD	my $start_pos = 41;
+###LogSD	my $start_pos = 35;
 ###LogSD	if( $position == $start_pos ){
 ###LogSD		$operator->add_name_space_bounds( {
 ###LogSD			UNBLOCK =>{
@@ -351,7 +352,7 @@ ok			$coercion = $test_instance->get_defined_conversion( $position ),
 ###LogSD			},
 ###LogSD		} );
 			for my $row_pos ( 1 .. $#{$answer_list->[$test_group]->[$position]} ){
-###LogSD	my $start_row =  3;
+###LogSD	my $start_row =  0;
 ###LogSD	if( $position == $start_pos and $row_pos == $start_row ){
 ###LogSD		$operator->add_name_space_bounds( {
 ###LogSD			UNBLOCK =>{
@@ -364,6 +365,7 @@ ok			$coercion = $test_instance->get_defined_conversion( $position ),
 is			$coercion->assert_coerce( $question_list->[$test_group]->[$position]->[$row_pos - 1] ), $answer_list->[$test_group]->[$position]->[$row_pos],
 										,"Testing the excel default coercion -$position- to see if |$question_list->[$test_group]->[$position]->[$row_pos - 1]|" . 
 											" coerces to: $answer_list->[$test_group]->[$position]->[$row_pos]";
+			#~ exit 1 if $position == 35 and $question_list->[$test_group]->[$position]->[$row_pos - 1] eq '';#######################################
 			} } }
 explain 								"...Test Done";
 done_testing();

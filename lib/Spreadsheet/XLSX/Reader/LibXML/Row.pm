@@ -158,14 +158,7 @@ has _reported_position =>(
 
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
 
-#~ sub DEMOLISH{
-	#~ my ( $self ) = @_;
-	#~ ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	#~ ###LogSD				$self->get_all_space . '::hidden::DEMOLISH', );
-	#~ ###LogSD		$phone->talk( level => 'debug', message => [
-	#~ ###LogSD			"Closing the row instance" ] );
-	#~ print "Row closed\n";
-#~ }
+
 
 #########1 Phinish            3#########4#########5#########6#########7#########8#########9
 

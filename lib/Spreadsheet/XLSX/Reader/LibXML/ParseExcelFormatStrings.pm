@@ -159,7 +159,8 @@ sub parse_excel_format_string{
 	}
 	$format_strings =~ s/\\//g;
 	###LogSD	$phone->talk( level => 'info', message => [
-	###LogSD		"parsing the custom excel format string: $format_strings",] );
+	###LogSD		"parsing the custom excel format string: $format_strings",
+	###LogSD		($coercion_name ? "With passed name: $coercion_name" : '')] );
 	my $conversion_type = 'number';
 	# Check the cache
 	my	$cache_key;
@@ -181,14 +182,23 @@ sub parse_excel_format_string{
 	# Split into the four sections positive, negative, zero, and text
 		$format_strings =~ s/General/\@/ig;# Change General to text input
 	my	@format_string_list = split /;/, $format_strings;
-	my	$last_is_text = ( $format_string_list[-1] =~ /\@/ ) ? 1 : 0 ;
+	my	$last_is_text = ( $format_string_list[-1] =~ /^[A-Za-z\@\s\"]*$/ ) ? 1 : 0 ;
 	###LogSD	$phone->talk( level => 'debug', message => [
-	###LogSD		"Is the last position text: $last_is_text",	] );
+	###LogSD		"Is the last position text: $last_is_text",	scalar( @format_string_list ) ] );
 	# Make sure the full range of number inputs are sent down the right path;
 	my	@used_type_list = @{\@type_list};
-		$used_type_list[0] =
-			( scalar( @format_string_list ) - $last_is_text == 1 ) ? Maybe[Num] :
-			( scalar( @format_string_list ) - $last_is_text == 2 ) ? Maybe[NotNegativeNum] : $type_list[0] ;
+	pop @used_type_list if !$last_is_text;
+	if( scalar( @format_string_list ) == ( 2 + $last_is_text ) ){
+		$used_type_list[0] = NotNegativeNum;#Maybe[NotNegativeNum];
+		splice( @used_type_list, 2, 1 );
+	}elsif( scalar( @format_string_list ) == ( 1 + $last_is_text ) ){
+		$used_type_list[0] = Num;#Maybe[Num];
+		splice( @used_type_list, 1, 2 );
+	}elsif( scalar( @format_string_list ) == ( 0 + $last_is_text ) ){# Generally only true for text only formats
+		@used_type_list = ();
+		$used_type_list[0] = Str;
+		$conversion_type = 'text';
+	}
 	###LogSD	$phone->talk( level => 'debug', message => [
 	###LogSD		"Now operating on each format string", @format_string_list,
 	###LogSD		'..with used type list:', map{ $_->name } @used_type_list,	] );
@@ -234,6 +244,7 @@ sub parse_excel_format_string{
 			my	$number			= $3;
 			my	$text			= $4;
 			my	$fixed_value	= $5;
+			my	$quote_string	= $6;
 				$format_string	= $8;
 			if( $fixed_value ){
 				if( $fixed_value =~ /\[\$([^\-\]]*)\-?\d*\]/ ){# removed the localized element of fixed values
@@ -257,7 +268,7 @@ sub parse_excel_format_string{
 				###LogSD	$phone->talk( level => 'debug', message => [
 				###LogSD		"Current action from -$pre_action- is: $current_action",
 				###LogSD		"..now testing against: " . ($action_type//'')					] );
-				if( $action_type and $current_action and ($current_action ne $action_type) ){
+				if( $action_type and $current_action and ($current_action ne $action_type) and $action_type ne 'TEXT' ){
 					###LogSD	$phone->talk( level => 'info', message => [
 					###LogSD		"General action type: $action_type",
 					###LogSD		"is failing current action: $current_action", ] );
@@ -309,11 +320,12 @@ sub parse_excel_format_string{
 				###LogSD		"With updated deconstruction list:", @deconstructed_list, ] );
 			}else{
 				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		"Early elements unusable - remaining string: $format_string", $pre_action ] );
+				###LogSD		"Early elements unusable - remaining string: $fixed_value", $quote_string ] );
+				$action_type = 'TEXT' if $quote_string and $fixed_value eq $quote_string;
 			}
 			push @deconstructed_list, [ $pre_action, $fixed_value ];
 			if( $x++ == 30 ){
-				confess "Attempts to use string |$format_string| as an excel custom format failed. Contact the author if you feel there is an error";
+				confess "Attempts to use string |$format_string| as an excel custom format failed. Contact the author jandrew\@cpan (.org) if you feel there is an error";
 			}
 			###LogSD	$phone->talk( level => 'debug', message => [
 			###LogSD		(($pre_action) ? "First action resolved to: $pre_action" : undef),
@@ -322,6 +334,8 @@ sub parse_excel_format_string{
 			###LogSD		"With updated deconstruction list:", @deconstructed_list, ] );
 			last if length( $format_string ) == 0;
 		}
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Handling action type: $action_type", ] );
 		push @deconstructed_list, [ $format_string, undef ] if $format_string;
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD		"List with fixed values separated:", @deconstructed_list ] );
@@ -341,7 +355,7 @@ sub parse_excel_format_string{
 		
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD		"Running method -$method- for list:", @deconstructed_list ] );
-		( my $intermediate_action, my @intermediate_coercions ) = $self->$method( $filter, \@deconstructed_list, $format_string );
+		my( $intermediate_action, @intermediate_coercions ) = $self->$method( $filter, \@deconstructed_list, $format_string );
 		###LogSD	$phone->talk( level => 'trace', message => [ "Returning from: $method", $intermediate_action, @intermediate_coercions ] );
 		push @coercion_list, @intermediate_coercions;
 		$action_type = $intermediate_action =~ /^(NUMBER|SCIENTIFIC|INTEGER|PERCENT|FRACTION|DECIMAL|DATE|DATESTRING)$/ ? $intermediate_action : $action_type;
@@ -357,10 +371,10 @@ sub parse_excel_format_string{
 	###LogSD		'Length of coersion list: ' . scalar( @coercion_list ),
 	###LogSD		"Action type: $action_type", "Conversion type: $conversion_type", ] );
 	###LogSD	$phone->talk( level => 'trace', message => [
-	###LogSD		($coercion_name ? "Initial coercion name: $coercion_name" : ''), @coercion_list, ] );
+	###LogSD		($coercion_name ? "Initial coercion name: $coercion_name" : ''), ] );
 	
 	# Build the final format
-	$conversion_type = 'text' if $action_type eq 'TEXT'; 
+	#~ $conversion_type = 'text' if $action_type eq 'TEXT'; 
 	$coercion_name =~ s/__/_${conversion_type}_/ if $coercion_name;
 	###LogSD	$phone->talk( level => 'info', message => [ "Action type: $action_type" ] );
 	my	%args = (
@@ -407,32 +421,48 @@ sub _build_text{
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
 	###LogSD			$self->get_all_space . '::hidden::_build_text', );
 	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"Building an anonymous sub to process text values" ] );
+	###LogSD			"Building an anonymous sub to process text values", $list_ref ] );
 	my $sprintf_string;
 	my $found_string = 0;
+	my $alt_string;
 	for my $piece ( @$list_ref ){
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD		"processing text piece:", $piece ] );
 		if( !$found_string and defined $piece->[0] ){
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"The first element is defined:", $piece->[0] ] );
 			$sprintf_string .= '%s';
 			$found_string = 1;
 		}
 		if( $piece->[1] ){
+			$piece->[1] =~ s/\"(.*)\"/$1/g;# Remove quotes around text strings (mostly spaces?)
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"Adding fixed value |$piece->[1]|" ] );
 			$sprintf_string .= $piece->[1];
+			$alt_string .= $piece->[1];
 		}
 	}
 	###LogSD	$phone->talk( level => 'debug', message => [
-	###LogSD		"Final sprintf string: $sprintf_string" ] );
-	my	$return_sub = sub{
-			###LogSD	my $sub_phone = $phone;
-			###LogSD	if( length( $Spreadsheet::XLSX::Reader::LibXML::Cell::log_space ) > 0 ){
-			###LogSD		$sub_phone = Log::Shiras::Telephone->new( name_space =>
-			###LogSD			$Spreadsheet::XLSX::Reader::LibXML::Cell::log_space . '::hidden::_return_value_only' . '::_build_text', );
-			###LogSD	}
+	###LogSD		"Final sprintf string: $sprintf_string",
+	###LogSD		"Final alt string: " . ($alt_string//'undef') ] );
+	my $return_sub;
+	###LogSD	my $sub_phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_log_space . '::Cell::_hidden::_return_value_only::_build_text', );
+	if( $found_string ){
+		$return_sub = sub{
+			#~ print "Using Text sub!!!!!!\n";
 			###LogSD	$sub_phone->talk( level => 'debug', message => [
 			###LogSD		"Updated Input: $_[0]" ] );
 			return sprintf( $sprintf_string, $_[0] );
 		};
+	}else{
+		$return_sub = sub{
+			#~ print "Using Text sub!!!!!!\n";
+			###LogSD	$sub_phone->talk( level => 'debug', message => [
+			###LogSD		"Received Input |$_[0]| -> returning $alt_string" ] );
+			return $alt_string;
+		};
+	}
 	return( 'TEXT', Str, $return_sub );
 }
 
@@ -459,11 +489,9 @@ sub _build_date{
 			if( !defined $num ){
 				return undef;
 			}
-			###LogSD	my $sub_phone = $phone;
-			###LogSD	if( length( $Spreadsheet::XLSX::Reader::LibXML::Cell::log_space ) > 0 ){
-			###LogSD		$sub_phone = Log::Shiras::Telephone->new( name_space =>
-			###LogSD			$Spreadsheet::XLSX::Reader::LibXML::Cell::log_space . '::hidden::_return_value_only' . '::_build_date', );
-			###LogSD	}
+			#~ print "Using Date sub!!!!!!\n";
+			###LogSD	my $sub_phone = Log::Shiras::Telephone->new( name_space =>
+			###LogSD			$self->get_log_space . '::Cell::_hidden::_return_value_only::_build_date', );
 			###LogSD	$sub_phone->talk( level => 'debug', message => [
 			###LogSD		"Processing date number: $num",
 			###LogSD		'..with adjustement ref:', $clone_ref, ] );
@@ -538,11 +566,9 @@ sub _build_datestring{
 			if( !$date ){
 				return undef;
 			}
-			###LogSD	my $sub_phone = $phone;
-			###LogSD	if( $Spreadsheet::XLSX::Reader::LibXML::Cell::log_space and length( $Spreadsheet::XLSX::Reader::LibXML::Cell::log_space ) > 0 ){
-			###LogSD		$sub_phone = Log::Shiras::Telephone->new( name_space =>
-			###LogSD			$Spreadsheet::XLSX::Reader::LibXML::Cell::log_space . '::hidden::_return_value_only::_build_datestring', );
-			###LogSD	}
+			#~ print "Using DateString sub!!!!!!\n";
+			###LogSD	my $sub_phone = Log::Shiras::Telephone->new( name_space =>
+			###LogSD			$self->get_log_space . '::Cell::_hidden::_return_value_only::_build_datestring', );
 			my $calc_sub_secs;
 			###LogSD	$sub_phone->talk( level => 'debug', message => [
 			###LogSD		"Processing date: $date", "..with clone_ref:", $clone_ref] );
@@ -856,6 +882,13 @@ sub _build_number{
 		return( 'NUMBER', $type_filter, sub{ $return_string } );
 	}
 	
+	# Handle trailing negative
+	if( $list_ref->[-1]->[0] =~ /(.*[\d\#])\-$/ ){
+		###LogSD	$phone->talk( level => 'debug', message =>[ "Found a trailing negative sign", ] );
+		$list_ref->[-1]->[0] = $1;
+		push @$list_ref, [ undef, '-' ];
+	}
+	
 	# Process once to determine what to do
 	for my $piece ( @$list_ref ){
 		###LogSD	$phone->talk( level => 'debug', message => [
@@ -938,13 +971,15 @@ sub _build_number{
 	
 	# Set negative type
 	if( $type_filter->name eq 'NegativeNum' ){
+		###LogSD	$phone->talk( level => 'info', message => [
+		###LogSD		"Setting this as a negative number type" ] );
 		$code_hash_ref->{negative_type} = 1;
 	}
 	
 	my $method = '_build_' . lc( $number_type ) . '_sub';
 	###LogSD	$phone->talk( level => 'trace', message => [
 	###LogSD		"Resolved the number type to: $number_type",
-	###LogSD		'Working with settings:', $code_hash_ref ] );
+	###LogSD		'Working with settings:', $list_ref, $code_hash_ref ] );
 	my $conversion_sub = $self->$method( $type_filter, $list_ref, $code_hash_ref );
 		
 	return( $number_type, $type_filter, $conversion_sub );
@@ -980,11 +1015,9 @@ sub _build_integer_sub{
 	my $dispatch_sequence = $number_build_dispatch->{decimal};
 	
 	my 	$conversion_sub = sub{
-			###LogSD	my $sub_phone = $phone;
-			###LogSD	if( length( $Spreadsheet::XLSX::Reader::LibXML::Cell::log_space ) > 0 ){
-			###LogSD		$sub_phone = Log::Shiras::Telephone->new( name_space =>
-			###LogSD			$Spreadsheet::XLSX::Reader::LibXML::Cell::log_space . '::hidden::_return_value_only' . '::_build_number::_build_integer_sub', );
-			###LogSD	}
+			#~ print "Using Integer sub!!!!!!\n";
+			###LogSD	my $sub_phone = Log::Shiras::Telephone->new( name_space =>
+			###LogSD			$self->get_log_space . '::Cell::_hidden::_return_value_only::_build_number::_build_integer_sub', );
 			my $adjusted_input = $_[0];
 			if( !defined $adjusted_input or $adjusted_input eq '' ){
 				###LogSD	$sub_phone->talk( level => 'debug', message => [
@@ -1043,11 +1076,9 @@ sub _build_decimal_sub{
 	my $dispatch_sequence = $number_build_dispatch->{decimal};
 	
 	my 	$conversion_sub = sub{
-			###LogSD	my $sub_phone = $phone;
-			###LogSD	if( length( $Spreadsheet::XLSX::Reader::LibXML::Cell::log_space ) > 0 ){
-			###LogSD		$sub_phone = Log::Shiras::Telephone->new( name_space =>
-			###LogSD			$Spreadsheet::XLSX::Reader::LibXML::Cell::log_space . '::hidden::_return_value_only' . '::_build_number::_build_decimal_sub', );
-			###LogSD	}
+			#~ print "Using Decimal sub!!!!!!\n";
+			###LogSD	my $sub_phone = Log::Shiras::Telephone->new( name_space =>
+			###LogSD			$self->get_log_space . '::Cell::_hidden::_return_value_only::_build_number::_build_decimal_sub', );
 			my $adjusted_input = $_[0];
 			if( !defined $adjusted_input or $adjusted_input eq '' ){
 				###LogSD	$phone->talk( level => 'debug', message => [
@@ -1112,11 +1143,9 @@ sub _build_percent_sub{
 	my $dispatch_sequence = $number_build_dispatch->{percent};
 	
 	my 	$conversion_sub = sub{
-			###LogSD	my $sub_phone = $phone;
-			###LogSD	if( length( $Spreadsheet::XLSX::Reader::LibXML::Cell::log_space ) > 0 ){
-			###LogSD		$sub_phone = Log::Shiras::Telephone->new( name_space =>
-			###LogSD			$Spreadsheet::XLSX::Reader::LibXML::Cell::log_space . '::hidden::_return_value_only' . '::_build_number::_build_percent_sub', );
-			###LogSD	}
+			#~ print "Using Percent sub!!!!!!\n";
+			###LogSD	my $sub_phone = Log::Shiras::Telephone->new( name_space =>
+			###LogSD			$self->get_log_space . '::Cell::_hidden::_return_value_only::_build_number::_build_percent_sub', );
 			my $adjusted_input = $_[0];
 			if( !defined $adjusted_input or $adjusted_input eq '' ){
 				###LogSD	$sub_phone->talk( level => 'debug', message => [
@@ -1256,11 +1285,9 @@ sub _build_fraction_sub{
 	
 	my $dispatch_sequence = $number_build_dispatch->{fraction};
 	my $conversion_sub = sub{
-			###LogSD	my $sub_phone = $phone;
-			###LogSD	if( length( $Spreadsheet::XLSX::Reader::LibXML::Cell::log_space ) > 0 ){
-			###LogSD		$sub_phone = Log::Shiras::Telephone->new( name_space =>
-			###LogSD			$Spreadsheet::XLSX::Reader::LibXML::Cell::log_space . '::hidden::_return_value_only' . '::_build_number::_build_fraction_sub', );
-			###LogSD	}
+			#~ print "Using Fraction sub!!!!!!\n";
+			###LogSD	my $sub_phone = Log::Shiras::Telephone->new( name_space =>
+			###LogSD			$self->get_log_space . '::Cell::_hidden::_return_value_only::_build_number::_build_fraction_sub', );
 			my $adjusted_input = $_[0];
 			if( !defined $adjusted_input or $adjusted_input eq '' ){
 				###LogSD	$sub_phone->talk( level => 'debug', message => [

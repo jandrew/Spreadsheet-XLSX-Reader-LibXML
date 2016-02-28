@@ -4,15 +4,11 @@ use version; our $VERSION = version->declare('v0.40.2');
 
 use	Moose::Role;
 requires qw(
-	location_status			advance_element_position		parse_element
-	_get_rel_info			_get_sheet_info					get_sheet_names
-	_get_workbook_file_type
+	_get_sheet_lookup			_get_worksheet_list			_get_chartsheet_list
+	loaded_correctly
 );
+
 ###LogSD	requires 'get_log_space', 'get_all_space';
-use Types::Standard qw( Enum ArrayRef HashRef Bool );
-use Data::Dumper;
-use lib	'../../../../../lib',;
-###LogSD	use Log::Shiras::Telephone;
 
 #########1 Dispatch Tables    3#########4#########5#########6#########7#########8#########9
 
@@ -28,141 +24,11 @@ use lib	'../../../../../lib',;
 
 #########1 Private Attributes 3#########4#########5#########6#########7#########8#########9
 
-has _loaded =>(
-		isa			=> Bool,
-		writer		=> '_good_load',
-		reader		=> 'loaded_correctly',
-		default		=> 0,
-	);
 
-has _sheet_lookup =>(
-		isa		=> HashRef,
-		traits	=> ['Hash'],
-		reader	=> '_get_sheet_lookup',
-		handles	=>{
-			_set_sheet_info => 'set',
-		},
-		default	=> sub{ {} },
-	);
-
-has _worksheet_list =>(
-		isa		=> ArrayRef,
-		traits	=> ['Array'],
-		reader	=> '_get_worksheet_list',
-		handles	=>{
-			_add_worksheet	=> 'push',
-		},
-		default	=> sub{ [] },
-	);
-
-has _chartsheet_list =>(
-		isa		=> ArrayRef,
-		traits	=> ['Array'],
-		reader	=> '_get_chartsheet_list',
-		handles	=>{
-			_add_chartsheet  => 'push',
-		},
-		default	=> sub{ [] },
-	);
 
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
 
-sub _load_unique_bits{
-	my( $self, ) = @_;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::_load_unique_bits', );
-	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"Setting the WorkbookRelsInterface unique bits" ] );
-	
-	# Build the list
-	$self->start_the_file_over;
-	my ( $found_member_names, $worksheet_list, $chartsheet_list );
-	while( ($self->location_status)[1] eq 'Relationship' or $self->advance_element_position( 'Relationship' ) ){
-		my $relationship_ref = $self->parse_element;
-		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"parsed sheet ref is:", $relationship_ref ] );
-		my $rel_ref = $self->_get_rel_info( $relationship_ref->{attributes}->{Id} ) ;
-		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"Current rel ref:", $rel_ref ] );
-		if( $rel_ref ){
-			my	$target = 'xl/' .  $relationship_ref->{attributes}->{Target};
-			my	$sheet_ref = $self->_get_sheet_info( $rel_ref );
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"Building relationship for: $relationship_ref->{attributes}->{Id}",
-			###LogSD		"With target: $target",
-			###LogSD		"For sheet -$rel_ref- with info:", $sheet_ref ] );
-			$target =~ s/\\/\//g;
-			if( $target =~ /worksheets(\\|\/)/ ){
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		"Found a worksheet" ] );
-				$sheet_ref->{file} = $target;
-				$sheet_ref->{sheet_type} = 'worksheet';
-				$self->_set_sheet_info( $rel_ref => $sheet_ref );
-				$worksheet_list->[$sheet_ref->{sheet_position}] = $rel_ref;
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		"Updating sheet member key -$rel_ref- with:", $sheet_ref,
-				###LogSD		"..and updated worksheet list:", $worksheet_list ] );
-				###LogSD	$phone->talk( level => 'trace', message => [
-				###LogSD		"..resulting new sheet lookup for sheet: $rel_ref", $self->_get_sheet_info( $rel_ref ), ] );
-				$found_member_names = 1;
-			}elsif( $target =~ /chartsheets(\\|\/)/ ){
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		"Found a chartsheet" ] );
-				$sheet_ref->{file} = $target;
-				$sheet_ref->{sheet_type} = 'chartsheet';
-				$self->_set_sheet_info( $rel_ref => $sheet_ref );
-				$chartsheet_list->[$sheet_ref->{sheet_position}] = $rel_ref;
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		"Updating sheet member key -$rel_ref- with:", $sheet_ref,
-				###LogSD		"..and updated chartsheet list:", $chartsheet_list ] );
-				$found_member_names = 1;
-			}else{# Add method for pivot table lookup later
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		"Not a worksheet or a chartsheet - possible pivot table lookup" ] );
-				#~ $pivot_lookup->{$rel_ID} = $target;
-			}
-		}
-	}
-	if( !$found_member_names ){
-		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"No worksheet or chartsheets found might be an xml file type->" .  $self->_get_workbook_file_type ] );
-		$self->set_error( "Couldn't find any zip member (file) names for the sheets" ) if $self->_get_workbook_file_type eq 'zip';
-		my $sheet_name_list = $self->get_sheet_names;
-		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"Working on the sheet name list:", $sheet_name_list ] );
-		for my $sheet ( @$sheet_name_list ){
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"Categorizing sheet: $sheet" ] );
-			my	$sheet_ref = $self->_get_sheet_info( $sheet );
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"adding to the sheet list with:", $sheet_ref ] );
-			if( $sheet_ref->{sheet_type} ){
-				if( $sheet_ref->{sheet_type} eq 'worksheet' ){
-					push @$worksheet_list, $sheet;
-				}elsif( $sheet_ref->{sheet_type} eq 'chartsheet' ){
-					push @$chartsheet_list, $sheet;
-				}else{
-					confess "Unrecognized sheet type: $sheet_ref->{sheet_type}";
-				}
-			}else{
-				confess "Found a sheet without a sheet type:" . Dumper( $sheet_ref );
-			}
-		}
-	}
-	###LogSD	$phone->talk( level => 'debug', message => [
-	###LogSD		"Loading the worksheet list with:", $worksheet_list ] );
-	map{ $self->_add_worksheet( $_ ) if $_ } @$worksheet_list if $worksheet_list;
-	###LogSD	$phone->talk( level => 'debug', message => [
-	###LogSD		"Loading the chartsheet list with:", $chartsheet_list ] );
-	map{ $self->_add_chartsheet( $_ ) if $_ } @$chartsheet_list if $chartsheet_list;
-	###LogSD	$phone->talk( level => 'trace', message => [
-	###LogSD		"..and final sheet master lookup:", $self->_get_sheet_lookup, ] );
-	
-	$self->_close_the_sheet;
-	$self->clear_file;
-	$self->_clear_xml_parser;
-	$self->_good_load( 1 );
-}
+
 
 #########1 Phinish            3#########4#########5#########6#########7#########8#########9
 

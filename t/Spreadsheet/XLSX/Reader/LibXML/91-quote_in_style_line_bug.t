@@ -5,7 +5,7 @@ BEGIN{
 	$ENV{PERL_TYPE_TINY_XS} = 0;
 	my	$start_deeper = 1;
 	$lib		= 'lib';
-	$test_file	= 't/test_files/xl/';
+	$test_file	= 't/test_files/';
 	for my $next ( <*> ){
 		if( ($next eq 't') and -d $next ){
 			$start_deeper = 0;
@@ -14,12 +14,12 @@ BEGIN{
 	}
 	if( $start_deeper ){
 		$lib		= '../../../../../' . $lib;
-		$test_file	= '../../../../test_files/xl/';
+		$test_file	= '../../../../test_files/';
 	}
 }
 $| = 1;
 
-use	Test::Most tests => 17;
+use	Test::Most tests => 21;
 use	Test::Moose;
 use IO::File;
 use XML::LibXML::Reader;
@@ -43,13 +43,26 @@ use	lib
 ###LogSD								log_file => 'trace',
 ###LogSD							},
 ###LogSD							Test =>{
-#~ ###LogSD								StylesInterface =>{
-#~ ###LogSD									_build_perl_node_from_xml_perl =>{
-#~ ###LogSD										UNBLOCK =>{
-#~ ###LogSD											log_file => 'warn',
-#~ ###LogSD										},
-#~ ###LogSD									},
-#~ ###LogSD								},
+###LogSD								StylesInterface =>{
+###LogSD									XMLToPerlData =>{
+###LogSD										UNBLOCK =>{
+###LogSD											log_file => 'warn',
+###LogSD										},
+###LogSD									},
+###LogSD									XMLReader =>{
+###LogSD										UNBLOCK =>{
+###LogSD											log_file => 'warn',
+###LogSD										},
+###LogSD									},
+###LogSD									_load_unique_bits =>{
+###LogSD										UNBLOCK =>{
+###LogSD											log_file => 'warn',
+###LogSD										},
+###LogSD									},
+###LogSD										UNBLOCK =>{
+###LogSD											log_file => 'warn',
+###LogSD										},
+###LogSD								},
 #~ ###LogSD								parse_element =>{
 #~ ###LogSD									UNBLOCK =>{
 #~ ###LogSD										log_file => 'warn',
@@ -106,11 +119,13 @@ use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::PositionStyles;
 use	Spreadsheet::XLSX::Reader::LibXML::Styles;
 use	Spreadsheet::XLSX::Reader::LibXML::Error;
 use	Spreadsheet::XLSX::Reader::LibXML::FmtDefault;
+###LogSD	use Log::Shiras::UnhideDebug;
 use	Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings;
 use	Spreadsheet::XLSX::Reader::LibXML::FormatInterface;
+###LogSD	use Log::Shiras::UnhideDebug;
 use	Spreadsheet::XLSX::Reader::LibXML::Error;
 $test_file = ( @ARGV ) ? $ARGV[0] : $test_file;
-$test_file .= 'styles.xml';
+$test_file .= 'quote_in_styles.xml';
 ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space => 'main', );
 ###LogSD		$phone->talk( level => 'trace', message => [ "Test file is: $test_file" ] );
 my  ( 
@@ -233,8 +248,17 @@ ok			$coercion = $format_instance->parse_excel_format_string( '[$-409]d-mmm-yy;@
 			my $answer = '12-Sep-05';
 is			$coercion->assert_coerce( 37145 ), $answer, #coercecoerce
 										"... and see if it returns: $answer";
-is			$test_instance->get_format( 2, 'cell_coercion' )->{cell_coercion}->display_name, 'Excel_date_164',
-										"Check that the excel number coercion at format position 2 is named: Excel_date_164";
+is			$test_instance->get_format( 2, 'cell_coercion' )->{cell_coercion}->display_name, 'Excel_number_164',
+										"Check that the excel number coercion at format position 2 is named: Excel_number_164";
+is			$test_instance->get_format( 2, 'cell_coercion' )->{cell_coercion}->assert_coerce( 1042 ), '1,042.00',
+										"Confirm that coercing |1042| with that format returns: 1,042.00";
+is			$test_instance->get_format( 2, 'cell_coercion' )->{cell_coercion}->assert_coerce( -3338 ), '3,338.00-',
+										"Confirm that coercing |-3338| with that format returns: 3,338.00-";
+is			$test_instance->get_format( 2, 'cell_coercion' )->{cell_coercion}->assert_coerce( 'Hello' ), ' ',
+										"Confirm that coercing |Hello| with that format returns: ' '";
+is			$test_instance->get_format( 2, 'cell_coercion' )->{cell_coercion}->assert_coerce( '' ), ' ',
+										"Confirm that coercing || with that format returns: ' '";
+			#exit 1;# Add some output tests here!
 ###LogSD		$phone->talk( level => 'debug', message => [ $test_instance->get_default_format ] );
 is			$test_instance->get_default_format->{cell_fill}->{patternFill}->{patternType}, 'none',
 										"Check that the default format for fill is: none";
@@ -252,8 +276,8 @@ lives_ok{
 				###LogSD				log_space	=> 'Test',
 									);
 }										"Prep a new Styles instance - without caching";
-is			$test_instance->get_format( 2, 'cell_coercion' )->{cell_coercion}->display_name, 'Excel_date_164',
-										"Check that the excel number coercion at format position 2 is named: Excel_date_164";
+is			$test_instance->get_format( 2, 'cell_coercion' )->{cell_coercion}->display_name, 'Excel_number_164',
+										"Check that the excel number coercion at format position 2 is named: Excel_number_164";
 ###LogSD		$phone->talk( level => 'debug', message => [ $test_instance->get_format( 7, 'cell_font' ) ] );
 is			$test_instance->get_default_format->{cell_fill}->{patternFill}->{patternType}, 'none',
 										"Check that the default format for fill is: none";# exit 1;

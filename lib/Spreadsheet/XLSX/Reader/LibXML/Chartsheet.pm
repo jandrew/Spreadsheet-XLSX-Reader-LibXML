@@ -1,6 +1,6 @@
 package Spreadsheet::XLSX::Reader::LibXML::Chartsheet;
 use version; our $VERSION = version->declare('v0.40.2');
-###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::XMLReader::Chartsheet-$VERSION";
+###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::Chartsheet-$VERSION";
 
 use	5.010;
 use	Moose;

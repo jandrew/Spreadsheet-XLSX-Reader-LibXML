@@ -18,8 +18,8 @@ Spreadsheet::XLSX::Reader::LibXML - Read xlsx spreadsheet files with LibXML
 	<img src='https://coveralls.io/repos/jandrew/Spreadsheet-XLSX-Reader-LibXML/badge.svg?branch=master' alt='Coverage Status' />
 </a>
 
-<a>
-	<img src="https://img.shields.io/badge/this version-0.38.22-brightgreen.svg" alt="this version">
+<a href='https://github.com/jandrew/DateTimeX-Format-Excel'>
+	<img src="https://img.shields.io/github/tag/jandrew/Spreadsheet-XLSX-Reader-LibXML.svg?label=github version" alt="github version"/>
 </a>
 
 <a href="https://metacpan.org/pod/Spreadsheet::XLSX::Reader::LibXML">
@@ -34,7 +34,7 @@ Spreadsheet::XLSX::Reader::LibXML - Read xlsx spreadsheet files with LibXML
 
 =head1 SYNOPSIS
 
-The following uses the 'TestBook.xlsx' file found in the t/test_files/ folder
+The following uses the 'TestBook.xlsx' file found in the t/test_files/ folder of the package
 
 	#!/usr/bin/env perl
 	use strict;
@@ -103,81 +103,114 @@ The following uses the 'TestBook.xlsx' file found in the t/test_files/ folder
 
 =head1 DESCRIPTION
 
-This is another package for parsing Excel 2007+ workbooks.  The goals of this package are 
-three fold.  First, as close as possible produce the same output as is visible in an 
-excel spreadsheet with exposure to underlying settings from Excel.  Second, adhere as 
-close as is reasonable to the L<Spreadsheet::ParseExcel> API (where it doesn't conflict 
+This is an object oriented just in time Excel spreadsheet reader package that should 
+parse all excel files with the extentions .xlsx, .xlsm, .xml I<L<Excel 2003 xml
+|https://en.wikipedia.org/wiki/Microsoft_Office_XML_formats> (SpreadsheetML)> that 
+can be opened in Excel 2007+ applications.  The quick-start example provided in the 
+SYNOPSIS attempts to follow the example from L<Spreadsheet::ParseExcel> (.xls binary 
+file reader) as close as possible.  There are additional methods and other approaches 
+that can be used by this package for spreadsheet reading but the basic access to data 
+from newer xml based Excel files can be as simple as above.
+
+The intent is to fully document all public functions but you may need to go to sub 
+modules to find more detailed documentation.  This package operates on the Excel file 
+with three primary tiers of classes.  Each level provides object methods to access the 
+next level down.
+
+=over
+
+Workbook level (This doc)
+
+* General attribute settings that affect parsing of the file in general
+* The place to L<set workbook level output formatting|Spreadsheet::XLSX::Reader::LibXML::FormatInterface>
+* Object methods to retreive document level metadata
+* Object methods to return specific Worksheet instances for data retrieval
+* The place to L<set workbook level formatting|Spreadsheet::XLSX::Reader::LibXML::FormatInterface>
+
+=over
+
+L<Worksheet level|Spreadsheet::XLSX::Reader::LibXML::Worksheet>
+
+* Object methods to return specific cell instances/L<data|/group_return_type>
+* Access to some worksheet level format information (more access pending)
+* The place to L<customize|Spreadsheet::XLSX::Reader::LibXML::Worksheet/custom_formats> 
+data output formats targeting specific cell ranges
+
+=over
+
+L<Cell level|Spreadsheet::XLSX::Reader::LibXML::Cell>
+
+* Access to the cell contents
+* Access to the cell formats (more access pending)
+
+=back
+
+=back
+
+=back
+
+There are some differences from the L<Spreadsheet::ParseExcel> package.  For instance 
+in the L<SYNOPSIS|/SYNOPSIS> the '$parser' and the '$workbook' are actually the same 
+class for this package.  You could therefore combine both steps by calling ->new with 
+the 'file' attribute called out.  The test for load success would then rely on the 
+method L<file_opened|/file_opened>.   Afterward it is still possible to call ->error 
+on the instance.  Another difference is the data formatter and specifically date 
+handling.  This package allows for a simple pluggable custom output format that is 
+very flexible as well as handling dates older than 1-January-1900.  I leveraged 
+coercions from L<Type::Tiny|Type::Tiny::Manual> to do this but anything that follows 
+that general format will work here.  Additionally, this is a L<Moose> based package 
+and possible I also use interfaces for each of the sub-roles/classes used in parsing.  
+This should alow you to change only the part you want to perform differently if you 
+have the desire to tinker with the guts.  Read the full documentation for all 
+opportunities!
+
+In the realm of extensibility this package uses L<XML::LibXML> which has multiple ways 
+to read an XML file but this release only has an L<XML::LibXML::Reader> parser option.  
+Future iterations could include a DOM parser option but that is a very low priority.  
+Currently this package does not provide the same access to the visual format elements 
+provided in L<Spreadsheet::ParseExcel>.  That is on the longish and incomplete TODO list.  
+To skip the why and nitty gritty of design and jump to implementation details go to the 
+L<Attributes|/Attributes> section.
+
+=head2 Architecture Choices
+
+This is yet another package for parsing Excel xml or 2007+ workbooks.  The goals of this 
+package are five fold.  First, as close as possible produce the same output as is visible 
+in an excel spreadsheet with exposure to underlying settings from Excel.  Second, adhere 
+as close as is reasonable to the L<Spreadsheet::ParseExcel> API (where it doesn't conflict 
 with the first objective) so that less work would be needed to integrate ParseExcel and 
 this package.  An addendum to the second goal is this package will not expose elements of 
 the object hash for use by the consuming program.  This package will either return an 
-unblessed hash with the equivalent elements to the Spreadsheet::ParseExcel output instead 
-of a class instance or it will provide methods to provide these sets of data.  The third 
+unblessed hash with the equivalent elements to the Spreadsheet::ParseExcel output (instead 
+of a class instance) or it will provide methods to provide these sets of data.  The third 
 goal is to provide an XLSX sheet parser that is built on L<XML::LibXML>.  The other two 
 primary options for XLSX parsing on CPAN use either a one-off XML parser (L<Spreadsheet::XLSX>) 
 or L<XML::Twig> (L<Spreadsheet::ParseXLSX>).  In general if either of them already work for 
-you without issue then there is no reason to change to this package.  I personally found 
-some bugs and functionality boundaries in both that I wanted to improve, and by the time 
-I had educated myself enough to make improvement suggestions including root causing the 
-bugs to either the XML parser or the reader logic I had written this.
-
-In the process of learning and building I also wrote some additional features for 
-this parser that are not found in the L<Spreadsheet::ParseExcel> package.  For instance 
-in the L<SYNOPSIS|/SYNOPSIS> the '$parser' and the '$workbook' are actually the same 
-class.  You could combine both steps by calling ->new with the 'file_name' (or 
-'file_handle') attribute called out.  Afterward it is still possible to call ->error on 
-the instance.  The test in that case for load success would be 
-$instance->has_file_name(handle) Another improvement (from my perspective) is date 
-handling.  This package allows for a simple pluggable custom output format that is very 
-flexible as well as handling dates older than 1-January-1900.  I leveraged coercions from 
-L<Type::Tiny|Type::Tiny::Manual> to do this but anything that follows that general format 
-will work here.  Additionally, this is a L<Moose> based package.  As such it is designed 
-to be (fairly) extensible by writing roles 
-and adding them to this package rather than requiring that you extend the package to some 
-new branch.  Read the full documentation for all opportunities!
-
-In the realm of extensibility, L<XML::LibXML> has multiple ways to read an XML file but 
-this release only has an L<XML::LibXML::Reader> parser option.  Future iterations could 
-include a DOM parser option.  Additionally this package does not (yet) provide the same 
-access to the formatting elements provided in L<Spreadsheet::ParseExcel>.  That is on the 
-longish and incomplete TODO list.
-
-The package operates on the workbook with three primary tiers of classes.  All other 
-classes in this package are for architectual extensibility.
-
-=over
-
----> L<Workbook level|Spreadsheet::XLSX::Reader::LibXML>
-
-=over
-
----> L<Worksheet level|Spreadsheet::XLSX::Reader::LibXML::Worksheet>*
-
-=over
-
----> L<Cell level|Spreadsheet::XLSX::Reader::LibXML::Cell>* - 
-L<optional|/group_return_type>
-
-=back
-
-=back
-
-=back
+you without issue then there is no reason to switch to this package.  Fourth, excel files 
+get abused in the wild.  They get abused by humans and they get abused by scripts.  In 
+general the Excel application handles this mangling gracefully. The goal here is to be able 
+to read any xml based spreadsheet Excel can read.  Please L<submit examples
+|https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML/issues> where this is not true 
+to my github repo so I can work to improve this package.  If you don't want your test case 
+included with the distribution I will use it to improve the package without publishing it.  
+Fifth (and finally), the design of this package is targeted at handling as large of an Excel 
+file as possible.  In general this means that design decisions will generally sacrifice speed 
+to keep RAM consumption low.  Specifically this spreadsheet parser does not read the file into 
+memory completely when it is opened.  Since the data in the sheet is parsed just in time the 
+information that is not contained in the primary meta-data headers will not be available for 
+review L<until the sheet parses to that point|Spreadsheet::XLSX::Reader::LibXML::Worksheet/max_row>.  
+In cases where the parser has made choices that prioritize speed over RAM savings there 
+will generally be an L<attribute available to turn that decision off|/set_cache_behavior>.  
+All in all this package solves many of the issues I found parsing Excel in the wild.  I 
+hope it solves some of yours as well.
 
 =head2 Warnings
 
-B<1.> Archive-Zip versions greater than 1.30 appear to be broken.  This package requires 
-Archive::Zip so I reccomend Archive-Zip-1.30.
+B<1.>This package uses L<Archive::Zip>.  Not all versions of Archive::Zip work for everyone.  
+I have tested this with Archive::Zip 1.30.  Please let me know if this does not work with a 
+sucessfully installed (read passed the full test suit) version of Archive::Zip newer than that.
 
-B<2.> This package requires that you can load L<XML::LibXML> which requires the L<libxml2
-|http://xmlsoft.org/> and 'libxml2-devel' libraries.  I have included L<Alien::LibXML> in 
-the build profile in an attempt to resolve any library issues but being new to usage of 
-Alien libraries in general I'm not certain I got it quite right.  Many OS's have these 
-libraries installed as part of their core but if this package fails to load please log an 
-issue in my repo on L<github|/SUPPORT>.  On the other hand the correct libraries are 
-loading on travis-ci during the builds so if no issue is logged before then I will B<remove 
-this warning on 2/1/2016.>
-
-B<3.> Not all workbook sheets (tabs) are created equal!  Some Excel sheet tabs are only a 
+B<2.> Not all workbook sheets (tabs) are created equal!  Some Excel sheet tabs are only a 
 chart.  These tabs are 'chartsheets'.  The methods with 'worksheet' in the name only act on 
 the sub set of tabs that are worksheets.  Future methods with 'chartsheet' in the name will 
 focus on the subset of sheets that are chartsheets.  Methods with just 'sheet' in the name 
@@ -185,46 +218,64 @@ have the potential to act on both.  The documentation for the chartsheet level c
 in L<Spreadsheet::XLSX::Reader::LibXML::Chartsheet> (still under construction).  All chartsheet 
 classes do not provide access to cells.
 
-B<4.> L<HMBRAND|https://metacpan.org/author/HMBRAND> pointed out that the formatter portion of 
-this package for versions older than v0.38 do not follow the L<Spreadsheet::ParseExcel API
-|Spreadsheet::ParseExcel/Formatter-Class> for the formatter class.  (I always welcome feeback) 
-I suppose the original implementation was, in part, laziness.  In an effort to comply with goal 
-#2 of this package I have updated the API so that in versions starting with v0.38 the formatter 
-is a stand-alone class.  For details of the implemenation see 
-L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/CLASS DESCRIPTION> This more closely follows 
-Spreadsheet::ParseExcel, and incidentally probably makes building alternate formatting modules 
-easier.  I<The formatters will still not exchange back and forth between 
-L<Spreadsheet::ParseExcel::FmtDefault> and back since they are both built to interface with 
-fundamentally different architecture.>  This change also affects how the role 
-L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings> is consumed.  If 
-you wrote your own formatter for this package for the old way I would be willing 
-to provide troubleshooting support for the transition to the the new API.  However if you are 
-setting specific formats today using set_defined_excel_format_list you should be able to switch to
-L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/set_defined_excel_formats( %args )> or use the 
-attribute L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/defined_excel_translations>.    B<This warning 
-will be removed on 2/1/2016.>
-
-B<5.> This package now supports reading xlsm files (Macro enabled Excel 2007+ workbooks).  
+B<3.> This package supports reading xlsm files (Macro enabled Excel 2007+ workbooks).  
 xlsm files allow for binaries to be embedded that may contain malicious code.  However, other 
 than unzipping the excel file no work is done by this package with the sub-file 'vbaProject.bin' 
-containing the binaries.  This update does not provide an API to that sub-file and I have no 
+containing the binaries.  This package does not provide an API to that sub-file and I have no 
 intention of doing so.  Therefore my research indicates there should be no risk of virus activation 
 while parsing even an infected xlsm file with this package but I encourage you to use your own 
-judgement in this area.
+judgement in this area. B<L<caveat utilitor!|https://en.wiktionary.org/wiki/Appendix:List_of_Latin_phrases>>
 
-B<6.> This package will read some files with 'broken' xml.  In general this should be 
+B<4.> This package will read some files with 'broken' xml.  In general this should be 
 transparent but in the case of the maximum row value and the maximum column value for a 
-worksheet it can cause some surprising problems.  For instance the answer to the methods 
-L<Spreadsheet::XLSX::Reader::LibXML::Worksheet/row_range> and 
-L<Spreadsheet::XLSX::Reader::LibXML::Worksheet/col_range> can change as more of the sheet is 
-parsed.  This includes the possibility that the maximum values are initially listed as 'undef' 
-if the sheet does not provide them in the metadata.  The sheet will improve these values as cells 
-are read and more definitive information is available based on the dimensional scope of the users 
-cell parsing.  The primary cause of these broken XML elements are non-XML applications writing to 
-the excel spreadsheet.  You can use the attribute L<file_boundary_flags|/file_boundary_flags> or 
+worksheet it can cause some surprising problems.  This includes the possibility that the maximum 
+values are initially stored as 'undef' if the sheet does not provide them in the metadata as 
+expected.  The answer to the methods L<Spreadsheet::XLSX::Reader::LibXML::Worksheet/row_range> and 
+L<Spreadsheet::XLSX::Reader::LibXML::Worksheet/col_range> will then change as more of the sheet is 
+parsed.  The parser improves these values as information is available based on the dimensional 
+scope of the users cell parsing.  These values are generally never available in Excel 2003 xml files.  
+The primary cause of these broken XML elements in Excel 2007+ files are non-XML applications writing 
+to the excel spreadsheet.  You can use the attribute L<file_boundary_flags|/file_boundary_flags> or 
 the methods L<Spreadsheet::XLSX::Reader::LibXML::Worksheet/get_next_value> or 
-L<Spreadsheet::XLSX::Reader::LibXML::Worksheet/fetchrow_arrayref> to overcome the missing 
-metadata.
+L<Spreadsheet::XLSX::Reader::LibXML::Worksheet/fetchrow_arrayref> as alternates for pre-testing 
+for boundaries when iterating.
+
+B<5.> Version v0.40.2 changes the way file caching is turned on and off.  It also changes the 
+way it is set when starting an instance of this package.  If you did not turn off caching 
+explicitly before this release there should no be a problem with this change.  The goal is to 
+automatically differentiate large files and small files and L<turn caching off|/cache_positions> 
+in a targeted manner in response to larger file sizes. This should allow larger spreadsheets that 
+may have exceeded available RAM to run (slowly) when they didn't run at all before without forcing 
+small sheets to run too much slower. However, if you do have caching turned off in your code using 
+the old Boolean setting this package will now see it, fix it upon load, and emit a warning.  I will 
+still be tweaking this setting over the next few releases.  This warning will stay till 3/1/2017 
+and then the old callout will no longer be supported.
+
+B<6.> Version v0.40.2 introduces the L<file|/file> attribute and will start the deprication of the 
+L<file_name|/file_name> and L<file_handle|/file_handle> attributes as well as the following methods: 
+L<set_file_name|/set_file_name>, L<set_file_handle|/set_file_handle>, L<file_handle|/file_handle>, 
+and L<has_file_handle|/has_file_handle>.  This change is intended to remove an overly complex 
+set of dependancies that was causing trouble for garbage collection on cleanup.  Please use 
+the L<file|/file> attribute and the L<file_opened|/file_opened> methods as replacements moving 
+forward.  Support for backwards compatible use of the old attributes and methods will be removed 
+after 3/1/2017.
+
+B<7.> Version v0.40.2 introduces support for L<SpreadsheetML
+|https://odieweblog.wordpress.com/2012/02/12/how-to-read-and-write-office-2003-excel-xml-files/> 
+(Excel 2003) .xml extention documents.  These documents should include
+
+	xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+	
+somewhere in the header to indicate their intended format.  This change does introduce a lot of 
+behind the scenes re-plumbing but the top level tests all stayed the same.  This means that for 
+.xlsx and .xlsm extentions there should not be any obvious changes or (hopefully) significant 
+new bugs. I<Note warnings 5 and 6>.  However, to get this release out and rolling I don't have a 
+full set of tests for the .xml extention paths and Microsofts documentation for that format is 
+spotty in some relevant areas (I still don't know what I don't know) so please L<submit
+|https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML/issues> any cases that appear to behave 
+differently than expected for .xml extention files that are readable by the Excel application.  
+I am also interested in cases where an out of memory error occurs with an .xml extension file.  This 
+warning will stay till 3/1/2017.
 
 =head2 Attributes
 
@@ -238,9 +289,10 @@ B<Example>
 
 	$workbook_instance = Spreadsheet::XLSX::Reader::LibXML->new( %attributes )
 
-I<note: if a file name or file handle for an .xlsx file are not included in the initial 
-%attributes then one of them must be set by one of the attribute setter methods below 
-before the rest of the package can be used.>
+I<note: if the file information is not included in the initial %attributes then it must be 
+set by one of the attribute setter methods below or the L<parse
+|parse( $file_nameE<verbar>$file_handle, $formatter )> method before the rest of the package 
+can be used.>
 
 =head3 file_name
 
@@ -540,9 +592,11 @@ when not implementing 'next' functionality.
 
 B<Default> 0
 
-B<Range> 1 = treat all columns short of the max column for the sheet as being in 
-the table, 0 = end each row after the last cell with data rather than going to the 
-max sheet column
+B<Range> 0 = treat all columns short of the max column for the sheet as being in 
+the table, 1 = treat all cells after the last cell with data as past the end of 
+the row.  This will be most visible when 
+L<boundary flags are turned on|/boundary_flag_setting> or next functionality is 
+used in the context of the L<values_only|/values_only> attribute is on.
 
 B<attribute methods> Methods provided to adjust this attribute
 		
@@ -642,11 +696,28 @@ B<Definition:> a way to set the current attribute setting
 =over
 
 B<Definition:> This parse can be slow.  It does this by trading processing and 
-file storage for RAM usage but that is probably not the average users choice.  Not all 
-things that can be cached are cached yet.  However, when this attribute is set where 
-the parser knows how to cache it will.
+file storage for RAM usage but that is probably not the average users choice.  
+Currently four of the files can implement selective caching.  The setting for 
+this attribute takes a hash ref with the file indicators as keys and the max 
+file size in bytes as the value.  When the sub file handle exceeds that size 
+then caching for that subfile is turned off.  The default setting shows an 
+example with the four available cached size.
+	
+B<warning:> This behaviour changed with v0.40.2.  Prior to that this setting 
+accepted a boolean value that turned all caching on or off universally.  If 
+a boolean value is passed a deprication warning will be issued and the input 
+will be changed to this format.  'On' will be converted to the default caching 
+levels.  A boolean 'Off' is passed then the package will set all maximum caching 
+levels to 0.
 
-B<Default> 1 = caching is turned on
+B<Default>
+
+	{
+		sharedStrings => 5242880,# 5 MB
+		styles => 5242880,# 5 MB
+		worksheet_interface => 5242880,# 5 MB
+		chartsheet_interface => 5242880,# 5 MB
+	}
 
 B<attribute methods> Methods provided to adjust this attribute
 		
@@ -660,28 +731,61 @@ B<Definition:> read the attribute
 
 =back
 
-=back
-
-=back
-
-=head3 format_inst
+B<get_cache_size( $target_file )>
 
 =over
 
-B<Definition:> This is the attribute containing the format class.  In general the 
+B<Definition:> return the max file size allowed to cache for the indicated $target_file
+
+=back
+
+B<set_cache_size( $target_file => $max_file_size )>
+
+=over
+
+B<Definition:> set the $max_file_size to be cached for the indicated $target_file
+
+=back
+
+B<has_cache_size( $target_file )>
+
+=over
+
+B<Definition:> returns true if one of the four allowed files is passed at $target_file
+
+=back
+
+=back
+
+=back
+
+=head3 formatter_inst
+
+=over
+
+B<Definition:> This is the attribute containing the formatter class.  In general the 
 default value is sufficient.  However, If you want to tweak this a bit then review the
-L<class documentation|Spreadsheet::XLSX::Reader::LibXML::FmtDefault>.  It does include 
+L<class documentation|Spreadsheet::XLSX::Reader::LibXML::FormatInterface>.  It does include 
 a role that interprets the excel L<format string
 |https://support.office.com/en-us/article/Create-or-delete-a-custom-number-format-2d450d95-2630-43b8-bf06-ccee7cbe6864?ui=en-US&rs=en-US&ad=US> 
 into a L<Type::Tiny> coercion.
 
-B<Default> L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault>->new
+B<Default> An instance build from MooseX::ShortCut::BuildInstance with the following 
+arguments
+	{
+		superclasses => ['Spreadsheet::XLSX::Reader::LibXML::FmtDefault'],
+		add_roles_in_sequence =>[qw(
+			Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings
+			Spreadsheet::XLSX::Reader::LibXML::FormatInterface
+		)],
+		package => 'FormatInstance',
+	}
 
 B<attribute methods> Methods provided to adjust this attribute
 		
 =over
 
-B<set_format_inst>
+B<set_formatter_inst( $instance )>
 
 =over
 
@@ -689,7 +793,7 @@ B<Definition:> a way to set the current attribute instance
 
 =back
 
-B<get_format_inst>
+B<get_formatter_inst>
 
 =over
 
@@ -701,19 +805,31 @@ B<Definition:> a way to get the current attribute setting
 
 B<delegated methods:>
 
+	delegated_to => link_delegated_from
+
 =over
 
-L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/get_defined_excel_format>
+get_formatter_region => L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/get_excel_region>
 
-L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/change_output_encoding>
+get_target_encoding => L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/get_target_encoding>
 
-L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/parse_excel_format_string>
+set_target_encoding => L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/set_target_encoding( $encoding )>
 
-L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings//set_date_behavior>
+has_target_encoding => L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/has_target_encoding>
 
-L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings//get_date_behavior>
+change_output_encoding => L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/change_output_encoding( $string )>
 
-L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings//set_european_first>
+set_defined_excel_formats => L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/set_defined_excel_formats( %args )>
+
+get_defined_conversion => L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/get_defined_conversion( $position )>
+
+parse_excel_format_string => L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/parse_excel_format_string( $string, $name )>
+
+set_date_behavior => L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/set_date_behavior( $Bool )>
+
+set_european_first => L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/set_european_first( $Bool )>
+
+set_formatter_cache_behavior => L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/set_cache_behavior( $Bool )>
 
 =back
 
@@ -1162,12 +1278,12 @@ B<Returns:> 1900 = Windows Excel or 1904 = Apple Excel
 
 =back
 
-=head3 get_shared_string_position
+=head3 get_shared_string
 
 =over
 
 Roundabout delegation from 
-L<Spreadsheet::XLSX::Reader::LibXML::SharedStrings/get_shared_string_position( $position )>
+L<Spreadsheet::XLSX::Reader::LibXML::SharedStrings/get_shared_string( $position )>
 
 =back
 
@@ -1430,17 +1546,27 @@ Both libxml2 and libxml2-devel libraries are required for XML::LibXML
 
 =back
 
-B<2.> Add a pivot table reader (Not just read the values from the sheet)
+B<1.> Add an individual test just for Spreadsheet::XLSX::Reader::LibXML::Row (Currently tested in the worksheet test)
 
-B<3.> Add calc chain methods
+B<2.> Add an individual test just for Spreadsheet::XLSX::Reader::LibXML::ZipReader (Currently only tested in the top level test)
 
-B<4.> Add more exposure to workbook formatting methods
+B<3.> Add individual tests just for the File, Meta, Props, Rels sub workbook interfaces
 
-B<5.> Build a DOM parser alternative for the sheets
+B<4.> Add an individual test just for Spreadsheet::XLSX::Reader::LibXML::ZipReader::ExtractFile
+
+B<5.> Add individual tests just for the XMLReader sub modules NamedStyles, and PositionStyles
+
+B<6.> Add a pivot table reader (Not just read the values from the sheet)
+
+B<7.> Add calc chain methods
+
+B<8.> Add more exposure to workbook/worksheet formatting values
+
+B<9.> Build a DOM parser alternative for the sheets
 
 =over
 
-(Theoretically faster than the reader but uses more memory)
+(Theoretically faster than the reader and no longer JIT so it uses more memory)
 
 =back
 
@@ -1469,7 +1595,7 @@ L<Frank Maas|https://github.com/Frank071>
 
 L<Stuart Watt|https://github.com/morungos>
 
-L<Toby Inkster|https://github.com/morungos>
+L<Toby Inkster|https://github.com/tobyink>
 
 L<Breno G. de Oliveira|https://github.com/garu>
 
@@ -1489,7 +1615,7 @@ it and/or modify it under the same terms as Perl itself.
 The full text of the license can be found in the
 LICENSE file included with this module.
 
-This software is copyrighted (c) 2014, 2015 by Jed Lund
+This software is copyrighted (c) 2014, 2016 by Jed Lund
 
 =head1 DEPENDENCIES
 

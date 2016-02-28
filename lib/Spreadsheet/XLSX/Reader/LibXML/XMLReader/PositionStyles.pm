@@ -1,6 +1,6 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader::PositionStyles;
 use version; our $VERSION = version->declare('v0.40.2');
-###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::FormatInterface-$VERSION";
+###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::XMLReader::PositionStyles-$VERSION";
 
 use 5.010;
 use Moose::Role;
@@ -12,7 +12,6 @@ requires qw(
 use Types::Standard qw(
 		Bool			ArrayRef			Int			is_HashRef			is_Int
     );
-		#~ 		HasMethods		Enum		is_Int
 use Carp qw( confess );
 use Clone qw( clone );
 
@@ -79,7 +78,7 @@ sub get_format{
 	my	$xml_target_header = $header ? $header : '';#$xml_from_cell->{$header}
 	my	$xml_exclude_header = $exclude_header ? $xml_from_cell->{$exclude_header} : '';
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::get_format_position', );
+	###LogSD			$self->get_all_space . '::get_format', );
 	###LogSD		$phone->talk( level => 'info', message => [
 	###LogSD			"Get defined formats at position: $position",
 	###LogSD			( $header ? "Returning only the values for header: $header - $xml_target_header" : '' ),
@@ -247,30 +246,41 @@ sub _load_unique_bits{
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
 	###LogSD			$self->get_all_space . '::_load_unique_bits', );
 	#~ ###LogSD		$phone->talk( level => 'trace', message => [ 'self:', $self ] );
+	
+	# Advance to the styleSheet node
+	my $good_load = 0;
+	$self->start_the_file_over;
 	my ( $node_depth, $node_name, $node_type ) = $self->location_status;
-	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"Arrived at _load_unique_bits pointed to node: $node_name", ] );
-	if( $node_name ne 'styleSheet' ){
-		###LogSD	$phone->talk( level => 'trace', message => [
-		###LogSD		'The file is not indexed where I want it - resetting the file' ] );
-		$self->start_the_file_over;
-		$self->advance_element_position( 'styleSheet', 1 );
-		( $node_depth, $node_name, $node_type ) = $self->location_status;
-		###LogSD		$phone->talk( level => 'debug', message => [
-		###LogSD			"Reset and got to node name: $node_name", ] );
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		"Currently at libxml2 level: $node_depth",
+	###LogSD		"Current node name: $node_name",
+	###LogSD		"..for type: $node_type", ] );
+	my	$result = 1;
+	if( $node_name eq 'styleSheet' ){
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"already at the styleSheet node" ] );
+	}else{
+		$result = $self->advance_element_position( 'styleSheet' );
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"attempt to get to the Styles element result: $result" ] );
 	}
 	
-	# Check for a known format
-	if( $node_name ne 'styleSheet' ){
-		confess "Can't find the styleSheet node in the xml file / section";
+	# Record file state
+	if( $result ){
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"The styleSheet node has value" ] );
+		$self->_good_load( 1 );# Is there a need to check for an empty node here???
+	}else{
+		$self->set_error( "No 'styleSheet' elements with content found - can't parse this as a styles file" );
+		return undef;
 	}
 	
 	# Initial pull from the xml
 	my ( $success, $custom_format_ref, $top_level_ref );
 	if( $self->should_cache_positions ){
-		$top_level_ref		= $self->parse_element;
+		$top_level_ref = $self->parse_element;
 		###LogSD	$phone->talk( level => 'trace', message => [
-		###LogSD		"Parsing the whole thing for caching:", $top_level_ref ] );
+		###LogSD		"Parsing the whole thing for caching" ] );
 		$self->_close_file_and_reader;# Don't need the file open any more!
 		
 		( $success, $custom_format_ref ) = $self->grep_node( $top_level_ref, 'numFmts' );
@@ -335,9 +345,6 @@ sub _load_unique_bits{
 		###LogSD	$phone->talk( level => 'trace', message => [
 		###LogSD		"Completed caching" ] );
 	}
-	$self->_good_load( 1 );
-	###LogSD	$phone->talk( level => 'trace', message => [
-	###LogSD		"The load is good returning undef" ] );
 	return 1;
 }
 
@@ -565,7 +572,7 @@ Not written yet
 
 =over
 
-L<Spreadsheet::ParseExcel> - Excel 2003 and earlier
+L<Spreadsheet::ParseExcel> - Binary Excel 2003 and earlier
 
 L<Spreadsheet::XLSX> - 2007+
 

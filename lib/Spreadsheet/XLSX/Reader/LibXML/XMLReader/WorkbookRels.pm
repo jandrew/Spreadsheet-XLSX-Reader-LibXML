@@ -1,12 +1,18 @@
-package Spreadsheet::XLSX::Reader::LibXML::WorkbookMetaInterface;
+package Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorkbookRels;
 use version; our $VERSION = version->declare('v0.40.2');
-###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::WorkbookMetaInterface-$VERSION";
+###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorkbookRels-$VERSION";
 
 use	Moose::Role;
 requires qw(
-	loaded_correctly			_get_epoch_year				_get_sheet_list
-	_get_sheet_lookup			_get_rel_lookup				_get_id_lookup
+	location_status			advance_element_position		parse_element
+	_get_rel_info			_get_sheet_info					get_sheet_names
+	_get_workbook_file_type
 );
+###LogSD	requires 'get_log_space', 'get_all_space';
+use Types::Standard qw( Enum ArrayRef HashRef Bool );
+use Data::Dumper;
+use lib	'../../../../../lib',;
+###LogSD	use Log::Shiras::Telephone;
 
 #########1 Dispatch Tables    3#########4#########5#########6#########7#########8#########9
 
@@ -18,15 +24,93 @@ requires qw(
 
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
 
-###LogSD	sub get_class_space{ 'WorkbookMetaInterface' }
+
 
 #########1 Private Attributes 3#########4#########5#########6#########7#########8#########9
 
+has _loaded =>(
+		isa			=> Bool,
+		writer		=> '_good_load',
+		reader		=> 'loaded_correctly',
+		default		=> 0,
+	);
 
+has _sheet_lookup =>(
+		isa		=> HashRef,
+		traits	=> ['Hash'],
+		reader	=> '_get_sheet_lookup',
+		handles	=>{
+			_set_sheet_info => 'set',
+		},
+		default	=> sub{ {} },
+	);
+
+has _worksheet_list =>(
+		isa		=> ArrayRef,
+		traits	=> ['Array'],
+		reader	=> '_get_worksheet_list',
+		handles	=>{
+			_add_worksheet	=> 'push',
+		},
+		default	=> sub{ [] },
+	);
+
+has _chartsheet_list =>(
+		isa		=> ArrayRef,
+		traits	=> ['Array'],
+		reader	=> '_get_chartsheet_list',
+		handles	=>{
+			_add_chartsheet  => 'push',
+		},
+		default	=> sub{ [] },
+	);
 
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
 
-
+sub _load_unique_bits{
+	my( $self, ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::_load_unique_bits', );
+	###LogSD		$phone->talk( level => 'debug', message => [
+	###LogSD			"Setting the WorkbookRelsInterface unique bits" ] );
+	
+	# Build the list
+	#~ $self->start_the_file_over;
+	my ( $worksheet_list, $chartsheet_list );
+	my $sheet_name_list = $self->get_sheet_names;
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		"Working on the sheet name list:", $sheet_name_list ] );
+	for my $sheet ( @$sheet_name_list ){
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Categorizing sheet: $sheet" ] );
+		my	$sheet_ref = $self->_get_sheet_info( $sheet );
+		$self->_set_sheet_info( $sheet => $sheet_ref );# No update needed for XML flat files - pass through
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"parsing out worksheet or chartsheet from:", $sheet_ref ] );
+		if( $sheet_ref->{sheet_type} ){
+			if( $sheet_ref->{sheet_type} eq 'worksheet' ){
+				push @$worksheet_list, $sheet;
+			}elsif( $sheet_ref->{sheet_type} eq 'chartsheet' ){
+				push @$chartsheet_list, $sheet;
+			}else{
+				confess "Unrecognized sheet type: $sheet_ref->{sheet_type}";
+			}
+		}else{
+			confess "Found a sheet without a sheet type:" . Dumper( $sheet_ref );
+		}
+	}
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		"Loading the worksheet list with:", $worksheet_list ] );
+	map{ $self->_add_worksheet( $_ ) if $_ } @$worksheet_list if $worksheet_list;
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		"Loading the chartsheet list with:", $chartsheet_list ] );
+	map{ $self->_add_chartsheet( $_ ) if $_ } @$chartsheet_list if $chartsheet_list;
+	
+	###LogSD	$phone->talk( level => 'trace', message => [
+	###LogSD		"Closing out the xml file" ] );
+	$self->_close_file_and_reader;
+	$self->_good_load( 1 );
+}
 
 #########1 Phinish            3#########4#########5#########6#########7#########8#########9
 
@@ -38,7 +122,7 @@ __END__
 
 =head1 NAME
 
-Spreadsheet::XLSX::Reader::LibXML::WorkbookMetaInterface - Workbook meta interface
+Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorkbookRels -  XML file Workbook Rels unique reader
 
 =head1 SYNOPSIS
 
@@ -55,13 +139,15 @@ Spreadsheet::XLSX::Reader::LibXML::WorkbookMetaInterface - Workbook meta interfa
 L<github Spreadsheet::XLSX::Reader::LibXML/issues
 |https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML/issues>
 
+B<1.> Add the workbook attributute to the documentation
+
 =back
 
 =head1 TODO
 
 =over
 
-B<1.> Possibly add caching?  This would only be valuable for non-sequential reads  
+Nothing Yet 
 
 =back
 

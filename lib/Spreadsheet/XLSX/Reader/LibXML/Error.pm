@@ -46,6 +46,7 @@ has error_string =>(
 				warn "$error_string\n";
 			}
 		},
+		predicate => 'has_error',
 	);
 
 has should_warn =>(

@@ -42,11 +42,12 @@ has workbook_inst =>(
 			set_error						get_empty_return_type			_get_workbook_file_type
 			_get_sheet_info					_get_rel_info					get_sheet_names
 			get_defined_conversion			set_defined_excel_formats		has_shared_strings_interface
-			get_shared_string_position		get_values_only					is_empty_the_end
+			get_shared_string				get_values_only					is_empty_the_end
 			_starts_at_the_edge				get_group_return_type			change_output_encoding
 			counting_from_zero				get_error_inst					boundary_flag_setting
 			has_styles_interface			get_format						start_the_ss_file_over
-			has_shared_strings_interface	parse_excel_format_string
+			parse_excel_format_string		has_error						get_default_format
+			_get_workbook_file_type
 		)],
 		writer => 'set_workbook_inst',
 		predicate => '_has_workbook_inst',
@@ -93,7 +94,7 @@ has	file_type =>(
 sub start_the_file_over{
 	my( $self ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::XMLReader::FromFile::start_the_file_over', );
+	###LogSD			$self->get_all_space . '::XMLReader::start_the_file_over', );
 	$self->clear_location;
 	###LogSD	$phone->talk( level => 'debug', message =>[ "location is cleared" ] );
 	if( $self->_has_xml_parser ){
@@ -110,6 +111,19 @@ sub start_the_file_over{
 		###LogSD		$phone->talk( level => 'debug', message =>[ "seek to 0 done" ] );
 		my $xml_parser = XML::LibXML::Reader->new( IO => $fh );
 		###LogSD		$phone->talk( level => 'debug', message =>[ "XML Parser built" ] );
+		
+		# Check functionality
+		if( eval '$xml_parser->read' ){
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD		'Initial read successful - re-loading the reader' ], );
+		}else{
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD		'Initial read failed - clearing the reader' ], );
+			$self->set_error( $@ );
+			$xml_parser = undef;
+		}
+		
+		# Load to class
 		if( $xml_parser ){
 			$self->_set_xml_parser( $xml_parser );
 			###LogSD	$phone->talk( level => 'debug', message =>[ "XML parser stored", $xml_parser ] );
@@ -191,7 +205,16 @@ sub advance_element_position{
 	###LogSD			$self->get_all_space . '::XMLReader::advance_element_position', );
 	###LogSD	$phone->talk( level => 'info', message => [
 	###LogSD		"Advancing to element -" . ($element//'') . "- -$position- times", ] );
-	my ( $result, $node_depth, $node_name, $node_type );
+	
+	#~ # Check for end of file and opt out
+	my( $node_depth, $node_name, $node_type ) = $self->location_status;
+	#~ if( $node_name eq 'EOF' ){
+		#~ ###LogSD	$phone->talk( level => 'debug', message => [
+		#~ ###LogSD		"Already at the EOF - returning failure", ] );
+		#~ return undef ;
+	#~ }
+	
+	my $result;
 	my $x = 0;
 	for my $y ( 1 .. $position ){
 		###LogSD	$phone->talk( level => 'debug', message => [
@@ -199,18 +222,18 @@ sub advance_element_position{
 		if( defined $element ){
 			###LogSD	$phone->talk( level => 'debug', message => [
 			###LogSD		"Searching for element: $element", "with location status:", $self->location_status ] );
-			$result = eval '$self->_next_element( $element )';
+			eval '$result = $self->_next_element( $element )';#eval ''
 			if( $@ ){
 				###LogSD	$phone->talk( level => 'fatal', message => [
 				###LogSD		"_next_element failed with: $@", ] );
 				return;
-			};
+			}
 			###LogSD	$phone->talk( level => 'debug', message => [
 			###LogSD		"search result: " . ($result//'none'), ] );
 		}else{
 			###LogSD	$phone->talk( level => 'debug', message => [
 			###LogSD		"Generic node indexing", ] );
-			( $result, my( $node_depth, $node_name, $node_type ) ) = $self->_next_node;
+			( $result, $node_depth, $node_name, $node_type ) = $self->_next_node;
 			###LogSD	$phone->talk( level => 'debug', message => [
 			###LogSD		"Received the result: $result", "..at depth: $node_depth",
 			###LogSD		"..and node named: $node_name", "..of node type: $node_type" ] );
@@ -227,7 +250,12 @@ sub advance_element_position{
 		}
 		last if !$result;
 		$x++;
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Successfully indexed -$x- times", ] );
 	}
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		"Successfully indexed forward a total -$position- times", ] );
+	
 	if( defined $node_type and $node_type == 0 ){
 		###LogSD	$phone->talk( level => 'info', message =>[ "Reached the end of the file!" ] );
 	}elsif( !$result ){
@@ -238,6 +266,8 @@ sub advance_element_position{
 		###LogSD		"Actually advanced -$x- positions with result: $result",
 		###LogSD		"..indicated by:", $self->location_status ] );
 	}
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		"returning result: " . ($result//'none'), ] );
 	return $result;
 }
 
@@ -246,8 +276,13 @@ sub location_status{
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
 	###LogSD			$self->get_all_space . '::XMLReader::location_status', );
 	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"Getting the status for the current position" ] );#, 
-	$self->get_node_all; # Fixes a phantom xml declaration added at the end of the reader without being in the file
+	###LogSD			"Getting the status for the current position" ] );#, , caller(0), caller(1), caller(2), caller(3)
+	eval '$self->get_node_all'; # Fixes a phantom xml declaration added at the end of the reader without being in the file
+	if( $@ ){
+		###LogSD	$phone->talk( level => 'warn', message => [
+		###LogSD		"Couldn't get the node because: " . $@ ] );#,
+		$self->set_error( $@ );
+	}
 	my ( $node_depth, $node_name, $node_type ) = ( $self->_node_depth, $self->_node_name, $self->_node_type );
 	$node_name	= 
 		( $node_type == 0 ) ? 'EOF' :
@@ -332,12 +367,13 @@ sub _start_xml_reader{
 		}else{
 			###LogSD	$phone->talk( level => 'debug', message =>[
 			###LogSD		'Initial read failed - clearing the reader' ], );
+			$self->set_error( $@ );
 			$xml_reader = undef;
 		}
 	}
 	if( !$xml_reader ){
 		###LogSD	$phone->talk( level => 'debug', message =>[ 'Not dead yet - setting error: ' . $@ ], );
-		$self->set_error( $@ );
+		$self->set_error( $@ ) if !$self->has_error;
 		$self->clear_file;
 		$self->clear_location;
 		###LogSD	$phone->talk( level => 'debug', message =>[ "location is cleared" ] );
@@ -370,7 +406,7 @@ sub _reader_init{
 	}
 	$xml_string .= '?>';
 	$self->_set_xml_header( $xml_string );
-	###LogSD	$phone->talk( level => 'debug', message => [ "Finished the base first pass - file initialization" ], );
+	###LogSD	$phone->talk( level => 'debug', message => [ "Finished the base first pass - file initialization", $xml_string ], );
 }
 
 sub _next_node{
@@ -385,6 +421,7 @@ sub _next_node{
 	if( !eval '$self->_read_next_node' ){
 		###LogSD	$phone->talk( level => 'debug', message => [
 		###LogSD		"found a node read error: $@",] );
+		#~ $self->set_error( $@ );
 		#~ my $fh = $self->get_file;
 		#~ $fh->seek(0,0);
 		#~ ###LogSD	$phone->talk( level => 'debug', message =>[ "got the file handle", $fh ] );

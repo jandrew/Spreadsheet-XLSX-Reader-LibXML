@@ -33,6 +33,16 @@ use	Data::Dumper;
 ###LogSD							UNBLOCK =>{
 ###LogSD								log_file => 'trace',
 ###LogSD							},
+###LogSD							build_class =>{
+###LogSD								UNBLOCK =>{
+###LogSD									log_file => 'warn',
+###LogSD								},
+###LogSD							},
+###LogSD							build_instance =>{
+###LogSD								UNBLOCK =>{
+###LogSD									log_file => 'warn',
+###LogSD								},
+###LogSD							},
 ###LogSD							main =>{
 ###LogSD								UNBLOCK =>{
 ###LogSD									log_file => 'info',
@@ -55,6 +65,8 @@ use	Spreadsheet::XLSX::Reader::LibXML::WorksheetToRow;
 use	Spreadsheet::XLSX::Reader::LibXML::Error;
 ###LogSD	use Log::Shiras::UnhideDebug;
 use	Spreadsheet::XLSX::Reader::LibXML::SharedStrings;
+use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::PositionSharedStrings;
+use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::PositionStyles;
 use	Spreadsheet::XLSX::Reader::LibXML::FmtDefault;
 use	Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings;
 use	Spreadsheet::XLSX::Reader::LibXML::FormatInterface;
@@ -79,7 +91,7 @@ my 			@class_attributes = qw(
 my  		@instance_methods = qw(
 				is_empty_the_end				start_the_file_over				advance_element_position
 				location_status					get_attribute_hash_ref			parse_element
-				has_shared_strings_interface	get_shared_string_position		get_empty_return_type
+				has_shared_strings_interface	get_shared_string				get_empty_return_type
 				get_values_only					grep_node						is_sheet_hidden
 				has_min_col						has_min_row						has_max_col
 				has_max_row
@@ -400,7 +412,7 @@ lives_ok{
 												predicate => 'has_shared_strings_interface',
 												writer => 'set_shared_strings_interface',
 												handles =>{
-													'get_shared_string_position' => 'get_shared_string_position',
+													'get_shared_string' => 'get_shared_string',
 													'start_the_ss_file_over' => 'start_the_file_over',
 												},
 											},
@@ -437,6 +449,7 @@ lives_ok{
 									package => 'SharedStrings',
 									add_roles_in_sequence => [
 										'Spreadsheet::XLSX::Reader::LibXML::XMLToPerlData',
+										'Spreadsheet::XLSX::Reader::LibXML::XMLReader::PositionSharedStrings',
 										'Spreadsheet::XLSX::Reader::LibXML::SharedStrings',
 									],
 			###LogSD				log_space=> 'Test',
@@ -466,6 +479,7 @@ lives_ok{
 								add_roles_in_sequence =>[ 
 									'Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow',
 									'Spreadsheet::XLSX::Reader::LibXML::XMLToPerlData',
+									'Spreadsheet::XLSX::Reader::LibXML::ZipReader::Worksheet',
 									'Spreadsheet::XLSX::Reader::LibXML::WorksheetToRow',
 								],
 			);
@@ -481,7 +495,7 @@ map{
 can_ok		$test_instance, $_,
 } 			@instance_methods;
 is			$test_instance->_min_row, 1,
-										"check that it knows what the lowest row number is";
+										"check that it knows what the lowest row number is";# exit 1;
 is			$test_instance->_min_col, 1,
 										"check that it knows what the lowest column number is";
 is			$test_instance->_max_row, undef,
@@ -497,16 +511,29 @@ explain									"Running cycle: $y";
 			my $x = 0;
 			while( !$result or $result ne 'EOF' ){
 				
-###LogSD	my $expose = 20; my $iteration = 1;
+###LogSD	my $expose = 12; my $iteration = 1;
 ###LogSD	if( $x == $expose and $y == $iteration ){
 ###LogSD		$operator->add_name_space_bounds( {
-#~ ###LogSD			Test =>{
-#~ ###LogSD				_get_next_value_cell =>{
+###LogSD			UNBLOCK =>{
+###LogSD				log_file => 'trace',
+###LogSD			},
+###LogSD			Test =>{
+###LogSD				XMLToPerlData =>{
 ###LogSD					UNBLOCK =>{
-###LogSD						log_file => 'trace',
+###LogSD						log_file => 'warn',
 ###LogSD					},
-#~ ###LogSD				},
-#~ ###LogSD			},
+###LogSD				},
+###LogSD				XMLReader =>{
+###LogSD					UNBLOCK =>{
+###LogSD						log_file => 'warn',
+###LogSD					},
+###LogSD				},
+###LogSD				SharedStringsInterface =>{
+###LogSD					UNBLOCK =>{
+###LogSD						log_file => 'warn',
+###LogSD					},
+###LogSD				},
+###LogSD			},
 ###LogSD		} );
 ###LogSD	}
 

@@ -11,6 +11,11 @@ be method matched to Spreadsheet::ParseExcel prior to the 1.0 release.
 
 {{$NEXT}}
 	
+	! Changed the test to return undef for undef values instead of failing over to the zero string (better matches Excel)
+	! Added a test and closes #91 in github
+	+ added a file attribute that will accept file names or file handles
+	- Depricated the file_handle and file_name attributes (removal on 1/1/2017)
+	- Changed the cached positions reader from get_cached_positions to cached_positions
 	+ Adds a 'max_file_caching' attribute
 		This setting will automatically turn off caching if it trys to read a file larger than a certain size
 		The goal here is to continue to run on super large files even though it will slow WAY down!

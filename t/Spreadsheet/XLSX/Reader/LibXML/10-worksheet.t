@@ -38,16 +38,22 @@ use	lib
 	;
 #~ use Log::Shiras::Switchboard qw( :debug );
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(#
-#~ ###LogSD						name_space_bounds =>{
-#~ ###LogSD							UNBLOCK =>{
-#~ ###LogSD								log_file => 'trace',
-#~ ###LogSD							},
-#~ ###LogSD							main =>{
-#~ ###LogSD								UNBLOCK =>{
-#~ ###LogSD									log_file => 'info',
+###LogSD						name_space_bounds =>{
+#~ ###LogSD							Test =>{
+#~ ###LogSD								ExcelFormatInterface =>{
+#~ ###LogSD									parse_excel_format_string =>{
+###LogSD										UNBLOCK =>{
+###LogSD											log_file => 'trace',
+###LogSD										},
+#~ ###LogSD									},
 #~ ###LogSD								},
 #~ ###LogSD							},
-#~ ###LogSD						},
+###LogSD							main =>{
+###LogSD								UNBLOCK =>{
+###LogSD									log_file => 'info',
+###LogSD								},
+###LogSD							},
+###LogSD						},
 ###LogSD						reports =>{
 ###LogSD							log_file =>[ Print::Log->new ],
 ###LogSD						},
@@ -67,6 +73,7 @@ use	Spreadsheet::XLSX::Reader::LibXML::Error;
 use	Spreadsheet::XLSX::Reader::LibXML::SharedStrings;
 ###LogSD	use Log::Shiras::UnhideDebug;
 use	Spreadsheet::XLSX::Reader::LibXML::FmtDefault;
+###LogSD	use Log::Shiras::UnhideDebug;
 use	Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings;
 use	Spreadsheet::XLSX::Reader::LibXML::FormatInterface;
 use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::PositionStyles;
@@ -372,12 +379,17 @@ lives_ok{
 												writer	=> 'set_from_the_edge',
 												default => 1,
 											},
+											file_type =>{
+												isa		=> Enum[ 'zip' ],
+												reader	=> '_get_workbook_file_type',
+												default => 'zip',
+											},
 											shared_strings_interface =>{
 												isa => ConsumerOf[ 'Spreadsheet::XLSX::Reader::LibXML::SharedStrings' ],
 												predicate => 'has_shared_strings_interface',
 												writer => 'set_shared_strings_interface',
 												handles =>{
-													'get_shared_string_position' => 'get_shared_string_position',
+													'get_shared_string' => 'get_shared_string',
 													'start_the_ss_file_over' => 'start_the_file_over',
 												},
 											},
@@ -425,6 +437,7 @@ lives_ok{
 									package => 'SharedStrings',
 									add_roles_in_sequence => [
 										'Spreadsheet::XLSX::Reader::LibXML::XMLToPerlData',
+										'Spreadsheet::XLSX::Reader::LibXML::XMLReader::PositionSharedStrings',
 										'Spreadsheet::XLSX::Reader::LibXML::SharedStrings',
 									],
 			###LogSD				log_space=> 'Test',
@@ -467,6 +480,7 @@ lives_ok{
 								add_roles_in_sequence =>[ 
 									'Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow',
 									'Spreadsheet::XLSX::Reader::LibXML::XMLToPerlData',
+									'Spreadsheet::XLSX::Reader::LibXML::ZipReader::Worksheet',
 									'Spreadsheet::XLSX::Reader::LibXML::WorksheetToRow',
 									'Spreadsheet::XLSX::Reader::LibXML::Worksheet',
 								],
@@ -501,12 +515,13 @@ is_deeply	[$test_instance->col_range], [0,undef],
 										"check for a correct column range";
 
 explain									"Test get_cell";
-#~ ###LogSD		$phone->talk( level => 'info', message => [ "hardest questions ..." ] );
-#~ ###LogSD		$operator->add_name_space_bounds( {
-#~ ###LogSD				UNBLOCK =>{
-#~ ###LogSD					log_file => 'trace',
-#~ ###LogSD				},
-#~ ###LogSD		} );
+###LogSD		$phone->talk( level => 'info', message => [ "hardest questions ..." ] );
+###LogSD		$operator->add_name_space_bounds( {
+###LogSD				UNBLOCK =>{
+###LogSD					log_file => 'trace',
+###LogSD				},
+###LogSD		} );
+#~ explain		$test_instance->parse_excel_format_string( 'General;' )->display_name; exit 1;
 explain		$test_instance->get_cell( 1, 0 )->row;
 is			$test_instance->get_cell( 1, 0 )->row, 1,
 										"Check that you can call the same cell twice";
@@ -520,7 +535,7 @@ is			$test_instance->get_cell( 1, 0 )->row, 1,
 			INITIALRUN: for my $row ( 0 .. 13 ) {
             for my $col ( 0 .. 6 ) {
 				
-###LogSD	my $expose_row = 20; my $expose_col = 4;
+###LogSD	my $expose_row = 3; my $expose_col = 2;
 ###LogSD	if( $row == $expose_row and $col == $expose_col ){
 ###LogSD		$operator->add_name_space_bounds( {
 #~ ###LogSD			Test =>{

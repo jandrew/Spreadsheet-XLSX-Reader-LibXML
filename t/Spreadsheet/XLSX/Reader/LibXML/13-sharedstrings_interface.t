@@ -73,7 +73,7 @@ my 			@class_attributes = qw(
 				cache_positions
 			);
 my  		@class_methods = qw(
-				get_shared_string_position		loaded_correctly			get_file
+				get_shared_string				loaded_correctly			get_file
 				set_file						has_file					clear_file
 				where_am_i						has_position
 			);
@@ -193,7 +193,7 @@ lives_ok{
 												predicate => 'has_shared_strings_interface',
 												writer => 'set_shared_strings_interface',
 												handles =>{
-													'get_shared_string_position' => 'get_shared_string_position',
+													'get_shared_string' => 'get_shared_string',
 													'start_the_ss_file_over' => 'start_the_file_over',
 												},
 											}
@@ -207,6 +207,7 @@ lives_ok{
 									superclasses	=> ['Spreadsheet::XLSX::Reader::LibXML::XMLReader'],
 									add_roles_in_sequence => [
 										'Spreadsheet::XLSX::Reader::LibXML::XMLToPerlData',
+										'Spreadsheet::XLSX::Reader::LibXML::XMLReader::PositionSharedStrings',
 										'Spreadsheet::XLSX::Reader::LibXML::SharedStrings',
 									],
 			###LogSD				log_space	=> 'Test',
@@ -245,14 +246,14 @@ is			$test_instance->encoding, $answer_ref->[$answer_row++],
 ###LogSD	elsif( $x > $trigger + 1 ){
 ###LogSD		exit 1;
 ###LogSD	}
-			#~ print "position -$answer_ref->[$x]->[0]- " .Dumper( $test_instance->get_shared_string_position( $answer_ref->[$x]->[0] ) );
-is_deeply	$test_instance->get_shared_string_position( $answer_ref->[$x]->[0] ), $answer_ref->[$x]->[1],
+			#~ print "position -$answer_ref->[$x]->[0]- " .Dumper( $test_instance->get_shared_string( $answer_ref->[$x]->[0] ) );
+is_deeply	$test_instance->get_shared_string( $answer_ref->[$x]->[0] ), $answer_ref->[$x]->[1],
 										"Get the sharedStrings 'si' position -$answer_ref->[$x]->[0]- as:" . Dumper( $answer_ref->[$x]->[1] );
 			}
-lives_ok{	$capture = $test_instance->get_shared_string_position( 20 ); 
+lives_ok{	$capture = $test_instance->get_shared_string( 20 ); 
 }										"Attempt an element past the end of the list";
 is		$capture, undef,				'Make sure it returns undef';
-lives_ok{	$capture = $test_instance->get_shared_string_position( 16 ); 
+lives_ok{	$capture = $test_instance->get_shared_string( 16 ); 
 }										"Attempt a different element past the end of the list";
 ###LogSD		$operator->add_name_space_bounds( {
 ###LogSD			UNBLOCK =>{
@@ -288,13 +289,13 @@ is			$test_instance->encoding, $answer_ref->[$answer_row++],
 ###LogSD	elsif( $x > $trigger + 1 ){
 ###LogSD		exit 1;
 ###LogSD	}
-is_deeply	$test_instance->get_shared_string_position( $answer_ref->[$x]->[0] ), $answer_ref->[$x]->[1],
+is_deeply	$test_instance->get_shared_string( $answer_ref->[$x]->[0] ), $answer_ref->[$x]->[1],
 										"Get the -$answer_ref->[$x]->[0]- sharedStrings 'si' position as:" . Dumper( $answer_ref->[$x]->[1] );
 			}
-lives_ok{	$capture = $test_instance->get_shared_string_position( 20 ); 
+lives_ok{	$capture = $test_instance->get_shared_string( 20 ); 
 }										"Attempt an element past the end of the list";
 is		$capture, undef,				'Make sure it returns undef';
-lives_ok{	$capture = $test_instance->get_shared_string_position( 16 ); 
+lives_ok{	$capture = $test_instance->get_shared_string( 16 ); 
 }										"Attempt a different element past the end of the list";
 is		$capture, undef,				'Make sure it returns undef';
 ###LogSD		$phone->talk( level => 'info', message => [ "Rerun the whole as values only" ] );
@@ -316,14 +317,14 @@ lives_ok{
 
 ###LogSD		$phone->talk( level => 'trace', message => [ "The instance", $test_instance ] );
 			for my $x ( 15..27 ){
-is_deeply	$test_instance->get_shared_string_position( $answer_ref->[$x]->[0] ), $answer_ref->[$x]->[1],
+is_deeply	$test_instance->get_shared_string( $answer_ref->[$x]->[0] ), $answer_ref->[$x]->[1],
 										"Get the -$answer_ref->[$x]->[0]- sharedStrings 'si' position as:" . $answer_ref->[$x]->[1];
 ###LogSD		$phone->talk( level => 'trace', message => [ "The instance", $test_instance ] );
 			}
-lives_ok{	$capture = $test_instance->get_shared_string_position( 20 ); 
+lives_ok{	$capture = $test_instance->get_shared_string( 20 ); 
 }										"Attempt an element past the end of the list";
 is		$capture, undef,				'Make sure it returns undef';
-lives_ok{	$capture = $test_instance->get_shared_string_position( 16 ); 
+lives_ok{	$capture = $test_instance->get_shared_string( 16 ); 
 }										"Attempt a different element past the end of the list";
 is		$capture, undef,				'Make sure it returns undef';
 explain 								"...Test Done";

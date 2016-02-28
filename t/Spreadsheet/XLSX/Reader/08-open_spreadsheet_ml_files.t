@@ -19,7 +19,7 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 135;
+use	Test::Most tests => 75;
 use	Test::Moose;
 use Data::Dumper;
 use	lib	'../../../../../Log-Shiras/lib',
@@ -27,139 +27,119 @@ use	lib	'../../../../../Log-Shiras/lib',
 		$lib,
 	;
 use MooseX::ShortCut::BuildInstance;
-use Log::Shiras::Switchboard v0.21 qw( :debug );#5
+#~ use Log::Shiras::Switchboard v0.21 qw( :debug );#5
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(
-###LogSD						name_space_bounds =>{
-###LogSD							UNBLOCK =>{
-###LogSD								log_file => 'trace',
-###LogSD							},
-###LogSD							build_instance =>{
-###LogSD								UNBLOCK =>{
-###LogSD									log_file => 'warn',
-###LogSD								},
-###LogSD							},
-###LogSD							build_class =>{
-###LogSD								UNBLOCK =>{
-###LogSD									log_file => 'warn',
-###LogSD								},
-###LogSD							},
-###LogSD							Test =>{
-###LogSD								WorkbookFileInterface =>{
-###LogSD									_hidden =>{
-###LogSD										_load_unique_bits =>{
-###LogSD											UNBLOCK =>{
-###LogSD												log_file => 'trace',
-###LogSD											},
-###LogSD										},
-###LogSD										_perl_ref_to_xml =>{
-###LogSD											UNBLOCK =>{
-###LogSD												log_file => 'warn',
-###LogSD											},
-###LogSD										},
-###LogSD										_ref_to_string =>{
-###LogSD											UNBLOCK =>{
-###LogSD												log_file => 'warn',
-###LogSD											},
-###LogSD										},
-###LogSD									},
-###LogSD									parse_element =>{
-###LogSD										UNBLOCK =>{
-###LogSD											log_file => 'warn',
-###LogSD										},
-###LogSD									},
-###LogSD									XMLReader =>{
-###LogSD										UNBLOCK =>{
-###LogSD											log_file => 'warn',
-###LogSD										},
-###LogSD									},
-###LogSD								},
-###LogSD								WorkbookMetaInterface =>{
-###LogSD									_load_unique_bits =>{
-###LogSD										UNBLOCK =>{
-###LogSD											log_file => 'warn',
-###LogSD										},
-###LogSD									},
-###LogSD									parse_element =>{
-###LogSD										UNBLOCK =>{
-###LogSD											log_file => 'warn',
-###LogSD										},
-###LogSD									},
-###LogSD									XMLReader =>{
-###LogSD										UNBLOCK =>{
-###LogSD											log_file => 'warn',
-###LogSD										},
-###LogSD									},
-###LogSD								},
-###LogSD								WorkbookRelsInterface =>{
-###LogSD									_load_unique_bits =>{
-###LogSD										UNBLOCK =>{
-###LogSD											log_file => 'warn',
-###LogSD										},
-###LogSD									},
-###LogSD									parse_element =>{
-###LogSD										UNBLOCK =>{
-###LogSD											log_file => 'warn',
-###LogSD										},
-###LogSD									},
-###LogSD									XMLReader =>{
-###LogSD										UNBLOCK =>{
-###LogSD											log_file => 'warn',
-###LogSD										},
-###LogSD									},
-###LogSD								},
-###LogSD								WorkbookPropsInterface =>{
-###LogSD									_load_unique_bits =>{
-###LogSD										UNBLOCK =>{
-###LogSD											log_file => 'warn',
-###LogSD										},
-###LogSD									},
-###LogSD									parse_element =>{
-###LogSD										UNBLOCK =>{
-###LogSD											log_file => 'warn',
-###LogSD										},
-###LogSD									},
-###LogSD									XMLReader =>{
-###LogSD										UNBLOCK =>{
-###LogSD											log_file => 'warn',
-###LogSD										},
-###LogSD									},
-###LogSD								},
-###LogSD								Workbook =>{
-###LogSD									_hidden =>{
-###LogSD										BUILDARGS =>{
-###LogSD											UNBLOCK =>{
-###LogSD												log_file => 'warn',
-###LogSD											},
-###LogSD										},
-###LogSD										BUILD =>{
-###LogSD											UNBLOCK =>{
-###LogSD												log_file => 'warn',
-###LogSD											},
-###LogSD										},
-###LogSD										set_formatter_inst =>{
-###LogSD											UNBLOCK =>{
-###LogSD												log_file => 'warn',
-###LogSD											},
-###LogSD										},
-###LogSD										_build_file_interface =>{
-###LogSD											UNBLOCK =>{
-###LogSD												log_file => 'debug',
-###LogSD											},
-###LogSD										},
-###LogSD										_build_interface =>{
-###LogSD											UNBLOCK =>{
-###LogSD												log_file => 'debug',
-###LogSD											},
-###LogSD										},
-###LogSD										_build_workbook =>{
-###LogSD											UNBLOCK =>{
-###LogSD												log_file => 'debug',
-###LogSD											},
-###LogSD										},
-###LogSD									},
-###LogSD								},
-###LogSD							},
-###LogSD						},
+#~ ###LogSD						name_space_bounds =>{
+#~ ###LogSD							UNBLOCK =>{
+#~ ###LogSD								log_file => 'trace',
+#~ ###LogSD							},
+#~ ###LogSD							build_instance =>{
+#~ ###LogSD								UNBLOCK =>{
+#~ ###LogSD									log_file => 'warn',
+#~ ###LogSD								},
+#~ ###LogSD							},
+#~ ###LogSD							build_class =>{
+#~ ###LogSD								UNBLOCK =>{
+#~ ###LogSD									log_file => 'warn',
+#~ ###LogSD								},
+#~ ###LogSD							},
+#~ ###LogSD							Test =>{
+#~ ###LogSD									UNBLOCK =>{
+#~ ###LogSD										log_file => 'warn',
+#~ ###LogSD									},
+#~ ###LogSD								Worksheet =>{
+#~ ###LogSD									UNBLOCK =>{
+#~ ###LogSD										log_file => 'warn',
+#~ ###LogSD									},
+#~ ###LogSD									_hidden =>{
+#~ ###LogSD										UNBLOCK =>{
+#~ ###LogSD											log_file => 'warn',
+#~ ###LogSD										},
+#~ ###LogSD									},
+#~ ###LogSD									WorksheetToRow =>{
+#~ ###LogSD										UNBLOCK =>{
+#~ ###LogSD											log_file => 'warn',
+#~ ###LogSD										},
+#~ ###LogSD									},
+#~ ###LogSD									XMLReader =>{
+#~ ###LogSD										advance_element_position =>{
+#~ ###LogSD											UNBLOCK =>{
+#~ ###LogSD												log_file => 'warn',
+#~ ###LogSD											},
+#~ ###LogSD										},
+#~ ###LogSD										location_status =>{
+#~ ###LogSD											UNBLOCK =>{
+#~ ###LogSD												log_file => 'warn',
+#~ ###LogSD											},
+#~ ###LogSD										},
+#~ ###LogSD										get_attribute_hash_ref =>{
+#~ ###LogSD											UNBLOCK =>{
+#~ ###LogSD												log_file => 'warn',
+#~ ###LogSD											},
+#~ ###LogSD										},
+#~ ###LogSD									},
+#~ ###LogSD									XMLToPerlData =>{
+#~ ###LogSD										UNBLOCK =>{
+#~ ###LogSD											log_file => 'warn',
+#~ ###LogSD										},
+#~ ###LogSD									},
+#~ ###LogSD								},
+#~ ###LogSD								Workbook =>{
+#~ ###LogSD									worksheet =>{
+#~ ###LogSD										UNBLOCK =>{
+#~ ###LogSD											log_file => 'warn',
+#~ ###LogSD										},
+#~ ###LogSD									},
+#~ ###LogSD									_hidden =>{
+#~ ###LogSD										_build_file_interface =>{
+#~ ###LogSD											UNBLOCK =>{
+#~ ###LogSD												log_file => 'warn',
+#~ ###LogSD											},
+#~ ###LogSD										},
+#~ ###LogSD									},
+#~ ###LogSD								},
+#~ ###LogSD								WorkbookFileInterface =>{
+#~ ###LogSD									UNBLOCK =>{
+#~ ###LogSD										log_file => 'warn',
+#~ ###LogSD									},
+#~ ###LogSD									XMLReader =>{
+#~ ###LogSD										UNBLOCK =>{
+#~ ###LogSD											log_file => 'warn',
+#~ ###LogSD										},
+#~ ###LogSD									},
+#~ ###LogSD								},
+#~ ###LogSD								WorkbookMetaInterface =>{
+#~ ###LogSD									UNBLOCK =>{
+#~ ###LogSD										log_file => 'warn',
+#~ ###LogSD									},
+#~ ###LogSD								},
+#~ ###LogSD								WorkbookRelsInterface =>{
+#~ ###LogSD									UNBLOCK =>{
+#~ ###LogSD										log_file => 'warn',
+#~ ###LogSD									},
+#~ ###LogSD								},
+#~ ###LogSD								WorkbookPropsInterface =>{
+#~ ###LogSD									UNBLOCK =>{
+#~ ###LogSD										log_file => 'warn',
+#~ ###LogSD									},
+#~ ###LogSD								},
+#~ ###LogSD								StylesInterface =>{
+#~ ###LogSD									UNBLOCK =>{
+#~ ###LogSD										log_file => 'warn',
+#~ ###LogSD									},
+#~ ###LogSD								},
+#~ ###LogSD								SharedStringsInterface =>{
+#~ ###LogSD									UNBLOCK =>{
+#~ ###LogSD										log_file => 'warn',
+#~ ###LogSD									},
+#~ ###LogSD								},
+#~ ###LogSD								ExcelFormatInterface =>{
+#~ ###LogSD									UNBLOCK =>{
+#~ ###LogSD										log_file => 'warn',
+#~ ###LogSD									},
+#~ ###LogSD								},
+#~ ###LogSD							},
+#~ ###LogSD						},
 ###LogSD						reports =>{
 ###LogSD							log_file =>[ Print::Log->new ],
 ###LogSD						},
@@ -169,8 +149,8 @@ use Log::Shiras::Switchboard v0.21 qw( :debug );#5
 use Spreadsheet::XLSX::Reader::LibXML;
 $test_file = ( @ARGV ) ? $ARGV[0] : $test_file;
 $bad_file = $test_file . 'xls_test.xml';
-#~ $test_file .= 'MySQL.xml';
-$test_file .= 'result.xml';
+#~ $test_file .= 'TestBook.xml';
+$test_file .= 'TestBook.xml';
 my  ( 
 		$error_instance, $parser, $workbook, $row_ref,
 	);
@@ -198,61 +178,19 @@ my	$answer_ref = [
 		[],
 		[undef,undef,'World'],
 		[],
-		['Hello World',undef],
+		['Hello World'],
 		[undef,'69'],
 		[undef,'27',undef,undef,'12-Sep-05'],
 		[undef,'42'],
 		[undef,undef,undef,' ','2/6/2011','6-Feb-11',],
 		['2.13'],
-		[undef,undef,undef,'6-Feb-11',undef],
+		[undef,undef,undef,'6-Feb-11'],
 		[],
 		[undef,undef,' ','39118','6-Feb-11'],
 		'EOF',
 	];
-my 			@class_attributes = qw(
-				error_inst					file_name					file_handle
-				sheet_parser				count_from_zero				file_boundary_flags
-				empty_is_end				from_the_edge				values_only
-				group_return_type			formatter_inst				empty_return_type
-				cache_positions
-			);
-my  		@class_methods = qw(
-				new							import						parse
-				worksheet					worksheets					get_error_inst
-				has_error_inst				error						set_error
-				clear_error					set_warnings				if_warn
-				should_spew_longmess		spewing_longmess			set_formatter_inst
-				get_formatter_inst			get_formatter_region		has_target_encoding
-				get_target_encoding			set_target_encoding			change_output_encoding
-				set_defined_excel_formats	get_defined_conversion		parse_excel_format_string		parse_excel_format_string
-				set_date_behavior			set_european_first			set_formatter_cache_behavior
-				set_file_name				has_file_name				file_name
-				set_file_handle				has_file_handle				file_handle
-				set_parser_type				get_parser_type				counting_from_zero
-				set_count_from_zero			boundary_flag_setting		change_boundary_flag
-				set_empty_is_end			is_empty_the_end			set_values_only
-				get_values_only				set_from_the_edge			get_group_return_type
-				set_group_return_type		get_empty_return_type		set_empty_return_type
-				get_cache_positions			creator						modified_by		
-				date_created				date_modified				get_shared_string_position
-				get_format_position			get_worksheet_names			worksheet_name
-				worksheet_count				get_chartsheet_names		chartsheet_name
-				chartsheet_count			get_sheet_names				get_sheet_name
-				sheet_count					start_at_the_beginning		in_the_list
-				get_epoch_year				has_epoch_year				get_excel_region
-			);
 ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space => 'main', );
-###LogSD		$phone->talk( level => 'info', message => [ "easy questions ..." ] );
-map{ 
-has_attribute_ok
-			'Spreadsheet::XLSX::Reader::LibXML', $_,
-										"Check that Spreadsheet::XLSX::Reader::LibXML has the -$_- attribute"
-} 			@class_attributes;
-map{
-can_ok		'Spreadsheet::XLSX::Reader::LibXML', $_,
-} 			@class_methods;
-
-###LogSD		$phone->talk( level => 'info', message => [ "harder questions ..." ] );
+###LogSD		$phone->talk( level => 'info', message => [ "start testing ..." ] );
 lives_ok{
 			$parser =	Spreadsheet::XLSX::Reader::LibXML->new(
 							count_from_zero		=> 0,
@@ -277,7 +215,7 @@ is			$workbook,	undef,			"Test that there is no workbook";
 			$workbook = $parser->parse( $test_file );
 #~ }										"Attempt to unzip the file and prepare to read data";
 			#~ print Dumper( $workbook );
-			if ( !defined $workbook or !$workbook->has_file_handle ) {
+			if ( !defined $workbook or !$workbook->file_opened ) {
 				# the test version of "die $parser->error()";
 is			$parser->error(), 'Workbook failed to load',
 										"Write any error messages from the file load";
@@ -287,23 +225,29 @@ ok			1,							"The file unzipped and the parser set up without issues";
 
 			my	$offset_ref = [ 0, 9, 17 ];
 			my	$y = 0;
-###LogSD	my	$test_position = 20;
-###LogSD	my	$test_worksheet = 'Sheet2';
+###LogSD	my	$test_position = 3;
+###LogSD	my	$test_worksheet = 'Sheet5';
 ###LogSD	my	$show_worksheet_build = 0;
 ###LogSD	if( $show_worksheet_build ){
 ###LogSD	$operator->add_name_space_bounds( {
 ###LogSD			Test =>{
-###LogSD				ExcelFmtDefault =>{
-###LogSD					_build_datestring =>{
+###LogSD				Workbook =>{
+###LogSD					worksheet =>{
 ###LogSD						UNBLOCK =>{
-###LogSD							log_file => 'debug',
+###LogSD							log_file => 'trace',
 ###LogSD						},
 ###LogSD					},
 ###LogSD				},
+#~ ###LogSD				WorkbookFileInterface =>{
+#~ ###LogSD					UNBLOCK =>{
+#~ ###LogSD						log_file => 'trace',
+#~ ###LogSD					},
+#~ ###LogSD				},
 ###LogSD			},
 ###LogSD	}, );
 ###LogSD	}
 			for my $worksheet ( $workbook->worksheets() ) {
+			#~ my	$worksheet = $workbook->worksheet( 'Sheet1' );
 			my	$worksheet_name = $worksheet->get_name;
 explain		'testing worksheet: ' . $worksheet_name;
 				$row_ref = undef;
@@ -315,12 +259,18 @@ is			$worksheet->is_sheet_hidden, $answer_ref->[$offset_ref->[$y] + $x],
 ###LogSD	if( $worksheet_name eq $test_worksheet and $x == $test_position ){
 ###LogSD		$operator->add_name_space_bounds( {
 ###LogSD			Test =>{
-###LogSD				ExcelFmtDefault =>{
-###LogSD					hidden =>{
-###LogSD						_build_datestring =>{
-###LogSD							UNBLOCK =>{
-###LogSD								log_file => 'debug',
-###LogSD							},
+###LogSD				UNBLOCK =>{
+###LogSD					log_file => 'trace',
+###LogSD				},
+###LogSD				Worksheet =>{
+###LogSD					XMLReader =>{
+###LogSD						UNBLOCK =>{
+###LogSD							log_file => 'warn',
+###LogSD						},
+###LogSD					},
+###LogSD					XMLToPerlData =>{
+###LogSD						UNBLOCK =>{
+###LogSD							log_file => 'warn',
 ###LogSD						},
 ###LogSD					},
 ###LogSD				},
@@ -383,6 +333,18 @@ ok			my $worksheet = $workbook->worksheet( 'Sheet1' ),
 ###LogSD						},
 #~ ###LogSD					},
 #~ ###LogSD				},
+###LogSD				Worksheet =>{
+###LogSD					XMLReader =>{
+###LogSD						UNBLOCK =>{
+###LogSD							log_file => 'warn',
+###LogSD						},
+###LogSD					},
+###LogSD					XMLToPerlData =>{
+###LogSD						UNBLOCK =>{
+###LogSD							log_file => 'trace',
+###LogSD						},
+###LogSD					},
+###LogSD				},
 ###LogSD			},
 ###LogSD	}, );
 is_deeply	$worksheet->fetchrow_arrayref( 13 ), $answer_ref->[31],
@@ -394,7 +356,7 @@ is_deeply	$worksheet->fetchrow_arrayref( ), $answer_ref->[30],
 ###LogSD	exit 1;
 is			$workbook->parse( 'badfile.not' ), undef,
 										"Check that a bad file will not load";
-like		$workbook->error, qr/Attribute \(file_name\) does not pass the type constraint because: The string \-badfile\.not\- does not have an xlsx file extension/,
+like		$workbook->error, qr/Value "badfile\.not" did not pass type constraint "IOFileType"/,
 										"Confirm that the correct error is passed";
 explain 								"...Test Done";
 done_testing();

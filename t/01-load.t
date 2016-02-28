@@ -41,10 +41,10 @@ BEGIN{ use_ok( Spreadsheet::XLSX::Reader::LibXML::WorkbookRelsInterface, 0.040 )
 BEGIN{ use_ok( Spreadsheet::XLSX::Reader::LibXML::Worksheet, 0.040 ) };
 BEGIN{ use_ok( Spreadsheet::XLSX::Reader::LibXML::WorksheetToRow, 0.040 ) };
 BEGIN{ use_ok( Spreadsheet::XLSX::Reader::LibXML::XMLReader, 0.040 ) };
-BEGIN{ use_ok( Spreadsheet::XLSX::Reader::LibXML::XMLToPerlData, 0.040 ) };
 BEGIN{ use_ok( Spreadsheet::XLSX::Reader::LibXML::XMLReader::ExtractFile, 0.040 ) };
 BEGIN{ use_ok( Spreadsheet::XLSX::Reader::LibXML::XMLReader::NamedStyles, 0.040 ) };
 BEGIN{ use_ok( Spreadsheet::XLSX::Reader::LibXML::XMLReader::PositionStyles, 0.040 ) };
+BEGIN{ use_ok( Spreadsheet::XLSX::Reader::LibXML::XMLToPerlData, 0.040 ) };
 BEGIN{ use_ok( Spreadsheet::XLSX::Reader::LibXML::ZipReader, 0.040 ) };
 BEGIN{ use_ok( Spreadsheet::XLSX::Reader::LibXML::ZipReader::ExtractFile, 0.040 ) };
 BEGIN{ use_ok( Spreadsheet::XLSX::Reader::LibXML, 0.040 ) };

@@ -2,7 +2,7 @@
 #!/usr/bin/env perl
 my ( $lib, $test_file );
 BEGIN{
-	$SIG{__DIE__} = sub { require Carp; Carp::confess(@_) };
+	#~ $SIG{__DIE__} = sub { require Carp; Carp::confess(@_) };
 	$ENV{PERL_TYPE_TINY_XS} = 0;
 	my	$start_deeper = 1;
 	$lib		= 'lib';
@@ -42,30 +42,30 @@ use	lib	'../../../../../Log-Shiras/lib',
 ###LogSD								},
 ###LogSD							},
 ###LogSD							UNBLOCK =>{
-###LogSD								log_file => 'trace',
+###LogSD								log_file => 'warn',
 ###LogSD							},
 ###LogSD							Test =>{
-###LogSD								hidden =>{
-###LogSD									UNBLOCK =>{
-###LogSD										log_file => 'warn',
-###LogSD									},
-###LogSD								},
-###LogSD								ExcelFormatInterface =>{
-###LogSD									UNBLOCK =>{
-###LogSD										log_file => 'warn',
-###LogSD									},
-###LogSD								},
-###LogSD								WorkbookFileInterface =>{
-###LogSD									UNBLOCK =>{
-###LogSD										log_file => 'warn',
-###LogSD									},
-###LogSD								},
+#~ ###LogSD								hidden =>{
+#~ ###LogSD									UNBLOCK =>{
+#~ ###LogSD										log_file => 'debug',
+#~ ###LogSD									},
+#~ ###LogSD								},
+#~ ###LogSD								ExcelFormatInterface =>{
+#~ ###LogSD									UNBLOCK =>{
+#~ ###LogSD										log_file => 'warn',
+#~ ###LogSD									},
+#~ ###LogSD								},
+#~ ###LogSD								WorkbookFileInterface =>{
+#~ ###LogSD									UNBLOCK =>{
+#~ ###LogSD										log_file => 'warn',
+#~ ###LogSD									},
+#~ ###LogSD								},
 ###LogSD								WorkbookMetaInterface =>{
-###LogSD									_load_unique_bits =>{
+#~ ###LogSD									_load_unique_bits =>{
 ###LogSD										UNBLOCK =>{
-###LogSD											log_file => 'warn',
+###LogSD											log_file => 'trace',
 ###LogSD										},
-###LogSD									},
+#~ ###LogSD									},
 ###LogSD									XMLToPerlData =>{
 ###LogSD										UNBLOCK =>{
 ###LogSD											log_file => 'warn',
@@ -83,91 +83,104 @@ use	lib	'../../../../../Log-Shiras/lib',
 ###LogSD											log_file => 'warn',
 ###LogSD										},
 ###LogSD									},
-###LogSD								},
-###LogSD								WorkbookRelsInterface =>{
-###LogSD									_load_unique_bits =>{
-###LogSD										UNBLOCK =>{
-###LogSD											log_file => 'warn',
-###LogSD										},
-###LogSD									},
-###LogSD									XMLToPerlData =>{
-###LogSD										UNBLOCK =>{
-###LogSD											log_file => 'warn',
-###LogSD										},
-###LogSD									},
-###LogSD									XMLReader =>{
-###LogSD										UNBLOCK =>{
-###LogSD											log_file => 'warn',
-###LogSD										},
-###LogSD									},
-###LogSD								},
-###LogSD								WorkbookPropsInterface =>{
-###LogSD									_load_unique_bits =>{
-###LogSD										UNBLOCK =>{
-###LogSD											log_file => 'warn',
-###LogSD										},
-###LogSD									},
-###LogSD									XMLToPerlData =>{
-###LogSD										UNBLOCK =>{
-###LogSD											log_file => 'warn',
-###LogSD										},
-###LogSD									},
-###LogSD									XMLReader =>{
-###LogSD										UNBLOCK =>{
-###LogSD											log_file => 'warn',
-###LogSD										},
-###LogSD									},
-###LogSD								},
-###LogSD								SharedStringsInterface =>{
-###LogSD									get_shared_string_position =>{
-###LogSD										UNBLOCK =>{
-###LogSD											log_file => 'debug',
-###LogSD										},
-###LogSD									},
-###LogSD									_load_unique_bits =>{
-###LogSD										UNBLOCK =>{
-###LogSD											log_file => 'warn',
-###LogSD										},
-###LogSD									},
-###LogSD									XMLToPerlData =>{
-###LogSD										UNBLOCK =>{
-###LogSD											log_file => 'warn',
-###LogSD										},
-###LogSD									},
-###LogSD									XMLReader =>{
-###LogSD										UNBLOCK =>{
-###LogSD											log_file => 'warn',
-###LogSD										},
-###LogSD									},
-###LogSD								},
-###LogSD								StylesInterface =>{
-###LogSD									_load_unique_bits =>{
-###LogSD										UNBLOCK =>{
-###LogSD											log_file => 'warn',
-###LogSD										},
-###LogSD									},
-###LogSD									get_format_position =>{
-###LogSD										UNBLOCK =>{
-###LogSD											log_file => 'warn',
-###LogSD										},
-###LogSD									},
-###LogSD									_build_perl_node_from_xml_perl =>{
-###LogSD										UNBLOCK =>{
-###LogSD											log_file => 'warn',
-###LogSD										},
-###LogSD									},
-###LogSD									XMLToPerlData =>{
-###LogSD										UNBLOCK =>{
-###LogSD											log_file => 'warn',
-###LogSD										},
-###LogSD									},
-###LogSD									XMLReader =>{
-###LogSD										UNBLOCK =>{
-###LogSD											log_file => 'warn',
-###LogSD										},
-###LogSD									},
+#~ ###LogSD								},
+#~ ###LogSD								WorkbookRelsInterface =>{
+#~ ###LogSD									_load_unique_bits =>{
+#~ ###LogSD										UNBLOCK =>{
+#~ ###LogSD											log_file => 'warn',
+#~ ###LogSD										},
+#~ ###LogSD									},
+#~ ###LogSD									XMLToPerlData =>{
+#~ ###LogSD										UNBLOCK =>{
+#~ ###LogSD											log_file => 'warn',
+#~ ###LogSD										},
+#~ ###LogSD									},
+#~ ###LogSD									XMLReader =>{
+#~ ###LogSD										UNBLOCK =>{
+#~ ###LogSD											log_file => 'warn',
+#~ ###LogSD										},
+#~ ###LogSD									},
+#~ ###LogSD								},
+#~ ###LogSD								WorkbookPropsInterface =>{
+#~ ###LogSD									_load_unique_bits =>{
+#~ ###LogSD										UNBLOCK =>{
+#~ ###LogSD											log_file => 'warn',
+#~ ###LogSD										},
+#~ ###LogSD									},
+#~ ###LogSD									XMLToPerlData =>{
+#~ ###LogSD										UNBLOCK =>{
+#~ ###LogSD											log_file => 'warn',
+#~ ###LogSD										},
+#~ ###LogSD									},
+#~ ###LogSD									XMLReader =>{
+#~ ###LogSD										UNBLOCK =>{
+#~ ###LogSD											log_file => 'warn',
+#~ ###LogSD										},
+#~ ###LogSD									},
+#~ ###LogSD								},
+#~ ###LogSD								SharedStringsInterface =>{
+#~ ###LogSD									get_shared_string_position =>{
+#~ ###LogSD										UNBLOCK =>{
+#~ ###LogSD											log_file => 'warn',
+#~ ###LogSD										},
+#~ ###LogSD									},
+#~ ###LogSD									_load_unique_bits =>{
+#~ ###LogSD										UNBLOCK =>{
+#~ ###LogSD											log_file => 'trace',
+#~ ###LogSD										},
+#~ ###LogSD									},
+#~ ###LogSD									XMLToPerlData =>{
+#~ ###LogSD										UNBLOCK =>{
+#~ ###LogSD											log_file => 'warn',
+#~ ###LogSD										},
+#~ ###LogSD									},
+#~ ###LogSD									XMLReader =>{
+#~ ###LogSD										UNBLOCK =>{
+#~ ###LogSD											log_file => 'warn',
+#~ ###LogSD										},
+#~ ###LogSD									},
+#~ ###LogSD								},
+#~ ###LogSD								StylesInterface =>{
+#~ ###LogSD									_load_unique_bits =>{
+#~ ###LogSD										UNBLOCK =>{
+#~ ###LogSD											log_file => 'warn',
+#~ ###LogSD										},
+#~ ###LogSD									},
+#~ ###LogSD									get_format_position =>{
+#~ ###LogSD										UNBLOCK =>{
+#~ ###LogSD											log_file => 'warn',
+#~ ###LogSD										},
+#~ ###LogSD									},
+#~ ###LogSD									_build_perl_node_from_xml_perl =>{
+#~ ###LogSD										UNBLOCK =>{
+#~ ###LogSD											log_file => 'warn',
+#~ ###LogSD										},
+#~ ###LogSD									},
+#~ ###LogSD									XMLToPerlData =>{
+#~ ###LogSD										UNBLOCK =>{
+#~ ###LogSD											log_file => 'warn',
+#~ ###LogSD										},
+#~ ###LogSD									},
+#~ ###LogSD									XMLReader =>{
+#~ ###LogSD										UNBLOCK =>{
+#~ ###LogSD											log_file => 'warn',
+#~ ###LogSD										},
+#~ ###LogSD									},
 ###LogSD								},
 ###LogSD								Workbook =>{
+###LogSD											UNBLOCK =>{
+###LogSD												log_file => 'info',
+###LogSD											},
+###LogSD									worksheet =>{
+###LogSD										UNBLOCK =>{
+###LogSD											log_file => 'trace',
+###LogSD										},
+###LogSD									},
+###LogSD									worksheets =>{
+###LogSD										UNBLOCK =>{
+###LogSD											log_file => 'trace',
+###LogSD										},
+###LogSD									},
 ###LogSD									_hidden =>{
 ###LogSD										BUILDARGS =>{
 ###LogSD											UNBLOCK =>{
@@ -186,30 +199,25 @@ use	lib	'../../../../../Log-Shiras/lib',
 ###LogSD										},
 ###LogSD										_build_file_interface =>{
 ###LogSD											UNBLOCK =>{
-###LogSD												log_file => 'debug',
+###LogSD												log_file => 'trace',
 ###LogSD											},
 ###LogSD										},
 ###LogSD										_build_workbook =>{
 ###LogSD											UNBLOCK =>{
-###LogSD												log_file => 'debug',
+###LogSD												log_file => 'warn',
 ###LogSD											},
 ###LogSD										},
-###LogSD									},
-###LogSD									worksheet =>{
-###LogSD										UNBLOCK =>{
-###LogSD											log_file => 'debug',
-###LogSD										},
-###LogSD									},
-###LogSD									worksheets =>{
-###LogSD										UNBLOCK =>{
-###LogSD											log_file => 'debug',
+###LogSD										_load_meta_data =>{
+###LogSD											UNBLOCK =>{
+###LogSD												log_file => 'warn',
+###LogSD											},
 ###LogSD										},
 ###LogSD									},
 ###LogSD								},
 ###LogSD								Worksheet =>{
 ###LogSD									_load_unique_bits =>{
 ###LogSD										UNBLOCK =>{
-###LogSD											log_file => 'warn',
+###LogSD											log_file => 'trace',
 ###LogSD										},
 ###LogSD									},
 ###LogSD									_hidden =>{
@@ -324,8 +332,8 @@ my  		@class_methods = qw(
 				set_empty_is_end			is_empty_the_end			set_values_only
 				get_values_only				set_from_the_edge			get_group_return_type
 				set_group_return_type		get_empty_return_type		set_empty_return_type
-				get_cache_positions			creator						modified_by		
-				date_created				date_modified				get_shared_string_position
+				cache_positions				creator						modified_by		
+				date_created				date_modified				get_shared_string
 				get_format					get_worksheet_names			worksheet_name
 				worksheet_count				get_chartsheet_names		chartsheet_name
 				chartsheet_count			get_sheet_names				get_sheet_name
@@ -368,7 +376,7 @@ ok			1,							"The file unzipped and the parser set up without issues";
 
 			my	$offset_ref = [ 0, 9, 17 ];
 			my	$y = 0;
-###LogSD	my	$test_position = 100;
+###LogSD	my	$test_position = 2;
 ###LogSD	my	$test_worksheet = 'Sheet2';
 ###LogSD	my	$show_worksheet_build = 0;
 ###LogSD	if( $show_worksheet_build ){
@@ -386,7 +394,7 @@ ok			1,							"The file unzipped and the parser set up without issues";
 ###LogSD	}
 			for my $worksheet ( $workbook->worksheets() ) {
 			my	$worksheet_name = $worksheet->get_name;
-explain		'testing worksheet: ' . $worksheet_name;
+explain		'testing worksheet: ' . $worksheet_name;# exit 1;
 				$row_ref = undef;
 			my	$x = 0;
 is			$worksheet->is_sheet_hidden, $answer_ref->[$offset_ref->[$y] + $x],
@@ -396,15 +404,39 @@ is			$worksheet->is_sheet_hidden, $answer_ref->[$offset_ref->[$y] + $x],
 ###LogSD	if( $worksheet_name eq $test_worksheet and $x == $test_position ){
 ###LogSD		$operator->add_name_space_bounds( {
 ###LogSD			Test =>{
-###LogSD				ExcelFmtDefault =>{
-###LogSD					hidden =>{
-###LogSD						_build_datestring =>{
-###LogSD							UNBLOCK =>{
-###LogSD								log_file => 'debug',
-###LogSD							},
+###LogSD				Worksheet =>{
+###LogSD					XMLToPerlData =>{
+###LogSD						UNBLOCK =>{
+###LogSD							log_file => 'warn',
+###LogSD						},
+###LogSD					},
+###LogSD					XMLReader =>{
+###LogSD						UNBLOCK =>{
+###LogSD							log_file => 'warn',
 ###LogSD						},
 ###LogSD					},
 ###LogSD				},
+###LogSD				SharedStringsInterface =>{
+###LogSD					XMLToPerlData =>{
+###LogSD						UNBLOCK =>{
+###LogSD							log_file => 'warn',
+###LogSD						},
+###LogSD					},
+###LogSD					XMLReader =>{
+###LogSD						UNBLOCK =>{
+###LogSD							log_file => 'warn',
+###LogSD						},
+###LogSD					},
+###LogSD				},
+#~ ###LogSD				ExcelFmtDefault =>{
+#~ ###LogSD					hidden =>{
+#~ ###LogSD						_build_datestring =>{
+###LogSD							UNBLOCK =>{
+###LogSD								log_file => 'debug',
+###LogSD							},
+#~ ###LogSD						},
+#~ ###LogSD					},
+#~ ###LogSD				},
 ###LogSD			},
 ###LogSD		} );
 ###LogSD	}elsif( $worksheet_name eq $test_worksheet and $x > $test_position){# + 1
@@ -474,7 +506,7 @@ is_deeply	$worksheet->fetchrow_arrayref( ), $answer_ref->[30],
 ###LogSD	}, );
 is			$workbook->parse( 'badfile.not' ), undef,
 										"Check that a bad file will not load";
-like		$workbook->error, qr/The string \-badfile\.not\- does not have an xlsx\|xlsm\|xml file extension/,
+like		$workbook->error, qr/Value \"badfile\.not\" did not pass type constraint \"IOFileType\"/,
 										"Confirm that the correct error is passed";
 #~ ###LogSD	exit 1;
 explain 								"...Test Done";

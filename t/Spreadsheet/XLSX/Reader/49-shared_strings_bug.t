@@ -28,20 +28,20 @@ use	lib	'../../../../../Log-Shiras/lib',
 	;
 #~ use Log::Shiras::Switchboard v0.21 qw( :debug );#
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(
-#~ ###LogSD			name_space_bounds =>{
-#~ ###LogSD				UNBLOCK =>{
-#~ ###LogSD					log_file => 'trace',
-#~ ###LogSD				},
-#~ ###LogSD				build_instance =>{
-#~ ###LogSD					UNBLOCK =>{
-#~ ###LogSD						log_file => 'warn',
-#~ ###LogSD					},
-#~ ###LogSD				},
-#~ ###LogSD				build_class =>{
-#~ ###LogSD					UNBLOCK =>{
-#~ ###LogSD						log_file => 'warn',
-#~ ###LogSD					},
-#~ ###LogSD				},
+###LogSD			name_space_bounds =>{
+###LogSD				UNBLOCK =>{
+###LogSD					log_file => 'trace',
+###LogSD				},
+###LogSD				build_instance =>{
+###LogSD					UNBLOCK =>{
+###LogSD						log_file => 'warn',
+###LogSD					},
+###LogSD				},
+###LogSD				build_class =>{
+###LogSD					UNBLOCK =>{
+###LogSD						log_file => 'warn',
+###LogSD					},
+###LogSD				},
 #~ ###LogSD				Test =>{
 #~ ###LogSD					SharedStringsInstance =>{
 #~ ###LogSD						UNBLOCK =>{
@@ -59,7 +59,7 @@ use	lib	'../../../../../Log-Shiras/lib',
 #~ ###LogSD						},
 #~ ###LogSD					},
 #~ ###LogSD				},
-#~ ###LogSD			},
+###LogSD			},
 ###LogSD			reports =>{
 ###LogSD				log_file =>[ Print::Log->new ],
 ###LogSD			},
@@ -67,7 +67,7 @@ use	lib	'../../../../../Log-Shiras/lib',
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
 ###LogSD	use MooseX::ShortCut::BuildInstance;
-use Spreadsheet::XLSX::Reader::LibXML ':debug';
+use Spreadsheet::XLSX::Reader::LibXML;# ':debug'
 $test_file = ( @ARGV ) ? $ARGV[0] : $test_file;
 $test_file .= 'values.xlsx';
 	#~ print "Test file is: $test_file\n";
@@ -98,7 +98,7 @@ lives_ok{
 			$parser = Spreadsheet::XLSX::Reader::LibXML->new(
 							###LogSD log_space => 'Test'
 						)->parse($test_file);
-			$parser->set_warnings( 0 );
+			#~ $parser->set_warnings( 0 );
 }										"Prep a test parser instance";
 ###LogSD		$phone->talk( level => 'trace', message => [ "$parser:", $parser ] );
 is			$parser->error(), undef,	"Write any error messages from the file load";

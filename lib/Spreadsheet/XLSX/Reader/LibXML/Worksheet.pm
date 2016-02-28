@@ -12,7 +12,7 @@ requires qw(
 	_get_row_all				_get_merge_map				is_sheet_hidden
 	change_output_encoding		get_error_inst				boundary_flag_setting
 	has_styles_interface		get_format					_get_excel_position
-	_get_used_position			_parse_column_row
+	_get_used_position			_parse_column_row			_get_workbook_file_type
 );
 ###LogSD	requires 'get_log_space', 'get_all_space';
 use Types::Standard qw(
@@ -22,9 +22,9 @@ use Types::Standard qw(
 	is_Object					Str							is_Str
 );# Int
 use lib	'../../../../../lib',;
-use Spreadsheet::XLSX::Reader::LibXML::Cell;
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
+use Spreadsheet::XLSX::Reader::LibXML::Cell;
 use	Spreadsheet::XLSX::Reader::LibXML::Types qw(
 		SpecialDecimal					SpecialZeroScientific
 		SpecialOneScientific			SpecialTwoScientific
@@ -320,7 +320,7 @@ sub get_cell{
 	}else{
 		$requested_row = $self->_get_excel_position( $requested_row );
 		###LogSD	$phone->talk( level => 'info', message =>[
-		###LogSD		"Updated row to (count from 0): " . ((defined $requested_row) ? $requested_row : ''), ] );
+		###LogSD		"Updated row to (count from 1): " . ((defined $requested_row) ? $requested_row : ''), ] );
 	}
 	if( !defined $requested_column ){
 		$self->set_error( "No column provided" );
@@ -328,7 +328,7 @@ sub get_cell{
 	}else{
 		$requested_column = $self->_get_excel_position( $requested_column );
 		###LogSD	$phone->talk( level => 'info', message =>[
-		###LogSD		"Updated column to (count from 0): " . ((defined $requested_column) ? $requested_column : ''), ] );
+		###LogSD		"Updated column to (count from 1): " . ((defined $requested_column) ? $requested_column : ''), ] );
 	}
 	
 	# Get information
@@ -412,7 +412,7 @@ sub fetchrow_arrayref{
 	}else{
 		$row = $self->_get_excel_position( $row );
 		###LogSD	$phone->talk( level => 'info', message =>[
-		###LogSD		"Updated row to (count from 0): " . ((defined $row) ? $row : ''), ] );
+		###LogSD		"Updated row to (count from 1): " . ((defined $row) ? $row : ''), ] );
 	}
 	
 	my $result = $self->_get_row_all( $row );
@@ -673,7 +673,8 @@ sub _build_out_the_cell{
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
 	###LogSD			$self->get_all_space . '::_hidden::_build_out_the_cell', );
 	###LogSD		$phone->talk( level => 'debug', message =>[  
-	###LogSD			 "Building out the cell ref:", $result, "..with results as: ". $self->get_group_return_type ] );
+	###LogSD			 "Building out the cell ref:", $result, "..with results as: ". $self->get_group_return_type,
+	###LogSD			 "For the workbook type: " . ($self->_get_workbook_file_type//'not defined!!!!!!!!!!!!') ] );
 	my ( $return, $hidden_format );
 	$return->{cell_xml_value} = $result->{cell_xml_value} if defined $result->{cell_xml_value};
 	if( is_HashRef( $result ) ){
@@ -732,6 +733,12 @@ sub _build_out_the_cell{
 					SpecialZeroScientific ;
 			###LogSD	$phone->talk( level => 'debug', message =>[
 			###LogSD		"Resolved the final formatted output to formatter: " . $scientific_format->display_name ] );
+		}elsif( $self->_get_workbook_file_type eq 'xml' and
+				(exists $result->{cell_type} and $result->{cell_type} eq 'Number') and
+				( !$result->{cell_xml_value} or $result->{cell_xml_value} eq '' )		){
+				###LogSD	$phone->talk( level => 'debug', message =>[
+				###LogSD		"Identified wierd Excel 2003 xml file format where empty number cells are represented as 0" ] );
+				$return->{cell_unformatted}	= 0;
 		}
 			
 		$return->{cell_type} = $result->{cell_type};
@@ -746,7 +753,7 @@ sub _build_out_the_cell{
 		}
 		
 		#Implement user defined changes in encoding
-		###LogSD	$phone->talk( level => 'debug', message =>[ "Current cell: " . $return ] );
+		###LogSD	$phone->talk( level => 'debug', message =>[ "Current cell: ", $return ] );
 		if( $return->{cell_unformatted} and length( $return->{cell_unformatted} ) > 0 ){
 			$return->{cell_unformatted} = $self->change_output_encoding( $return->{cell_unformatted} );
 			$return->{cell_xml_value} = $self->change_output_encoding( $return->{cell_xml_value} );
@@ -1330,17 +1337,10 @@ B<Returns:> ( $minimum_column, $maximum_column )
 
 B<Definition:> This method returns an array ref of cells that are merged.  This method does 
 respond to the attribute L<Spreadsheet::XLSX::Reader::LibXML/count_from_zero> B<Warning: 
-This result is extracted from the sheet metadata, however if your sheet has been 
-damaged or 'adjusted' by non-microsoft code (This is more common than you would think 
-in the data processing world) then the return list may be wrong or missing when the 
-sheet is first opened.  The goal of this package is to minimize memory consumption so it 
-will learn what the correct list is over the first pass through the sheet as you 
-collect data but it does not attempt to validate this list in detail initially. If 
-you have an idea of the range for a damaged sheet before you open it you can use 
-L<EOR|change_boundary_flag( $Bool )> flags.  Otherwise the methods 
-L<get_next_value|/get_next_value> or L<fetchrow_arrayref|/fetchrow_arrayref> are 
-recomended.>  For missing values the minimum is set to the first column and the maximum 
-is set to undef.
+This result is extracted from the sheet metadata for 2007+ Excel files, however if you 
+are parsing an Excel 2003 xml file this data is stored at the cell level.  Since this 
+parser reads the data 'Just In Time' it will not know about a set of merged cells until the 
+upper left cell of the group has been read.>
 
 B<Accepts:> nothing
 

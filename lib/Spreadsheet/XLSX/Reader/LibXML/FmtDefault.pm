@@ -9,7 +9,6 @@ use	Encode qw(decode);
 use Types::Standard qw( HashRef	Str is_ArrayRef is_HashRef is_StrictNum );#
 use lib	'../../../../../lib',;
 ###LogSD	use Log::Shiras::Telephone;
-#~ ###LogSD	use Log::Shiras::UnhideDebug;
 ###LogSD	with 'Log::Shiras::LogSpace';
 
 #########1 Dispatch Tables    3#########4#########5#########6#########7#########8#########9
@@ -100,7 +99,9 @@ sub	set_defined_excel_formats{
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
 	###LogSD			$self->get_all_space . '::set_defined_excel_format', );
 	###LogSD		$phone->talk( level => 'info', message => [
-	###LogSD			"Setting the defined excel format for the elements in ref: ", @args, ] );
+	###LogSD			"Setting defined excel formats" ] );
+	###LogSD		$phone->talk( level => 'trace', message => [
+	###LogSD			"..from the list: ", @args, ] );
 	my $position_ref;
 	if( @args > 1 and @args % 2 == 0 ){
 		$position_ref = { @args };

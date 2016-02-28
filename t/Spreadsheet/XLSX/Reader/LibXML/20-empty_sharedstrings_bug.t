@@ -2,6 +2,7 @@
 #!/usr/bin/env perl
 my ( $lib, $test_file );
 BEGIN{
+	#~ $SIG{__DIE__} = sub { require Carp; Carp::confess(@_) };
 	$ENV{PERL_TYPE_TINY_XS} = 0;
 	my	$start_deeper = 1;
 	$lib		= 'lib';
@@ -19,7 +20,7 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 25;
+use	Test::Most tests => 16;
 use	Test::Moose;
 use IO::File;
 use XML::LibXML::Reader;
@@ -32,15 +33,15 @@ use	lib
 #~ use Log::Shiras::Switchboard qw( :debug );#
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(#
 ###LogSD						name_space_bounds =>{
-###LogSD							Test =>{
-###LogSD								SharedStrings =>{
+#~ ###LogSD							Test =>{
+#~ ###LogSD								SharedStrings =>{
 #~ ###LogSD									parse_element =>{
 ###LogSD										UNBLOCK =>{
 ###LogSD											log_file => 'trace',
 ###LogSD										},
 #~ ###LogSD									},
-###LogSD								},
-###LogSD							},
+#~ ###LogSD								},
+#~ ###LogSD							},
 ###LogSD						},
 ###LogSD						reports =>{
 ###LogSD							log_file =>[ Print::Log->new ],
@@ -48,53 +49,43 @@ use	lib
 ###LogSD					);
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
-use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings;
-use	Spreadsheet::XLSX::Reader::LibXML::Error;
+use Spreadsheet::XLSX::Reader::LibXML::XMLToPerlData;
+use Spreadsheet::XLSX::Reader::LibXML::SharedStrings;
+###LogSD	use Log::Shiras::UnhideDebug;
+use Spreadsheet::XLSX::Reader::LibXML::XMLReader;
+###LogSD	use Log::Shiras::UnhideDebug;
+use Spreadsheet::XLSX::Reader::LibXML;
+
 $test_file = ( @ARGV ) ? $ARGV[0] : $test_file;
 $test_file .= 'emptySharedStringsBug.xml';
 my  ( 
-			$test_instance, $capture, $x, @answer, $error_instance, $file_handle,
+			$test_instance, $workbook_instance, $capture, $x, @answer, $error_instance, $file_handle,
 	);
-my 			@class_attributes = qw(
-				file
-				error_inst
-			);
-my  		@class_methods = qw(
-				get_shared_string_position
-				get_file
-				set_file
-				has_file
-				clear_file
-				where_am_i
-				has_position
-			);
 my			$answer_ref = [
 				327,
 				'utf-8',
-				[ 0, { 	
-					raw_text => undef,
-				} ],
+				[ 0, undef ],
 			];
 ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space => 'main', );
 ###LogSD		$phone->talk( level => 'info', message => [ "easy questions ..." ] );
-map{ 
-has_attribute_ok
-			'Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings', $_,
-										"Check that Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings has the -$_- attribute"
-} 			@class_attributes;
-map{
-can_ok		'Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings', $_,
-} 			@class_methods;
-
-###LogSD		$phone->talk( level => 'info', message => [ "harder questions ..." ] );
 lives_ok{
-			$test_instance	=	Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings->new(
-									file		=> $test_file,
-									error_inst	=> Spreadsheet::XLSX::Reader::LibXML::Error->new(
-										#~ should_warn => 1,
-										should_warn => 0,# to turn off cluck when the error is set
-									),
+			$workbook_instance =	Spreadsheet::XLSX::Reader::LibXML->new(
+							count_from_zero		=> 1,
+							group_return_type	=> 'value',
+							empty_return_type	=> 'undef_string',
+			###LogSD		log_space			=> 'Test',
+						);
+			$test_instance	=	build_instance(
+									package => 'SharedStrings',
+									superclasses	=> ['Spreadsheet::XLSX::Reader::LibXML::XMLReader'],
+									add_roles_in_sequence => [
+										'Spreadsheet::XLSX::Reader::LibXML::XMLToPerlData',
+										'Spreadsheet::XLSX::Reader::LibXML::XMLReader::PositionSharedStrings',
+										'Spreadsheet::XLSX::Reader::LibXML::SharedStrings',
+									],
 			###LogSD				log_space	=> 'Test',
+									file		=> $test_file,
+									workbook_inst	=> $workbook_instance,
 								);
 }										"Prep a new SharedStrings instance";
 
@@ -105,24 +96,21 @@ is			$test_instance->_get_unique_count, $answer_ref->[$answer_row++],
 is			$test_instance->encoding, $answer_ref->[$answer_row++],
 										"Check for correct encoding";
 			for my $x ( 2..$#$answer_ref ){
-is_deeply	$test_instance->get_shared_string_position( $answer_ref->[$x]->[0] ), $answer_ref->[$x]->[1],
+is_deeply	$test_instance->get_shared_string( $answer_ref->[$x]->[0] ), $answer_ref->[$x]->[1],
 										"Get the -$answer_ref->[$x]->[0]- sharedStrings 'si' position as:" . Dumper( $answer_ref->[$x]->[1] );
 			}
-lives_ok{	$capture = $test_instance->get_shared_string_position( 20 ); 
+lives_ok{	$capture = $test_instance->get_shared_string( 20 ); 
 }										"Attempt an element past the end of the list";
 is		$capture, undef,				'Make sure it returns undef';
-lives_ok{	$capture = $test_instance->get_shared_string_position( 16 ); 
+lives_ok{	$capture = $test_instance->get_shared_string( 16 ); 
 }										"Attempt a different element past the end of the list";
 is		$capture, undef,				'Make sure it returns undef';
 ###LogSD		$phone->talk( level => 'info', message => [ "Turn caching off" ] );
 lives_ok{
-			$test_instance	=	Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings->new(
+			$test_instance	=	SharedStrings->new(
 									file			=> $test_file,
 									cache_positions	=> 0,
-									error_inst		=> Spreadsheet::XLSX::Reader::LibXML::Error->new(
-										#~ should_warn => 1,
-										should_warn => 0,# to turn off cluck when the error is set
-									),
+									workbook_inst	=> $workbook_instance,
 			###LogSD				log_space	=> 'Test',
 								);
 }										"Prep a new SharedStrings instance";
@@ -134,13 +122,13 @@ is			$test_instance->_get_unique_count, $answer_ref->[$answer_row++],
 is			$test_instance->encoding, $answer_ref->[$answer_row++],
 										"Check for correct encoding";
 			for my $x ( 2..$#$answer_ref ){
-is_deeply	$test_instance->get_shared_string_position( $answer_ref->[$x]->[0] ), $answer_ref->[$x]->[1],
+is_deeply	$test_instance->get_shared_string( $answer_ref->[$x]->[0] ), $answer_ref->[$x]->[1],
 										"Get the -$answer_ref->[$x]->[0]- sharedStrings 'si' position as:" . Dumper( $answer_ref->[$x]->[1] );
 			}
-lives_ok{	$capture = $test_instance->get_shared_string_position( 20 ); 
+lives_ok{	$capture = $test_instance->get_shared_string( 20 ); 
 }										"Attempt an element past the end of the list";
 is		$capture, undef,				'Make sure it returns undef';
-lives_ok{	$capture = $test_instance->get_shared_string_position( 16 ); 
+lives_ok{	$capture = $test_instance->get_shared_string( 16 ); 
 }										"Attempt a different element past the end of the list";
 is		$capture, undef,				'Make sure it returns undef';
 explain 								"...Test Done";

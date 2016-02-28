@@ -5,7 +5,7 @@ use version; our $VERSION = version->declare('v0.40.2');
 use 5.010;
 use Moose::Role;
 requires qw(
-	should_cache_positions		get_format			get_default_format
+	should_cache_positions		get_default_format			get_format
 	loaded_correctly
 );
 

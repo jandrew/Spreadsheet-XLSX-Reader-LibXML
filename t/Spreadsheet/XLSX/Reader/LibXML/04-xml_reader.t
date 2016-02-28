@@ -19,7 +19,7 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 74;
+use	Test::Most tests => 75;
 use	Test::Moose;
 use IO::File;
 #~ use XML::LibXML::Reader;
@@ -64,7 +64,7 @@ my  		@class_methods = qw(
 				clear_file					close							set_error
 				get_empty_return_type		_get_workbook_file_type			_get_sheet_info
 				_get_rel_info				get_sheet_names					get_defined_conversion
-				set_defined_excel_formats	has_shared_strings_interface	get_shared_string_position
+				set_defined_excel_formats	has_shared_strings_interface	get_shared_string
 				get_values_only				is_empty_the_end				_starts_at_the_edge
 				get_group_return_type		change_output_encoding			counting_from_zero
 				get_error_inst				boundary_flag_setting			has_styles_interface
@@ -72,7 +72,7 @@ my  		@class_methods = qw(
 				encoding					has_encoding					get_header
 				where_am_i					i_am_here						clear_location
 				has_position				get_file_type					skip_siblings
-				next_sibling				get_node_all
+				next_sibling				get_node_all					get_default_format
 			);
 				#~ where_am_i
 				#~ has_position

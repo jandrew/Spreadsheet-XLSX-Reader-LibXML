@@ -66,7 +66,7 @@ has cell_border =>(
 	);
 	
 has cell_style =>(
-		isa		=> HashRef,
+		isa		=> Str,
 		reader	=> 'get_style',
 		predicate	=> 'has_style',
 	);
@@ -208,7 +208,7 @@ sub _return_value_only{
 	) = @_;# To be used by GetCell too
 	###LogSD	$alt_log_space //= $self->get_all_space;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD				$alt_log_space . '::hidden::_return_value_only', );
+	###LogSD				$alt_log_space . '::_hidden::_return_value_only', );
 	###LogSD		$phone->talk( level => 'debug', message =>[  
 	###LogSD			 "Returning the coerced value of -" . ( defined $unformatted ? $unformatted : '') . '-', ] );
 	###LogSD		$phone->talk( level => 'trace', message =>[  
