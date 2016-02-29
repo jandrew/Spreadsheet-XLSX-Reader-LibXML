@@ -71,6 +71,7 @@ t/Spreadsheet/XLSX/Reader/LibXML/20-empty_sharedstrings_bug.t
 t/Spreadsheet/XLSX/Reader/LibXML/52-merge_function_alignment.t
 t/Spreadsheet/XLSX/Reader/LibXML/81-text_in_worksheet_bug.t
 t/Spreadsheet/XLSX/Reader/LibXML/91-quote_in_style_line_bug.t
+t/Spreadsheet/XLSX/Reader/LibXML/97-dxfId_handling_bug.t
 t/Spreadsheet/XLSX/Reader/LibXML/XMLReader/01-extract_file.t
 t/Spreadsheet/XLSX/Reader/LibXML/calcchain_example.pl
 t/Spreadsheet/XLSX/Reader/LibXML/cell_to_column_row_example.pl
@@ -111,6 +112,7 @@ t/test_files/possible_weird_apple_date_mixin.xls
 t/test_files/quote_in_styles.xml
 t/test_files/result.xml
 t/test_files/string_in_worksheet.xml
+t/test_files/table_styles.xml
 t/test_files/values.xlsx
 t/test_files/xl/_rels/workbook.xml.rels
 t/test_files/xl/calcChain.xml

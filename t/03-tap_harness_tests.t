@@ -49,6 +49,7 @@ my	$args ={
 			open_xml_files				=>[ $dir . 'test_files/' ],
 			quote_in_styles_bug			=>[ $dir . 'test_files/' ],
 			open_MySQL_files			=>[ $dir . 'test_files/' ],
+			dxfId_handling_bug			=>[ $dir . 'test_files/' ],
 			generic_reader_test			=>[ $dir . 'test_files/xl/' ],
 			worksheet_test				=>[ $dir . 'test_files/xl/' ],
 			cell_test					=>[ $dir . 'test_files/xl/' ],
@@ -92,6 +93,7 @@ my	@tests =(
 		[  $dir . $tests . 'LibXML/91-quote_in_style_line_bug.t', 'quote_in_styles_bug' ],
 		[  $dir . $tests . '08-open_spreadsheet_ml_files.t', 'open_xml_files' ],
 		[  $dir . $tests . '09-open_MySQL_data.t', 'open_MySQL_files' ],
+		[  $dir . $tests . 'LibXML/97-dxfId_handling_bug.t', 'dxfId_handling_bug' ],
 	);
 use	TAP::Harness;
 use	TAP::Parser::Aggregator;

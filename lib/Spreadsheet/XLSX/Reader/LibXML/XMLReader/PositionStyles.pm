@@ -13,6 +13,7 @@ use Types::Standard qw(
 		Bool			ArrayRef			Int			is_HashRef			is_Int
     );
 use Carp qw( confess );
+#~ use Data::Dumper;
 use Clone qw( clone );
 
 #########1 Dispatch Tables & Package Variables    5#########6#########7#########8#########9
@@ -26,6 +27,7 @@ my	$element_lookup ={
 		cellXfs			=> 'xf',
 		cellStyles		=> 'cellStyle',
 		tableStyles		=> 'tableStyle',
+		dxfs			=> 'dxf',
 	};
 
 my	$key_translations ={
@@ -33,6 +35,7 @@ my	$key_translations ={
 		borderId	=> 'borders',
 		fillId		=> 'fills',
 		xfId		=> 'cellStyles',
+		dxfId		=> 'dxfs',############# This is in desparate need of a test case 'table_styles.xml'
 		#~ pivotButton	 => 'pivotButton',
 	};
 
@@ -47,11 +50,12 @@ my	$cell_attributes ={
 		fonts			=> 'cell_font',
 		borders			=> 'cell_border',
 		fills			=> 'cell_fill',
+		dxfId			=> 'table_style',
 		cellStyleXfs	=> 'cellStyleXfs',
 		cellXfs			=> 'cellXfs',
 		cellStyles		=> 'cell_style',
 		tableStyles		=> 'tableStyle',
-		#~ pivotButton		=> 'pivotButton',
+		pivotButton		=> 'pivotButton',
 	};
 
 my	$xml_from_cell ={
@@ -495,7 +499,10 @@ sub _build_perl_node_from_xml_perl{
 					my( $success, $sub_node ) = $self->grep_node( $top_ref, $key_translations->{$attribute}, );
 					###LogSD	$phone->talk( level => 'debug', message => [
 					###LogSD		"Pulling position -$current_ref->{attributes}->{$attribute}- from sub ref:", $sub_node ] );
-					$new_ref->{$cell_attributes->{$attribute}} = $self->_build_perl_node_from_xml_perl( $top_ref, $sub_node->{list}->[$current_ref->{attributes}->{$attribute}] );
+					my $return = $self->_build_perl_node_from_xml_perl( $top_ref, $sub_node->{list}->[$current_ref->{attributes}->{$attribute}] );
+					###LogSD	$phone->talk( level => 'debug', message => [
+					###LogSD		"Setting the base attribute -$attribute- as the cell attribute -$cell_attributes->{$attribute}- to:", $return ] );
+					$new_ref->{$cell_attributes->{$attribute}} = $return;
 				}elsif( exists $cell_attributes->{$attribute} ){
 					###LogSD	$phone->talk( level => 'debug', message => [
 					###LogSD		"Setting -$cell_attributes->{$attribute}- to value: $current_ref->{attributes}->{$attribute}", ] );
@@ -528,8 +535,7 @@ sub _build_perl_node_from_xml_perl{
 				push @{$new_ref->{list}}, $sub_node;
 				$new_ref->{$list_node} = $sub_node;
 			}
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"Intermediate new list:", $new_ref ] );
+			###LogSD	$phone->talk( level => 'trace', message =>[ "Intermediate new list:", $new_ref ] );
 			if( $use_list or exists $new_ref->{count} ){
 				map{ delete $new_ref->{$_} } @list_keys;
 			}else{
@@ -542,7 +548,7 @@ sub _build_perl_node_from_xml_perl{
 		$new_ref = $current_ref;
 	}
 	
-	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD	$phone->talk( level => 'trace', message => [
 	###LogSD		"Final new ref is:", $new_ref ] );
 	return $new_ref;
 }
@@ -567,6 +573,10 @@ Not written yet
 =head1 DESCRIPTION
 
 Not written yet
+
+=head2 TODO
+
+b<1.> Add table format calls and caching
 
 =head1 SEE ALSO
 

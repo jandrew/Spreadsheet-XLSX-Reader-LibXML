@@ -1,5 +1,5 @@
 language: "perl"
-sudo: true
+sudo: false
 perl:
  - 5.10
  - 5.12
@@ -7,8 +7,7 @@ perl:
  - 5.16
  - 5.18
  - 5.20
-env:
-  - TEST_VERBOSE=1
+script: perl Makefile.PL && make test TEST_VERBOSE=1
 matrix:
   include:
     - perl: 5.20

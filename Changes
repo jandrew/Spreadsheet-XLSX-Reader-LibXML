@@ -11,7 +11,8 @@ be method matched to Spreadsheet::ParseExcel prior to the 1.0 release.
 
 {{$NEXT}}
 	
-	! Changed the test to return undef for undef values instead of failing over to the zero string (better matches Excel)
+	! Added a test and closes #97 in github
+	! Changed the tests to return undef for undef values instead of failing over to the zero string (better matches Excel)
 	! Added a test and closes #91 in github
 	+ added a file attribute that will accept file names or file handles
 	- Depricated the file_handle and file_name attributes (removal on 1/1/2017)
