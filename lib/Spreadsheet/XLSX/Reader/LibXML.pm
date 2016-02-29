@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML;
-use version 0.77; our $VERSION = version->declare('v0.40_1');
+use version 0.77; our $VERSION = version->declare('v0.40_2');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML-$VERSION";
 
 use 5.010;
@@ -797,7 +797,7 @@ around BUILDARGS => sub {
 	###LogSD			'Arrived at BUILDARGS with: ', %args ] );
 	
 	# Handle depricated cache_positions
-	print longmess( Dumper( %args ) );
+	#~ print longmess( Dumper( %args ) );
 	if( exists $args{cache_positions} ){
 		###LogSD	$phone->talk( level => 'trace', message =>[
 		###LogSD		"The user did pass a value to cache_positions as:", $args{cache_positions}] );

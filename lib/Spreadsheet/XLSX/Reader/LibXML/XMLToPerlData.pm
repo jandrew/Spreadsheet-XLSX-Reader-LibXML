@@ -296,7 +296,7 @@ sub grep_node{
 	###LogSD			$self->get_all_space . '::XMLToPerlData::grep_node', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			"Extracting the node -$node_name- from the general ref:", $ref, ]);# caller( 0 ), caller( 1 ), caller( 2 ), caller( 3 ), caller( 4 ), caller( 5 )]
-	confess "No target node name passed for ref:" . Dumper( $ref ) if !$node_name;
+	confess "No target node name passed to parse the ref" if !$node_name;
 	my $sub_node;
 	my $x = 0;
 	my $success = 0;
