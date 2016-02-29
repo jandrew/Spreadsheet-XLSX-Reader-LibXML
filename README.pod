@@ -285,9 +285,9 @@ B<7.> Version v0.40.2 introduces support for L<SpreadsheetML
 
 	xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
 	
-somewhere in the header to indicate their intended format.  This change does introduce a lot of 
-behind the scenes re-plumbing but the top level tests all stayed the same.  This means that for 
-.xlsx and .xlsm extentions there should not be any obvious changes or (hopefully) significant 
+as an attribute in the Workbook node to indicate their intended format.  This change does introduce 
+a lot of behind the scenes re-plumbing but the top level tests all stayed the same.  This means that 
+for .xlsx and .xlsm extentions there should not be any obvious changes or (hopefully) significant 
 new bugs. I<Note warnings 5 and 6>.  However, to get this release out and rolling I don't have a 
 full set of tests for the .xml extention paths and Microsofts documentation for that format is 
 spotty in some relevant areas (I still don't know what I don't know) so please L<submit

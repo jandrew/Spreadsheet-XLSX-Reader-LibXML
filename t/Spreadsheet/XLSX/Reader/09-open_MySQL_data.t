@@ -1,4 +1,5 @@
 #########1 Test File for Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData #####9
+#!/usr/bin/env perl
 my ( $lib, $test_file, $bad_file );
 BEGIN{
 	$ENV{PERL_TYPE_TINY_XS} = 0;

@@ -7,7 +7,7 @@ use	List::Util 1.33;
 use	Moose;
 use	MooseX::StrictConstructor;
 use	MooseX::HasDefaults::RO;
-use	Carp qw( confess );
+use	Carp qw( confess longmess );
 use	XML::LibXML;
 use	File::Temp;
 use Clone 'clone';
@@ -16,7 +16,7 @@ use Types::Standard qw(
 		Enum				HashRef			ArrayRef
 		CodeRef				Int				HasMethods
 		Bool				is_Object		is_HashRef
-		ConsumerOf			is_Int
+		ConsumerOf
     );
 use lib	'../../../../lib',;
 use Data::Dumper;
@@ -309,6 +309,14 @@ my	$flag_settings ={
 				styles_interface => 209715200,# 200 MB
 				#~ worksheet_interface => 209715200,# 200 MB #Not yet available
 				#~ chartsheet_interface => 209715200,# 200 MB
+			},
+		},
+		big_file =>{ #Estimated to consume 4+ Gig of ram when the file is loaded and processed!!!!!!!!!!
+			cache_positions	=>{
+				shared_strings_interface => 10240,# 10 KB
+				styles_interface => 10240,# 10 KB
+				#~ worksheet_interface => 10240,# 10 KB #Not yet available
+				#~ chartsheet_interface => 10240,# 10 KB
 			},
 		},
 	};
@@ -775,34 +783,6 @@ has _workbook_file_interface =>(
 		)},
 		#~ weak_ref => 1,
 	);
-			#~ _demolish_workbook_file		DEMOLISH
-
-#~ has _calc_chain_instance =>(
-		#~ isa	=> 	HasMethods[qw( get_calc_chain_position )],
-		#~ writer	=>'_set_calc_chain_instance',
-		#~ reader	=>'_get_calc_chain_instance',
-		#~ clearer	=> '_clear_calc_chain',
-		#~ predicate => '_has_calc_chain_file',
-		#~ handles =>{
-			#~ _demolish_calc_chain => 'DEMOLISH',
-		#~ },
-	#~ );
-	
-#~ has _stored_cache_positions =>(
-		#~ isa		=> Bool,
-		#~ reader	=> '_get_stored_cache_positions',
-		#~ writer	=> '_set_stored_cache_positions',
-		#~ clearer => '_clear_stored_cache_positions',
-		#~ predicate => '_has_stored_cache_positions',
-	#~ );
-	
-#~ has _xml_handle =>(
-		#~ isa => InstanceOf[ 'Archive::Zip' ],
-		#~ clearer	=> '_clear_zip_file_handle',
-		#~ writer	=> '_set_zip_file_handle',
-		#~ reader	=> '_get_zip_file_handle',
-		#~ predicate	=> '_has_zip_file_handle',
-	#~ );
 
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
 
@@ -817,13 +797,14 @@ around BUILDARGS => sub {
 	###LogSD			'Arrived at BUILDARGS with: ', %args ] );
 	
 	# Handle depricated cache_positions
+	print longmess( Dumper( %args ) );
 	if( exists $args{cache_positions} ){
 		###LogSD	$phone->talk( level => 'trace', message =>[
 		###LogSD		"The user did pass a value to cache_positions as:", $args{cache_positions}] );
-		if( is_Int( $args{cache_positions} ) ){
+		if( !is_HashRef( $args{cache_positions} ) ){
 			warn "Passing a boolean value to the attribute 'cache_positions' is depricated since v0.40.2 - the input will be converted per the documentation";
 			$args{cache_positions} = !$args{cache_positions} ?
-				{ sharedStrings => 0, styles => 0, worksheet => 0, chartsheet => 0, } :
+				$flag_settings->{big_file}->{cache_positions} : 
 				$attribute_defaults->{cache_positions};
 		}
 		
@@ -1511,9 +1492,9 @@ B<7.> Version v0.40.2 introduces support for L<SpreadsheetML
 
 	xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
 	
-somewhere in the header to indicate their intended format.  This change does introduce a lot of 
-behind the scenes re-plumbing but the top level tests all stayed the same.  This means that for 
-.xlsx and .xlsm extentions there should not be any obvious changes or (hopefully) significant 
+as an attribute in the Workbook node to indicate their intended format.  This change does introduce 
+a lot of behind the scenes re-plumbing but the top level tests all stayed the same.  This means that 
+for .xlsx and .xlsm extentions there should not be any obvious changes or (hopefully) significant 
 new bugs. I<Note warnings 5 and 6>.  However, to get this release out and rolling I don't have a 
 full set of tests for the .xml extention paths and Microsofts documentation for that format is 
 spotty in some relevant areas (I still don't know what I don't know) so please L<submit
