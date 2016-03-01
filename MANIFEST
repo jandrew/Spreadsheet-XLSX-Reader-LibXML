@@ -110,7 +110,6 @@ t/test_files/perc.xls
 t/test_files/perc.xlsx
 t/test_files/possible_weird_apple_date_mixin.xls
 t/test_files/quote_in_styles.xml
-t/test_files/result.xml
 t/test_files/string_in_worksheet.xml
 t/test_files/table_styles.xml
 t/test_files/values.xlsx

@@ -531,6 +531,7 @@ sub worksheets{
 	}
 	###LogSD	$phone->talk( level => 'trace', message =>[
 	###LogSD		'sending worksheet array: ',@worksheet_array ] );
+	print "Finished building worksheets\n";
 	return @worksheet_array;
 }
 
@@ -598,6 +599,7 @@ sub worksheet{
 	}
 	# handle the worksheet if succesfull
 	if( $worksheet ){
+		print "Successfully built worksheet named: $worksheet_name\n";
 		###LogSD	$phone->talk( level => 'info', message =>[
 		###LogSD		"Successfully loaded: $worksheet_name", 
 		###LogSD		"Setting the current worksheet position to: $next_position" ] );
@@ -2681,7 +2683,7 @@ And then if you feel kindly
 
 	cpanm-reporter
 
-B<1.> This package uses L<Alien::LibXML> to try and ensure that the mandatory prerequisite 
+B<1.> This package uses L<Alien::LibXML> to try and ensure that the mandatory prerequisite #######################################################################################  Check this
 L<XML::LibXML> will load.  The biggest gotcha here is that older (<5.20.0.2) versions of 
 Strawberry Perl and some other Win32 perls may not support the script 'pkg-config' which is 
 required.  You can resolve this by installation L<PkgConfig> as 'pkg-config'.  I have 
