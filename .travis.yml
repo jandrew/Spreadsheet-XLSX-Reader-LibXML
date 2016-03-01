@@ -7,7 +7,6 @@ perl:
  - 5.16
  - 5.18
  - 5.20
-script: perl Makefile.PL && make test TEST_VERBOSE=1
 matrix:
   include:
     - perl: 5.20
