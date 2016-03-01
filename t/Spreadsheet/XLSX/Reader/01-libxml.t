@@ -1,8 +1,7 @@
 #########1 Test File for Spreadsheet::XLSX::Reader::LibXML  6#########7#########8#########9
-#!/usr/bin/env perl
+#!/usr/bin/env perl -w
 my ( $lib, $test_file );
 BEGIN{
-	#~ $SIG{__DIE__} = sub { require Carp; Carp::confess(@_) };
 	$ENV{PERL_TYPE_TINY_XS} = 0;
 	my	$start_deeper = 1;
 	$lib		= 'lib';
@@ -19,9 +18,9 @@ BEGIN{
 	}
 }
 $| = 1;
-my $total_tests = 156;
-use Test::Most;
-#~ use	Test::Most tests => $total_tests;
+#~ my $total_tests = 156;
+#~ use Test::Most;
+use	Test::Most tests => 156;
 use	Test::Moose;
 use Data::Dumper;
 use	lib	'../../../../../Log-Shiras/lib',
