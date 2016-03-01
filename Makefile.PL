@@ -5,7 +5,7 @@
 use strict;
 use warnings;
 
-use 5.021008;
+use 5.010;
 use ExtUtils::MakeMaker 7.10;
 
 my %WriteMakefileArgs = (
@@ -18,7 +18,7 @@ my %WriteMakefileArgs = (
     "Clone" => 0,
     "DateTime::Format::Flexible" => 0,
     "DateTimeX::Format::Excel" => "0.012",
-    "ExtUtils::MakeMaker" => "7.10",
+    "ExtUtils::MakeMaker" => "7.04",
     "IO::File" => 0,
     "List::Util" => "1.33",
     "Moose" => "2.1213",
@@ -43,7 +43,7 @@ my %WriteMakefileArgs = (
   },
   "DISTNAME" => "Spreadsheet-XLSX-Reader-LibXML",
   "LICENSE" => "perl",
-  "MIN_PERL_VERSION" => "5.021008",
+  "MIN_PERL_VERSION" => "5.010",
   "NAME" => "Spreadsheet::XLSX::Reader::LibXML",
   "PREREQ_PM" => {
     "Archive::Zip" => 0,
@@ -80,7 +80,7 @@ my %WriteMakefileArgs = (
     "Clone" => 0,
     "DateTime::Format::Flexible" => 0,
     "DateTimeX::Format::Excel" => "0.012",
-    "ExtUtils::MakeMaker" => "7.10",
+    "ExtUtils::MakeMaker" => "7.04",
     "IO::File" => 0,
     "List::Util" => "1.33",
     "Moose" => "2.1213",
@@ -115,7 +115,7 @@ my %FallbackPrereqs = (
   "DateTimeX::Format::Excel" => "0.012",
   "Devel::StackTrace" => 0,
   "Encode" => 0,
-  "ExtUtils::MakeMaker" => "7.10",
+  "ExtUtils::MakeMaker" => "7.04",
   "IO::File" => 0,
   "List::Util" => "1.33",
   "Modern::Perl" => 0,

@@ -9,7 +9,7 @@ build_requires:
   Clone: '0'
   DateTime::Format::Flexible: '0'
   DateTimeX::Format::Excel: '0.012'
-  ExtUtils::MakeMaker: '7.10'
+  ExtUtils::MakeMaker: '7.04'
   IO::File: '0'
   List::Util: '1.33'
   Moose: '2.1213'
@@ -25,13 +25,12 @@ build_requires:
   Type::Tiny: '1.000'
   XML::LibXML: '2.0124'
   XML::LibXML::Reader: '0'
-  perl: '5.021008'
+  perl: '5.010'
   version: '0.77'
 configure_requires:
   ExtUtils::MakeMaker: '7.10'
   Module::Runtime: '0.014'
   Moose: '2.1213'
-  perl: '5.010'
 dynamic_config: 0
 generated_by: 'Dist::Zilla version 5.043, CPAN::Meta::Converter version 2.150005'
 license: perl
@@ -165,7 +164,7 @@ requires:
   XML::LibXML: '2.0124'
   XML::LibXML::Reader: '0'
   lib: '0'
-  perl: '5.021008'
+  perl: '5.010'
   version: '0.77'
 resources:
   bugtracker: https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML/issues

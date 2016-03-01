@@ -22,7 +22,7 @@
             "Clone" : "0",
             "DateTime::Format::Flexible" : "0",
             "DateTimeX::Format::Excel" : "0.012",
-            "ExtUtils::MakeMaker" : "7.10",
+            "ExtUtils::MakeMaker" : "7.04",
             "IO::File" : "0",
             "List::Util" : "1.33",
             "Moose" : "2.1213",
@@ -38,6 +38,7 @@
             "Type::Tiny" : "1.000",
             "XML::LibXML" : "2.0124",
             "XML::LibXML::Reader" : "0",
+            "perl" : "5.010",
             "version" : "0.77"
          }
       },
@@ -45,8 +46,7 @@
          "requires" : {
             "ExtUtils::MakeMaker" : "7.10",
             "Module::Runtime" : "0.014",
-            "Moose" : "2.1213",
-            "perl" : "5.010"
+            "Moose" : "2.1213"
          }
       },
       "runtime" : {
@@ -76,7 +76,7 @@
             "XML::LibXML" : "2.0124",
             "XML::LibXML::Reader" : "0",
             "lib" : "0",
-            "perl" : "5.021008",
+            "perl" : "5.010",
             "version" : "0.77"
          }
       },
@@ -88,7 +88,7 @@
             "Clone" : "0",
             "DateTime::Format::Flexible" : "0",
             "DateTimeX::Format::Excel" : "0.012",
-            "ExtUtils::MakeMaker" : "7.10",
+            "ExtUtils::MakeMaker" : "7.04",
             "IO::File" : "0",
             "List::Util" : "1.33",
             "Moose" : "2.1213",
@@ -104,7 +104,7 @@
             "Type::Tiny" : "1.000",
             "XML::LibXML" : "2.0124",
             "XML::LibXML::Reader" : "0",
-            "perl" : "5.021008",
+            "perl" : "5.010",
             "version" : "0.77"
          }
       }
