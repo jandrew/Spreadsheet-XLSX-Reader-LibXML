@@ -24,7 +24,7 @@ BEGIN{
 my  ( 
 		$parser, $worksheet, $value, $value_position, $test_cells
 	);
-use	Test::Most tests => 36;
+use	Test::Most tests => 35;
 use	Test::Moose;
 use Capture::Tiny 'capture_stderr';
 use	lib	'../../../../../Log-Shiras/lib',
@@ -32,9 +32,9 @@ use	lib	'../../../../../Log-Shiras/lib',
 #~ use Log::Shiras::Switchboard v0.23 qw( :debug );#
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(
 ###LogSD			name_space_bounds =>{
-#~ ###LogSD				UNBLOCK =>{
-#~ ###LogSD					log_file => 'trace',
-#~ ###LogSD				},
+###LogSD				UNBLOCK =>{
+###LogSD					log_file => 'trace',
+###LogSD				},
 #~ ###LogSD				build_instance =>{
 #~ ###LogSD					UNBLOCK =>{
 #~ ###LogSD						log_file => 'warn',
@@ -174,8 +174,8 @@ lives_ok{
 			#~ $parser->set_warnings( 1 );
 			#~ $parser->should_spew_longmess( 1 );
 }										"Prep a test parser instance";
-like		 $parser->error(), qr/No \'Styles\' element with content found/,
-										"Write any error messages from the file load";# exit 1;
+#~ like		 $parser->error(), qr/No \'Styles\' element with content found/,
+										#~ "Write any error messages from the file load"; exit 1;
 ok			$worksheet = $parser->worksheet( 'Table1' ),
 										"Load 'Table1' ok";
 			my $row_ref;
