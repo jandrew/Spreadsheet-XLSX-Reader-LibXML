@@ -510,7 +510,7 @@ like		$workbook->error, qr/Value \"badfile\.not\" did not pass type constraint \
 										"Confirm that the correct error is passed";
 #~ ###LogSD	exit 1;
 explain 								"...Test Done";
-done_testing($total_tests);
+done_testing();# $total_tests
 
 ###LogSD	package Print::Log;
 ###LogSD	use Data::Dumper;
