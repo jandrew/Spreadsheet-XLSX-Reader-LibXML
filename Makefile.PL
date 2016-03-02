@@ -6,7 +6,7 @@ use strict;
 use warnings;
 
 use 5.010;
-use ExtUtils::MakeMaker 7.10;
+use ExtUtils::MakeMaker 7.04;
 
 my %WriteMakefileArgs = (
   "ABSTRACT" => "Read xlsx spreadsheet files with LibXML",
@@ -37,7 +37,7 @@ my %WriteMakefileArgs = (
     "version" => "0.77"
   },
   "CONFIGURE_REQUIRES" => {
-    "ExtUtils::MakeMaker" => "7.10",
+    "ExtUtils::MakeMaker" => "7.04",
     "Module::Runtime" => "0.014",
     "Moose" => "2.1213"
   },
