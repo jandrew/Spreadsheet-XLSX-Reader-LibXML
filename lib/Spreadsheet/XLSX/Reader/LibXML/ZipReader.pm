@@ -99,27 +99,27 @@ sub _build_zip_reader{
 	}
 }
 
-#~ sub DEMOLISH{
-	#~ my ( $self ) = @_;
-	#~ ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	#~ ###LogSD			$self->get_all_space . '::XMLReader::DEMOLISH', );
-	#~ ###LogSD		$phone->talk( level => 'debug', message => [
-	#~ ###LogSD			"clearing the zip reader for log space:", $self->get_log_space, ] );
-	#~ print "ZipReader closed\n";
+sub DEMOLISH{
+	my ( $self ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::XMLReader::DEMOLISH', );
+	###LogSD		$phone->talk( level => 'debug', message => [
+	###LogSD			"clearing the zip reader for log space:", $self->get_log_space, ] );
+	print "ZipReader closed\n";
 	
-	#~ # Clear the reader
-	#~ if( $self->_has_zip_parser ){
-		#~ print "Disconnecting the sheet zip parser from the parser\n";
-		#~ ###LogSD	$phone->talk( level => 'debug', message =>[ "Clearing the zip parser", ] );
-		#~ $self->_clear_zip_parser;
-	#~ }
+	# Clear the reader
+	if( $self->_has_zip_parser ){
+		print "Disconnecting the sheet zip parser from the parser\n";
+		###LogSD	$phone->talk( level => 'debug', message =>[ "Clearing the zip parser", ] );
+		$self->_clear_zip_parser;
+	}
 	
-	#~ # Clear the file
-	#~ if( $self->has_file ){
-		#~ ###LogSD	$phone->talk( level => 'debug', message =>[ "Closing and disconnecting the file handle for the zip parser", ] );
-		#~ $self->clear_file;
-	#~ }
-#~ }
+	# Clear the file
+	if( $self->has_file ){
+		###LogSD	$phone->talk( level => 'debug', message =>[ "Closing and disconnecting the file handle for the zip parser", ] );
+		$self->clear_file;
+	}
+}
 
 #########1 Phinish            3#########4#########5#########6#########7#########8#########9
 

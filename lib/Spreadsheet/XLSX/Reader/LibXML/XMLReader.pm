@@ -477,6 +477,17 @@ sub _close_file_and_reader{
 	
 }
 
+sub DEMOLISH{
+	my ( $self ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::_hidden::DEMOLISH', );
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD			"XMLReader DEMOLISH called" ] );
+	
+	$self->_close_file_and_reader;
+	
+}
+
 #########1 Phinish            3#########4#########5#########6#########7#########8#########9
 
 no Moose;

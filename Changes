@@ -11,6 +11,7 @@ be method matched to Spreadsheet::ParseExcel prior to the 1.0 release.
 
 {{$NEXT}}
 	
+	! There was a new failure on the temp dir bug so the test was upgraded and the bug fixed
 	! Removed the Alien::LibXML install step since it appears to be causeing problems
 	! Added a test and closes #97 in github
 	! Changed the tests to return undef for undef values instead of failing over to the zero string (better matches Excel)
