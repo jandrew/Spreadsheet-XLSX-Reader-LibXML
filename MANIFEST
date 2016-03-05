@@ -20,6 +20,7 @@ lib/Spreadsheet/XLSX/Reader/LibXML/Row.pm
 lib/Spreadsheet/XLSX/Reader/LibXML/SharedStrings.pm
 lib/Spreadsheet/XLSX/Reader/LibXML/Styles.pm
 lib/Spreadsheet/XLSX/Reader/LibXML/Types.pm
+lib/Spreadsheet/XLSX/Reader/LibXML/Workbook.pm
 lib/Spreadsheet/XLSX/Reader/LibXML/WorkbookFileInterface.pm
 lib/Spreadsheet/XLSX/Reader/LibXML/WorkbookMetaInterface.pm
 lib/Spreadsheet/XLSX/Reader/LibXML/WorkbookPropsInterface.pm

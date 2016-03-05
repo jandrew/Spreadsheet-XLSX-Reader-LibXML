@@ -27,11 +27,11 @@ use File::Temp;
 use	lib	'../../../../../Log-Shiras/lib',
 		$lib,
 	;
-use Log::Shiras::Switchboard v0.23 qw( :debug );#
+#~ use Log::Shiras::Switchboard v0.23 qw( :debug );#
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(
 ###LogSD						name_space_bounds => {
 ###LogSD							UNBLOCK =>{
-###LogSD								log_file => 'debug',
+###LogSD								log_file => 'trace',
 ###LogSD							},
 ###LogSD						},
 ###LogSD						reports =>{
@@ -67,13 +67,13 @@ lives_ok{	$parser = undef }			"Try to 'undef' the parser";
 			my $temp_dir = File::Temp->newdir();
 			move( $test_file, "$temp_dir$file_name" ) or $new_error = $!;
 			if( $new_error ){
-fail		"File could not be moved to the temp dir -$temp_dir- because: $new_error";
+fail		"File -$test_file- could not be moved to the temp dir -$temp_dir- because: $new_error";
 			}else{
 pass		"File moved successfully to temp dir: $temp_dir";
-			} exit 1;
+			}
 			move( "$temp_dir$file_name", $test_file ) or $new_error = $!;
 			if( $new_error ){
-fail		"File could not be moved back from the temp dir -$temp_dir- because: $new_error";
+fail		"File -$temp_dir$file_name- could not be moved back to -$test_file- because: $new_error";
 			}else{
 pass		"File moved successfully from temp dir: $temp_dir";
 			}

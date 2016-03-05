@@ -1694,4 +1694,12 @@ All lines in this package that use Log::Shiras are commented out
 
 =back
 
+=begin html
+
+<a href="http://www.perlmonks.org/?node_id=706986">
+	<img src="http://www.perlmonksflair.com/jandrew.jpg" alt="perl monks">
+</a>
+
+=end html
+
 =cut

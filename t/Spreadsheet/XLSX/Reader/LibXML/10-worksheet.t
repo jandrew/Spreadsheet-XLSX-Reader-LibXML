@@ -324,7 +324,7 @@ lives_ok{
 					),
 			);
 			$workbook_instance = build_instance(
-										package	=> 'Spreadsheet::XLSX::Reader::LibXML',
+										package	=> 'Spreadsheet::XLSX::Reader::LibXML::Workbook',
 										add_attributes =>{
 											error_inst =>{
 												isa => 	HasMethods[qw(

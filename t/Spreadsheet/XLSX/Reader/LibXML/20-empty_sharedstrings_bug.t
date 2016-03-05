@@ -54,7 +54,8 @@ use Spreadsheet::XLSX::Reader::LibXML::SharedStrings;
 ###LogSD	use Log::Shiras::UnhideDebug;
 use Spreadsheet::XLSX::Reader::LibXML::XMLReader;
 ###LogSD	use Log::Shiras::UnhideDebug;
-use Spreadsheet::XLSX::Reader::LibXML;
+use Spreadsheet::XLSX::Reader::LibXML::Workbook;
+use Spreadsheet::XLSX::Reader::LibXML::Error;
 
 $test_file = ( @ARGV ) ? $ARGV[0] : $test_file;
 $test_file .= 'emptySharedStringsBug.xml';
@@ -69,10 +70,12 @@ my			$answer_ref = [
 ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space => 'main', );
 ###LogSD		$phone->talk( level => 'info', message => [ "easy questions ..." ] );
 lives_ok{
-			$workbook_instance =	Spreadsheet::XLSX::Reader::LibXML->new(
+			$workbook_instance =	Spreadsheet::XLSX::Reader::LibXML::Workbook->new(
 							count_from_zero		=> 1,
 							group_return_type	=> 'value',
 							empty_return_type	=> 'undef_string',
+							error_inst			=> Spreadsheet::XLSX::Reader::LibXML::Error->new,
+							file_boundary_flags	=> 1,
 			###LogSD		log_space			=> 'Test',
 						);
 			$test_instance	=	build_instance(

@@ -24,9 +24,6 @@ use Data::Dumper;
 ###LogSD use Log::Shiras::UnhideDebug;
 use	MooseX::ShortCut::BuildInstance 1.032 qw( build_instance should_re_use_classes );
 should_re_use_classes( 1 );
-###LogSD use Spreadsheet::XLSX::Reader::LibXML::FmtDefault;
-###LogSD use Log::Shiras::UnhideDebug;
-###LogSD use Spreadsheet::XLSX::Reader::LibXML::FormatInterface;
 ###LogSD use Spreadsheet::XLSX::Reader::LibXML::ZipReader;
 ###LogSD use Spreadsheet::XLSX::Reader::LibXML::ZipReader::ExtractFile;
 ###LogSD use Log::Shiras::UnhideDebug;
@@ -34,7 +31,6 @@ should_re_use_classes( 1 );
 ###LogSD use Log::Shiras::UnhideDebug;
 ###LogSD use Spreadsheet::XLSX::Reader::LibXML::XMLReader::ExtractFile;
 ###LogSD use Log::Shiras::UnhideDebug;
-###LogSD use Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings;
 ###LogSD use Spreadsheet::XLSX::Reader::LibXML::WorkbookFileInterface;
 ###LogSD use Spreadsheet::XLSX::Reader::LibXML::WorkbookMetaInterface;
 ###LogSD use Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorkbookMeta;
@@ -53,12 +49,11 @@ should_re_use_classes( 1 );
 ###LogSD use Spreadsheet::XLSX::Reader::LibXML::XMLReader::NamedStyles;
 ###LogSD use Spreadsheet::XLSX::Reader::LibXML::XMLReader::PositionStyles;
 ###LogSD use Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow;
-###LogSD use Spreadsheet::XLSX::Reader::LibXML::Worksheet;
-###LogSD use Spreadsheet::XLSX::Reader::LibXML::WorksheetToRow;
+###LogSD use Spreadsheet::XLSX::Reader::LibXML::Worksheet;# Adds Spreadsheet::XLSX::Reader::LibXML::Cell
+###LogSD use Spreadsheet::XLSX::Reader::LibXML::WorksheetToRow; # Adds Spreadsheet::XLSX::Reader::LibXML::Row
 ###LogSD use Spreadsheet::XLSX::Reader::LibXML::ZipReader::Worksheet;
 ###LogSD use Spreadsheet::XLSX::Reader::LibXML::XMLReader::Worksheet;
 ###LogSD use Spreadsheet::XLSX::Reader::LibXML::Chartsheet;
-###LogSD use Spreadsheet::XLSX::Reader::LibXML::Error;
 use Spreadsheet::XLSX::Reader::LibXML::Types qw( XLSXFile ParserType IOFileType is_XMLFile Dict );
 ###LogSD with 'Log::Shiras::LogSpace';
 
@@ -233,95 +228,6 @@ my	$parser_modules ={
 			},
 		},
 	};
-#~ my	$xml_parser = XML::LibXML->new();
-my	$build_ref	= {
-		calcChain =>{
-			zip	=> 'xl/calcChain.xml',
-		},
-	};
-my	$attribute_defaults ={
-		error_inst =>{
-			superclasses => ['Spreadsheet::XLSX::Reader::LibXML::Error'],
-			package => 'ErrorInstance',
-			should_warn => 0,
-		},
-		formatter_inst =>{
-			superclasses => ['Spreadsheet::XLSX::Reader::LibXML::FmtDefault'],
-			add_roles_in_sequence =>[qw(
-				Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings
-				Spreadsheet::XLSX::Reader::LibXML::FormatInterface
-			)],
-			package => 'FormatInstance',
-		},
-		sheet_parser		=> 'reader',
-		count_from_zero		=> 1,
-		file_boundary_flags	=> 1,
-		empty_is_end		=> 0,
-		values_only			=> 0,
-		from_the_edge		=> 1,
-		group_return_type	=> 'instance',
-		empty_return_type	=> 'empty_string',
-		cache_positions	=>{# Test this !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-			shared_strings_interface => 5242880,# 5 MB
-			styles_interface => 5242880,# 5 MB
-			#~ worksheet_interface => 5242880,# 5 MB #Not yet available
-			#~ chartsheet_interface => 5242880,# 5 MB
-		},
-		#~ max_file_caching	=> 83886080,# 80MB
-	};
-my	$flag_settings ={
-		alt_default =>{
-			values_only       => 1,
-			count_from_zero   => 0,
-			empty_is_end      => 1,
-		},
-		just_the_data =>{
-			count_from_zero   => 0,
-			values_only       => 1,
-			empty_is_end      => 1,
-			group_return_type => 'value',
-			from_the_edge     => 0,
-			empty_return_type => 'undef_string',
-		},
-		just_raw_data =>{
-			count_from_zero   => 0,
-			values_only       => 1,
-			empty_is_end      => 1,
-			group_return_type => 'unformatted',
-			from_the_edge     => 0,
-			empty_return_type => 'undef_string',
-		},
-		like_ParseExcel =>{
-			count_from_zero => 1,
-			group_return_type => 'instance',
-		},
-		debug =>{
-			error_inst =>{
-				superclasses => ['Spreadsheet::XLSX::Reader::LibXML::Error'],
-				package => 'ErrorInstance',
-				should_warn => 1,
-			},
-			show_sub_file_size => 1,
-		},
-		lots_of_ram =>{ #Estimated to consume 4+ Gig of ram when the file is loaded and processed!!!!!!!!!!
-			cache_positions	=>{
-				shared_strings_interface => 209715200,# 200 MB
-				styles_interface => 209715200,# 200 MB
-				#~ worksheet_interface => 209715200,# 200 MB #Not yet available
-				#~ chartsheet_interface => 209715200,# 200 MB
-			},
-		},
-		big_file =>{ #Estimated to consume 4+ Gig of ram when the file is loaded and processed!!!!!!!!!!
-			cache_positions	=>{
-				shared_strings_interface => 10240,# 10 KB
-				styles_interface => 10240,# 10 KB
-				#~ worksheet_interface => 10240,# 10 KB #Not yet available
-				#~ chartsheet_interface => 10240,# 10 KB
-			},
-		},
-	};
-my $delay_till_build = [qw( formatter_inst )];
-my $build_delay_store = {};
 
 #########1 Public Attributes  3#########4#########5#########6#########7#########8#########9
 
@@ -444,6 +350,7 @@ has empty_return_type =>(
 		isa		=> Enum[qw( empty_string undef_string )],
 		reader	=> 'get_empty_return_type',
 		writer	=> 'set_empty_return_type',
+		required => 1,
 	);
 	
 has cache_positions =>(
@@ -467,37 +374,6 @@ has show_sub_file_size =>(
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
 
 ###LogSD sub get_class_space{ 'Workbook' }
-
-sub import{# Flags handled here!
-    my ( $self, @flag_list ) = @_;
-	
-	if( scalar( @flag_list ) ){
-		for my $flag ( @flag_list ){
-			#~ print "Arrived at import with flag: $flag\n";
-			if( $flag =~ /^:(\w*)$/ ){# Handle text based flags
-				my $default_choice = $1;
-				#~ print "Attempting to change the default group type to: $default_choice\n";
-				if( exists $flag_settings->{$default_choice} ){
-					for my $attribute ( keys %{$flag_settings->{$default_choice}} ){
-						#~ print "Changing flag -$attribute- to:" . Dumper( $flag_settings->{$default_choice}->{$attribute} );
-						$attribute_defaults->{$attribute} = $flag_settings->{$default_choice}->{$attribute};
-					}
-				}else{
-					confess "No settings available for the flag: $flag";
-				}
-			}elsif( $flag =~ /^v?\d+\.?\d*/ ){# Version check may wind up here
-				#~ print "Running version check on version: $flag\n";
-				my $result = $VERSION <=> version->parse( $flag );
-				#~ print "Tested against version -$VERSION- gives result: $result\n";
-				if( $result < 0 ){
-					confess "Version -$flag- required - the installed version is: $VERSION";
-				}
-			}else{
-				confess "Passed attribute default flag -$flag- does not comply with the correct format";
-			}
-		}
-	}
-}
 
 sub parse{
 
@@ -531,7 +407,6 @@ sub worksheets{
 	}
 	###LogSD	$phone->talk( level => 'trace', message =>[
 	###LogSD		'sending worksheet array: ',@worksheet_array ] );
-	print "Finished building worksheets\n";
 	return @worksheet_array;
 }
 
@@ -599,7 +474,6 @@ sub worksheet{
 	}
 	# handle the worksheet if succesfull
 	if( $worksheet ){
-		print "Successfully built worksheet named: $worksheet_name\n";
 		###LogSD	$phone->talk( level => 'info', message =>[
 		###LogSD		"Successfully loaded: $worksheet_name", 
 		###LogSD		"Setting the current worksheet position to: $next_position" ] );
@@ -621,6 +495,17 @@ sub has_file_handle{ #Depricate after 2017-3-1 with file_handle attribute
 }
 
 #########1 Private Attributes 3#########4#########5#########6#########7#########8#########9
+
+has _delay_till_build =>(
+		isa	=> HashRef,
+		traits	=> ['Hash'],
+		writer	=> '_set_delay_till_build',
+		default	=> sub{ {} },
+		handles =>{
+			_get_build_key => 'get',
+			_get_all_build_keys => 'keys',
+		},
+	);
 
 has _successful =>(
 		isa		=> Bool,
@@ -750,7 +635,6 @@ has _shared_strings_interface =>(
 			'get_shared_string' => 'get_shared_string',
 			'start_the_ss_file_over' => 'start_the_file_over',
 		},
-		#~ weak_ref => 1,
 	);
 	
 has _styles_insterface =>(
@@ -762,7 +646,6 @@ has _styles_insterface =>(
 		handles		=>{
 			get_format	=> 'get_format',
 		},
-		#~ weak_ref => 1,
 	);
 
 has _current_worksheet_position =>(
@@ -783,91 +666,9 @@ has _workbook_file_interface =>(
 			_extract_file				extract_file 
 			_get_workbook_file_type		get_file_type
 		)},
-		#~ weak_ref => 1,
 	);
 
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
-
-around BUILDARGS => sub {
-    my ( $orig, $class, %args ) = @_;
-	###LogSD	my $log_space = $args{log_space}//'XLSX::Workbook';
-	###LogSD	$log_space .= $log_space ? '::' : '';
-	###LogSD	$log_space .= 'Workbook::_hidden::BUILDARGS';
-	###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	###LogSD					name_space 	=> $log_space, );
-	###LogSD		$phone->talk( level => 'trace', message =>[
-	###LogSD			'Arrived at BUILDARGS with: ', %args ] );
-	
-	# Handle depricated cache_positions
-	#~ print longmess( Dumper( %args ) );
-	if( exists $args{cache_positions} ){
-		###LogSD	$phone->talk( level => 'trace', message =>[
-		###LogSD		"The user did pass a value to cache_positions as:", $args{cache_positions}] );
-		if( !is_HashRef( $args{cache_positions} ) ){
-			warn "Passing a boolean value to the attribute 'cache_positions' is depricated since v0.40.2 - the input will be converted per the documentation";
-			$args{cache_positions} = !$args{cache_positions} ?
-				$flag_settings->{big_file}->{cache_positions} : 
-				$attribute_defaults->{cache_positions};
-		}
-		
-		#scrub cache_positions
-		for my $passed_key ( keys %{$args{cache_positions}} ){
-			if( !exists $attribute_defaults->{cache_positions}->{$passed_key} ){
-				warn "Passing a cache position for '$passed_key' but that is not allowed";
-			}
-		}
-		for my $stored_key ( keys %{$attribute_defaults->{cache_positions}} ){
-			if( !exists $args{cache_positions}->{$stored_key} ){
-				warn "Passed cache positions are missing key => values for key: $stored_key";
-			}
-		}
-	}
-		
-	# Add any defaults
-	###LogSD	$phone->talk( level => 'trace', message =>[
-	###LogSD		"Processing possible default values", $attribute_defaults ] );
-	for my $key ( keys %$attribute_defaults ){
-		###LogSD	$phone->talk( level => 'trace', message =>[
-		###LogSD		"Processing possible default for -$key- with value:", $attribute_defaults->{$key} ] );
-		if( exists $args{$key} ){
-			###LogSD	$phone->talk( level => 'trace', message =>[
-			###LogSD		"Found user defined -$key- with value(s): ", $args{$key} ] );
-		}else{
-			###LogSD	$phone->talk( level => 'trace', message =>[
-			###LogSD		"Setting default -$key- with value(s): ", $attribute_defaults->{$key} ] );
-			$args{$key} = clone( $attribute_defaults->{$key} );
-		}
-	}
-	
-	# Build object instances as needed
-	for my $key ( keys %args ){
-		###LogSD	$phone->talk( level => 'trace', message =>[
-		###LogSD		"Checking if an instance needs built for key: $key" ] );
-		if( $key =~ /_inst$/ and !is_Object( $args{$key} ) and is_HashRef( $args{$key} ) ){
-			# Import log_space as needed
-			###LogSD	if( exists $args{log_space} and $args{log_space} ){
-			###LogSD		$args{$key}->{log_space} = $args{log_space};
-			###LogSD	}
-			###LogSD	$phone->talk( level => 'trace', message =>[
-			###LogSD		"Key -$key- requires an instance built from:", $args{$key} ] );
-			$args{$key} = build_instance( $args{$key} );
-		}
-	}
-	
-	# Pull any delayed build items - probably to allow them to observe the workbook instance
-	for my $key ( @$delay_till_build ){
-		###LogSD	$phone->talk( level => 'trace', message =>[
-		###LogSD		"Delaying the installation of: $key" ] );
-		if( exists $args{$key} ){
-			$build_delay_store->{$key} = $args{$key};
-			delete $args{$key};
-		}
-	}
-	
-	###LogSD	$phone->talk( level => 'trace', message =>[
-	###LogSD			"Final BUILDARGS:", %args ] );
-    return $class->$orig(%args);
-};
 
 sub BUILD {
     my ( $self ) = ( @_ );
@@ -877,14 +678,13 @@ sub BUILD {
 	###LogSD			'Arrived at BUILD and checking for needed file handle to file name conversions' ] );
 	
 	# Install any delayed build items - probably to allow them to observe the workbook instance
-	for my $key ( @$delay_till_build ){
+	for my $key ( $self->_get_all_build_keys ){
 		###LogSD	$phone->talk( level => 'trace', message =>[
 		###LogSD		"Adding the build or installation of: $key" ] );
 		my $setter_method = 'set_' . $key;
-		if( exists $build_delay_store->{$key} ){
-			$self->$setter_method( $build_delay_store->{$key} );
-		}
+		$self->$setter_method( $self->_get_build_key( $key ) );
 	}
+	$self->_set_delay_till_build( {} );
 	
 	# Manage passed file names or handles
 	my $build_value = $self->_has_file ? $self->_file :
@@ -1148,7 +948,7 @@ sub _load_meta_data{
 	}
 }
 
-sub DEMOLISH{
+sub _demolish_the_workbook{
 	my ( $self ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
 	###LogSD			$self->get_all_space . '::_hidden::DEMOLISH', );
@@ -1193,7 +993,7 @@ sub DEMOLISH{
 	if( $self and $self->_has_workbook_file_interface ){
 		#~ print "closing workbook interface file\n";
 		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD			"Clearing the styles.xml file" ] );
+		###LogSD			"Clearing the base workbook file interface" ] );
 		$self->_clear_workbook_file_interface;
 	}
 	#~ print "~Reader::LibXML closed\n";

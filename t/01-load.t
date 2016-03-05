@@ -47,5 +47,6 @@ BEGIN{ use_ok( Spreadsheet::XLSX::Reader::LibXML::XMLReader::PositionStyles, 0.0
 BEGIN{ use_ok( Spreadsheet::XLSX::Reader::LibXML::XMLToPerlData, 0.040 ) };
 BEGIN{ use_ok( Spreadsheet::XLSX::Reader::LibXML::ZipReader, 0.040 ) };
 BEGIN{ use_ok( Spreadsheet::XLSX::Reader::LibXML::ZipReader::ExtractFile, 0.040 ) };
+BEGIN{ use_ok( Spreadsheet::XLSX::Reader::LibXML::Workbook, 0.040 ) };
 BEGIN{ use_ok( Spreadsheet::XLSX::Reader::LibXML, 0.040 ) };
 done_testing();

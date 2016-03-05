@@ -46,14 +46,16 @@ use	Data::Dumper;
 ###LogSD					);
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
-use	Spreadsheet::XLSX::Reader::LibXML ':just_the_data';
-#~ use	Spreadsheet::XLSX::Reader::LibXML::Error;
-#~ ###LogSD	use Log::Shiras::UnhideDebug;
-#~ use	Spreadsheet::XLSX::Reader::LibXML::XMLReader;
-#~ use Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow;
-#~ use Spreadsheet::XLSX::Reader::LibXML::XMLToPerlData;
-#~ use Spreadsheet::XLSX::Reader::LibXML::WorksheetToRow;
-#~ use Spreadsheet::XLSX::Reader::LibXML::Worksheet;
+use	Spreadsheet::XLSX::Reader::LibXML::Workbook;
+use	Spreadsheet::XLSX::Reader::LibXML::Error;
+###LogSD	use Log::Shiras::UnhideDebug;
+use	Spreadsheet::XLSX::Reader::LibXML::XMLReader;
+use Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow;
+use Spreadsheet::XLSX::Reader::LibXML::XMLToPerlData;
+use Spreadsheet::XLSX::Reader::LibXML::WorksheetToRow;
+use Spreadsheet::XLSX::Reader::LibXML::Worksheet;
+use Spreadsheet::XLSX::Reader::LibXML::ZipReader::Worksheet;
+use Spreadsheet::XLSX::Reader::LibXML::XMLReader;
 
 $test_file	= ( @ARGV ) ? $ARGV[0] : $test_file;
 $test_file .= 'string_in_worksheet.xml';
@@ -84,8 +86,16 @@ my			$answer_ref = [
 ###LogSD	$phone->talk( level => 'info', message => [ "easy questions ..." ] );
 
 lives_ok{
-			$workbook_instance = Spreadsheet::XLSX::Reader::LibXML->new(
+			$workbook_instance = Spreadsheet::XLSX::Reader::LibXML::Workbook->new(
 									###LogSD log_space => 'Test'
+									error_inst => Spreadsheet::XLSX::Reader::LibXML::Error->new,
+									file_boundary_flags => 1,
+									empty_return_type => 'undef_string',
+									count_from_zero   => 0,
+									values_only       => 1,
+									empty_is_end      => 1,
+									group_return_type => 'value',
+									from_the_edge     => 0,
 								);
 			$test_instance = build_instance(
 								superclasses => ['Spreadsheet::XLSX::Reader::LibXML::XMLReader'],

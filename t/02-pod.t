@@ -60,6 +60,8 @@ pod_file_ok( $up . 	'lib/Spreadsheet/XLSX/Reader/LibXML/ZipReader.pm',
 						"The Spreadsheet::XLSX::Reader::LibXML::ZipReader file has good POD" );
 pod_file_ok( $up . 	'lib/Spreadsheet/XLSX/Reader/LibXML/ZipReader/ExtractFile.pm',
 						"The Spreadsheet::XLSX::Reader::LibXML::ZipReader::ExtractFile file has good POD" );
+pod_file_ok( $up . 	'lib/Spreadsheet/XLSX/Reader/LibXML/Workbook.pm',
+						"The Spreadsheet::XLSX::Reader::LibXML::Workbook file has good POD" );
 pod_file_ok( $up . 	'lib/Spreadsheet/XLSX/Reader/LibXML.pm',
 						"The Spreadsheet::XLSX::Reader::LibXML file has good POD" );
 done_testing();

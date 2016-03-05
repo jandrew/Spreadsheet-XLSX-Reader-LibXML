@@ -42,7 +42,7 @@ use	lib	'../../../../../Log-Shiras/lib',
 ###LogSD						log_file => 'warn',
 ###LogSD					},
 ###LogSD				},
-#~ ###LogSD				Test =>{
+###LogSD				Test =>{
 #~ ###LogSD					SharedStringsInstance =>{
 #~ ###LogSD						UNBLOCK =>{
 #~ ###LogSD							log_file => 'trace',
@@ -53,12 +53,87 @@ use	lib	'../../../../../Log-Shiras/lib',
 #~ ###LogSD							log_file => 'warn',
 #~ ###LogSD						},
 #~ ###LogSD					},
-#~ ###LogSD					Workbook =>{
-#~ ###LogSD						UNBLOCK =>{
-#~ ###LogSD							log_file => 'warn',
-#~ ###LogSD						},
-#~ ###LogSD					},
-#~ ###LogSD				},
+###LogSD					WorkbookFileInterface =>{
+###LogSD						UNBLOCK =>{
+###LogSD							log_file => 'warn',
+###LogSD						},
+###LogSD					},
+###LogSD					WorkbookMetaInterface =>{
+###LogSD						UNBLOCK =>{
+###LogSD							log_file => 'warn',
+###LogSD						},
+###LogSD					},
+###LogSD					WorkbookRelsInterface =>{
+###LogSD						UNBLOCK =>{
+###LogSD							log_file => 'warn',
+###LogSD						},
+###LogSD					},
+###LogSD					WorkbookPropsInterface =>{
+###LogSD						UNBLOCK =>{
+###LogSD							log_file => 'warn',
+###LogSD						},
+###LogSD					},
+###LogSD					SharedStringsInterface =>{
+###LogSD						UNBLOCK =>{
+###LogSD							log_file => 'warn',
+###LogSD						},
+###LogSD					},
+###LogSD					StylesInterface =>{
+###LogSD						UNBLOCK =>{
+###LogSD							log_file => 'warn',
+###LogSD						},
+###LogSD					},
+###LogSD					ExcelFormatInterface =>{
+###LogSD						UNBLOCK =>{
+###LogSD							log_file => 'warn',
+###LogSD						},
+###LogSD					},
+###LogSD					Top =>{
+###LogSD						_hidden =>{
+###LogSD							BUILDARGS =>{
+###LogSD								UNBLOCK =>{
+###LogSD									log_file => 'warn',
+###LogSD								},
+###LogSD							},
+###LogSD						},
+###LogSD						_around =>{
+###LogSD							parse =>{
+###LogSD								UNBLOCK =>{
+###LogSD									log_file => 'debug',
+###LogSD								},
+###LogSD							},
+###LogSD						},
+###LogSD					},
+###LogSD					Workbook =>{
+###LogSD						_hidden =>{
+###LogSD							BUILDARGS =>{
+###LogSD								UNBLOCK =>{
+###LogSD									log_file => 'warn',
+###LogSD								},
+###LogSD							},
+###LogSD							BUILD =>{
+###LogSD								UNBLOCK =>{
+###LogSD									log_file => 'warn',
+###LogSD								},
+###LogSD							},
+###LogSD							set_formatter_inst =>{
+###LogSD								UNBLOCK =>{
+###LogSD									log_file => 'warn',
+###LogSD								},
+###LogSD							},
+###LogSD							_build_workbook =>{
+###LogSD								UNBLOCK =>{
+###LogSD									log_file => 'warn',
+###LogSD								},
+###LogSD							},
+###LogSD							_build_file_interface =>{
+###LogSD								UNBLOCK =>{
+###LogSD									log_file => 'warn',
+###LogSD								},
+###LogSD							},
+###LogSD						},
+###LogSD					},
+###LogSD				},
 ###LogSD			},
 ###LogSD			reports =>{
 ###LogSD				log_file =>[ Print::Log->new ],
@@ -68,6 +143,7 @@ use	lib	'../../../../../Log-Shiras/lib',
 ###LogSD	use Log::Shiras::UnhideDebug;
 ###LogSD	use MooseX::ShortCut::BuildInstance;
 use Spreadsheet::XLSX::Reader::LibXML;# ':debug'
+#~ use Spreadsheet::XLSX::Reader::LibXML::Error;
 $test_file = ( @ARGV ) ? $ARGV[0] : $test_file;
 $test_file .= 'values.xlsx';
 	#~ print "Test file is: $test_file\n";
@@ -97,10 +173,11 @@ my	$answer_ref = [
 lives_ok{
 			$parser = Spreadsheet::XLSX::Reader::LibXML->new(
 							###LogSD log_space => 'Test'
-						)->parse($test_file);
-			#~ $parser->set_warnings( 0 );
+						);
+			$parser->set_warnings( 0 );
+			$parser->parse($test_file);
 }										"Prep a test parser instance";
-###LogSD		$phone->talk( level => 'trace', message => [ "$parser:", $parser ] );
+###LogSD		$phone->talk( level => 'info', message => [ "$parser:", $parser ] );
 is			$parser->error(), undef,	"Write any error messages from the file load";
 ok			@worksheets = $parser->worksheets(),
 										"Loaded worksheet objects ok";

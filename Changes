@@ -11,7 +11,11 @@ be method matched to Spreadsheet::ParseExcel prior to the 1.0 release.
 
 {{$NEXT}}
 	
-	! There was a new failure on the temp dir bug so the test was upgraded and the bug fixed
+	+ Added a perlmonks badge at the end - not sure how this will fly yet
+	!!!! There was a new failure on the temp dir bug probably inherent in the architecture but
+		more visible now with this overal change so the whole top level module was dropped down one layer, 
+		the test was upgraded, and the bug fixed (Also affecting documentation)
+		Thank you Perl Cookbook 13.13 and perldoc http://perldoc.perl.org/5.8.9/perlobj.html#Two-Phased-Garbage-Collection
 	! Removed the Alien::LibXML install step since it appears to be causeing problems
 	! Added a test and closes #97 in github
 	! Changed the tests to return undef for undef values instead of failing over to the zero string (better matches Excel)
@@ -19,13 +23,13 @@ be method matched to Spreadsheet::ParseExcel prior to the 1.0 release.
 	+ added a file attribute that will accept file names or file handles
 	- Depricated the file_handle and file_name attributes (removal on 1/1/2017)
 	- Changed the cached positions reader from get_cached_positions to cached_positions
-	+ Adds a 'max_file_caching' attribute
-		This setting will automatically turn off caching if it trys to read a file larger than a certain size
-		The goal here is to continue to run on super large files even though it will slow WAY down!
-		No actual testing of the platform memory is done since that requires more dependancies than I am willing to install
-		I'm up for setting the default lower but the default setting is optimized for my enviornment so I would be looking 
-		for a case that indicates why a lower standard is a better general fit.  I would be unlikely to raise the default as 
-		the end user can bump it up where you have certified that the environment can handle it.
+	+ changed the 'cache_positions' attribute to accept a hashref instead of a Bool
+		This allows each 'cache-able' subfile to set a max cache size for caching that specific file
+		the value for each key is the maximum byte size of that file
+		potential cache desisions are 'shared_strings_instance', 'styles_instance', 'worksheet_instance', and 'chartsheet_instance'
+		currently implemented cache decisions are 'shared_strings_instance' and 'styles_instance'
+		beware that there appears to be a pretty big RAM multiplier when caching is in place 150M -> 2.5G
+		beware that there is a substantial slowdown for non-cacheing especially for the shared_strings_instance
 	! Added a test and closes #90 in github
 	! Changed the format_inst to formatter_inst to avoid confusion with future implementation of 
 		sheet visual formatting

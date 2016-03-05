@@ -40,7 +40,7 @@ has	file_type =>(
 	);
 
 has workbook_inst =>(
-		isa	=> 'Spreadsheet::XLSX::Reader::LibXML', 
+		isa	=> 'Spreadsheet::XLSX::Reader::LibXML::Workbook', 
 		handles =>[ qw(
 			error set_error clear_error
 		)],
@@ -105,11 +105,9 @@ sub DEMOLISH{
 	###LogSD			$self->get_all_space . '::XMLReader::DEMOLISH', );
 	###LogSD		$phone->talk( level => 'debug', message => [
 	###LogSD			"clearing the zip reader for log space:", $self->get_log_space, ] );
-	print "ZipReader closed\n";
 	
 	# Clear the reader
 	if( $self->_has_zip_parser ){
-		print "Disconnecting the sheet zip parser from the parser\n";
 		###LogSD	$phone->talk( level => 'debug', message =>[ "Clearing the zip parser", ] );
 		$self->_clear_zip_parser;
 	}

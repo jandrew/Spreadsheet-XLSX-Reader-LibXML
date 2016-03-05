@@ -37,7 +37,7 @@ has file =>(
 	);
 
 has workbook_inst =>(
-		isa	=> 'Spreadsheet::XLSX::Reader::LibXML', 
+		isa	=> 'Spreadsheet::XLSX::Reader::LibXML::Workbook', 
 		handles =>[ qw(
 			set_error						get_empty_return_type			_get_workbook_file_type
 			_get_sheet_info					_get_rel_info					get_sheet_names

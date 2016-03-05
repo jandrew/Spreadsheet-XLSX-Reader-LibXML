@@ -81,6 +81,8 @@ my %WriteMakefileArgs = (
     "DateTime::Format::Flexible" => 0,
     "DateTimeX::Format::Excel" => "0.012",
     "ExtUtils::MakeMaker" => "7.04",
+    "File::Copy" => 0,
+    "File::Temp" => 0,
     "IO::File" => 0,
     "List::Util" => "1.33",
     "Moose" => "2.1213",
@@ -98,7 +100,7 @@ my %WriteMakefileArgs = (
     "XML::LibXML::Reader" => 0,
     "version" => "0.77"
   },
-  "VERSION" => "v0.40_2",
+  "VERSION" => "v0.40_3",
   "test" => {
     "TESTS" => "t/Spreadsheet/XLSX/Reader/*.t t/Spreadsheet/XLSX/Reader/LibXML/*.t t/Spreadsheet/XLSX/Reader/LibXML/XMLReader/*.t"
   }
@@ -116,6 +118,8 @@ my %FallbackPrereqs = (
   "Devel::StackTrace" => 0,
   "Encode" => 0,
   "ExtUtils::MakeMaker" => "7.04",
+  "File::Copy" => 0,
+  "File::Temp" => 0,
   "IO::File" => 0,
   "List::Util" => "1.33",
   "Modern::Perl" => 0,

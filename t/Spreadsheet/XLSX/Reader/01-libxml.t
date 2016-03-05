@@ -18,9 +18,7 @@ BEGIN{
 	}
 }
 $| = 1;
-#~ my $total_tests = 156;
-#~ use Test::Most;
-use	Test::Most tests => 156;
+use	Test::Most tests => 143;
 use	Test::Moose;
 use Data::Dumper;
 use	lib	'../../../../../Log-Shiras/lib',
@@ -172,12 +170,12 @@ use	lib	'../../../../../Log-Shiras/lib',
 ###LogSD											},
 ###LogSD									worksheet =>{
 ###LogSD										UNBLOCK =>{
-###LogSD											log_file => 'trace',
+###LogSD											log_file => 'warn',
 ###LogSD										},
 ###LogSD									},
 ###LogSD									worksheets =>{
 ###LogSD										UNBLOCK =>{
-###LogSD											log_file => 'trace',
+###LogSD											log_file => 'warn',
 ###LogSD										},
 ###LogSD									},
 ###LogSD									_hidden =>{
@@ -216,7 +214,7 @@ use	lib	'../../../../../Log-Shiras/lib',
 ###LogSD								Worksheet =>{
 ###LogSD									_load_unique_bits =>{
 ###LogSD										UNBLOCK =>{
-###LogSD											log_file => 'trace',
+###LogSD											log_file => 'warn',
 ###LogSD										},
 ###LogSD									},
 ###LogSD									_hidden =>{
@@ -307,13 +305,6 @@ my	$answer_ref = [
 		'EOF',
 	];
 
-my 			@class_attributes = qw(
-				error_inst					file_name					file_handle
-				sheet_parser				count_from_zero				file_boundary_flags
-				empty_is_end				from_the_edge				values_only
-				group_return_type			formatter_inst				empty_return_type
-				cache_positions
-			);
 my  		@class_methods = qw(
 				new							import						parse
 				worksheet					worksheets					get_excel_region
@@ -342,11 +333,6 @@ my  		@class_methods = qw(
 			
 ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space => 'main', );
 ###LogSD		$phone->talk( level => 'info', message => [ "easy questions ..." ] );
-map{ 
-has_attribute_ok
-			'Spreadsheet::XLSX::Reader::LibXML', $_,
-										"Check that Spreadsheet::XLSX::Reader::LibXML has the -$_- attribute"
-} 			@class_attributes;
 map{
 can_ok		'Spreadsheet::XLSX::Reader::LibXML', $_,
 } 			@class_methods;
@@ -375,7 +361,7 @@ ok			1,							"The file unzipped and the parser set up without issues";
 
 			my	$offset_ref = [ 0, 9, 17 ];
 			my	$y = 0;
-###LogSD	my	$test_position = 2;
+###LogSD	my	$test_position = 40;
 ###LogSD	my	$test_worksheet = 'Sheet2';
 ###LogSD	my	$show_worksheet_build = 0;
 ###LogSD	if( $show_worksheet_build ){

@@ -92,7 +92,7 @@ my	$number_build_dispatch ={
 #########1 Public Attributes  3#########4#########5#########6#########7#########8#########9
 
 has workbook_inst =>(
-		isa	=> 'Spreadsheet::XLSX::Reader::LibXML', 
+		isa	=> 'Spreadsheet::XLSX::Reader::LibXML::Workbook', 
 		handles =>[ qw(
 			error set_error clear_error get_epoch_year
 		)],

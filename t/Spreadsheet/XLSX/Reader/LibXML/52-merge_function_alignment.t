@@ -59,7 +59,8 @@ use	Spreadsheet::XLSX::Reader::LibXML::Worksheet;
 use	Spreadsheet::XLSX::Reader::LibXML::WorksheetToRow;
 use	Spreadsheet::XLSX::Reader::LibXML::FmtDefault;
 ###LogSD	use Log::Shiras::UnhideDebug;
-use Spreadsheet::XLSX::Reader::LibXML;
+use Spreadsheet::XLSX::Reader::LibXML::Workbook;
+use Spreadsheet::XLSX::Reader::LibXML::Error;
 use	DateTimeX::Format::Excel;
 use	DateTime::Format::Flexible;
 use	Type::Coercion;
@@ -90,10 +91,12 @@ my			$answer_ref = [
 			];
 
 lives_ok{
-			$workbook_instance =	Spreadsheet::XLSX::Reader::LibXML->new(
+			$workbook_instance =	Spreadsheet::XLSX::Reader::LibXML::Workbook->new(
 							count_from_zero		=> 1,
 							group_return_type	=> 'value',
 							empty_return_type	=> 'undef_string',
+							error_inst			=> Spreadsheet::XLSX::Reader::LibXML::Error->new,
+							file_boundary_flags	=> 1,
 			###LogSD		log_space			=> 'Test',
 						);
 			$test_instance = build_instance(
