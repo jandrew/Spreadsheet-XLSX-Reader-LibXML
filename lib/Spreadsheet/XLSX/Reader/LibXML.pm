@@ -396,7 +396,7 @@ The following uses the 'TestBook.xlsx' file found in the t/test_files/ folder of
 
 =head1 DESCRIPTION
 
-This is an object oriented just in time Excel spreadsheet reader package that should 
+This is an object oriented just in time Excel spreadsheet reading package that should 
 parse all excel files with the extentions .xlsx, .xlsm, .xml I<L<Excel 2003 xml
 |https://en.wikipedia.org/wiki/Microsoft_Office_XML_formats> (SpreadsheetML)> that 
 can be opened in Excel 2007+ applications.  The quick-start example provided in the 
