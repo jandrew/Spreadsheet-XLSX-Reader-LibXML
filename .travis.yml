@@ -32,9 +32,9 @@ os:
 #~ script:
   #~ - perl -d:Trace t/Spreadsheet/XLSX/Reader/03-temp_dir_bug.t
   
-script: perl t/Spreadsheet/XLSX/Reader/03-temp_dir_bug.t
+#~ script: perl t/Spreadsheet/XLSX/Reader/03-temp_dir_bug.t
 
 matrix:
   include:
-    - perl: 5.20
+    - perl: 5.22
       env: COVERAGE=1
