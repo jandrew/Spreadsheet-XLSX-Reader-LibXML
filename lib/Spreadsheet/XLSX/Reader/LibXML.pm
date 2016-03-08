@@ -591,7 +591,9 @@ warning will stay till 3/1/2017.
 
 B<8.> Version v40.4 introduces an additional layer to the top level in order to improve real time 
 garbage collection.  The best description I can find for this issue is in the perldoc L<5.8.9 perlobj 
-documentation|http://perldoc.perl.org/5.8.9/perlobj.html#Two-Phased-Garbage-Collection>
+documentation|http://perldoc.perl.org/5.8.9/perlobj.html#Two-Phased-Garbage-Collection>.  The solution 
+is extrapolated from the L<Perl Cookbook recipe 13.13|http://docstore.mik.ua/orelly/perl/cookbook/ch13_14.htm>.  
+The goal of this change was to make it as transparent at the top level as possible.
 
 =head2 Attributes
 
