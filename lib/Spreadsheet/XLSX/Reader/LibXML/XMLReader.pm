@@ -1,10 +1,12 @@
 package Spreadsheet::XLSX::Reader::LibXML::XMLReader;
-use version; our $VERSION = version->declare('v0.38.22');
+use version; our $VERSION = version->declare('v0.40.2');
+###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::XMLReader-$VERSION";
 
 use 5.010;
 use Moose;
 use MooseX::StrictConstructor;
 use MooseX::HasDefaults::RO;
+use Try::Tiny;
 use Types::Standard qw(
 		Int				HasMethods			Bool
 		Num				Str
@@ -30,22 +32,25 @@ has file =>(
 		predicate	=> 'has_file',
 		clearer		=> 'clear_file',
 		coerce		=> 1,
-		required	=> 1,
-		trigger		=> \&_build_xml_reader,
+		trigger		=> \&_start_xml_reader,
 		handles 	=> [ 'close' ],
 	);
 
-has	error_inst =>(
-		isa			=> 	HasMethods[qw(
-							error set_error clear_error set_warnings if_warn
-						) ],
-		clearer		=> '_clear_error_inst',
-		reader		=> '_get_error_inst',
-		required	=> 1,
+has workbook_inst =>(
+		isa	=> 'Spreadsheet::XLSX::Reader::LibXML::Workbook', 
 		handles =>[ qw(
-			error set_error clear_error set_warnings if_warn
-		) ],
-		default => sub{ Spreadsheet::XLSX::Reader::LibXML::Error->new },
+			set_error						get_empty_return_type			_get_workbook_file_type
+			_get_sheet_info					_get_rel_info					get_sheet_names
+			get_defined_conversion			set_defined_excel_formats		has_shared_strings_interface
+			get_shared_string				get_values_only					is_empty_the_end
+			_starts_at_the_edge				get_group_return_type			change_output_encoding
+			counting_from_zero				get_error_inst					boundary_flag_setting
+			has_styles_interface			get_format						start_the_ss_file_over
+			parse_excel_format_string		has_error						get_default_format
+			_get_workbook_file_type
+		)],
+		writer => 'set_workbook_inst',
+		predicate => '_has_workbook_inst',
 	);
 
 has	xml_version =>(
@@ -77,22 +82,60 @@ has position_index =>(
 		predicate	=> 'has_position',
 	);
 
+has	file_type =>(
+		isa			=> 	Str,
+		reader		=> 'get_file_type',
+		default		=> 'xml',
+	);
+
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
 
 
 sub start_the_file_over{
-	my( $self, ) = @_;
+	my( $self ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::XMLReader::FromFile::start_the_file_over', );
+	###LogSD			$self->get_all_space . '::XMLReader::start_the_file_over', );
+	$self->clear_location;
+	###LogSD	$phone->talk( level => 'debug', message =>[ "location is cleared" ] );
+	if( $self->_has_xml_parser ){
+		$self->_close_the_sheet;
+		###LogSD	$phone->talk( level => 'debug', message =>[ "sheet is closed" ] );
+		$self->_clear_xml_parser;
+		###LogSD	$phone->talk( level => 'debug', message =>[ "parser is cleared" ] );
+	}
 	if( $self->has_file ){
 		###LogSD		$phone->talk( level => 'debug', message =>[ "Resetting the XML file" ] );
-		#~ $self->_go_to_the_end;
-		$self->_close_the_sheet;
-		#~ $self->_clear_xml_parser;
-		$self->clear_location;
 		my $fh = $self->get_file;
+		###LogSD		$phone->talk( level => 'debug', message =>[ "got the file handle", $fh ] );
 		$fh->seek( 0, 0 );
-		$self->_set_xml_parser( XML::LibXML::Reader->new( IO => $fh ) );
+		###LogSD		$phone->talk( level => 'debug', message =>[ "seek to 0 done" ] );
+		my $xml_parser = XML::LibXML::Reader->new( IO => $fh );
+		###LogSD		$phone->talk( level => 'debug', message =>[ "XML Parser built" ] );
+		
+		# Check functionality
+		if( eval '$xml_parser->read' ){
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD		'Initial read successful - re-loading the reader' ], );
+		}else{
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD		'Initial read failed - clearing the reader' ], );
+			$self->set_error( $@ );
+			$xml_parser = undef;
+		}
+		
+		# Load to class
+		if( $xml_parser ){
+			$self->_set_xml_parser( $xml_parser );
+			###LogSD	$phone->talk( level => 'debug', message =>[ "XML parser stored", $xml_parser ] );
+		}else{
+			###LogSD	$phone->talk( level => 'debug', message =>[ "Failed to build an xml parser" ] );
+			return undef;
+		}
+		#~ my ( $result, $node_depth, $node_name, $node_type ) = $self->_next_node;
+		#~ ###LogSD	$phone->talk( level => 'debug', message => [
+		#~ ###LogSD		"Initial read result: $result", "..at depth: $node_depth",
+		#~ ###LogSD		"..and node named: $node_name", "..of node type: $node_type" ] );
+		#~ return $result;
 		return 1;
 	}else{
 		###LogSD		$phone->talk( level => 'info', message =>[ "No file to reset" ] );
@@ -105,13 +148,13 @@ sub get_text_node{
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
 	###LogSD			$self->get_all_space . '::XMLReader::get_text_node', );
 	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"getting the text value of the node", ] );
+	###LogSD			"checking the text value of the node", $self->location_status, $self->_node_value ] );
 	
 	# Check for a text node type (and return immediatly if so)
 	if( $self->_has_value ){
 		my $node_text = $self->_node_value;
 		###LogSD	$phone->talk( level => 'debug', message =>[
-		###LogSD		"This is a text node - returning value: $node_text",] );
+		###LogSD		"This is a text node - returning value |$node_text|",] );
 		return ( 1, $node_text, );
 	}
 	# Return undef for no value
@@ -162,19 +205,35 @@ sub advance_element_position{
 	###LogSD			$self->get_all_space . '::XMLReader::advance_element_position', );
 	###LogSD	$phone->talk( level => 'info', message => [
 	###LogSD		"Advancing to element -" . ($element//'') . "- -$position- times", ] );
-	my ( $result, $node_depth, $node_name, $node_type, $byte_count );
+	
+	#~ # Check for end of file and opt out
+	my( $node_depth, $node_name, $node_type ) = $self->location_status;
+	#~ if( $node_name eq 'EOF' ){
+		#~ ###LogSD	$phone->talk( level => 'debug', message => [
+		#~ ###LogSD		"Already at the EOF - returning failure", ] );
+		#~ return undef ;
+	#~ }
+	
+	my $result;
 	my $x = 0;
 	for my $y ( 1 .. $position ){
 		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"Advancing position case: $y", ] );
+		###LogSD		"Advancing position iteration: $y", ] );
 		if( defined $element ){
 			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"Searching for element: $element", ] );
-			$result = $self->_next_element( $element );
+			###LogSD		"Searching for element: $element", "with location status:", $self->location_status ] );
+			eval '$result = $self->_next_element( $element )';#eval ''
+			if( $@ ){
+				###LogSD	$phone->talk( level => 'fatal', message => [
+				###LogSD		"_next_element failed with: $@", ] );
+				return;
+			}
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"search result: " . ($result//'none'), ] );
 		}else{
 			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"Indexing one more generic node", ] );
-			( $result, my( $node_depth, $node_name, $node_type ) ) = $self->_next_node;
+			###LogSD		"Generic node indexing", ] );
+			( $result, $node_depth, $node_name, $node_type ) = $self->_next_node;
 			###LogSD	$phone->talk( level => 'debug', message => [
 			###LogSD		"Received the result: $result", "..at depth: $node_depth",
 			###LogSD		"..and node named: $node_name", "..of node type: $node_type" ] );
@@ -191,7 +250,12 @@ sub advance_element_position{
 		}
 		last if !$result;
 		$x++;
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Successfully indexed -$x- times", ] );
 	}
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		"Successfully indexed forward a total -$position- times", ] );
+	
 	if( defined $node_type and $node_type == 0 ){
 		###LogSD	$phone->talk( level => 'info', message =>[ "Reached the end of the file!" ] );
 	}elsif( !$result ){
@@ -202,6 +266,8 @@ sub advance_element_position{
 		###LogSD		"Actually advanced -$x- positions with result: $result",
 		###LogSD		"..indicated by:", $self->location_status ] );
 	}
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		"returning result: " . ($result//'none'), ] );
 	return $result;
 }
 
@@ -210,7 +276,13 @@ sub location_status{
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
 	###LogSD			$self->get_all_space . '::XMLReader::location_status', );
 	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"Getting the status for the current position", ] );
+	###LogSD			"Getting the status for the current position" ] );#, , caller(0), caller(1), caller(2), caller(3)
+	eval '$self->get_node_all'; # Fixes a phantom xml declaration added at the end of the reader without being in the file
+	if( $@ ){
+		###LogSD	$phone->talk( level => 'warn', message => [
+		###LogSD		"Couldn't get the node because: " . $@ ] );#,
+		$self->set_error( $@ );
+	}
 	my ( $node_depth, $node_name, $node_type ) = ( $self->_node_depth, $self->_node_name, $self->_node_type );
 	$node_name	= 
 		( $node_type == 0 ) ? 'EOF' :
@@ -233,7 +305,7 @@ has _xml_reader =>(
 	predicate	=> '_has_xml_parser',
 	clearer		=> '_clear_xml_parser',
 	handles	=>{
-		copy_current_node	=> 'copyCurrentNode',
+		#~ copy_current_node	=> 'copyCurrentNode',
 		_close_the_sheet	=> 'close',
 		_node_depth			=> 'depth',
 		_node_type			=> 'nodeType',
@@ -246,31 +318,121 @@ has _xml_reader =>(
 		_move_to_first_att	=> 'moveToFirstAttribute',
 		_move_to_next_att	=> 'moveToNextAttribute',
 		_read_next_node		=> 'read',
+		skip_siblings		=> 'skipSiblings',
+		next_sibling		=> 'nextSibling',
 		#~ _go_to_the_end		=> 'finish',
 		get_node_all		=> 'readOuterXml',
 	},
-	trigger => \&_reader_init,
 );
 
-has _read_unique_bits =>(
-		isa		=> Bool,
-		reader	=> '_get_unique_bits',
-		writer	=> '_need_unique_bits',
-		clearer	=> '_clear_read_unique_bits',
-		default	=> 1,
-	);
-
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
+
+sub _start_xml_reader{
+	my( $self, $file_handle ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::XMLReader::_start_xml_reader', );
+	###LogSD		$phone->talk( level => 'debug', message => [
+	###LogSD			"turning a file handle into an xml reader", ] );
+	
+	$self->clear_location;
+	###LogSD	$phone->talk( level => 'debug', message =>[ "location is cleared" ] );
+	
+	# Build the reader
+	$file_handle->seek( 0, 0 );
+	###LogSD		$phone->talk( level => 'trace', message => [
+	###LogSD			"made it past seek (to the beginning of the file)", ] );
+	my	$xml_reader = XML::LibXML::Reader->new( IO => $file_handle );
+	###LogSD		$phone->talk( level => 'debug', message =>[ "XML reader built", $xml_reader ] );
+	$self->_set_xml_parser( $xml_reader );
+	###LogSD		$phone->talk( level => 'debug', message =>[ "XML reader stored" ] );
+	if( $xml_reader ){
+		###LogSD	$phone->talk( level => 'debug', message =>[ 'Built the reader!' ], );
+		if( eval '$xml_reader->read' ){
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD		'Initial read successful - loading the reader to the class:', $xml_reader ], );
+			$self->_reader_init( $xml_reader );
+			###LogSD	$phone->talk( level => 'debug', message => [ "Successfully built the base xml reader" ], );
+	
+			# Set the file unique bits
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD		"Check if this type of file has unique settings" ], );
+			if( $self->can( '_load_unique_bits' ) ){
+				###LogSD	$phone->talk( level => 'debug', message =>[ "Loading unique bits" ], );
+				$self->_load_unique_bits;
+				###LogSD	$phone->talk( level => 'debug', message =>[
+				###LogSD		"Finished loading unique bits" 			], );
+			}
+			###LogSD	$phone->talk( level => 'debug', message => [ "file built" ], );
+			$self->start_the_file_over if $self->has_file;
+		}else{
+			###LogSD	$phone->talk( level => 'debug', message =>[
+			###LogSD		'Initial read failed - clearing the reader' ], );
+			$self->set_error( $@ );
+			$xml_reader = undef;
+		}
+	}
+	if( !$xml_reader ){
+		###LogSD	$phone->talk( level => 'debug', message =>[ 'Not dead yet - setting error: ' . $@ ], );
+		$self->set_error( $@ ) if !$self->has_error;
+		$self->clear_file;
+		$self->clear_location;
+		###LogSD	$phone->talk( level => 'debug', message =>[ "location is cleared" ] );
+		$self->_clear_xml_parser;
+	}
+	###LogSD	$phone->talk( level => 'debug', message => [ "finished all xml reader build steps" ], );
+}
+
+sub _reader_init{
+	my( $self, $reader ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::XMLReader::_reader_init', );
+	###LogSD		$phone->talk( level => 'debug', message => [
+	###LogSD			"loading any file specific settings", ] );
+		
+	# Set basic xml values
+	my	$xml_string = '<?xml version="';
+	$self->_next_node;
+	if( $self->_version ){
+		$self->_set_xml_version( $self->_version );
+		$xml_string .= $self->_version . '"';
+	}else{
+		confess "Could not find the version of this xml document!";
+	}
+	if( $self->_encoding ){
+		$self->_set_xml_encoding( $self->_encoding );
+		$xml_string .= ' encoding="' . $self->_encoding . '"'
+	}else{
+		$self->_clear_xml_encoding;
+	}
+	$xml_string .= '?>';
+	$self->_set_xml_header( $xml_string );
+	###LogSD	$phone->talk( level => 'debug', message => [ "Finished the base first pass - file initialization", $xml_string ], );
+}
 
 sub _next_node{
 	my( $self, ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
 	###LogSD			$self->get_all_space . '::XMLReader::_next_node', );
 	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"Reading the next node in the xml document", ] );
-	my $result = eval{ $self->_read_next_node } ? 1 : 0 ;# Handle unclosed xml tags without dying
-	###LogSD	$phone->talk( level => 'debug', message => [
-	###LogSD		"Result of the read: $result", ] );
+	###LogSD			"Reading the next node in the xml document"] );
+	
+	# Attempt to read the node
+	my $result = 0;
+	if( !eval '$self->_read_next_node' ){
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"found a node read error: $@",] );
+		#~ $self->set_error( $@ );
+		#~ my $fh = $self->get_file;
+		#~ $fh->seek(0,0);
+		#~ ###LogSD	$phone->talk( level => 'debug', message =>[ "got the file handle", $fh ] );
+		#~ map{ chomp;
+		#~ ###LogSD	$phone->talk( level => 'debug', message =>[ $_ ] );
+		#~ } <$fh>;
+	}else{
+		$result = 1;
+	}
+	
+	# Check for an unexpected end of the document
 	my ( $node_depth, $node_name, $node_type ) = $self->location_status;
 	if( $node_name eq '#document' and $node_depth == 0 ){
 		###LogSD	$phone->talk( level => 'debug', message => [
@@ -290,81 +452,40 @@ sub _next_node{
 	}
 }
 
-sub _reader_init{
-	my( $self, $reader ) = @_;
+sub _close_file_and_reader{
+	my ( $self ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::XMLReader::_reader_init', );
+	###LogSD			$self->get_all_space . '::XMLReader::DEMOLISH', );
 	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"loading any file specific settings", ] );
+	###LogSD			"clearing the XMLReader reader for log space:",
+	###LogSD			$self->get_all_space . '::XMLReader::DEMOLISH', ] );
 	
-	if( $self->_get_unique_bits ){
-		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"loading any file specific settings - since this is the first open", ] );
-		$self->_need_unique_bits( 0 );
-		
-		# Set basic xml values
-		my	$xml_string = '<?xml version="';
-		$self->_next_node;
-		if( $self->_version ){
-			$self->_set_xml_version( $self->_version );
-			$xml_string .= $self->_version . '"';
-		}else{
-			confess "Could not find the version of this xml document!";
-		}
-		if( $self->_encoding ){
-			$self->_set_xml_encoding( $self->_encoding );
-			$xml_string = ' encoding="' . $self->_encoding . '"'
-		}else{
-			$self->_clear_xml_encoding;
-		}
-		$xml_string .= '?>';
-		$self->_set_xml_header( $xml_string );
-	
-		# Set the file unique bits
-		###LogSD	$phone->talk( level => 'debug', message =>[
-		###LogSD		"Check if this type of file has unique settings" ], );
-		if( $self->can( '_load_unique_bits' ) ){
-			###LogSD	$phone->talk( level => 'debug', message =>[ "Loading unique bits" ], );
-			$self->_load_unique_bits;
-			###LogSD	$phone->talk( level => 'debug', message =>[
-			###LogSD		"Finished loading unique bits" 			], );
-		}
-		$self->start_the_file_over;
-	}else{
-		###LogSD	$phone->talk( level => 'debug', message =>[ 
-		###LogSD		"This is not the first time the file has been opened - don't reload settings" ], );
+	# Close the parser
+	if( $self->_has_xml_parser ){
+		###LogSD	$phone->talk( level => 'debug', message =>[ "Disconnecting the file handle from the xml parser", ] );
+		$self->_clear_xml_parser;
+		#~ print "parser cleared\n";
 	}
-	###LogSD	$phone->talk( level => 'debug', message => [ "Finished the file initialization" ], );
-}
-
-sub _build_xml_reader{
-	my( $self, $file_handle ) = @_;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::XMLReader::_build_xml_reader', );
-	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"turning a file handle into an xml reader", ] );
+	#~ print "parser check complete\n";
 	
-	# Build the reader
-	$file_handle->seek( 0, 0 );
-	my	$xml_reader = XML::LibXML::Reader->new( IO => $file_handle );
-		$xml_reader->read;
-	###LogSD	$phone->talk( level => 'debug', message =>[ 'Loading reader:', $xml_reader ], );
-	$self->_set_xml_parser( $xml_reader );
-	###LogSD	$phone->talk( level => 'debug', message => [ "Finished loading XML reader" ], );
+	# Close the file
+	if( $self->has_file ){
+		###LogSD	$phone->talk( level => 'debug', message =>[ "Closing the file handle", ] );
+		$self->clear_file
+	}
+	#~ print "XMLReader file check complete\n";
+	
 }
 
 sub DEMOLISH{
 	my ( $self ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::XMLReader::DEMOLISH', );
-	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"clearing the reader for log space:" . $self->get_log_space, ] );
-	if( $self->_get_xml_parser ){
-		#~ print "Disconnecting the sheet file handle from the parser\n";
-		###LogSD	$phone->talk( level => 'debug', message =>[ "Disconnecting the file handle from the xml parser", ] );
-		$self->_close_the_sheet;
-		$self->_clear_xml_parser;
-	}
+	###LogSD			$self->get_all_space . '::_hidden::DEMOLISH', );
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD			"XMLReader DEMOLISH called" ] );
+	
+	$self->_close_file_and_reader;
+	
 }
 
 #########1 Phinish            3#########4#########5#########6#########7#########8#########9
@@ -476,38 +597,33 @@ closes the file handle
 
 =back
 
-=head3 error_inst
+=head3 workbook_inst
 
 =over
 
-B<Definition:> This attribute holds the L<error handler
-|Spreadsheet::XLSX::Reader::LibXML::Error>.
+B<Definition:> This attribute holds a reference to the top level workbook (parser).  
+The purpose is to use some of the attributes stored there.
 
-B<Default:> no default - this must be provided to read a file
+B<Default:> no default
 
-B<Required:> yes
+B<Required:> not strictly but methods will fail without the L<delegated
+|/Delegated Methods (required)> elements listed below.  For information 
+about the delegated methods see the links to the documentation.  For 
+hidden methods in indicator of where to look in the code is provded
 
-B<Range:> any object instance that can provide the required delegated methods.
+B<Range:> isa => 'Spreadsheet::XLSX::Reader::LibXML'
+
+B<weak_ref> => 1
 
 B<attribute methods> Methods provided to adjust this attribute
 
 =over
 
-B<_clear_error_inst>
+B<set_workbook_inst>
 
 =over
 
-clear the attribute value
-
-=back
-
-=back
-
-B<_get_error_inst>
-
-=over
-
-get the attribute value
+set the attribute with a workbook instance
 
 =back
 
@@ -517,44 +633,18 @@ B<Delegated Methods (required)> Methods delegated to this module by the attribut
 		
 =over
 
-B<error>
+error, set_error, clear_error => L<Spreadsheet::XLSX::Reader::LibXML/error_inst>
 
-=over
+get_empty_return_type => L<Spreadsheet::XLSX::Reader::LibXML/empty_return_type>
 
-B<Definition:> returns the currently stored error string
+get_sheet_name => L<Spreadsheet::XLSX::Reader::LibXML/get_sheet_name>
 
-=back
+sheet_count => L<Spreadsheet::XLSX::Reader::LibXML/sheet_count>
 
-B<set_error>
-
-=over
-
-B<Definition:> Sets the error string
-
-=back
-
-B<clear_error>
-
-=over
-
-B<Definition:> clears the error string
-
-=back
-
-B<set_warnings>
-
-=over
-
-B<Definition:> Sets the state that determins if the instance pro-activly 
-warns with the error string when the error string is set.
-
-=back
-
-B<if_warn>
-
-=over
-
-B<Definition:> Returns the current state of the state value from 'set_warnings'
+_get_sheet_info, _get_rel_info, _get_id_info, _set_sheet_info, 
+_get_workbook_file_type, _get_sheet_lookup => all hidden methods that accesss 
+the hidden attribute _workbook_meta_data in the parser which delegates from 
+L<Spreadsheet::XLSX::Reader::LibXML::WorkbookMetaInterface>
 
 =back
 
@@ -574,6 +664,18 @@ B<Required:> no
 B<Range:> xml versions
 
 B<attribute methods> Methods provided to adjust this attribute
+
+=over
+
+B<version>
+
+=over
+
+get the stored xml version
+
+=back
+
+=back
 
 =over
 
@@ -663,7 +765,8 @@ set the attribute value
 =over
 
 B<Definition:> This stores the xml header from the xml file.  It is read when 
-the file handle is first set in this sheet.
+the file handle is first set in this sheet.  I contains both the verion and 
+the encoding where available
 
 B<Default:> no default - this is auto read from the header
 
@@ -766,10 +869,34 @@ set the attribute value
 
 =back
 
+=head3 file_type
+
+=over
+
+B<Definition:> This is a static attribute that shows the file type
+
+B<Default:> xml
+
+B<attribute methods> Methods provided to adjust this attribute
+
+=over
+
+B<get_file_type>
+
+=over
+
+get the attribute value
+
+=back
+
+=back
+
+=back
+
 =head2 Methods
 
-These are the methods provided by this class.  They most likely should be agumented 
-with file specific methods when extending this module.
+These are the methods provided by this class only.  They do not incude any methods added 
+by roles to this class elsewhere
 
 =head3 start_the_file_over
 
@@ -844,15 +971,9 @@ B<Returns:> ( $node_depth (from the top of the file), $node_name, $node_type (xm
 These are the methods delegated to this class from L<XML::LibXML::Reader>.  For more 
 general parsing of subsections of the xml file also see L<Spreadsheet::XLSX::Reader::LibXML>.
 
-=head3 copy_current_node
+=head3 skip_siblings => L<XML::LibXML::Reader/skipSiblings ()>
 
-=over
-
-B<Delegated from:> L<XML::LibXML::Reader/copyCurrentNode (deep)>
-
-Returns an XML::LibXML::Node object
-
-=back
+=head3 copy_current_node => L<XML::LibXML::Reader/readOuterXml ()>
 
 =head1 SUPPORT
 

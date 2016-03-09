@@ -1,6 +1,6 @@
 #########1 Test File for Spreadsheet::XLSX::Reader::LibXML  6#########7#########8#########9
 #!/usr/bin/env perl
-my ( $lib, $test_file );
+my ( $lib, $test_file, $file_name, $new_error );
 BEGIN{
 	$ENV{PERL_TYPE_TINY_XS} = 0;
 	my	$start_deeper = 1;
@@ -20,8 +20,10 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 3;
+use	Test::Most tests => 7;
 use	Test::Moose;
+use File::Copy;
+use File::Temp;
 use	lib	'../../../../../Log-Shiras/lib',
 		$lib,
 	;
@@ -29,7 +31,7 @@ use	lib	'../../../../../Log-Shiras/lib',
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(
 ###LogSD						name_space_bounds => {
 ###LogSD							UNBLOCK =>{
-###LogSD								log_file => 'debug',
+###LogSD								log_file => 'trace',
 ###LogSD							},
 ###LogSD						},
 ###LogSD						reports =>{
@@ -38,9 +40,10 @@ use	lib	'../../../../../Log-Shiras/lib',
 ###LogSD					);
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
-use Spreadsheet::XLSX::Reader::LibXML ':debug';
+use Spreadsheet::XLSX::Reader::LibXML;# ':debug'
 $test_file = ( @ARGV ) ? $ARGV[0] : $test_file;
-$test_file .= 'TestBook.xlsx';
+$file_name	= 'TestBook.xlsx';
+$test_file .= $file_name;
 	#~ print "Test file is: $test_file\n";
 my  ( 
 		$parser, $worksheet, $error,# $value, $value_position,
@@ -60,8 +63,27 @@ is			$parser->error(), undef,	"Write any error messages from the file load";
 				$worksheet->get_cell( 1,1 );# Advance the worksheet reader past the beginning
 				#~ last;
 			}
-
-lives_ok{	$parser->DEMOLISH }			"Make sure the Temp Dir cleanup works";
+lives_ok{	$parser = undef }			"Try to 'undef' the parser";
+			my $temp_dir = File::Temp->newdir();
+			move( $test_file, "$temp_dir$file_name" ) or $new_error = $!;
+			if( $new_error ){
+fail		"File -$test_file- could not be moved to the temp dir -$temp_dir- because: $new_error";
+			}else{
+pass		"File moved successfully to temp dir: $temp_dir";
+			}
+			move( "$temp_dir$file_name", $test_file ) or $new_error = $!;
+			if( $new_error ){
+fail		"File -$temp_dir$file_name- could not be moved back to -$test_file- because: $new_error";
+			}else{
+pass		"File moved successfully from temp dir: $temp_dir";
+			}
+lives_ok{
+			$parser =	Spreadsheet::XLSX::Reader::LibXML->new(
+			###LogSD		log_space => 'Test',
+							file_name => $test_file,
+						);
+}										"Prep a test parser instance (again)";
+lives_ok{	$parser->DEMOLISH }			"Make sure the Temp Dir cleanup works with ->DEMOLISH";
 explain 								"...Test Done";
 done_testing();
 

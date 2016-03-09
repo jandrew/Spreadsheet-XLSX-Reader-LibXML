@@ -1,23 +1,20 @@
-package Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles;
-use version; our $VERSION = version->declare('v0.38.22');
-###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles-$VERSION";
+package Spreadsheet::XLSX::Reader::LibXML::XMLReader::PositionStyles;
+use version; our $VERSION = version->declare('v0.40.2');
+###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::XMLReader::PositionStyles-$VERSION";
 
 use 5.010;
-use Moose;
-use MooseX::StrictConstructor;
-use MooseX::HasDefaults::RO;
-use Carp qw( confess );
-use Clone qw( clone );
+use Moose::Role;
+requires qw(
+		get_defined_conversion		location_status				start_the_file_over
+		advance_element_position	parse_element				set_defined_excel_formats
+		grep_node					_close_file_and_reader			
+	);#empty_return_type						DEMOLISH			
 use Types::Standard qw(
-		ArrayRef		HasMethods		Enum
-		Bool			Int				is_Int
-		is_HashRef
+		Bool			ArrayRef			Int			is_HashRef			is_Int
     );
-use lib	'../../../../../../lib',;
-###LogSD	use Log::Shiras::Telephone;
-###LogSD	use Log::Shiras::UnhideDebug;
-###LogSD	sub get_class_space{ 'Styles' }
-extends	'Spreadsheet::XLSX::Reader::LibXML::XMLReader';
+use Carp qw( confess );
+#~ use Data::Dumper;
+use Clone qw( clone );
 
 #########1 Dispatch Tables & Package Variables    5#########6#########7#########8#########9
 
@@ -30,6 +27,7 @@ my	$element_lookup ={
 		cellXfs			=> 'xf',
 		cellStyles		=> 'cellStyle',
 		tableStyles		=> 'tableStyle',
+		dxfs			=> 'dxf',
 	};
 
 my	$key_translations ={
@@ -37,6 +35,7 @@ my	$key_translations ={
 		borderId	=> 'borders',
 		fillId		=> 'fills',
 		xfId		=> 'cellStyles',
+		dxfId		=> 'dxfs',############# This is in desparate need of a test case 'table_styles.xml'
 		#~ pivotButton	 => 'pivotButton',
 	};
 
@@ -51,11 +50,12 @@ my	$cell_attributes ={
 		fonts			=> 'cell_font',
 		borders			=> 'cell_border',
 		fills			=> 'cell_fill',
+		dxfId			=> 'table_style',
 		cellStyleXfs	=> 'cellStyleXfs',
 		cellXfs			=> 'cellXfs',
 		cellStyles		=> 'cell_style',
 		tableStyles		=> 'tableStyle',
-		#~ pivotButton		=> 'pivotButton',
+		pivotButton		=> 'pivotButton',
 	};
 
 my	$xml_from_cell ={
@@ -71,30 +71,18 @@ my	$xml_from_cell ={
 	
 has cache_positions =>(
 		isa		=> Bool,
-		reader	=> '_should_cache_positions',
+		reader	=> 'should_cache_positions',
 		default	=> 1,
 	);
 
-has format_inst =>(
-		isa		=> HasMethods[qw( get_defined_conversion set_defined_excel_formats )],
-		handles	=>[qw( get_defined_conversion set_defined_excel_formats )],
-	);
-
-has empty_return_type =>(
-		isa		=> Enum[qw( empty_string undef_string )],
-		reader	=> 'get_empty_return_type',
-		writer	=> 'set_empty_return_type',
-	);
-with	'Spreadsheet::XLSX::Reader::LibXML::XMLToPerlData';#
-
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
 
-sub get_format_position{
+sub get_format{
 	my( $self, $position, $header, $exclude_header ) = @_;
 	my	$xml_target_header = $header ? $header : '';#$xml_from_cell->{$header}
 	my	$xml_exclude_header = $exclude_header ? $xml_from_cell->{$exclude_header} : '';
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::get_format_position', );
+	###LogSD			$self->get_all_space . '::get_format', );
 	###LogSD		$phone->talk( level => 'info', message => [
 	###LogSD			"Get defined formats at position: $position",
 	###LogSD			( $header ? "Returning only the values for header: $header - $xml_target_header" : '' ),
@@ -113,7 +101,7 @@ sub get_format_position{
 		if( $header ){
 			$target_ref = $target_ref->{$header} ? { $header => $target_ref->{$header} } : undef;
 			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"The cached style with target header only is:", $target_ref  ] );
+			###LogSD		"The cached style with target header -$header- only is:", $target_ref  ] );
 		}elsif( $exclude_header ){
 			delete $target_ref->{$exclude_header};
 			###LogSD	$phone->talk( level => 'debug', message => [
@@ -138,11 +126,16 @@ sub get_format_position{
 	my $built_ref = $self->_build_perl_style_formats( $base_ref, $xml_target_header, $xml_exclude_header );
 	###LogSD	$phone->talk( level => 'trace', message => [
 	###LogSD		"Built position -$position- is:", $built_ref ] );
-	
-	return $built_ref;
+	my $return_ref;
+	for my $top_key ( keys %$built_ref ){
+		$return_ref->{$top_key} = $self->_build_perl_node_from_xml_perl( $built_ref->{$top_key}, $built_ref->{$top_key} );
+		###LogSD	$phone->talk( level => 'trace', message => [
+		###LogSD		"Updated return ref:", $return_ref ] );
+	}
+	return $return_ref;
 }
 
-sub get_default_format_position{
+sub get_default_format{
 	my( $self, $header, $exclude_header ) = @_;
 	my	$position = 0;
 	my	$xml_target_header = $header ? $xml_from_cell->{$header} : '';
@@ -192,11 +185,25 @@ sub get_default_format_position{
 	my $built_ref = $self->_build_perl_style_formats( $base_ref, $xml_target_header, $xml_exclude_header );
 	###LogSD	$phone->talk( level => 'trace', message => [
 	###LogSD		"Built position -$position- is:", $built_ref ] );
-	
-	return $built_ref;
+	my $return_ref;
+	for my $top_key ( keys %$built_ref ){
+		$return_ref->{$top_key} = $self->_build_perl_node_from_xml_perl( $built_ref->{$top_key}, $built_ref->{$top_key} );
+		###LogSD	$phone->talk( level => 'trace', message => [
+		###LogSD		"Updated return ref:", $return_ref ] );
+	}
+	return $return_ref;
 }
 
+
+
 #########1 Private Attributes 3#########4#########5#########6#########7#########8#########9
+
+has _loaded =>(
+		isa		=> Bool,
+		writer	=> '_good_load',
+		reader	=> 'loaded_correctly',
+		default	=> 0,
+	);
 	
 has _styles_positions =>(
 		isa		=> ArrayRef,
@@ -243,31 +250,46 @@ sub _load_unique_bits{
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
 	###LogSD			$self->get_all_space . '::_load_unique_bits', );
 	#~ ###LogSD		$phone->talk( level => 'trace', message => [ 'self:', $self ] );
+	
+	# Advance to the styleSheet node
+	my $good_load = 0;
+	$self->start_the_file_over;
 	my ( $node_depth, $node_name, $node_type ) = $self->location_status;
-	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"Arrived at _load_unique_bits pointed to node: $node_name", ] );
-	if( $node_name ne 'styleSheet' ){
-		###LogSD	$phone->talk( level => 'trace', message => [
-		###LogSD		'The file is not indexed where I want it - resetting the file' ] );
-		$self->start_the_file_over;
-		$self->advance_element_position( 'styleSheet', 1 );
-		( $node_depth, $node_name, $node_type ) = $self->location_status;
-		###LogSD		$phone->talk( level => 'debug', message => [
-		###LogSD			"Reset and got to node name: $node_name", ] );
+	###LogSD	$phone->talk( level => 'debug', message => [
+	###LogSD		"Currently at libxml2 level: $node_depth",
+	###LogSD		"Current node name: $node_name",
+	###LogSD		"..for type: $node_type", ] );
+	my	$result = 1;
+	if( $node_name eq 'styleSheet' ){
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"already at the styleSheet node" ] );
+	}else{
+		$result = $self->advance_element_position( 'styleSheet' );
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"attempt to get to the Styles element result: $result" ] );
 	}
 	
-	# Check for a known format
-	if( $node_name ne 'styleSheet' ){
-		confess "Can't find the styleSheet node in the xml file / section";
+	# Record file state
+	if( $result ){
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"The styleSheet node has value" ] );
+		$self->_good_load( 1 );# Is there a need to check for an empty node here???
+	}else{
+		$self->set_error( "No 'styleSheet' elements with content found - can't parse this as a styles file" );
+		return undef;
 	}
 	
 	# Initial pull from the xml
-	my ( $custom_format_ref, $top_level_ref );
-	if( $self->_should_cache_positions ){
-		$top_level_ref		= $self->parse_element;
-		$custom_format_ref	= $top_level_ref->{numFmts} if exists $top_level_ref->{numFmts};
+	my ( $success, $custom_format_ref, $top_level_ref );
+	if( $self->should_cache_positions ){
+		$top_level_ref = $self->parse_element;
 		###LogSD	$phone->talk( level => 'trace', message => [
-		###LogSD		"Parsing the whole thing for caching:", $top_level_ref ] );
+		###LogSD		"Parsing the whole thing for caching" ] );
+		$self->_close_file_and_reader;# Don't need the file open any more!
+		
+		( $success, $custom_format_ref ) = $self->grep_node( $top_level_ref, 'numFmts' );
+		###LogSD	$phone->talk( level => 'trace', message => [
+		###LogSD		"Initial extraction of numFmts:", $custom_format_ref ] );
 	}else{
 		if( $self->advance_element_position( 'numFmts' ) ){
 			$custom_format_ref = $self->parse_element;
@@ -282,102 +304,52 @@ sub _load_unique_bits{
 		for my $format ( @{$custom_format_ref->{list}} ){
 			###LogSD	$phone->talk( level => 'debug', message => [
 			###LogSD		"Adding sheet defined translations:", $format ] );
-			my	$format_code = $format->{formatCode};
+			my	$format_code = $format->{attributes}->{formatCode};
 				$format_code =~ s/\\//g;
-			$translations->[$format->{numFmtId}] = $format_code;
+			$translations->[$format->{attributes}->{numFmtId}] = $format_code;
 		}
-		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD	$phone->talk( level => 'trace', message => [
 		###LogSD		'loaded format positions:', $translations ] );
 		$self->set_defined_excel_formats( $translations );
 	}
 	
 	# Cache remaining as needed
 	my( $list_to_cache, $count );
-	if( $self->_should_cache_positions ){
+	if( $self->should_cache_positions ){
 		###LogSD	$phone->talk( level => 'info', message => [
 		###LogSD		"Load the rest of the cache" ] );
-		$self->close;# Don't need the file open any more!
-		$self->clear_file;
+		my $perlized_ref = $self->_build_perl_node_from_xml_perl( $top_level_ref, $top_level_ref );
+		###LogSD	$phone->talk( level => 'trace', message => [
+		###LogSD		"Extracting elements from:", $perlized_ref ] );
 		
 		# Build specfic formats
-		if( !exists $top_level_ref->{cellXfs} ){
+		my $cell_xfs = $perlized_ref->{cellXfs};
+		if( !$cell_xfs ){
 			confess "No base level formats (cellXfs) stored";
 		}else{
 			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"Building specific cell formats" ] );
-			$self->_set_styles_count( $self->_coalate_perl_style_formats(
-				$top_level_ref->{cellXfs}->{list},
-				'_add_s_position',
-				$top_level_ref
-			) );
+			###LogSD		"Loading specific cell formats:", $cell_xfs ] );
+			$self->_set_styles_count( scalar( @{$cell_xfs->{list}} ) );
+			map{ $self->_add_s_position( $_ ) } @{$cell_xfs->{list}};
 			###LogSD	$phone->talk( level => 'trace', message => [
 			###LogSD		"Final specific caches:", $self->_get_all_cache ] );
 		}
 		
 		
 		# Build generic formats
-		if( exists $top_level_ref->{cellStyleXfs} ){
+		my $cell_style_xfs = $perlized_ref->{cellStyleXfs};
+		if( $cell_style_xfs ){
 			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"Building generic cell formats" ] );
-			$self->_set_generic_styles_count( $self->_coalate_perl_style_formats(
-				$top_level_ref->{cellStyleXfs}->{list},
-				'_add_gs_position',
-				$top_level_ref
-			) );
+			###LogSD		"Loading generic cell formats" ] );
+			$self->_set_generic_styles_count( scalar( @{$cell_style_xfs->{list}} ) );
+			map{ $self->_add_gs_position( $_ ) } @{$cell_style_xfs->{list}};
 			###LogSD	$phone->talk( level => 'trace', message => [
 			###LogSD		"Final generic caches:", $self->_get_all_generic_cache ] );
 		}
-	}
-	return undef;
-}
-
-sub _coalate_perl_style_formats{
-	my( $self, $list_ref, $list_method, $top_ref ) = @_;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::_coalate_perl_style_formats', );
-	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"Coalating a perl style (cell ready) set of refs from the xml parse with: $list_method", $list_ref, $top_ref ] );
-	my $count = 0;
-	for my $position ( @$list_ref ){
-		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"Processing position:", $position ] );
-		$count++;
-		for my $key ( keys %$position ){
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"Processing key: $key", "..at position: $position->{$key}", ] );
-			if( $key eq 'numFmtId' ){
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		"Pulling the number conversion for position: $position->{$key}", ] );
-				$position->{$cell_attributes->{$key}} = $self->get_defined_conversion( $position->{$key} );
-			}elsif( is_HashRef( $position->{$key} ) ){
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		"Skipping the key -$key- already comes with embedded settings:", $position->{$key}] );
-				next;
-			}elsif( $key =~ /(apply|pivotButton|quotePrefix)/ ){
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		"Skipping the key: $key", ] );
-				next;
-			}elsif( !exists $cell_attributes->{$key} ){
-				$self->set_error( "Format key -$key- not yet supported by this package" );
-				exit 1;
-				next;
-			}else{
-				if( is_Int( $position->{$key} ) ){
-					###LogSD	$phone->talk( level => 'debug', message => [
-					###LogSD		"Adding the sub-ref:",  $top_ref->{$key_translations->{$key}}->{list}->[$position->{$key}] ] );
-					$position->{$cell_attributes->{$key}} = $top_ref->{$key_translations->{$key}}->{list}->[$position->{$key}];
-				}else{
-					###LogSD	$phone->talk( level => 'debug', message => [
-					###LogSD		"Translating the key for the sub-ref:",  $position->{$key} ] );
-					$position->{$cell_attributes->{$key}} = $position->{$key};
-				}
-			}
-		}
 		###LogSD	$phone->talk( level => 'trace', message => [
-		###LogSD		"Final position:", $position ] ); 
-		$self->$list_method( $position );
+		###LogSD		"Completed caching" ] );
 	}
-	return $count;
+	return 1;
 }
 
 sub _build_perl_style_formats{
@@ -390,18 +362,24 @@ sub _build_perl_style_formats{
 	###LogSD			( $exclude_header ? "..excluding header: $exclude_header" : undef ), ] );
 	my $return_ref;
 	if( $target_header ){
-		if( exists $base_ref->{$xml_from_cell->{$target_header}} ){
-			$target_header = $xml_from_cell->{$target_header};
+		if( exists $xml_from_cell->{$target_header} ){
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"Possible conversion of header -$target_header- to: $xml_from_cell->{$target_header}", ] );
+			if( exists $base_ref->{attributes}->{$xml_from_cell->{$target_header}} ){
+				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD		"$xml_from_cell->{$target_header} is a key in:", $base_ref, ] );
+				$target_header = $xml_from_cell->{$target_header};
+			}
 		}
 		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"Processing sub group: $target_header", "..with position: $base_ref->{$target_header}", ] );
-		$return_ref = { $self->_get_header_and_value( $target_header, $base_ref->{$target_header} ) };
+		###LogSD		"Processing sub group: $target_header", "..with position: $base_ref->{attributes}->{$target_header}", ] );
+		$return_ref = { $self->_get_header_and_value( $target_header, $base_ref->{attributes}->{$target_header} ) };
 	}else{
-		for my $key ( keys %$base_ref ){
+		for my $key ( keys %{$base_ref->{attributes}} ){
 			next if $key eq $exclude_header;
 			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"Processing sub group: $key", "..with position: $base_ref->{$key}", ] );
-			my( $key, $sub_ref ) = $self->_get_header_and_value( $key, $base_ref->{$key} );
+			###LogSD		"Processing sub group: $key", "..with position: ", $base_ref->{attributes}->{$key}, ] );
+			my( $key, $sub_ref ) = $self->_get_header_and_value( $key, $base_ref->{attributes}->{$key} );
 			$return_ref->{$key} = $sub_ref;
 		}
 	}
@@ -487,10 +465,97 @@ sub _get_header_and_value{
 	return( $key, $value );
 }
 
+sub _build_perl_node_from_xml_perl{
+	my( $self, $top_ref, $current_ref, ) = @_;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::_build_perl_node_from_xml_perl', );
+	###LogSD		$phone->talk( level => 'debug', message => [
+	###LogSD			"building out the ref:", $current_ref ] );
+	###LogSD		$phone->talk( level => 'trace', message => [
+	###LogSD			"..with high level ref:",  $top_ref ] );
+	my $new_ref;
+	
+	if( is_HashRef( $current_ref ) ){
+		###LogSD	$phone->talk( level => 'trace', message => [
+		###LogSD		"processing a hashref" ] );
+		
+		# Handle attributes
+		if( is_HashRef( $current_ref->{attributes} ) ){
+			###LogSD	$phone->talk( level => 'trace', message => [
+			###LogSD		"processing the attributes of a hashref" ] );
+			for my $attribute ( keys %{$current_ref->{attributes}} ){
+				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD		"Processing the attribute $attribute => $current_ref->{attributes}->{$attribute}", ] );
+				if( $attribute eq 'xfId' or $attribute eq 'builtinId' ){
+					###LogSD	$phone->talk( level => 'debug', message => [
+					###LogSD		"Skipping the -$attribute- attribute", ] );
+				}elsif( $attribute eq 'numFmtId' ){
+					###LogSD	$phone->talk( level => 'debug', message => [
+					###LogSD		"Setting -$cell_attributes->{$attribute}- with number conversion for position: $current_ref->{attributes}->{$attribute}", ] );
+					$new_ref->{$cell_attributes->{$attribute}} = $self->get_defined_conversion( $current_ref->{attributes}->{$attribute} );
+				}elsif( $attribute =~ /Id$/i ){
+					###LogSD	$phone->talk( level => 'debug', message => [
+					###LogSD		"pulling sub ref for attribute -$attribute- from: $key_translations->{$attribute}", ] );
+					my( $success, $sub_node ) = $self->grep_node( $top_ref, $key_translations->{$attribute}, );
+					###LogSD	$phone->talk( level => 'debug', message => [
+					###LogSD		"Pulling position -$current_ref->{attributes}->{$attribute}- from sub ref:", $sub_node ] );
+					my $return = $self->_build_perl_node_from_xml_perl( $top_ref, $sub_node->{list}->[$current_ref->{attributes}->{$attribute}] );
+					###LogSD	$phone->talk( level => 'debug', message => [
+					###LogSD		"Setting the base attribute -$attribute- as the cell attribute -$cell_attributes->{$attribute}- to:", $return ] );
+					$new_ref->{$cell_attributes->{$attribute}} = $return;
+				}elsif( exists $cell_attributes->{$attribute} ){
+					###LogSD	$phone->talk( level => 'debug', message => [
+					###LogSD		"Setting -$cell_attributes->{$attribute}- to value: $current_ref->{attributes}->{$attribute}", ] );
+					$new_ref->{$cell_attributes->{$attribute}} = $current_ref->{attributes}->{$attribute};
+				}else{
+					###LogSD	$phone->talk( level => 'debug', message => [
+					###LogSD		"Setting -$attribute- to value: $current_ref->{attributes}->{$attribute}", ] );
+					$new_ref->{$attribute} = $current_ref->{attributes}->{$attribute};
+				}
+			}
+		}elsif( exists $current_ref->{attributes} ){
+			###LogSD	$phone->talk( level => 'debug', message => [
+			###LogSD		"The attribute only has a base value: $current_ref->{attributes}" ] );
+			$new_ref = $current_ref->{attributes};
+		}
+		
+		# Handle sub lists
+		if( exists $current_ref->{list_keys} ){
+			my $x = 0;
+			my $use_list = 0;
+			my $list_subref;
+			my @list_keys = @{$current_ref->{list_keys}};
+			for my $list_node ( @list_keys ){
+				###LogSD	$phone->talk( level => 'debug', message => [
+				###LogSD		"Processing list node: $list_node", $current_ref->{list}->[$x] ] );
+				if( exists $new_ref->{$list_node} ){
+					$use_list = 1;
+				}
+				my $sub_node = $self->_build_perl_node_from_xml_perl( $top_ref, $current_ref->{list}->[$x++] );
+				push @{$new_ref->{list}}, $sub_node;
+				$new_ref->{$list_node} = $sub_node;
+			}
+			###LogSD	$phone->talk( level => 'trace', message =>[ "Intermediate new list:", $new_ref ] );
+			if( $use_list or exists $new_ref->{count} ){
+				map{ delete $new_ref->{$_} } @list_keys;
+			}else{
+				delete $new_ref->{list};
+			}
+		}
+	}else{
+		###LogSD	$phone->talk( level => 'debug', message => [
+		###LogSD		"Probably at the bottom of the branch - returning the value: " . ($current_ref//'undef') ] );
+		$new_ref = $current_ref;
+	}
+	
+	###LogSD	$phone->talk( level => 'trace', message => [
+	###LogSD		"Final new ref is:", $new_ref ] );
+	return $new_ref;
+}
+
 #########1 Phinish            3#########4#########5#########6#########7#########8#########9
 
-no Moose;
-__PACKAGE__->meta->make_immutable;
+no Moose::Role;
 	
 1;
 
@@ -499,218 +564,29 @@ __END__
 
 =head1 NAME
 
-Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles - A LibXML::Reader styles base class
+Spreadsheet::XLSX::Reader::LibXML::PositionStyles - Support for 2007+ styles files
 
-=head1 SYNOPSIS
+=head1 SYNOPSYS
 
-	#!/usr/bin/env perl
-	
-	use Data::Dumper;
-	use MooseX::ShortCut::BuildInstance qw( build_instance );
-	use Spreadsheet::XLSX::Reader::LibXML::Error;
-	use Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles;
-	use Spreadsheet::XLSX::Reader::LibXML::FmtDefault;
-
-	my $file_instance = build_instance(
-		  package      => 'StylesInstance',
-		  superclasses => ['Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles'],
-		  file         => '../../../../../test_files/xl/styles.xml',
-		  error_inst   => Spreadsheet::XLSX::Reader::LibXML::Error->new,
-		  format_inst  => Spreadsheet::XLSX::Reader::LibXML::FmtDefault->new(
-							epoch_year	=> 1904,
-							error_inst	=> Spreadsheet::XLSX::Reader::LibXML::Error->new,
-						),
-		);
-	print Dumper( $file_instance->get_format_position( 2 ) );
-
-	#######################################
-	# SYNOPSIS Screen Output
-	# 01: $VAR1 = {
-	# 02: 'cell_style' => {
-	# 03:     'builtinId' => '0',
-	# 04:     'xfId' => '0',
-	# 05:     'name' => 'Normal'
-	# 06: },
-	# 07: 'cell_font' => {
-	# 08:     'name' => 'Calibri',
-	# 09:     'family' => '2',
-	# 10:     'scheme' => 'minor',
-	# 11:     'sz' => '11',
-	# 12:     'color' => {
-	# 13:         'theme' => '1'
-	# 14:     }
-	# 15:  },
-	# 16: 'cell_fill' => {
-	# 17:     'patternFill' => {
-	# 18:         'patternType' => 'none'
-	# 19:      }
-	# 20: },
-	# 21: 'borderId' => 0,
-	# 22: 'cell_coercion' => bless( {
-	~~ Skipped 184 lines ~~
-	#206:                             'display_name' => 'Excel_date_164'
-	#207:                           }, 'Type::Tiny' ),
-	#208: 'numFmtId' => '164',
-	#209: 'applyNumberFormat' => '1',
-	#210: 'fillId' => 0,
-	#211: 'cell_border' => {
-	#212:     'top' => undef,
-	#213:     'bottom' => undef,
-	#214:     'right' => undef,
-	#215:     'diagonal' => {
-	#216:         'cellStyleXfs' => undef
-	#217:      },
-	#218:      'left' => undef
-	#219: },
-	#220: 'xfId' => 0,
-	#221: 'fontId' => 0
-	#222: };
-	#######################################
+Not written yet
 
 =head1 DESCRIPTION
 
-This documentation is written to explain ways to use this module.  To use the general 
-package for excel parsing out of the box please review the documentation for L<Workbooks
-|Spreadsheet::XLSX::Reader::LibXML>, L<Worksheets
-|Spreadsheet::XLSX::Reader::LibXML::Worksheet>, and 
-L<Cells|Spreadsheet::XLSX::Reader::LibXML::Cell>.
+Not written yet
 
-This class is written to get useful data from the sub file 'styles.xml' that is 
-a member of a zipped (.xlsx) archive or a stand alone XML text file of the same format.  
-The styles.xml file contains the format and display options used by Excel for showing 
-the stored data.  To unzip an Excel file manually change the \.xlsx extention to \.zip 
-and windows should do (most) of the rest.  For linux use an unzip utility. (
-L<Archive::Zip> for instance :)
+=head2 TODO
 
-This documentation is the explanation of this specific module.  For a general explanation 
-of the class and how to to add or adjust its place in the larger package see the L<Styles
-|Spreadsheet::XLSX::Reader::LibXML::Styles> POD.
-
-This module is the simplified way to extract information from the styles file needed when 
-doing high level reading of an Excel spread sheet.  In order to do so it subclasses the module 
-L<Spreadsheet::XLSX::Reader::LibXML::XMLReader> and leverages one hard coded role 
-L<Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData> Additionally the module will 
-error if not built with roles that supply two additional methods.  The methods are 
-L<get_defined_excel_format|Spreadsheet::XLSX::Reader::LibXML::FmtDefault/get_defined_excel_format( $integer )> 
-and L<parse_excel_format_string
-|Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/parse_excel_format_string( $string )>.  
-The links lead to the default source of these methods in the package.  I<These methods are 
-intentionally not hard coded to this class so that the user can change them at run time.  See 
-the attributes L<Spreadsheet::XLSX::Reader::LibXML/default_format_list> and
-L<Spreadsheet::XLSX::Reader::LibXML/format_string_parser> for more explanation.>   Read about 
-the function of each when replacing them.  If you want to use the roles as-is, one way to 
-integrate them is with L<MooseX::ShortCut::BuildInstance>. The 'on-the-fly' roles also 
-add other methods (not documented here) to this class.  Look at the documentation for those 
-modules to see what else comes with them.
-
-=head2 Warnings
-
-This package received a substantial re-write with version v0.38.16.  Now this class will now 
-cache the styles values by default.  If this causes you heartache please L<contact me|/SUPPORT> 
-and I will try and mitigate the impact.  The goal was to measurably speed up the package.
-
-=head2 Method(s)
-
-These are the methods just provided by this class.  Look at the documentation for the the two 
-modules consumed by this class for their elements. L<Spreadsheet::XLSX::Reader::LibXML::XMLReader> 
-and L<Spreadsheet::XLSX::Reader::LibXML::XMLReader::XMLToPerlData> 
-
-=head3 get_format_position( $position, [$header], [$exclude_header] )
-
-=over
-
-B<Definition:> This will return the styles information from the identified $position
-(Counting from zero).  the target position is usually drawn from the cell data stored in 
-the worksheet.  The information is returned as a perl hash ref.  Since the styles 
-data is in two tiers it finds all the subtier information for each indicated piece and 
-appends them to the hash ref as values for each type key.  If you only want a specific 
-branch then you can add the branch $header key and the returned value will only contain 
-that leg.
-
-B<Accepts:> $position = an integer for the styles $position. (required at position 0)
-
-B<Accepts:> $header = the target header key (optional at postion 1) (use the 
-L<Spreadsheet::XLSX::Reader::LibXML::Cell/Attributes> that are cell formats as the definition 
-of range for this
-
-B<Accepts:> $exclude_header = the target header key (optional at position 2) (use the 
-L<Spreadsheet::XLSX::Reader::LibXML::Cell/Attributes> that are cell formats as the definition 
-of range for this)
-
-B<Returns:> a hash ref of data
-
-=back
-
-=head3 get_default_format_position( [$header], [$exclude_header] )
-
-=over
-
-B<Definition:> For any cell that does not have a unquely identified format excel generally 
-stores a default format for the remainder of the sheet.  This will return the two 
-tiered default styles information.  If you only want the default from a specific header 
-then add the $header string to the method call.  The information is returned as a perl 
-hash ref.
-
-B<Accepts:> $header = the target header key (optional at postion 0) (use the 
-L<Spreadsheet::XLSX::Reader::LibXML::Cell/Attributes> that are cell formats as the definition 
-of range for this
-
-B<Accepts:> $exclude_header = the target header key (optional at position 1) (use the 
-L<Spreadsheet::XLSX::Reader::LibXML::Cell/Attributes> that are cell formats as the definition 
-of range for this)
-
-B<Returns:> a hash ref of data
-
-=back
-
-=head1 SUPPORT
-
-=over
-
-L<github Spreadsheet::XLSX::Reader::LibXML/issues
-|https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML/issues>
-
-=back
-
-=head1 TODO
-
-=over
-
-B<1.> Extend the values saved here out to the sheet and cell level better.
-
-=back
-
-=head1 AUTHOR
-
-=over
-
-=item Jed Lund
-
-=item jandrew@cpan.org
-
-=back
-
-=head1 COPYRIGHT
-
-This program is free software; you can redistribute
-it and/or modify it under the same terms as Perl itself.
-
-The full text of the license can be found in the
-LICENSE file included with this module.
-
-This software is copyrighted (c) 2014, 2015 by Jed Lund
-
-=head1 DEPENDENCIES
-
-=over
-
-L<Spreadsheet::XLSX::Reader::LibXML>
-
-=back
+b<1.> Add table format calls and caching
 
 =head1 SEE ALSO
 
 =over
+
+L<Spreadsheet::ParseExcel> - Binary Excel 2003 and earlier
+
+L<Spreadsheet::XLSX> - 2007+
+
+L<Spreadsheet::ParseXLSX> - 2007+
 
 L<Log::Shiras|https://github.com/jandrew/Log-Shiras>
 

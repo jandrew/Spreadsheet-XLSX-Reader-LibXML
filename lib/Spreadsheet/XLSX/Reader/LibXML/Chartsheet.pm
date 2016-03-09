@@ -1,6 +1,6 @@
-package Spreadsheet::XLSX::Reader::LibXML::XMLReader::Chartsheet;
-use version; our $VERSION = version->declare('v0.38.22');
-###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::XMLReader::Chartsheet-$VERSION";
+package Spreadsheet::XLSX::Reader::LibXML::Chartsheet;
+use version; our $VERSION = version->declare('v0.40.2');
+###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::Chartsheet-$VERSION";
 
 use	5.010;
 use	Moose;
@@ -115,6 +115,15 @@ sub _load_unique_bits{
 	#~ $self->start_the_file_over;# not needed yet
 	return 1;
 }
+
+#~ sub DEMOLISH{
+	#~ my ( $self ) = @_;
+	#~ ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	#~ ###LogSD				$self->get_all_space . '::hidden::DEMOLISH', );
+	#~ ###LogSD		$phone->talk( level => 'debug', message => [
+	#~ ###LogSD			"Closing the chartsheet object" ] );
+	#~ print "Chartsheet closed\n";
+#~ }
 
 #########1 Phinish            3#########4#########5#########6#########7#########8#########9
 

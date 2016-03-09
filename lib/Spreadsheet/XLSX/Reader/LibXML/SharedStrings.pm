@@ -1,15 +1,46 @@
-=pod
+package Spreadsheet::XLSX::Reader::LibXML::SharedStrings;
+use version; our $VERSION = version->declare('v0.40.2');
+###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::SharedStrings-$VERSION";
 
-=encoding utf-8
+use 5.010;
+use Moose::Role;
+requires qw( should_cache_positions get_shared_string loaded_correctly );
+
+use lib	'../../../../../../lib';
+###LogSD	use Log::Shiras::Telephone;
+
+#########1 Public Attributes  3#########4#########5#########6#########7#########8#########9
+
+
+
+#########1 Public Methods     3#########4#########5#########6#########7#########8#########9
+
+###LogSD	sub get_class_space{ 'SharedStringsInterface' }
+
+#########1 Private Attributes 3#########4#########5#########6#########7#########8#########9
+
+
+
+#########1 Private Methods    3#########4#########5#########6#########7#########8#########9
+
+
+
+#########1 Phinish            3#########4#########5#########6#########7#########8#########9
+
+no Moose::Role;
+	
+1;
+
+#########1 Documentation      3#########4#########5#########6#########7#########8#########9
+__END__
 
 =head1 NAME
 
-Spreadsheet::XLSX::Reader::LibXML::SharedStrings - Read xlsx sharedStrings files with LibXML
+Spreadsheet::XLSX::Reader::LibXML::SharedStrings - The sharedStrings interface
 
 =head1 SYNOPSIS
 
 	#!/usr/bin/env perl
-	$|=1;
 	use Data::Dumper;
 	use MooseX::ShortCut::BuildInstance qw( build_instance );
 	use Spreadsheet::XLSX::Reader::LibXML::Error;
@@ -33,7 +64,7 @@ Spreadsheet::XLSX::Reader::LibXML::SharedStrings - Read xlsx sharedStrings files
 	# 05:     'raw_text' => 'Superbowl Audibles'
 	# 06: };
 	#######################################
-
+    
 =head1 DESCRIPTION
 
 This documentation is written to explain ways to use this module when writing your 
@@ -43,173 +74,38 @@ parsing out of the box please review the documentation for L<Workbooks
 |Spreadsheet::XLSX::Reader::LibXML::Worksheet>, and 
 L<Cells|Spreadsheet::XLSX::Reader::LibXML::Cell>.
 
-This general class is written to get useful data from the sub file 'sharedStrings.xml' 
-that is a member of a zipped (.xlsx) archive.  The file to be read is generally found in 
-the xl/ sub folder of the zip library.  Sometimes it is found as a subset of a single xml 
-tabular file.  The sharedStrings.xml file contains a list of unique strings (not numbers) 
-used as values in the spreadsheet cells of Excel.  Uniqueness of a string is determined by 
-upper case, lower case, and font formatting as well as full cell text.  Partial common 
-elements are not correlated.
+This class is written to extend L<Spreadsheet::XLSX::Reader::LibXML::XMLReader>.  
+It addes to that functionality specifically to read the sharedStrings portion 
+(if any) which is most likely a sub file zipped into an .xlsx file.  It does not 
+provide connection to other file types or even the elements from other files that are 
+related to this file.  This POD only describes the functionality incrementally provided 
+by this module.  For an overview of sharedStrings.xml reading see L<Spreadsheet::XLSX::Reader::LibXML::SharedStrings>
 
-This documentation is for the general explanation of the SharedStrings class.  The example 
-uses a class built with an XMLReader version at the core.  Documentation specific to that 
-parser can be found in the L<~XMLReader::SharedStrings
-|Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings> documentation.  To replace or 
-augment this class you would need to understand how it is built on the fly using 
-L<MooseX::ShortCut::BuildInstance>.  Next you should fork this code on L<github
-|https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML>.  Then add or change the parts 
-you want and re-point the package to use the new elements in the correct circumstance using 
-the $parser_modules variable maintained in the L<Spreadsheet::XLSX::Reader::LibXML> class.  
-(about line 35).
-	
-=head2 Required Method(s)
+=head2 Methods
 
-These are the primary way(s) to use this class.  For additional Styles options see the 
-L<Attributes|/Attributes> section.  I<All replacement classes must provide these methods.>  
-Methods used to manipulate the attributes are listed in each attribute.
+These are the primary ways to use this class.  For additional SharedStrings options see the 
+L<Attributes|/Attributes> section.
 
-=head3 get_shared_string_position( $position )
+=head3 get_shared_string_position( $positive_int )
 
 =over
 
-B<Definition:> This will return the shared string in a L<hash_ref|/SYNOPSIS> for the 
-requested position.  (Counting from zero)
+B<Definition:> This returns the xml L<converted to a deep perl data structure
+|/no_formats> from the indicated 'si' position.
 
-B<Accepts:> $position = an integer for the styles $position. (required)
+B<Accepts:> $positive_int ( a positive integer )
 
-B<Returns:> a hash ref with the key = 'raw_text' and the value = the stored string
+B<Returns:> a L<deep perl data structure|/no_formats> built from the xml at 'si' 
+position $positive_int
 
 =back
 
 =head2 Attributes
 
-Data passed to new when creating an instance.   For modification of these attributes 
-see the listed 'attribute methods'. For more information on attributes see 
-L<Moose::Manual::Attributes>.  I<It may be that these attributes migrate based on the 
-reader type.>
-
-=head3 file
-
-=over
-
-B<Definition:> This needs to be the full file path to the sharedStrings file or an 
-opened file handle .  When a file path is sent it will coerce to a file handle and then 
-will open and read the primary settings in the sharedStrings.xml file and then maintain 
-an open file handle for accessing specific sharedStrings position information.
-
-B<Required:> Yes
-
-B<Default:> none
-
-B<Range> an actual Excel 2007+ sharedStrings.xml file or open file handle (with the 
-pointer set to the beginning of the file)
-
-B<attribute methods> Methods provided to adjust this attribute
-		
-=over
-
-B<get_file>
-
-=over
-
-B<Definition:> Returns the value (file handle) stored in the attribute
-
-=back
-
-B<set_file>
-
-=over
-
-B<Definition:> Sets the value (file handle) stored in the attribute. Then triggers 
-a read of the file level unique bits.
-
-=back
-
-B<has_file>
-
-=over
-
-B<Definition:> predicate for the attribute
-
-=back
-
-=back
-
-=back
-
-=head3 error_inst
-
-=over
-
-B<Definition:> Currently all ShareStrings readers require an 
-L<Error|Spreadsheet::XLSX::Reader::LibXML::Error> instance.  In general the 
-package will share an error instance reference between the workbook and all 
-classes built during the initial workbook build.
-
-B<Required:> Yes
-
-B<Default:> none
-
-B<Range:> The minimum list of methods to implement for your own instance is;
-
-	error set_error clear_error set_warnings if_warn
-
-B<attribute methods> Methods provided to adjust this attribute
-		
-=over
-
-B<get_error_inst>
-
-=over
-
-B<Definition:> returns this instance
-
-=back
-
-B<error>
-
-=over
-
-B<Definition:> Used to get the most recently logged error
-
-=back
-
-B<set_error>
-
-=over
-
-B<Definition:> used to set a new error string
-
-=back
-
-B<clear_error>
-
-=over
-
-B<Definition:> used to clear the current error string in this attribute
-
-=back
-
-B<set_warnings>
-
-=over
-
-B<Definition:> used to turn on or off real time warnings when errors are set
-
-=back
-
-B<if_warn>
-
-=over
-
-B<Definition:> a method mostly used to extend this package and see if warnings 
-should be emitted.
-
-=back
-
-=back
-
-=back
+Data passed to new when creating an instance of this class. For modification of these attributes 
+see the listed 'attribute methods'.  For more information on attributes see 
+L<Moose::Manual::Attributes>.  The easiest way to modify these attributes are when a class
+instance is created and before it is passed to the workbook or parser.
 
 =head3 cache_positions
 
@@ -287,7 +183,7 @@ L<github Spreadsheet::XLSX::Reader::LibXML/issues
 
 =over
 
-B<1.> Write a DOM version of the parser
+B<1.> Nothing yet
 
 =back
 
@@ -295,9 +191,9 @@ B<1.> Write a DOM version of the parser
 
 =over
 
-=item Jed Lund
+Jed Lund
 
-=item jandrew@cpan.org
+jandrew@cpan.org
 
 =back
 
@@ -341,4 +237,4 @@ All lines in this package that use Log::Shiras are commented out
 
 =cut
 
-#########1#########2 main pod documentation end  5#########6#########7#########8#########9
+#########1#########2 main pod documentation end   5#########6#########7#########8#########9

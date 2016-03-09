@@ -4,3 +4,5 @@ Add a test that reads a row with spaces and then force a rewind and call that ro
 The name space should be owned by the instance and shared via observer rather than passed and stored in each sub object (worksheet or reader)
 	This should be fixed sooner rather than later!!!!!!!!!!
 2015-10-10 Is it possible to make the formatter for this package work for Spreadsheet::ParseExcel?
+2015-10-28 Kill as many evals as possible - Done? 2016-1-7
+2016-01-07 Add a test just for the Row module

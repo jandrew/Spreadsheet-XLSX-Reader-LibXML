@@ -1,99 +1,42 @@
 package Spreadsheet::XLSX::Reader::LibXML;
-use version 0.77; our $VERSION = version->declare('v0.38.22');
+use version 0.77; our $VERSION = version->declare('v0.40_3');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML-$VERSION";
 
 use 5.010;
-use	List::Util 1.33;
 use	Moose;
 use	MooseX::StrictConstructor;
 use	MooseX::HasDefaults::RO;
-use	Carp qw( confess );
-use	Archive::Zip qw( AZ_OK );
-use	XML::LibXML;
-use	IO::File;
+use Types::Standard qw( is_HashRef is_Object );
 use Clone 'clone';
-use Types::Standard qw(
- 		InstanceOf			Str       		StrMatch
-		Enum				HashRef			ArrayRef
-		CodeRef				Int				HasMethods
-		Bool				is_Object		is_HashRef
-    );
-use lib	'../../../../lib',;
 use Data::Dumper;
+
 ###LogSD use Log::Shiras::Telephone;
+use lib	'../../../../lib',;
 ###LogSD use Log::Shiras::UnhideDebug;
-use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles;
-use	Spreadsheet::XLSX::Reader::LibXML::FmtDefault;
-use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings;
-use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow;
-use	Spreadsheet::XLSX::Reader::LibXML::Worksheet;
-use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::Chartsheet;
-use	Spreadsheet::XLSX::Reader::LibXML::Error;
-use	Spreadsheet::XLSX::Reader::LibXML::Types qw( XLSXFile ParserType IOFileType );
+use Spreadsheet::XLSX::Reader::LibXML::Error;
+use Spreadsheet::XLSX::Reader::LibXML::FmtDefault;
 ###LogSD use Log::Shiras::UnhideDebug;
-use	MooseX::ShortCut::BuildInstance 1.032 qw( build_instance should_re_use_classes );
-should_re_use_classes( 1 );
+use Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings;
+use Spreadsheet::XLSX::Reader::LibXML::FormatInterface;
+use Spreadsheet::XLSX::Reader::LibXML::Workbook;
 ###LogSD with 'Log::Shiras::LogSpace';
-###LogSD	sub get_class_space{ 'Workbook' }
+use	MooseX::ShortCut::BuildInstance 1.032 qw( build_instance );
 
-#########1 Dispatch Tables    3#########4#########5#########6#########7#########8#########9
+#########1 Dispatch Tables and data     4#########5#########6#########7#########8#########9
 
-my	$parser_modules ={
-		reader =>{
-			build_method => '_build_reader',
-			sharedStrings =>{
-				superclasses	=> ['Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings'],
-				attributes		=> [qw( error_inst cache_positions empty_return_type group_return_type )],
-				store			=> '_set_shared_strings_instance',
-				package			=> 'SharedStrings',
-			},
-			styles =>{
-				superclasses	=> ['Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles'],
-				attributes		=> [qw( error_inst cache_positions format_inst empty_return_type )],
-				store			=> '_set_styles_instance',
-				package			=> 'Styles',
-			},
-			worksheet =>{
-				superclasses	=> ['Spreadsheet::XLSX::Reader::LibXML::XMLReader::WorksheetToRow'],
-				roles			=> ['Spreadsheet::XLSX::Reader::LibXML::Worksheet'],
-				package			=> 'Worksheet',
-			},
-			chartsheet =>{
-				superclasses	=> ['Spreadsheet::XLSX::Reader::LibXML::XMLReader::Chartsheet'],
-				package			=> 'Chartsheet',
-			},
-		},
-	};
-my	$xml_parser = XML::LibXML->new();
-my	$build_ref	= {
-		top_level_workbook =>{
-			zip	=> 'xl/workbook.xml',
-		},
-		workbook_rels =>{
-			zip	=> 'xl/_rels/workbook.xml.rels',
-		},
-		doc_props =>{
-			zip	=> 'docProps/core.xml',
-		},
-		sharedStrings =>{
-			zip	=> 'xl/sharedStrings.xml',
-		},
-		styles =>{
-			zip	=> 'xl/styles.xml',
-		},
-		calcChain =>{
-			zip	=> 'xl/calcChain.xml',
-		},
-	};
 my	$attribute_defaults ={
 		error_inst =>{
-			superclasses => ['Spreadsheet::XLSX::Reader::LibXML::Error'],
 			package => 'ErrorInstance',
+			superclasses => ['Spreadsheet::XLSX::Reader::LibXML::Error'],
 			should_warn => 0,
 		},
-		format_inst =>{
-			superclasses => ['Spreadsheet::XLSX::Reader::LibXML::FmtDefault'],
+		formatter_inst =>{
 			package => 'FormatInstance',
+			superclasses => ['Spreadsheet::XLSX::Reader::LibXML::FmtDefault'],
+			add_roles_in_sequence =>[qw(
+				Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings
+				Spreadsheet::XLSX::Reader::LibXML::FormatInterface
+			)],
 		},
 		sheet_parser		=> 'reader',
 		count_from_zero		=> 1,
@@ -103,6 +46,12 @@ my	$attribute_defaults ={
 		from_the_edge		=> 1,
 		group_return_type	=> 'instance',
 		empty_return_type	=> 'empty_string',
+		cache_positions	=>{# Test this !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+			shared_strings_interface => 5242880,# 5 MB
+			styles_interface => 5242880,# 5 MB
+			#~ worksheet_interface => 5242880,# 5 MB #Not yet available
+			#~ chartsheet_interface => 5242880,# 5 MB
+		},
 	};
 my	$flag_settings ={
 		alt_default =>{
@@ -115,7 +64,6 @@ my	$flag_settings ={
 			values_only       => 1,
 			empty_is_end      => 1,
 			group_return_type => 'value',
-			cache_positions   => 1,
 			from_the_edge     => 0,
 			empty_return_type => 'undef_string',
 		},
@@ -124,13 +72,11 @@ my	$flag_settings ={
 			values_only       => 1,
 			empty_is_end      => 1,
 			group_return_type => 'unformatted',
-			cache_positions   => 1,
 			from_the_edge     => 0,
 			empty_return_type => 'undef_string',
 		},
 		like_ParseExcel =>{
 			count_from_zero => 1,
-			cache_positions	=> 1,
 			group_return_type => 'instance',
 		},
 		debug =>{
@@ -139,163 +85,40 @@ my	$flag_settings ={
 				package => 'ErrorInstance',
 				should_warn => 1,
 			},
+			show_sub_file_size => 1,
+		},
+		lots_of_ram =>{ #Estimated to consume 4+ Gig of ram when the file is loaded and processed!!!!!!!!!!
+			cache_positions	=>{
+				shared_strings_interface => 209715200,# 200 MB
+				styles_interface => 209715200,# 200 MB
+				#~ worksheet_interface => 209715200,# 200 MB #Not yet available
+				#~ chartsheet_interface => 209715200,# 200 MB
+			},
+		},
+		big_file =>{ #Estimated to consume 4+ Gig of ram when the file is loaded and processed!!!!!!!!!!
+			cache_positions	=>{
+				shared_strings_interface => 10240,# 10 KB
+				styles_interface => 10240,# 10 KB
+				#~ worksheet_interface => 10240,# 10 KB #Not yet available
+				#~ chartsheet_interface => 10240,# 10 KB
+			},
 		},
 	};
-
-#########1 Public Attributes  3#########4#########5#########6#########7#########8#########9
-
-has error_inst =>(
-		isa	=> 	HasMethods[qw(
-						error set_error clear_error set_warnings if_warn should_spew_longmess spewing_longmess
-					),
-		###LogSD	'set_log_space',
-				],
-		clearer		=> '_clear_error_inst',
-		reader		=> 'get_error_inst',
-		predicate	=> 'has_error_inst',
-		required	=> 1,
-		handles =>{ qw(
-						error					error
-						set_error				set_error
-						clear_error				clear_error
-						set_warnings			set_warnings
-						if_warn 				if_warn
-						should_spew_longmess 	should_spew_longmess
-						spewing_longmess		spewing_longmess
-					),
-		###LogSD	set_error_log_space => 'set_log_space',
-	},
-		trigger => sub{
-			if( $_[0]->_has_format_inst and !$_[0]->get_format_inst->block_inherit ){
-				$_[0]->get_format_inst->set_error_inst( $_[1] );
-			}
-		},
-	);
-	
-has format_inst =>(
-		isa	=> 	HasMethods[qw( 
-						set_error_inst				set_excel_region
-						set_target_encoding			get_defined_excel_format
-						set_defined_excel_formats	change_output_encoding
-						set_epoch_year				set_cache_behavior
-						set_date_behavior			get_defined_conversion		
-						parse_excel_format_string	set_european_first
-					),
-		###LogSD	'set_log_space',
-				],	
-		writer	=> 'set_format_inst',
-		reader	=> 'get_format_inst',
-		predicate => '_has_format_inst',
-		handles => { qw(
-							get_defined_excel_format	get_defined_excel_format
-							parse_excel_format_string	parse_excel_format_string
-							change_output_encoding		change_output_encoding
-							set_date_behavior			set_date_behavior
-							get_date_behavior			get_date_behavior
-							set_defined_excel_formats	set_defined_excel_formats
-							set_european_first			set_european_first
-						),
-		###LogSD		set_formatter_log_space => 'set_log_space',
-					},	
-		trigger => \&_import_format_settings,
-	);
-	
-has file_name =>(
-		isa			=> XLSXFile,
-		writer		=> 'set_file_name',
-		clearer		=> '_clear_file_name',
-		predicate	=> 'has_file_name',
-		trigger		=> \&_build_workbook,
-	);
-
-has file_handle =>(
-		isa			=> IOFileType,
-		writer		=> 'set_file_handle',
-		clearer		=> '_clear_file_handle',
-		predicate	=> 'has_file_handle',
-		coerce		=> 1,
-		trigger		=> \&_build_workbook,
-	);
-
-has sheet_parser =>(
-		isa		=> ParserType,
-		writer	=> 'set_parser_type',
-		reader	=> 'get_parser_type',
-		coerce	=> 1,
-	);
-
-has count_from_zero =>(
-		isa		=> Bool,
-		reader	=> 'counting_from_zero',
-		writer	=> 'set_count_from_zero',
-	);
-	
-has file_boundary_flags =>(
-		isa			=> Bool,
-		reader		=> 'boundary_flag_setting',
-		writer		=> 'change_boundary_flag',
-		required	=> 1,
-	);
-
-has empty_is_end =>(
-		isa		=> Bool,
-		writer	=> 'set_empty_is_end',
-		reader	=> 'is_empty_the_end',
-	);
-
-has values_only =>(
-		isa		=> Bool,
-		writer	=> 'set_values_only',
-		reader	=> 'get_values_only',
-	);
-
-has from_the_edge =>(
-		isa		=> Bool,
-		reader	=> '_starts_at_the_edge',
-		writer	=> 'set_from_the_edge',
-	);
-
-has default_format_list =>(
-		isa		=> Str,
-		writer	=> 'set_default_format_list',
-		reader	=> 'get_default_format_list',
-	);
-
-has format_string_parser =>(
-		isa		=> Str,
-		writer	=> 'set_format_string_parser',
-		reader	=> 'get_format_string_parser',
-	);
-
-has group_return_type =>(
-		isa		=> Enum[qw( unformatted value instance xml_value )],
-		reader	=> 'get_group_return_type',
-		writer	=> 'set_group_return_type',
-	);
-
-has empty_return_type =>(
-		isa		=> Enum[qw( empty_string undef_string )],
-		reader	=> 'get_empty_return_type',
-		writer	=> 'set_empty_return_type',
-	);
-	
-has cache_positions =>(
-		isa		=> Bool,
-		reader	=> 'get_cache_positions',
-		default	=> 1,
-	);
+my $delay_till_build = [qw( formatter_inst )];
 
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
 
+###LogSD sub get_class_space{ 'Top' }
+
 sub import{# Flags handled here!
     my ( $self, @flag_list ) = @_;
-	
+	#~ print "Made it to import\n";
 	if( scalar( @flag_list ) ){
 		for my $flag ( @flag_list ){
 			#~ print "Arrived at import with flag: $flag\n";
 			if( $flag =~ /^:(\w*)$/ ){# Handle text based flags
 				my $default_choice = $1;
-				#~ print "Attempting to change the default group type to: $default_choice\n";
+				print "Attempting to change the default group type to: $default_choice\n";
 				if( exists $flag_settings->{$default_choice} ){
 					for my $attribute ( keys %{$flag_settings->{$default_choice}} ){
 						#~ print "Changing flag -$attribute- to:" . Dumper( $flag_settings->{$default_choice}->{$attribute} );
@@ -316,339 +139,82 @@ sub import{# Flags handled here!
 			}
 		}
 	}
-}
-
-sub parse{
-
-    my ( $self, $file, $formatter ) = @_;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::parse', );
-	###LogSD		$phone->talk( level => 'info', message =>[
-	###LogSD			"Arrived at parse for:", $file,
-	###LogSD			(($formatter) ? "with formatter: $formatter" : '') ] );
-	$self->set_format_string_parser( $formatter ) if $formatter;
-	if( IOFileType->check( $file ) ){
-		###LogSD	$phone->talk( level => 'info', message =>[ 'passed a file handle:', $file, ] );
-		eval '$self->set_file_handle( $file )';
-	}else{
-		###LogSD	$phone->talk( level => 'info', message =>[ 'passed a file name: ' . $file, ] );
-		eval '$self->set_file_name( $file )';
-	}
-	if( $@ ){
-		my $error_message = $@;
-		###LogSD	$phone->talk( level => 'info', message =>[ 'saving error:', $error_message, ] );
-		$self->set_error( $error_message );
-		return undef;
-	}else{
-		return $self;
-	}
-}
-
-sub worksheets{
-
-    my ( $self, ) = @_;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::worksheets', );
-	###LogSD		$phone->talk( level => 'info', message =>[
-	###LogSD			'Attempting to build all worksheets: ', $self->get_worksheet_names ] );
-	my	@worksheet_array;
-	while( my $worksheet_object = $self->worksheet ){
-		###LogSD	$phone->talk( level => 'info', message =>[
-		###LogSD		'Built worksheet: ' .  $worksheet_object->get_name ] );
-		push @worksheet_array, $worksheet_object;#$self->worksheet( $worksheet_name );
-	}
-	###LogSD	$phone->talk( level => 'trace', message =>[
-	###LogSD		'sending worksheet array: ',@worksheet_array ] );
-	return @worksheet_array;
-}
-
-sub worksheet{
-
-    my ( $self, $worksheet_name ) = @_;
-	my ( $next_position );
-	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::worksheet', );
-	###LogSD		$phone->talk( level => 'info', message =>[
-	###LogSD			"Arrived at (build a) worksheet with: ", $worksheet_name ] );
-	
-	# Handle an implied 'next sheet'
-	if( !$worksheet_name ){
-		my $worksheet_position = $self->_get_current_worksheet_position;
-		###LogSD	$phone->talk( level => 'info', message =>[
-		###LogSD		"No worksheet name passed", 
-		###LogSD		((defined $worksheet_position) ? "Starting after position: $worksheet_position" : '')] );
-		$next_position = ( !$self->in_the_list ) ? 0 : ($self->_get_current_worksheet_position + 1);
-		###LogSD	$phone->talk( level => 'info', message =>[
-		###LogSD		"No worksheet name passed", "Attempting position: $next_position" ] );
-		if( $next_position >= $self->worksheet_count ){
-			###LogSD	$phone->talk( level => 'info', message =>[
-			###LogSD		"Reached the end of the worksheet list" ] );
-			return undef;
-		}
-		$worksheet_name = $self->worksheet_name( $next_position );
-	}else{
-		my $sheet_data = $self->_get_sheet_info( $worksheet_name );
-		###LogSD	$phone->talk( level => 'info', message =>[
-		###LogSD		"Info for the worksheet -$worksheet_name- is:", $sheet_data ] );
-		$next_position = $sheet_data->{sheet_position};
-	}
-	
-	# Deal with chartsheet requests
-	my $worksheet_info = $self->_get_sheet_info( $worksheet_name );
-	# Check for sheet existence
-	if( !$worksheet_info or !$worksheet_info->{sheet_type} ){
-		$self->set_error( "The worksheet -$worksheet_name- could not be located!" );
-		return undef;
-	}elsif( $worksheet_info->{sheet_type} and $worksheet_info->{sheet_type} eq 'chartsheet' ){
-		$self->set_error( "You have requested -$worksheet_name- which is a 'chartsheet' using a worksheet focused method" );
-		return undef;
-	}
-	# NOTE: THE CHARTSHEET / WORKSHEET COMMON SUB-METHOD COULD PROBABLY START HERE
-	###LogSD	$phone->talk( level => 'info', message =>[
-	###LogSD		"Building: $worksheet_name", "..with data:", $worksheet_info ] );
-	
-	# Check for a file and an available parser type
-	confess "No file loaded yet" if !$self->has_file_name and !$self->has_file_handle;
-	my ( $translation_method, $parser_type );
-	if( exists $parser_modules->{ $self->get_parser_type } ){
-		$translation_method	= $parser_modules->{ $self->get_parser_type }->{build_method};
-		$parser_type		= $parser_modules->{ $self->get_parser_type }->{$worksheet_info->{sheet_type}};
-	}else{
-		confess 'This package still under development - parser type |' . $self->get_parser_type . '| not yet supported - try the "reader" parser';
-		return undef;
-	}
-	###LogSD		$phone->talk( level => 'info', message =>[
-	###LogSD			"Using translation: $translation_method", "With parser: ", $parser_type, ] );
-	
-	# build the worksheet
-	my %args = $self->$translation_method( $worksheet_info, $self->_get_zip_file_handle );
-	###LogSD	$phone->talk( level => 'debug', message => [
-	###LogSD		'Intermediate worksheet args are:', %args ], );
-	if( !$args{file} and !$args{dom} ){
-		$self->set_error( "Unable to load XML::LibXML with the element: $worksheet_name" );
-		return undef;
-	}
-	###LogSD	$phone->talk( level => 'debug', message => [
-	###LogSD		'made it past the has-file check with:', $parser_type, $worksheet_name, ], );
-	
-	confess "No worksheet info for: $worksheet_name" if !exists $worksheet_info->{sheet_position};
-	$args{superclasses}			= $parser_type->{superclasses};
-	$args{roles}				= $parser_type->{roles};
-	$args{sheet_name}			= $worksheet_name;
-	$args{workbook_instance}	= $self;
-	$args{error_inst}			= $self->get_error_inst;
-	$args{package}				= $parser_type->{package};
-	###LogSD $args{log_space} = $self->get_log_space;
-	###LogSD	$phone->talk( level => 'trace', message =>[
-	###LogSD		'Finalized build info:', %args, ] );
-	my	$worksheet = build_instance( %args );
-	if( $worksheet ){
-		###LogSD	$phone->talk( level => 'info', message =>[
-		###LogSD		"Successfully loaded: $worksheet_name", 
-		###LogSD		"Setting the current worksheet position to: $next_position" ] );
-		$self->_set_current_worksheet_position( $next_position );
-		return $worksheet;
-	}else{
-		$self->set_error( "Failed to build the object for worksheet: $worksheet_name" );
-		return undef;
-	}
+	#~ print "Finished import\n";
 }
 
 #########1 Private Attributes 3#########4#########5#########6#########7#########8#########9
-	
-has _file_creator =>(
-		isa		=> Str,
-		reader	=> 'creator',
-		writer	=> '_set_creator',
-		clearer	=> '_clear_creator',
-	);
-	
-has _file_modified_by =>(
-		isa		=> Str,
-		reader	=> 'modified_by',
-		writer	=> '_set_modified_by',
-		clearer	=> '_clear_modified_by',
-	);
-	
-has _file_date_created =>(
-		isa		=> StrMatch[qr/^\d{4}\-\d{2}\-\d{2}/],
-		reader	=> 'date_created',
-		writer	=> '_set_date_created',
-		clearer	=> '_clear_date_created',
-	);
-	
-has _file_date_modified =>(
-		isa		=> StrMatch[qr/^\d{4}\-\d{2}\-\d{2}/],
-		reader	=> 'date_modified',
-		writer	=> '_set_date_modified',
-		clearer	=> '_clear_date_modified',
-	);
 
-has _epoch_year =>(
-		isa			=> Enum[qw( 1900 1904 )],
-		writer		=> '_set_epoch_year',
-		reader		=> 'get_epoch_year',
-		predicate	=> 'has_epoch_year',
-		default		=> 1900,
-		trigger => sub{
-			if( $_[0]->_has_format_inst and !$_[0]->get_format_inst->block_inherit ){
-				$_[0]->get_format_inst->set_epoch_year( $_[1] );
-			}
-		},
-	);
-	
-has _shared_strings_instance =>(
-		isa			=> HasMethods[ 'get_shared_string_position' ],
-		predicate	=> '_has_shared_strings_file',
-		writer		=> '_set_shared_strings_instance',
-		reader		=> '_get_shared_strings_instance',
-		clearer		=> '_clear_shared_strings',
-		handles		=>{
-			'get_shared_string_position' => 'get_shared_string_position',
-			_demolish_shared_strings => 'DEMOLISH',
-		},
-	);
-	
-has _styles_instance =>(
-		isa			=> HasMethods[qw( get_format_position )],
-		writer		=> '_set_styles_instance',
-		reader		=> '_get_styles_instance',
-		clearer		=> '_clear_styles',
-		predicate	=> '_has_styles_file',
-		handles		=>{
-			get_format_position	=> 'get_format_position',
-			_demolish_styles => 'DEMOLISH',
-		},
-	);
-
-has _calc_chain_instance =>(
-		isa	=> 	HasMethods[qw( get_calc_chain_position )],
-		writer	=>'_set_calc_chain_instance',
-		reader	=>'_get_calc_chain_instance',
-		clearer	=> '_clear_calc_chain',
-		predicate => '_has_calc_chain_file',
-		handles =>{
-			_demolish_calc_chain => 'DEMOLISH',
-		},
-	);
-
-has _worksheet_list =>(
-		isa		=> ArrayRef,
-		traits	=> ['Array'],
-		clearer	=> '_clear_worksheet_list',
-		reader	=> 'get_worksheet_names',
-		handles	=>{
-			worksheet_name  => 'get',
-			worksheet_count => 'count',
-			_add_worksheet       => 'push',
-		},
-		default	=> sub{ [] },
-	);
-
-has _chartsheet_list =>(
-		isa		=> ArrayRef,
-		traits	=> ['Array'],
-		clearer	=> '_clear_chartsheet_list',
-		reader	=> 'get_chartsheet_names',
-		handles	=>{
-			chartsheet_name  => 'get',
-			chartsheet_count => 'count',
-			_add_chartsheet  => 'push',
-		},
-		default	=> sub{ [] },
-	);
-
-has _sheet_list =>(
-		isa		=> ArrayRef,
-		traits	=> ['Array'],
-		writer	=> '_set_sheet_list',
-		clearer	=> '_clear_sheet_list',
-		reader	=> 'get_sheet_names',
-		handles	=>{
-			get_sheet_name => 'get',
-			sheet_count	   => 'count',
-		},
-		default	=> sub{ [] },
-	);
-
-has _sheet_lookup =>(
-		isa		=> HashRef,
-		traits	=> ['Hash'],
-		writer	=> '_set_sheet_lookup',
-		clearer	=> '_clear_sheet_lookup',
-		reader	=> '_get_sheet_lookup',
-		handles	=>{
-			_get_sheet_info => 'get',
-		},
-		default	=> sub{ {} },
-	);
-
-has _current_worksheet_position =>(
-		isa			=> Int,
-		writer		=> '_set_current_worksheet_position',
-		reader		=> '_get_current_worksheet_position',
-		clearer		=> 'start_at_the_beginning',
-		predicate	=> 'in_the_list',
-	);
-	
-has _file_type =>(
-		isa		=> Enum[qw( zip xml )],
-		clearer	=> '_clear_file_type',
-		writer	=> '_set_file_type',
-		reader	=> '_get_file_type',
-	);
-	
-has _zip_file_handle =>(
-		isa => InstanceOf[ 'Archive::Zip' ],
-		clearer	=> '_clear_zip_file_handle',
-		writer	=> '_set_zip_file_handle',
-		reader	=> '_get_zip_file_handle',
-		predicate	=> '_has_zip_file_handle',
-	);
+has _workbook =>(
+	isa			=> 'Spreadsheet::XLSX::Reader::LibXML::Workbook',
+	predicate	=> '_has_workbook',
+	writer		=> '_set_workbook',
+	clearer		=> '_clear_the_workbook',
+	handles		=>
+		qr/^(?!(				# Negative look ahead blocking most Moose shared methods
+			BUILD|
+			BUILDARGS|
+			DESTROY|
+			DEMOLISH|
+			new|
+			get_all_space|		# Also blocking common logging methods 
+			get_class_space|	# (Where ###LogSD has activeded them)
+			get_log_space|
+			has_log_space|
+			set_log_space
+		))[^\s]+/x,				#Ensure somthing follows the negative look-ahead
+);
 
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
+#########1 For purposes of garbage collection cleanup this is all this module does #######9
 
 around BUILDARGS => sub {
-    my ( $orig, $class, %args ) = @_;
-	###LogSD	my $log_space = $args{log_space};
-	###LogSD	$log_space .= '::' if $log_space;
-	###LogSD	$log_space .= 'Workbook::BUILDARGS';
-	###LogSD	my	$phone = Log::Shiras::Telephone->new(
-	###LogSD					name_space 	=> $log_space, );
+    my ( $orig, $class, @args ) = @_;
+	my %args = is_HashRef( $args[0] ) ? %{$args[0]} : @args;
+	###LogSD	$args{log_space} //= 'XLSX';
+	###LogSD	my	$class_space = __PACKAGE__->get_class_space;
+	###LogSD	my	$log_space = $args{log_space} . "::$class_space" . '::_hidden::BUILDARGS';
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space => $log_space, );
 	###LogSD		$phone->talk( level => 'trace', message =>[
-	###LogSD			'Arrived at BUILDARGS with: ', %args ] );
+	###LogSD			'Arrived at BUILDARGS with: ', @args ] );
 	
-	# Check if this was called by Spreadsheet::Read; Warning discontinuing after 1-Jan-2016 unless someone asks
-	my $like_ParseExcel = 0;
-	for my $x ( 2 .. 5 ){
+	# Handle depricated cache_positions
+	#~ print longmess( Dumper( %args ) );
+	if( exists $args{cache_positions} ){
 		###LogSD	$phone->talk( level => 'trace', message =>[
-		###LogSD		"Caller is:", caller( $x ) ] );
-		if( (caller( $x ))[0] and (caller( $x ))[0] =~ /Spreadsheet::Read/ ){
-			$like_ParseExcel = 1;
-			###LogSD	$phone->talk( level => 'trace', message =>[
-			###LogSD		"Spreadsheet::XLSX::Reader::LibXML is being called by Spreadsheet::Read - enforcing the :like_ParseExcel flag" ] );
-			last;
+		###LogSD		"The user did pass a value to cache_positions as:", $args{cache_positions}] );
+		if( !is_HashRef( $args{cache_positions} ) ){
+			warn "Passing a boolean value to the attribute 'cache_positions' is depricated since v0.40.2 - the input will be converted per the documentation";
+			$args{cache_positions} = !$args{cache_positions} ?
+				$flag_settings->{big_file}->{cache_positions} : 
+				$attribute_defaults->{cache_positions};
+		}
+		
+		#scrub cache_positions
+		for my $passed_key ( keys %{$args{cache_positions}} ){
+			if( !exists $attribute_defaults->{cache_positions}->{$passed_key} ){
+				warn "Passing a cache position for '$passed_key' but that is not allowed";
+			}
+		}
+		for my $stored_key ( keys %{$attribute_defaults->{cache_positions}} ){
+			if( !exists $args{cache_positions}->{$stored_key} ){
+				warn "Passed cache positions are missing key => values for key: $stored_key";
+			}
 		}
 	}
 		
 	# Add any defaults
+	###LogSD	$phone->talk( level => 'trace', message =>[
+	###LogSD		"Processing possible default values", $attribute_defaults ] );
 	for my $key ( keys %$attribute_defaults ){
+		###LogSD	$phone->talk( level => 'trace', message =>[
+		###LogSD		"Processing possible default for -$key- with value:", $attribute_defaults->{$key} ] );
 		if( exists $args{$key} ){
 			###LogSD	$phone->talk( level => 'trace', message =>[
-			###LogSD		"Found user defined -$key- with value: $args{$key}" ] );
+			###LogSD		"Found user defined -$key- with value(s): ", $args{$key} ] );
 		}else{
 			###LogSD	$phone->talk( level => 'trace', message =>[
-			###LogSD		"Setting default -$key- with value: $attribute_defaults->{$key}" ] );
+			###LogSD		"Setting default -$key- with value(s): ", $attribute_defaults->{$key} ] );
 			$args{$key} = clone( $attribute_defaults->{$key} );
-		}
-	}
-	
-	# Enforce Spreadsheet::Read requirements - Warning discontinuing after 1-Jan-2016 unless someone asks
-	if( $like_ParseExcel ){
-		###LogSD	$phone->talk( level => 'trace', message =>[
-		###LogSD		"Enforcing like_ParseExcel defaults" ] );
-		for my $key ( %{$flag_settings->{like_ParseExcel}} ){
-			$args{$key} = clone( $flag_settings->{like_ParseExcel}->{$key} );
 		}
 	}
 	
@@ -662,415 +228,58 @@ around BUILDARGS => sub {
 			###LogSD		$args{$key}->{log_space} = $args{log_space};
 			###LogSD	}
 			###LogSD	$phone->talk( level => 'trace', message =>[
-			###LogSD		"Key -$key- requires and instance built from:", $args{$key} ] );
+			###LogSD		"Key -$key- requires an instance built from:", $args{$key} ] );
 			$args{$key} = build_instance( $args{$key} );
 		}
 	}
 	
+	# Pull any delayed build items - probably to allow them to observe the workbook instance
+	for my $key ( @$delay_till_build ){
+		###LogSD	$phone->talk( level => 'trace', message =>[
+		###LogSD		"Delaying the installation of: $key" ] );
+		my $build_delay_store = {};
+		if( exists $args{$key} ){
+			$build_delay_store->{$key} = $args{$key};
+			delete $args{$key};
+		}
+		$args{_delay_till_build} = $build_delay_store;
+	}
+	
 	###LogSD	$phone->talk( level => 'trace', message =>[
 	###LogSD			"Final BUILDARGS:", %args ] );
-    return $class->$orig(%args);
+	my $workbook = Spreadsheet::XLSX::Reader::LibXML::Workbook->new( %args );
+    return $class->$orig( 
+				_workbook => $workbook,
+	###LogSD	log_space => $args{log_space}
+	);
 };
 
-sub _build_workbook{
-
-    my ( $self, $file ) = @_;
+around parse => sub{
+	my ( $orig, $self, @args ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::hidden::_build_file', );
+	###LogSD			$self->get_all_space . '::_around::parse', );
 	###LogSD		$phone->talk( level => 'info', message =>[
-	###LogSD			'Arrived at _build_file for: ', $file ] );
-	$self->_clear_shared_strings;
-	$self->_clear_calc_chain;
-	$self->_clear_styles;
-	$self->_clear_worksheet_list;
-	$self->_clear_sheet_lookup;
-	$self->_clear_creator;
-	$self->_clear_modified_by;
-	$self->_clear_date_created;
-	$self->_clear_date_modified;
-	$self->clear_error;
-	$self->start_at_the_beginning;
-	$self->_clear_file_type;
-	
-	# Ensure we have a file handle
-	my $file_handle;
-	eval '$file_handle = IOFileType->assert_coerce( $file )';
-	###LogSD	$phone->talk( level	=> 'trace', message =>[
-	###LogSD		"Passed the file type coercion" ] );
-	if( $@ ){
-		###LogSD	$phone->talk( level	=> 'warn', message =>[
-		###LogSD		"Unable to create a valid file instance with: $file" ] );
-		$self->_clear_file_handle;
-		$self->_clear_file_name;
-		$self->set_error( "Unable to create a valid file instance with: $file" );
-		return undef;
-	}
-	###LogSD	$phone->talk( level	=> 'trace', message =>[
-	###LogSD		"Current file handle: $file_handle" ] );
-	
-    # Read the XLSX zip file and catch any errors (other zip file sanity tests go here)
-	my $workbook_file = Archive::Zip->new();
-    if(	$workbook_file->readFromFileHandle($file_handle) != AZ_OK ){
-		###LogSD	$phone->talk( level	=> 'warn', message =>[
-		###LogSD		"Failed to open a zip file" ] );
-		$self->_clear_file_handle;
-		$self->_clear_file_name;
-		$self->_set_file_type( 'xml' );#  Build from this when adding all-in-one single file Excel Workbooks!!!!
-		confess "|$file| won't open as a zip file";
-	}else{
-		###LogSD	$phone->talk( level	=> 'debug', message =>[
-		###LogSD		"Certified this as a zip file" ] );
-		$self->_set_file_type( 'zip' );
-	}
-	###LogSD	$phone->talk( level	=> 'debug', message =>[
-	###LogSD		'Zip file test passed with: ' . $self->_get_file_type ] );
-	
-	# Extract the workbook top level info
-	my %answer = $self->_build_dom( $build_ref->{top_level_workbook}, $workbook_file );
-	###LogSD	$phone->talk( level	=> 'debug', message =>[ "DOM built for method: _load_top_level_workbook" ] );
-	my ( $rel_lookup, $id_lookup ) = $self->_load_top_level_workbook( $answer{dom} );
-	return undef if !$rel_lookup;
-	###LogSD	$phone->talk( level => 'debug', message =>[ 'Rel lookup:', $rel_lookup, 'ID lookukp:', $id_lookup	] );
-	
-	# Load the workbook rels info
-	%answer = $self->_build_dom( $build_ref->{workbook_rels}, $workbook_file );
-	###LogSD	$phone->talk( level	=> 'debug', message =>[ "DOM built for method: _load_workbook_rels" ] );
-	my ( $load_success, $pivot_lookup ) = $self->_load_workbook_rels( $rel_lookup, $answer{dom} );
-	return undef if !$load_success;
-	###LogSD	$phone->talk( level => 'debug', message =>[ 'pivot lookup:', $pivot_lookup,	] );
-	
-	# Load the docProps info
-	%answer = $self->_build_dom( $build_ref->{doc_props}, $workbook_file );
-	###LogSD	$phone->talk( level	=> 'debug', message =>[ "DOM built for method: _load_doc_props" ] );
-	$self->_load_doc_props( $answer{dom} );
-	###LogSD	$phone->talk( level => 'debug', message =>[ 'docProps loaded', ] );
-	
-	# Build the instances for all the shared files (data for sheets shared across worksheets)
-	if( exists $parser_modules->{ $self->get_parser_type } ){
-		###LogSD	$phone->talk( level => 'debug', message =>[ 'loading shared worksheets for: ' . $self->get_parser_type, ] );
-		my	$result = 	$self->_set_shared_worksheet_files(
-							$parser_modules->{ $self->get_parser_type },
-							$workbook_file,
-						);
-		return undef if !$result;
-		$self->_set_zip_file_handle( $workbook_file );
-	}else{
-		confess 'This package still under development - parser type |' . $self->get_parser_type . '| not yet supported - try the "reader" parser';
-		return undef;
-	}
-	return $self;
-}
-
-sub _build_dom{
-	my( $self, $target, $workbook_file ) = @_;
-	my $build_target = clone( $target );
-	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::hidden::_build_dom', );
-	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			'Building DOM object for the target:', $build_target,
-	###LogSD			"With file:", $workbook_file	] );
-	my ( $dom, $encoding );
-	if( $self->_get_file_type eq 'zip' ){
-		###LogSD		$phone->talk( level => 'debug', message => [
-		###LogSD			"Working on a zip file targeting: $build_target->{zip}",] );
-		my $zip_workbook = $workbook_file->memberNamed( $build_target->{zip} );
-		delete $build_target->{zip};
-		###LogSD	$phone->talk( level => 'debug', message =>[ 'zip member: ' . $zip_workbook	] );
-		my	$workbook_fh = IO::File->new_tmpfile;
-			$workbook_fh->binmode();
-		$zip_workbook->extractToFileHandle( $workbook_fh );
-		$workbook_fh->seek( 0, 0 );
-		$dom = $xml_parser->load_xml( { IO => $workbook_fh } );
-	}else{
-		confess "I don't know how to handle file type: " . $self->_get_file_type;
-	}
-	my %return_args = ( dom => $dom, %$build_target );
-	###LogSD	$phone->talk( level => 'debug', message =>[ "Returning: ", %return_args ] );
-	return %return_args;
-}
-
-sub _build_reader{
-	my( $self, $target, $workbook_file ) = @_;
-	my $build_target = clone( $target );
-	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::hidden::_build_reader', );
-	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			'Building Reader object for the target:', $build_target,
-	###LogSD			"With file:", $workbook_file	] );
-	my ( $workbook_fh, $xml_reader, $encoding );
-	if( $self->_get_file_type eq 'zip' ){
-		###LogSD		$phone->talk( level => 'debug', message => [
-		###LogSD			"Working on a zip file targeting: $build_target->{zip}",] );
-		my $zip_member = $workbook_file->memberNamed( $build_target->{zip} );
-		###LogSD	$phone->talk( level => 'debug', message =>[ 'zip member:', $zip_member	] );
-		if( $zip_member ){
-			$workbook_fh = IO::File->new_tmpfile;
-			$workbook_fh->binmode();
-			$zip_member->extractToFileHandle( $workbook_fh );
-			$workbook_fh->seek( 0, 0 );
-		}else{
-			###LogSD	$phone->talk( level => 'debug', message =>[ "no zip file for: $build_target->{zip}"	] );
-			return undef;
-		}
-		delete $build_target->{zip};
-	}else{
-		confess "I don't know how to handle file type: " . $self->_get_file_type;
-	}
-	my %return_args = ( file => $workbook_fh, %$build_target );# xml_reader => $xml_reader, 
-	###LogSD	$phone->talk( level => 'debug', message =>[ "Returning: ", %return_args ] );
-	return %return_args;
-}
-
-sub _load_top_level_workbook{
-	my( $self, $dom ) = @_;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::hidden::_load_workbook_file', );
-	###LogSD		$phone->talk( level => 'info', message => [
-	###LogSD			"Building the top level data for the workbook", ] );
-	my ( $list, $sheet_ref, $rel_lookup, $id_lookup );
-	my	$position = 0;
-	my ( $setting_node ) = $dom->getElementsByTagName( 'workbookPr' );
-	if( $setting_node and $setting_node->getAttribute( 'date1904' ) ){
-		$self->_set_epoch_year( 1904 );
-	}
-	for my $sheet ( $dom->getElementsByTagName( 'sheet' ) ){
-		my	$sheet_name = $sheet->getAttribute( 'name' );
-		push @$list, $sheet_name;
-		@{$sheet_ref->{$sheet_name}}{ 'sheet_id', 'sheet_rel_id', 'sheet_position', 'is_hidden' } = (
-				$sheet->getAttribute( 'sheetId' ),
-				$sheet->getAttribute( 'r:id' ),
-				$position++,
-				($sheet->getAttribute( 'state' ) ? 1 : 0), 
-		);
-		$rel_lookup->{$sheet->getAttribute( 'r:id' )} = $sheet_name;
-		$id_lookup->{$sheet->getAttribute( 'sheetId' )} = $sheet_name;
-	}
-	for my $sheet ( $dom->getElementsByTagName( 'pivotCache' ) ){
-		my	$sheet_id = $sheet->getAttribute( 'cacheId' );
-		my	$rel_id = $sheet->getAttribute( 'r:id' );
-		###LogSD	$phone->talk( level => 'debug', message =>[
-		###LogSD		"Sheet ID: $sheet_id", "Rel ID: $rel_id", ] );
-		$rel_lookup->{$rel_id} = $sheet_id;
-		$id_lookup->{$sheet_id} = $rel_id;
-	}
-	###LogSD	$phone->talk( level => 'debug', message => [
-	###LogSD		"Sheet list: ", $list,
-	###LogSD		"Worksheet lookup:", $sheet_ref,
-	###LogSD		"rel lookup:", $rel_lookup,
-	###LogSD		"id lookup:", $id_lookup,		] );
-	$dom = undef;
-	if( !$list ){
-		$self->set_error( "No worksheets identified in this workbook" );
-		return undef;
-	}
-	$self->_set_sheet_list( $list );
-	$self->_set_sheet_lookup( $sheet_ref );
-	return( $rel_lookup, $id_lookup );
-}
-
-sub _load_workbook_rels{
-	my( $self, $rel_lookup, $dom ) = @_;
-	my ( $pivot_lookup, );
-	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::hidden::_load_workbook_rels', );
-	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"Adding the rels file data for the workbook with:", $rel_lookup ] );
-	my	$sheet_ref = $self->_get_sheet_lookup;
-	###LogSD	$phone->talk( level => 'debug', message => [
-	###LogSD		"Working on sheet ref:", $sheet_ref, '..and rel lookup:', $rel_lookup ] );
-	my	$found_member_names = 0;
-	my ( $worksheet_list, $chartsheet_list );
-	for my $sheet ( $dom->getElementsByTagName( 'Relationship' ) ){
-		my	$rel_ID = $sheet->getAttribute( 'Id' );
-		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"Processing relID:", $rel_ID, ] );
-		if( exists $rel_lookup->{$rel_ID} ){
-			my	$target = 'xl/';
-				$target .= $sheet->getAttribute( 'Target' );
-			###LogSD	$phone->talk( level => 'debug', message => [
-			###LogSD		"Building relationship for: $rel_ID", "With target: $target" ] );
-			$target =~ s/\\/\//g;
-			if( $target =~ /worksheets(\\|\/)/ ){
-				$sheet_ref->{$rel_lookup->{$rel_ID}}->{zip} = $target;
-				$sheet_ref->{$rel_lookup->{$rel_ID}}->{sheet_type} = 'worksheet';
-				$worksheet_list->[$sheet_ref->{$rel_lookup->{$rel_ID}}->{sheet_position}] = $rel_lookup->{$rel_ID};
-				$found_member_names = 1;
-			}elsif( $target =~ /chartsheets(\\|\/)/ ){
-				$sheet_ref->{$rel_lookup->{$rel_ID}}->{zip} = $target;
-				$sheet_ref->{$rel_lookup->{$rel_ID}}->{sheet_type} = 'chartsheet';
-				$chartsheet_list->[$sheet_ref->{$rel_lookup->{$rel_ID}}->{sheet_position}] = $rel_lookup->{$rel_ID};
-				$found_member_names = 1;
-			}else{
-				$pivot_lookup->{$rel_ID} = $target;
-			}
-		}
-	}
-	###LogSD	$phone->talk( level => 'debug', message => [
-	###LogSD		"Worksheet lookup:", $sheet_ref,
-	###LogSD		"Pivot lookup:", $pivot_lookup	] );
-	if( !$found_member_names ){
-		$self->set_error( "Couldn't find any zip member (file) names for the sheets" );
-		return ( 0, undef );
-	}
-	map{ $self->_add_worksheet( $_ ) if $_ } @$worksheet_list if $worksheet_list;
-	map{ $self->_add_chartsheet( $_ ) if $_ } @$chartsheet_list if $chartsheet_list;
-	$self->_set_sheet_lookup( $sheet_ref );
-	return ( 1, $pivot_lookup );
-}
-
-sub _load_doc_props{
-	my( $self, $dom ) = @_;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::hidden::_load_doc_props', );
-	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"Collecting data from the doc props file", ] );
-	$self->_set_creator( ($dom->getElementsByTagName( 'dc:creator' ))[0]->textContent() );
-	$self->_set_modified_by( ($dom->getElementsByTagName( 'cp:lastModifiedBy' ))[0]->textContent() );
-	$self->_set_date_created(
-			($dom->getElementsByTagName( 'dcterms:created' ))[0]->textContent()
-	);
-	$self->_set_date_modified(
-			($dom->getElementsByTagName( 'dcterms:modified' ))[0]->textContent()
-	);
-	###LogSD	$phone->talk( level => 'trace', message => [ "Current object:", $self ] );
-}
-
-sub _set_shared_worksheet_files{
-	my( $self, $object_ref, $zip_workbook ) = @_;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::hidden::_set_shared_worksheet_files', );
-	###LogSD	$phone->talk( level => 'debug', message => [
-	###LogSD		"Building the shared worksheet files with the lookup ref:", $object_ref, ] );
-	my $translation_method = $object_ref->{build_method};
-	for my $file ( keys %$object_ref ){
-		
-		# Build out the shared files (shared by all worksheets) only!
-		next if $file eq 'build_method' or $file eq 'worksheet' or $file eq 'chartsheet';
-		
-		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"Attempting to load the file: ${file}\.xml",
-		###LogSD		"With translation method: $translation_method" ], );
-		my %args;
-		my @list = $self->$translation_method( $build_ref->{$file}, $zip_workbook );
-		###LogSD	$phone->talk( level => 'debug', message => [ $translation_method . " returned args:", @list ], );
-		if( scalar( @list ) < 2 ){
-			if( !$args{file} and !$args{dom} ){
-				$self->set_error( "Unable to load XML::LibXML with the element: $file" );
-			}
-		}else{
-			%args = @list;
-			###LogSD	$phone->talk( level => 'debug', message =>[ "Built an xml_object", ], );
-			$args{package} = $object_ref->{$file}->{package} if exists $object_ref->{$file}->{package};
-			###LogSD	$args{log_space} = $self->get_log_space;
-			$args{superclasses} = $object_ref->{$file}->{superclasses} if exists $object_ref->{$file}->{superclasses};
-			for my $attribute ( @{$object_ref->{$file}->{attributes}} ){
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		"Loading attribute: $attribute", ], );
-				my $method = 'get_' . $attribute;
-				$args{$attribute} = $self->$method;
-			}
-			my $role_ref;
-			for my $role ( @{$object_ref->{$file}->{add_roles_in_sequence}} ){
-				###LogSD	$phone->talk( level => 'debug', message => [
-				###LogSD		"collecting the role for: $role", ], );
-				my $method = 'get_' . $role;
-				push @$role_ref, $self->$method;
-			}
-			$args{add_roles_in_sequence} = $role_ref if $role_ref;
-			###LogSD	$args{log_space} = $self->get_log_space;
-			my $method = $object_ref->{$file}->{store};
-			###LogSD	$phone->talk( level => 'debug', message =>[
-			###LogSD		"Final args for building the instance:", %args,
-			###LogSD		"Loading -$method- with build_instance( 'args' )"	], );
-			my $object = build_instance( %args );################################  Add a $object build-fail flag
-			###LogSD	$phone->talk( level => 'debug', message =>[
-			###LogSD		"Finished building instance for: $file",
-			###LogSD		"Loading to the worbook with method: $method", # $object	
-			###LogSD		], );
-			$self->$method( $object );
-			###LogSD	$phone->talk( level => 'debug', message =>[
-			###LogSD		"Finished building and installing: $file", ], );
-		}
-	}
-	###LogSD	$phone->talk( level => 'debug', message => [
-	###LogSD		"All shared files that can be built are built!"	], );
-	return 1;
-}
-
-sub _import_format_settings{
-
-    my ( $self, $formatter ) = @_;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::hidden::_import_format_settings', );
-	if( !$formatter->block_inherit ){
-		###LogSD	$phone->talk( level => 'info', message =>[
-		###LogSD		'Arrived at _import_format_settings for: ', $formatter ] );
-		if( $self->has_error_inst ){
-			###LogSD	$phone->talk( level => 'info', message =>[
-			###LogSD		'Setting the global error instance to the formatter' ] );
-			$formatter->set_error_inst( $self->get_error_inst );
-		}
-		my $year = $self->get_epoch_year;
-		###LogSD	$phone->talk( level => 'info', message =>[
-		###LogSD		"Setting the epoch year for the formatter: $year" ] );
-		$formatter->set_epoch_year( $year );
-		my $cache = $self->get_cache_positions;
-		###LogSD	$phone->talk( level => 'info', message =>[
-		###LogSD		"Setting the cache to: $cache" ] );
-		$formatter->set_cache_behavior( $cache );
-	}
-}
+	###LogSD			"Adding the built workbook to the workbook attribute with args:", @args ] );
+	my $workbook = $self->$orig( @args );
+	###LogSD	$phone->talk( level => 'debug', message =>[
+	###LogSD			"setting the returned workbook" ] );
+	###LogSD	$phone->talk( level => 'trace', message =>[ $workbook ] );
+	$self->_set_workbook( $workbook ) if $workbook;
+};
 
 sub DEMOLISH{
 	my ( $self ) = @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD			$self->get_all_space . '::hidden::DEMOLISH', );
-	###LogSD	$phone->talk( level => 'debug', message => [
-	###LogSD			"Last recorded error: " . ($self->error//'none') ] );
-	if( $self->_has_calc_chain_file ){
-		#~ print "closing calcChain.xml\n";
-		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD			"Clearing the calcChain.xml file" ] );
-		$self->_demolish_calc_chain;
-	}
-	if( $self->_has_shared_strings_file ){
-		my $instance = $self->_get_shared_strings_instance;
-		#~ print "closing sharedStrings.xml\n";# . Dumper( $instance )
-		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD			"Clearing the sharedStrings.xml file" ] );
-		if( $instance ){
-			$self->_demolish_shared_strings;
-		}else{
-			$self->_clear_shared_strings;
-			$instance = undef;
-		}
-	}
-	
-	if( $self->_has_styles_file ){
-		my $instance = $self->_get_styles_instance;
-		#~ print "closing styles.xml\n";# . Dumper( $instance )
-		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD			"Clearing the styles.xml file" ] );
-		if( $instance ){
-			$self->_demolish_styles;
-		}else{
-			$self->_clear_shared_strings;
-			$instance = undef;
-		}
-	}
-	
-	if( $self->_has_zip_file_handle ){
-		#~ print "closing zip file handle\n";
-		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"Clearing the Zip file handle" ] );
-		$self->_clear_zip_file_handle;
-	}
-	
-	if( $self->has_file_handle ){
-		#~ print "closing general file handle\n";
-		###LogSD	$phone->talk( level => 'debug', message => [
-		###LogSD		"Clearing the top level file handle" ] );
-		$self->_clear_file_handle;
+	###LogSD			$self->get_all_space . '::_hidden::DEMOLISH', );
+	###LogSD		$phone->talk( level => 'debug', message =>[
+	###LogSD			"Forcing Non-recursive garbage collection on recursive stuff" ] );
+	if( $self->_has_workbook ){
+		###LogSD	$phone->talk( level => 'debug', message =>[
+		###LogSD		"Need to demolish the workbook" ] );
+		$self->_demolish_the_workbook;
+		###LogSD	$phone->talk( level => 'debug', message =>[
+		###LogSD		"Clearing the attribute" ] );
+		$self->_clear_the_workbook;
 	}
 }
 
@@ -1102,8 +311,8 @@ Spreadsheet::XLSX::Reader::LibXML - Read xlsx spreadsheet files with LibXML
 	<img src='https://coveralls.io/repos/jandrew/Spreadsheet-XLSX-Reader-LibXML/badge.svg?branch=master' alt='Coverage Status' />
 </a>
 
-<a>
-	<img src="https://img.shields.io/badge/this version-0.38.22-brightgreen.svg" alt="this version">
+<a href='https://github.com/jandrew/DateTimeX-Format-Excel'>
+	<img src="https://img.shields.io/github/tag/jandrew/Spreadsheet-XLSX-Reader-LibXML.svg?label=github version" alt="github version"/>
 </a>
 
 <a href="https://metacpan.org/pod/Spreadsheet::XLSX::Reader::LibXML">
@@ -1118,7 +327,7 @@ Spreadsheet::XLSX::Reader::LibXML - Read xlsx spreadsheet files with LibXML
 
 =head1 SYNOPSIS
 
-The following uses the 'TestBook.xlsx' file found in the t/test_files/ folder
+The following uses the 'TestBook.xlsx' file found in the t/test_files/ folder of the package
 
 	#!/usr/bin/env perl
 	use strict;
@@ -1187,81 +396,133 @@ The following uses the 'TestBook.xlsx' file found in the t/test_files/ folder
 
 =head1 DESCRIPTION
 
-This is another package for parsing Excel 2007+ workbooks.  The goals of this package are 
-three fold.  First, as close as possible produce the same output as is visible in an 
-excel spreadsheet with exposure to underlying settings from Excel.  Second, adhere as 
-close as is reasonable to the L<Spreadsheet::ParseExcel> API (where it doesn't conflict 
+This is an object oriented just in time Excel spreadsheet reading package that should 
+parse all excel files with the extentions .xlsx, .xlsm, .xml I<L<Excel 2003 xml
+|https://en.wikipedia.org/wiki/Microsoft_Office_XML_formats> (SpreadsheetML)> that 
+can be opened in Excel 2007+ applications.  The quick-start example provided in the 
+SYNOPSIS attempts to follow the example from L<Spreadsheet::ParseExcel> (.xls binary 
+file reader) as close as possible.  There are additional methods and other approaches 
+that can be used by this package for spreadsheet reading but the basic access to data 
+from newer xml based Excel files can be as simple as above.
+
+The intent is to fully document all public functions but you may need to go to sub 
+modules to find more detailed documentation.  This package operates on the Excel file 
+with three primary tiers of classes.  Each level provides object methods to access the 
+next level down.
+
+=over
+
+Workbook level (This doc)
+
+=over
+
+=item * General attribute settings that affect parsing of the file in general
+
+=item * The place to L<set workbook level output formatting|Spreadsheet::XLSX::Reader::LibXML::FormatInterface>
+
+=item * Object methods to retreive document level metadata
+
+=item * Object methods to return specific Worksheet instances for data retrieval
+
+=item * The place to L<set workbook level formatting|Spreadsheet::XLSX::Reader::LibXML::FormatInterface>
+
+=over
+
+L<Worksheet level|Spreadsheet::XLSX::Reader::LibXML::Worksheet>
+
+=over
+
+=item * Object methods to return specific cell instances/L<data|/group_return_type>
+
+=item * Access to some worksheet level format information (more access pending)
+
+=item * The place to L<customize|Spreadsheet::XLSX::Reader::LibXML::Worksheet/custom_formats> 
+data output formats targeting specific cell ranges
+
+=over
+
+L<Cell level|Spreadsheet::XLSX::Reader::LibXML::Cell>
+
+=over
+
+=item * Access to the cell contents
+
+=item * Access to the cell formats (more access pending)
+
+=back
+
+=back
+
+=back
+
+=back
+
+=back
+
+=back
+
+There are some differences from the L<Spreadsheet::ParseExcel> package.  For instance 
+in the L<SYNOPSIS|/SYNOPSIS> the '$parser' and the '$workbook' are actually the same 
+class for this package.  You could therefore combine both steps by calling ->new with 
+the 'file' attribute called out.  The test for load success would then rely on the 
+method L<file_opened|/file_opened>.   Afterward it is still possible to call ->error 
+on the instance.  Another difference is the data formatter and specifically date 
+handling.  This package allows for a simple pluggable custom output format that is 
+very flexible as well as handling dates older than 1-January-1900.  I leveraged 
+coercions from L<Type::Tiny|Type::Tiny::Manual> to do this but anything that follows 
+that general format will work here.  Additionally, this is a L<Moose> based package 
+and possible I also use interfaces for each of the sub-roles/classes used in parsing.  
+This should alow you to change only the part you want to perform differently if you 
+have the desire to tinker with the guts.  Read the full documentation for all 
+opportunities!
+
+In the realm of extensibility this package uses L<XML::LibXML> which has multiple ways 
+to read an XML file but this release only has an L<XML::LibXML::Reader> parser option.  
+Future iterations could include a DOM parser option but that is a very low priority.  
+Currently this package does not provide the same access to the visual format elements 
+provided in L<Spreadsheet::ParseExcel>.  That is on the longish and incomplete TODO list.  
+To skip the why and nitty gritty of design and jump to implementation details go to the 
+L<Attributes|/Attributes> section.
+
+=head2 Architecture Choices
+
+This is yet another package for parsing Excel xml or 2007+ workbooks.  The goals of this 
+package are five fold.  First, as close as possible produce the same output as is visible 
+in an excel spreadsheet with exposure to underlying settings from Excel.  Second, adhere 
+as close as is reasonable to the L<Spreadsheet::ParseExcel> API (where it doesn't conflict 
 with the first objective) so that less work would be needed to integrate ParseExcel and 
 this package.  An addendum to the second goal is this package will not expose elements of 
 the object hash for use by the consuming program.  This package will either return an 
-unblessed hash with the equivalent elements to the Spreadsheet::ParseExcel output instead 
-of a class instance or it will provide methods to provide these sets of data.  The third 
+unblessed hash with the equivalent elements to the Spreadsheet::ParseExcel output (instead 
+of a class instance) or it will provide methods to provide these sets of data.  The third 
 goal is to provide an XLSX sheet parser that is built on L<XML::LibXML>.  The other two 
 primary options for XLSX parsing on CPAN use either a one-off XML parser (L<Spreadsheet::XLSX>) 
 or L<XML::Twig> (L<Spreadsheet::ParseXLSX>).  In general if either of them already work for 
-you without issue then there is no reason to change to this package.  I personally found 
-some bugs and functionality boundaries in both that I wanted to improve, and by the time 
-I had educated myself enough to make improvement suggestions including root causing the 
-bugs to either the XML parser or the reader logic I had written this.
-
-In the process of learning and building I also wrote some additional features for 
-this parser that are not found in the L<Spreadsheet::ParseExcel> package.  For instance 
-in the L<SYNOPSIS|/SYNOPSIS> the '$parser' and the '$workbook' are actually the same 
-class.  You could combine both steps by calling ->new with the 'file_name' (or 
-'file_handle') attribute called out.  Afterward it is still possible to call ->error on 
-the instance.  The test in that case for load success would be 
-$instance->has_file_name(handle) Another improvement (from my perspective) is date 
-handling.  This package allows for a simple pluggable custom output format that is very 
-flexible as well as handling dates older than 1-January-1900.  I leveraged coercions from 
-L<Type::Tiny|Type::Tiny::Manual> to do this but anything that follows that general format 
-will work here.  Additionally, this is a L<Moose> based package.  As such it is designed 
-to be (fairly) extensible by writing roles 
-and adding them to this package rather than requiring that you extend the package to some 
-new branch.  Read the full documentation for all opportunities!
-
-In the realm of extensibility, L<XML::LibXML> has multiple ways to read an XML file but 
-this release only has an L<XML::LibXML::Reader> parser option.  Future iterations could 
-include a DOM parser option.  Additionally this package does not (yet) provide the same 
-access to the formatting elements provided in L<Spreadsheet::ParseExcel>.  That is on the 
-longish and incomplete TODO list.
-
-The package operates on the workbook with three primary tiers of classes.  All other 
-classes in this package are for architectual extensibility.
-
-=over
-
----> L<Workbook level|Spreadsheet::XLSX::Reader::LibXML>
-
-=over
-
----> L<Worksheet level|Spreadsheet::XLSX::Reader::LibXML::Worksheet>*
-
-=over
-
----> L<Cell level|Spreadsheet::XLSX::Reader::LibXML::Cell>* - 
-L<optional|/group_return_type>
-
-=back
-
-=back
-
-=back
+you without issue then there is no reason to switch to this package.  Fourth, excel files 
+get abused in the wild.  They get abused by humans and they get abused by scripts.  In 
+general the Excel application handles this mangling gracefully. The goal here is to be able 
+to read any xml based spreadsheet Excel can read.  Please L<submit examples
+|https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML/issues> where this is not true 
+to my github repo so I can work to improve this package.  If you don't want your test case 
+included with the distribution I will use it to improve the package without publishing it.  
+Fifth (and finally), the design of this package is targeted at handling as large of an Excel 
+file as possible.  In general this means that design decisions will generally sacrifice speed 
+to keep RAM consumption low.  Specifically this spreadsheet parser does not read the file into 
+memory completely when it is opened.  Since the data in the sheet is parsed just in time the 
+information that is not contained in the primary meta-data headers will not be available for 
+review L<until the sheet parses to that point|Spreadsheet::XLSX::Reader::LibXML::Worksheet/max_row>.  
+In cases where the parser has made choices that prioritize speed over RAM savings there 
+will generally be an L<attribute available to turn that decision off|/set_cache_behavior>.  
+All in all this package solves many of the issues I found parsing Excel in the wild.  I 
+hope it solves some of yours as well.
 
 =head2 Warnings
 
-B<1.> Archive-Zip versions greater than 1.30 appear to be broken.  This package requires 
-Archive::Zip so I reccomend Archive-Zip-1.30.
+B<1.>This package uses L<Archive::Zip>.  Not all versions of Archive::Zip work for everyone.  
+I have tested this with Archive::Zip 1.30.  Please let me know if this does not work with a 
+sucessfully installed (read passed the full test suit) version of Archive::Zip newer than that.
 
-B<2.> This package requires that you can load L<XML::LibXML> which requires the L<libxml2
-|http://xmlsoft.org/> and 'libxml2-devel' libraries.  I have included L<Alien::LibXML> in 
-the build profile in an attempt to resolve any library issues but being new to usage of 
-Alien libraries in general I'm not certain I got it quite right.  Many OS's have these 
-libraries installed as part of their core but if this package fails to load please log an 
-issue in my repo on L<github|/SUPPORT>.  On the other hand the correct libraries are 
-loading on travis-ci during the builds so if no issue is logged before then I will B<remove 
-this warning on 2/1/2016.>
-
-B<3.> Not all workbook sheets (tabs) are created equal!  Some Excel sheet tabs are only a 
+B<2.> Not all workbook sheets (tabs) are created equal!  Some Excel sheet tabs are only a 
 chart.  These tabs are 'chartsheets'.  The methods with 'worksheet' in the name only act on 
 the sub set of tabs that are worksheets.  Future methods with 'chartsheet' in the name will 
 focus on the subset of sheets that are chartsheets.  Methods with just 'sheet' in the name 
@@ -1269,46 +530,70 @@ have the potential to act on both.  The documentation for the chartsheet level c
 in L<Spreadsheet::XLSX::Reader::LibXML::Chartsheet> (still under construction).  All chartsheet 
 classes do not provide access to cells.
 
-B<4.> L<HMBRAND|https://metacpan.org/author/HMBRAND> pointed out that the formatter portion of 
-this package for versions older than v0.38 do not follow the L<Spreadsheet::ParseExcel API
-|Spreadsheet::ParseExcel/Formatter-Class> for the formatter class.  (I always welcome feeback) 
-I suppose the original implementation was, in part, laziness.  In an effort to comply with goal 
-#2 of this package I have updated the API so that in versions starting with v0.38 the formatter 
-is a stand-alone class.  For details of the implemenation see 
-L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/CLASS DESCRIPTION> This more closely follows 
-Spreadsheet::ParseExcel, and incidentally probably makes building alternate formatting modules 
-easier.  I<The formatters will still not exchange back and forth between 
-L<Spreadsheet::ParseExcel::FmtDefault> and back since they are both built to interface with 
-fundamentally different architecture.>  This change also affects how the role 
-L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings> is consumed.  If 
-you wrote your own formatter for this package for the old way I would be willing 
-to provide troubleshooting support for the transition to the the new API.  However if you are 
-setting specific formats today using set_defined_excel_format_list you should be able to switch to
-L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/set_defined_excel_formats( %args )> or use the 
-attribute L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/defined_excel_translations>.    B<This warning 
-will be removed on 2/1/2016.>
-
-B<5.> This package now supports reading xlsm files (Macro enabled Excel 2007+ workbooks).  
+B<3.> This package supports reading xlsm files (Macro enabled Excel 2007+ workbooks).  
 xlsm files allow for binaries to be embedded that may contain malicious code.  However, other 
 than unzipping the excel file no work is done by this package with the sub-file 'vbaProject.bin' 
-containing the binaries.  This update does not provide an API to that sub-file and I have no 
+containing the binaries.  This package does not provide an API to that sub-file and I have no 
 intention of doing so.  Therefore my research indicates there should be no risk of virus activation 
 while parsing even an infected xlsm file with this package but I encourage you to use your own 
-judgement in this area.
+judgement in this area. B<L<caveat utilitor!|https://en.wiktionary.org/wiki/Appendix:List_of_Latin_phrases>>
 
-B<6.> This package will read some files with 'broken' xml.  In general this should be 
+B<4.> This package will read some files with 'broken' xml.  In general this should be 
 transparent but in the case of the maximum row value and the maximum column value for a 
-worksheet it can cause some surprising problems.  For instance the answer to the methods 
-L<Spreadsheet::XLSX::Reader::LibXML::Worksheet/row_range> and 
-L<Spreadsheet::XLSX::Reader::LibXML::Worksheet/col_range> can change as more of the sheet is 
-parsed.  This includes the possibility that the maximum values are initially listed as 'undef' 
-if the sheet does not provide them in the metadata.  The sheet will improve these values as cells 
-are read and more definitive information is available based on the dimensional scope of the users 
-cell parsing.  The primary cause of these broken XML elements are non-XML applications writing to 
-the excel spreadsheet.  You can use the attribute L<file_boundary_flags|/file_boundary_flags> or 
+worksheet it can cause some surprising problems.  This includes the possibility that the maximum 
+values are initially stored as 'undef' if the sheet does not provide them in the metadata as 
+expected.  The answer to the methods L<Spreadsheet::XLSX::Reader::LibXML::Worksheet/row_range> and 
+L<Spreadsheet::XLSX::Reader::LibXML::Worksheet/col_range> will then change as more of the sheet is 
+parsed.  The parser improves these values as information is available based on the dimensional 
+scope of the users cell parsing.  These values are generally never available in Excel 2003 xml files.  
+The primary cause of these broken XML elements in Excel 2007+ files are non-XML applications writing 
+to the excel spreadsheet.  You can use the attribute L<file_boundary_flags|/file_boundary_flags> or 
 the methods L<Spreadsheet::XLSX::Reader::LibXML::Worksheet/get_next_value> or 
-L<Spreadsheet::XLSX::Reader::LibXML::Worksheet/fetchrow_arrayref> to overcome the missing 
-metadata.
+L<Spreadsheet::XLSX::Reader::LibXML::Worksheet/fetchrow_arrayref> as alternates for pre-testing 
+for boundaries when iterating.
+
+B<5.> Version v0.40.2 changes the way file caching is turned on and off.  It also changes the 
+way it is set when starting an instance of this package.  If you did not turn off caching 
+explicitly before this release there should no be a problem with this change.  The goal is to 
+automatically differentiate large files and small files and L<turn caching off|/cache_positions> 
+in a targeted manner in response to larger file sizes. This should allow larger spreadsheets that 
+may have exceeded available RAM to run (slowly) when they didn't run at all before without forcing 
+small sheets to run too much slower. However, if you do have caching turned off in your code using 
+the old Boolean setting this package will now see it, fix it upon load, and emit a warning.  I will 
+still be tweaking this setting over the next few releases.  This warning will stay till 3/1/2017 
+and then the old callout will no longer be supported.
+
+B<6.> Version v0.40.2 introduces the L<file|/file> attribute and will start the deprication of the 
+L<file_name|/file_name> and L<file_handle|/file_handle> attributes as well as the following methods: 
+L<set_file_name|/set_file_name>, L<set_file_handle|/set_file_handle>, L<file_handle|/file_handle>, 
+and L<has_file_handle|/has_file_handle>.  This change is intended to remove an overly complex 
+set of dependancies that was causing trouble for garbage collection on cleanup.  Please use 
+the L<file|/file> attribute and the L<file_opened|/file_opened> methods as replacements moving 
+forward.  Support for backwards compatible use of the old attributes and methods will be removed 
+after 3/1/2017.
+
+B<7.> Version v0.40.2 introduces support for L<SpreadsheetML
+|https://odieweblog.wordpress.com/2012/02/12/how-to-read-and-write-office-2003-excel-xml-files/> 
+(Excel 2003) .xml extention documents.  These documents should include
+
+	xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+	
+as an attribute in the Workbook node to indicate their intended format.  This change does introduce 
+a lot of behind the scenes re-plumbing but the top level tests all stayed the same.  This means that 
+for .xlsx and .xlsm extentions there should not be any obvious changes or (hopefully) significant 
+new bugs. I<Note warnings 5 and 6>.  However, to get this release out and rolling I don't have a 
+full set of tests for the .xml extention paths and Microsofts documentation for that format is 
+spotty in some relevant areas (I still don't know what I don't know) so please L<submit
+|https://github.com/jandrew/Spreadsheet-XLSX-Reader-LibXML/issues> any cases that appear to behave 
+differently than expected for .xml extention files that are readable by the Excel application.  
+I am also interested in cases where an out of memory error occurs with an .xml extension file.  This 
+warning will stay till 3/1/2017.
+
+B<8.> Version v40.4 introduces an additional layer to the top level in order to improve real time 
+garbage collection.  The best description I can find for this issue is in the perldoc L<5.8.9 perlobj 
+documentation|http://perldoc.perl.org/5.8.9/perlobj.html#Two-Phased-Garbage-Collection>.  The solution 
+is extrapolated from the L<Perl Cookbook recipe 13.13|http://docstore.mik.ua/orelly/perl/cookbook/ch13_14.htm>.  
+The goal of this change was to make it as transparent at the top level as possible.
 
 =head2 Attributes
 
@@ -1322,9 +607,10 @@ B<Example>
 
 	$workbook_instance = Spreadsheet::XLSX::Reader::LibXML->new( %attributes )
 
-I<note: if a file name or file handle for an .xlsx file are not included in the initial 
-%attributes then one of them must be set by one of the attribute setter methods below 
-before the rest of the package can be used.>
+I<note: if the file information is not included in the initial %attributes then it must be 
+set by one of the attribute setter methods below or the L<parse
+|parse( $file_nameE<verbar>$file_handle, $formatter )> method before the rest of the package 
+can be used.>
 
 =head3 file_name
 
@@ -1624,9 +910,11 @@ when not implementing 'next' functionality.
 
 B<Default> 0
 
-B<Range> 1 = treat all columns short of the max column for the sheet as being in 
-the table, 0 = end each row after the last cell with data rather than going to the 
-max sheet column
+B<Range> 0 = treat all columns short of the max column for the sheet as being in 
+the table, 1 = treat all cells after the last cell with data as past the end of 
+the row.  This will be most visible when 
+L<boundary flags are turned on|/boundary_flag_setting> or next functionality is 
+used in the context of the L<values_only|/values_only> attribute is on.
 
 B<attribute methods> Methods provided to adjust this attribute
 		
@@ -1726,11 +1014,28 @@ B<Definition:> a way to set the current attribute setting
 =over
 
 B<Definition:> This parse can be slow.  It does this by trading processing and 
-file storage for RAM usage but that is probably not the average users choice.  Not all 
-things that can be cached are cached yet.  However, when this attribute is set where 
-the parser knows how to cache it will.
+file storage for RAM usage but that is probably not the average users choice.  
+Currently four of the files can implement selective caching.  The setting for 
+this attribute takes a hash ref with the file indicators as keys and the max 
+file size in bytes as the value.  When the sub file handle exceeds that size 
+then caching for that subfile is turned off.  The default setting shows an 
+example with the four available cached size.
+	
+B<warning:> This behaviour changed with v0.40.2.  Prior to that this setting 
+accepted a boolean value that turned all caching on or off universally.  If 
+a boolean value is passed a deprication warning will be issued and the input 
+will be changed to this format.  'On' will be converted to the default caching 
+levels.  A boolean 'Off' is passed then the package will set all maximum caching 
+levels to 0.
 
-B<Default> 1 = caching is turned on
+B<Default>
+
+	{
+		sharedStrings => 5242880,# 5 MB
+		styles => 5242880,# 5 MB
+		worksheet_interface => 5242880,# 5 MB
+		chartsheet_interface => 5242880,# 5 MB
+	}
 
 B<attribute methods> Methods provided to adjust this attribute
 		
@@ -1744,28 +1049,61 @@ B<Definition:> read the attribute
 
 =back
 
-=back
-
-=back
-
-=head3 format_inst
+B<get_cache_size( $target_file )>
 
 =over
 
-B<Definition:> This is the attribute containing the format class.  In general the 
+B<Definition:> return the max file size allowed to cache for the indicated $target_file
+
+=back
+
+B<set_cache_size( $target_file => $max_file_size )>
+
+=over
+
+B<Definition:> set the $max_file_size to be cached for the indicated $target_file
+
+=back
+
+B<has_cache_size( $target_file )>
+
+=over
+
+B<Definition:> returns true if one of the four allowed files is passed at $target_file
+
+=back
+
+=back
+
+=back
+
+=head3 formatter_inst
+
+=over
+
+B<Definition:> This is the attribute containing the formatter class.  In general the 
 default value is sufficient.  However, If you want to tweak this a bit then review the
-L<class documentation|Spreadsheet::XLSX::Reader::LibXML::FmtDefault>.  It does include 
+L<class documentation|Spreadsheet::XLSX::Reader::LibXML::FormatInterface>.  It does include 
 a role that interprets the excel L<format string
 |https://support.office.com/en-us/article/Create-or-delete-a-custom-number-format-2d450d95-2630-43b8-bf06-ccee7cbe6864?ui=en-US&rs=en-US&ad=US> 
 into a L<Type::Tiny> coercion.
 
-B<Default> L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault>->new
+B<Default> An instance build from MooseX::ShortCut::BuildInstance with the following 
+arguments
+	{
+		superclasses => ['Spreadsheet::XLSX::Reader::LibXML::FmtDefault'],
+		add_roles_in_sequence =>[qw(
+			Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings
+			Spreadsheet::XLSX::Reader::LibXML::FormatInterface
+		)],
+		package => 'FormatInstance',
+	}
 
 B<attribute methods> Methods provided to adjust this attribute
 		
 =over
 
-B<set_format_inst>
+B<set_formatter_inst( $instance )>
 
 =over
 
@@ -1773,7 +1111,7 @@ B<Definition:> a way to set the current attribute instance
 
 =back
 
-B<get_format_inst>
+B<get_formatter_inst>
 
 =over
 
@@ -1785,19 +1123,31 @@ B<Definition:> a way to get the current attribute setting
 
 B<delegated methods:>
 
+	delegated_to => link_delegated_from
+
 =over
 
-L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/get_defined_excel_format>
+get_formatter_region => L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/get_excel_region>
 
-L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/change_output_encoding>
+get_target_encoding => L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/get_target_encoding>
 
-L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/parse_excel_format_string>
+set_target_encoding => L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/set_target_encoding( $encoding )>
 
-L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings//set_date_behavior>
+has_target_encoding => L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/has_target_encoding>
 
-L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings//get_date_behavior>
+change_output_encoding => L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/change_output_encoding( $string )>
 
-L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings//set_european_first>
+set_defined_excel_formats => L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/set_defined_excel_formats( %args )>
+
+get_defined_conversion => L<Spreadsheet::XLSX::Reader::LibXML::FmtDefault/get_defined_conversion( $position )>
+
+parse_excel_format_string => L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/parse_excel_format_string( $string, $name )>
+
+set_date_behavior => L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/set_date_behavior( $Bool )>
+
+set_european_first => L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/set_european_first( $Bool )>
+
+set_formatter_cache_behavior => L<Spreadsheet::XLSX::Reader::LibXML::ParseExcelFormatStrings/set_cache_behavior( $Bool )>
 
 =back
 
@@ -2246,12 +1596,12 @@ B<Returns:> 1900 = Windows Excel or 1904 = Apple Excel
 
 =back
 
-=head3 get_shared_string_position
+=head3 get_shared_string
 
 =over
 
 Roundabout delegation from 
-L<Spreadsheet::XLSX::Reader::LibXML::SharedStrings/get_shared_string_position( $position )>
+L<Spreadsheet::XLSX::Reader::LibXML::SharedStrings/get_shared_string( $position )>
 
 =back
 
@@ -2423,7 +1773,7 @@ And then if you feel kindly
 
 	cpanm-reporter
 
-B<1.> This package uses L<Alien::LibXML> to try and ensure that the mandatory prerequisite 
+B<1.> This package uses L<Alien::LibXML> to try and ensure that the mandatory prerequisite #######################################################################################  Check this
 L<XML::LibXML> will load.  The biggest gotcha here is that older (<5.20.0.2) versions of 
 Strawberry Perl and some other Win32 perls may not support the script 'pkg-config' which is 
 required.  You can resolve this by installation L<PkgConfig> as 'pkg-config'.  I have 
@@ -2514,17 +1864,27 @@ Both libxml2 and libxml2-devel libraries are required for XML::LibXML
 
 =back
 
-B<2.> Add a pivot table reader (Not just read the values from the sheet)
+B<1.> Add an individual test just for Spreadsheet::XLSX::Reader::LibXML::Row (Currently tested in the worksheet test)
 
-B<3.> Add calc chain methods
+B<2.> Add an individual test just for Spreadsheet::XLSX::Reader::LibXML::ZipReader (Currently only tested in the top level test)
 
-B<4.> Add more exposure to workbook formatting methods
+B<3.> Add individual tests just for the File, Meta, Props, Rels sub workbook interfaces
 
-B<5.> Build a DOM parser alternative for the sheets
+B<4.> Add an individual test just for Spreadsheet::XLSX::Reader::LibXML::ZipReader::ExtractFile
+
+B<5.> Add individual tests just for the XMLReader sub modules NamedStyles, and PositionStyles
+
+B<6.> Add a pivot table reader (Not just read the values from the sheet)
+
+B<7.> Add calc chain methods
+
+B<8.> Add more exposure to workbook/worksheet formatting values
+
+B<9.> Build a DOM parser alternative for the sheets
 
 =over
 
-(Theoretically faster than the reader but uses more memory)
+(Theoretically faster than the reader and no longer JIT so it uses more memory)
 
 =back
 
@@ -2553,7 +1913,7 @@ L<Frank Maas|https://github.com/Frank071>
 
 L<Stuart Watt|https://github.com/morungos>
 
-L<Toby Inkster|https://github.com/morungos>
+L<Toby Inkster|https://github.com/tobyink>
 
 L<Breno G. de Oliveira|https://github.com/garu>
 
@@ -2573,7 +1933,7 @@ it and/or modify it under the same terms as Perl itself.
 The full text of the license can be found in the
 LICENSE file included with this module.
 
-This software is copyrighted (c) 2014, 2015 by Jed Lund
+This software is copyrighted (c) 2014, 2016 by Jed Lund
 
 =head1 DEPENDENCIES
 
@@ -2632,6 +1992,14 @@ All lines in this package that use Log::Shiras are commented out
 =back
 
 =back
+
+=begin html
+
+<a href="http://www.perlmonks.org/?node_id=706986">
+	<img src="http://www.perlmonksflair.com/jandrew.jpg" alt="perl monks">
+</a>
+
+=end html
 
 =cut
 

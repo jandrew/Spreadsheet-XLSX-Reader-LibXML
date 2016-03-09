@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::Row;
-use version; our $VERSION = version->declare('v0.38.22');
+use version; our $VERSION = version->declare('v0.40.2');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::Row-$VERSION";
 
 $| = 1;
@@ -157,6 +157,7 @@ has _reported_position =>(
 	);
 
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
+
 
 
 #########1 Phinish            3#########4#########5#########6#########7#########8#########9

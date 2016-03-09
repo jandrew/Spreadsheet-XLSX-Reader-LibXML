@@ -21,7 +21,7 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 36;
+use	Test::Most tests => 34;
 use	Test::Moose;
 use Data::Dumper;
 use	lib	$lib,
@@ -38,21 +38,24 @@ my	$test_ref = {
 			get_values_only       	=> 1,
 			is_empty_the_end      	=> 1,
 			get_group_return_type 	=> 'value',
-			get_cache_positions   	=> 1,
 			_starts_at_the_edge		=> 0,
 		},
 		like_ParseExcel =>{
 			counting_from_zero		=> 1,
-			get_cache_positions		=> 1,
 			get_group_return_type	=> 'instance',
 		},
-		'just_the_data~|~like_ParseExcel' =>{
+		'just_the_data~|~like_ParseExcel~|~lots_of_ram' =>{
 			get_values_only       	=> 1,
 			is_empty_the_end      	=> 1,
 			_starts_at_the_edge		=> 0,
 			counting_from_zero		=> 1,
-			get_cache_positions		=> 1,
 			get_group_return_type	=> 'instance',
+			cache_positions	=>{
+				shared_strings_interface => 209715200,# 200 MB
+				styles_interface => 209715200,# 200 MB
+				#~ worksheet_interface => 209715200,# 200 MB #Not yet available
+				#~ chartsheet_interface => 209715200,# 200 MB
+			},
 		},
 	};
 		
@@ -73,7 +76,7 @@ is 				$@, '',
 lives_ok{		$instance = Spreadsheet::XLSX::Reader::LibXML->new }
 						"Build an instance of Spreadsheet::XLSX::Reader::LibXML for testing with flag(s): :$good_flag";
 				for my $method ( keys %{$test_ref->{$good_flag}} ){
-is					$instance->$method, $test_ref->{$good_flag}->{$method},
+is_deeply				$instance->$method, $test_ref->{$good_flag}->{$method},
 						"check that setting the flag -$good_flag- returns the method -$method- value: $test_ref->{$good_flag}->{$method}";
 				}
 			}

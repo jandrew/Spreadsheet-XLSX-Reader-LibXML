@@ -1,20 +1,30 @@
 #!/usr/bin/env perl
-package MyPackage;
-use Moose;
-use lib '../../../../../lib';
-with 'Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow';
+use MooseX::ShortCut::BuildInstance qw( build_class );
+use Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow;
+use Spreadsheet::XLSX::Reader::LibXML::Error;
+use Types::Standard qw( Bool );
 
-sub set_error{}
-sub error{ print "Missing the column or row\n" }
-	
-sub my_method{
-    my ( $self, $cell ) = @_;
-    my ($column, $row ) = $self->parse_column_row( $cell );
-    print $self->error if( !defined $column or !defined $row );
-    return ($column, $row );
-}
+my $parser = build_class(
+		package => 'MyPackage',
+		add_roles_in_sequence =>[ 
+			'Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow',
+		],
+		add_attributes =>{ 
+			error_inst =>{
+				handles =>[ qw( error set_error clear_error set_warnings if_warn ) ],
+				default	=>	sub{ Spreadsheet::XLSX::Reader::LibXML::Error->new(
+								#~ should_warn => 1,
+								should_warn => 0,# to turn off cluck when the error is set
+							) },
+			},
+			count_from_zero =>{
+				isa		=> Bool,
+				reader	=> 'counting_from_zero',
+				writer	=> 'set_count_from_zero',
+			},
+			
+		},
+	);
 
-package main;
-
-my $parser = MyPackage->new;
-print '(' . join( ', ', $parser->my_method( 'B2' ) ) . ")\n";
+$parser = MyPackage->new( count_from_zero	=> 0 );
+print '(' . join( ', ', $parser->parse_column_row( 'B2' ) ) . ")\n";

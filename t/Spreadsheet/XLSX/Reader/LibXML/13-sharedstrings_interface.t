@@ -13,8 +13,8 @@ BEGIN{
 		}
 	}
 	if( $start_deeper ){
-		$lib		= '../../../../../../' . $lib;
-		$test_file	= '../../../../../test_files/xl/';
+		$lib		= '../../../../../' . $lib;
+		$test_file	= '../../../../test_files/xl/';
 	}
 }
 $| = 1;
@@ -24,56 +24,58 @@ use	Test::Moose;
 use IO::File;
 use XML::LibXML::Reader;
 use Data::Dumper;
-use	MooseX::ShortCut::BuildInstance qw( build_instance );
+use	MooseX::ShortCut::BuildInstance qw( build_instance should_re_use_classes );
+should_re_use_classes( 1 );
+use Types::Standard qw( ConsumerOf HasMethods Int Str );
 use	lib
-		'../../../../../../../Log-Shiras/lib',
-		'../../../../../..//lib',
+		'../../../../../../Log-Shiras/lib',
+		'../../../../../lib',
 		$lib,
 	;
 #~ use Log::Shiras::Switchboard qw( :debug );#
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(#
-#~ ###LogSD						name_space_bounds =>{
-#~ ###LogSD							UNBLOCK =>{
-#~ ###LogSD								log_file => 'warn',
-#~ ###LogSD							},
-#~ ###LogSD							Test =>{
-#~ ###LogSD								XMLReader =>{
-#~ ###LogSD									UNBLOCK =>{
-#~ ###LogSD										log_file => 'warn',
+###LogSD						name_space_bounds =>{
+###LogSD							UNBLOCK =>{
+###LogSD								log_file => 'trace',
+###LogSD							},
+###LogSD							Test =>{
+###LogSD								XMLReader =>{
+#~ ###LogSD									location_status =>{
+#~ ###LogSD										UNBLOCK =>{
+#~ ###LogSD											log_file => 'warn',
+#~ ###LogSD										},
 #~ ###LogSD									},
-#~ ###LogSD								},
+###LogSD								},
 #~ ###LogSD								parse_element =>{
 #~ ###LogSD									UNBLOCK =>{
 #~ ###LogSD										log_file => 'warn',
 #~ ###LogSD									},
 #~ ###LogSD								},
-#~ ###LogSD							},
-#~ ###LogSD						},
+###LogSD							},
+###LogSD						},
 ###LogSD						reports =>{
 ###LogSD							log_file =>[ Print::Log->new ],
 ###LogSD						},
 ###LogSD					);
 ###LogSD	use Log::Shiras::Telephone;
 ###LogSD	use Log::Shiras::UnhideDebug;
-use	Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings;
+use Spreadsheet::XLSX::Reader::LibXML::XMLReader;
+###LogSD	use Log::Shiras::UnhideDebug;
+use Spreadsheet::XLSX::Reader::LibXML::XMLToPerlData;
+use	Spreadsheet::XLSX::Reader::LibXML::SharedStrings;
 use	Spreadsheet::XLSX::Reader::LibXML::Error;
 $test_file = ( @ARGV ) ? $ARGV[0] : $test_file;
 $test_file .= 'sharedStrings.xml';
 my  ( 
-			$test_instance, $capture, $x, @answer, $error_instance, $file_handle,
+			$workbook_instance, $test_instance, $capture, $x, @answer, $error_instance, $file_handle,
 	);
 my 			@class_attributes = qw(
-				file
-				error_inst
+				cache_positions
 			);
 my  		@class_methods = qw(
-				get_shared_string_position
-				get_file
-				set_file
-				has_file
-				clear_file
-				where_am_i
-				has_position
+				get_shared_string				loaded_correctly			get_file
+				set_file						has_file					clear_file
+				where_am_i						has_position
 			);
 my			$answer_ref = [
 				16,
@@ -159,26 +161,71 @@ my			$answer_ref = [
 			];
 ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space => 'main', );
 ###LogSD		$phone->talk( level => 'info', message => [ "easy questions ..." ] );
-map{ 
-has_attribute_ok
-			'Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings', $_,
-										"Check that Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings has the -$_- attribute"
-} 			@class_attributes;
-map{
-can_ok		'Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings', $_,
-} 			@class_methods;
+lives_ok{
+			$workbook_instance = build_instance(
+										package	=> 'Spreadsheet::XLSX::Reader::LibXML::Workbook',
+										add_attributes =>{
+											error_inst =>{
+												isa => 	HasMethods[qw(
+																	error set_error clear_error set_warnings if_warn
+																) ],
+												clearer		=> '_clear_error_inst',
+												reader		=> 'get_error_inst',
+												required	=> 1,
+												handles =>[ qw(
+													error set_error clear_error set_warnings if_warn
+												) ],
+												default => sub{ Spreadsheet::XLSX::Reader::LibXML::Error->new() },
+											},
+											epoch_year =>{
+												isa => Int,
+												reader => 'get_epoch_year',
+												default => 1904,
+											},
+											group_return_type =>{
+												isa => Str,
+												reader => 'get_group_return_type',
+												writer => 'set_group_return_type',
+												default => 'instance',
+											},
+											shared_strings_interface =>{
+												isa => ConsumerOf[ 'Spreadsheet::XLSX::Reader::LibXML::SharedStrings' ],
+												predicate => 'has_shared_strings_interface',
+												writer => 'set_shared_strings_interface',
+												handles =>{
+													'get_shared_string' => 'get_shared_string',
+													'start_the_ss_file_over' => 'start_the_file_over',
+												},
+											}
+										},
+										add_methods =>{
+											get_empty_return_type => sub{ 1 },
+										},
+								);
+			$test_instance	=	build_instance(
+									package => 'SharedStrings',
+									superclasses	=> ['Spreadsheet::XLSX::Reader::LibXML::XMLReader'],
+									add_roles_in_sequence => [
+										'Spreadsheet::XLSX::Reader::LibXML::XMLToPerlData',
+										'Spreadsheet::XLSX::Reader::LibXML::XMLReader::PositionSharedStrings',
+										'Spreadsheet::XLSX::Reader::LibXML::SharedStrings',
+									],
+			###LogSD				log_space	=> 'Test',
+									file		=> $test_file,
+									workbook_inst	=> $workbook_instance,
+								);
+			$workbook_instance->set_shared_strings_interface( $test_instance );
+}										"Prep a new SharedStrings instance - cache_positions => 1";
 
 ###LogSD		$phone->talk( level => 'info', message => [ "harder questions ..." ] );
-lives_ok{
-			$test_instance	=	Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings->new(
-									file		=> $test_file,
-									error_inst	=> Spreadsheet::XLSX::Reader::LibXML::Error->new(
-										#~ should_warn => 1,
-										should_warn => 0,# to turn off cluck when the error is set
-									),
-			###LogSD				log_space	=> 'Test',
-								);
-}										"Prep a new SharedStrings instance - cache_positions => 1";
+map{ 
+has_attribute_ok
+			$test_instance, $_,
+										"Check that " . ref( $test_instance ) . " has the -$_- attribute"
+} 			@class_attributes;
+map{
+can_ok		$test_instance, $_,
+} 			@class_methods;
 
 ###LogSD		$phone->talk( level => 'info', message => [ "hardest questions ..." ] );
 			my	$answer_row = 0;
@@ -186,7 +233,7 @@ is			$test_instance->_get_unique_count, $answer_ref->[$answer_row++],
 										"Check for correct unique_count";
 is			$test_instance->encoding, $answer_ref->[$answer_row++],
 										"Check for correct encoding";
-###LogSD	my $trigger = 20;
+###LogSD	my $trigger = 2;
 			for my $x ( 2..14 ){
 ###LogSD	print "-----------$x---------\n";
 ###LogSD	if( $x == $trigger ){
@@ -199,14 +246,14 @@ is			$test_instance->encoding, $answer_ref->[$answer_row++],
 ###LogSD	elsif( $x > $trigger + 1 ){
 ###LogSD		exit 1;
 ###LogSD	}
-			#~ print "position -$answer_ref->[$x]->[0]- " .Dumper( $test_instance->get_shared_string_position( $answer_ref->[$x]->[0] ) );
-is_deeply	$test_instance->get_shared_string_position( $answer_ref->[$x]->[0] ), $answer_ref->[$x]->[1],
+			#~ print "position -$answer_ref->[$x]->[0]- " .Dumper( $test_instance->get_shared_string( $answer_ref->[$x]->[0] ) );
+is_deeply	$test_instance->get_shared_string( $answer_ref->[$x]->[0] ), $answer_ref->[$x]->[1],
 										"Get the sharedStrings 'si' position -$answer_ref->[$x]->[0]- as:" . Dumper( $answer_ref->[$x]->[1] );
 			}
-lives_ok{	$capture = $test_instance->get_shared_string_position( 20 ); 
+lives_ok{	$capture = $test_instance->get_shared_string( 20 ); 
 }										"Attempt an element past the end of the list";
 is		$capture, undef,				'Make sure it returns undef';
-lives_ok{	$capture = $test_instance->get_shared_string_position( 16 ); 
+lives_ok{	$capture = $test_instance->get_shared_string( 16 ); 
 }										"Attempt a different element past the end of the list";
 ###LogSD		$operator->add_name_space_bounds( {
 ###LogSD			UNBLOCK =>{
@@ -215,16 +262,14 @@ lives_ok{	$capture = $test_instance->get_shared_string_position( 16 );
 ###LogSD		} );
 ###LogSD		$phone->talk( level => 'info', message => [ "Rerun the whole thing without caching" ] );
 lives_ok{
-			$test_instance	=	Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings->new(
-									file			=> $test_file,
-									cache_positions	=> 0,
-									#~ no_formats		=> 1,
-									error_inst 		=> Spreadsheet::XLSX::Reader::LibXML::Error->new(
-										#~ should_warn		=> 1,
-										should_warn		=> 0,# to turn off cluck when the error is set
-									),
+			$test_instance	=	build_instance(
+									package => 'SharedStrings',
 			###LogSD				log_space	=> 'Test',
+									file		=> $test_file,
+									cache_positions	=> 0,
+									workbook_inst	=> $workbook_instance,
 								);
+			$workbook_instance->set_shared_strings_interface( $test_instance );
 }										"Prep a new SharedStrings instance - cache_positions => 0";
 			$answer_row = 0;
 is			$test_instance->_get_unique_count, $answer_ref->[$answer_row++],
@@ -244,26 +289,25 @@ is			$test_instance->encoding, $answer_ref->[$answer_row++],
 ###LogSD	elsif( $x > $trigger + 1 ){
 ###LogSD		exit 1;
 ###LogSD	}
-is_deeply	$test_instance->get_shared_string_position( $answer_ref->[$x]->[0] ), $answer_ref->[$x]->[1],
+is_deeply	$test_instance->get_shared_string( $answer_ref->[$x]->[0] ), $answer_ref->[$x]->[1],
 										"Get the -$answer_ref->[$x]->[0]- sharedStrings 'si' position as:" . Dumper( $answer_ref->[$x]->[1] );
 			}
-lives_ok{	$capture = $test_instance->get_shared_string_position( 20 ); 
+lives_ok{	$capture = $test_instance->get_shared_string( 20 ); 
 }										"Attempt an element past the end of the list";
 is		$capture, undef,				'Make sure it returns undef';
-lives_ok{	$capture = $test_instance->get_shared_string_position( 16 ); 
+lives_ok{	$capture = $test_instance->get_shared_string( 16 ); 
 }										"Attempt a different element past the end of the list";
 is		$capture, undef,				'Make sure it returns undef';
 ###LogSD		$phone->talk( level => 'info', message => [ "Rerun the whole as values only" ] );
 lives_ok{
-			$test_instance	=	Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings->new(
-									group_return_type	=> 'xml_value',
-									file			=> $test_file,
-									error_inst 		=> Spreadsheet::XLSX::Reader::LibXML::Error->new(
-										#~ should_warn		=> 1,
-										should_warn		=> 0,# to turn off cluck when the error is set
-									),
+			$test_instance	=	build_instance(
+									package => 'SharedStrings',
 			###LogSD				log_space	=> 'Test',
+									file		=> $test_file,
+									workbook_inst	=> $workbook_instance,
 								);
+			$workbook_instance->set_shared_strings_interface( $test_instance );
+			$workbook_instance->set_group_return_type( 'xml_value' );
 }										"Prep a new SharedStrings instance - no_formats => 1";
 ###LogSD		$operator->add_name_space_bounds( {
 ###LogSD			UNBLOCK =>{
@@ -273,14 +317,14 @@ lives_ok{
 
 ###LogSD		$phone->talk( level => 'trace', message => [ "The instance", $test_instance ] );
 			for my $x ( 15..27 ){
-is_deeply	$test_instance->get_shared_string_position( $answer_ref->[$x]->[0] ), $answer_ref->[$x]->[1],
+is_deeply	$test_instance->get_shared_string( $answer_ref->[$x]->[0] ), $answer_ref->[$x]->[1],
 										"Get the -$answer_ref->[$x]->[0]- sharedStrings 'si' position as:" . $answer_ref->[$x]->[1];
 ###LogSD		$phone->talk( level => 'trace', message => [ "The instance", $test_instance ] );
 			}
-lives_ok{	$capture = $test_instance->get_shared_string_position( 20 ); 
+lives_ok{	$capture = $test_instance->get_shared_string( 20 ); 
 }										"Attempt an element past the end of the list";
 is		$capture, undef,				'Make sure it returns undef';
-lives_ok{	$capture = $test_instance->get_shared_string_position( 16 ); 
+lives_ok{	$capture = $test_instance->get_shared_string( 16 ); 
 }										"Attempt a different element past the end of the list";
 is		$capture, undef,				'Make sure it returns undef';
 explain 								"...Test Done";

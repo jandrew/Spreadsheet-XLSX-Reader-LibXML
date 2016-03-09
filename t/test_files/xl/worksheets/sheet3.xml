@@ -14,8 +14,8 @@
     </cols>
     <sheetData>
         <row r="2">
-            <c r="A2" t="s">
-                <v>0</v>
+            <c r="A2" t="e">
+                <v>Hello</v>
             </c>
             <c r="D2" t="s">
                 <v>2</v>

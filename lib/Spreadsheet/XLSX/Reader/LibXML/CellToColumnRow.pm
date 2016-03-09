@@ -1,10 +1,10 @@
 package Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow;
-use version; our $VERSION = version->declare('v0.38.22');
+use version; our $VERSION = version->declare('v0.40.2');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::CellToColumnRow-$VERSION";
 
 use	Moose::Role;
 requires
-			'set_error',
+			'set_error', 'counting_from_zero',
 ###LogSD	'get_all_space'
 ;
 use Types::Standard qw( Bool );
@@ -35,7 +35,17 @@ sub parse_column_row{#? add the manual conversion to used vs excel on the next t
 	###LogSD	$phone->talk( level => 'debug', message =>[
 	###LogSD		'File Column: ' . ($column//''), 'File Row: ' . ($row//'') ] );
 	###LogSD	use warnings 'uninitialized';
-	return( $column, $row );
+	
+	# Convert to user numbers
+	my $user_row = $self->_get_used_position( $row );
+	###LogSD	no warnings 'uninitialized';
+	###LogSD	$phone->talk( level => 'debug', message =>[
+	###LogSD		"Returning -$user_row- for row: $row" ] );
+	my $user_column = $self->_get_used_position( $column );
+	###LogSD	$phone->talk( level => 'debug', message =>[
+	###LogSD		"Returning -$user_column- for column: $column" ] );
+	###LogSD	use warnings 'uninitialized';
+	return( $user_column, $user_row );
 }
 
 sub build_cell_label{
@@ -44,7 +54,16 @@ sub build_cell_label{
 	###LogSD					($self->get_log_space .  '::build_cell_label' ), );
 	###LogSD		$phone->talk( level => 'debug', message =>[
 	###LogSD			"Converting file column -$column- and file row -$row- to a cell ID" ] );
-	my $cell_label = $self->_build_cell_label( $column, $row );
+	
+	# Convert to code numbers
+	my $code_row = $self->_get_excel_position( $row );
+	###LogSD	$phone->talk( level => 'debug', message =>[
+	###LogSD		"Parsing -$code_row- for row: $row" ] );
+	my $code_column = $self->_get_excel_position( $column );
+	###LogSD	$phone->talk( level => 'debug', message =>[
+	###LogSD		"Parsing -$code_column- for column: $column" ] );
+	
+	my $cell_label = $self->_build_cell_label( $code_column, $code_row );
 	###LogSD	$phone->talk( level => 'debug', message =>[
 	###LogSD		"Cell label is: $cell_label" ] );
 	return $cell_label;
@@ -63,6 +82,8 @@ sub _parse_column_row{
 	###LogSD			$self->get_all_space . '::_parse_column_row', );
 	###LogSD		$phone->talk( level => 'debug', message =>[
 	###LogSD			"Parsing excel row and column number from: $cell" ] );
+	
+	# Split the digits
 	my	$regex = qr/^([A-Z])?([A-Z])?([A-Z])?([0-9]*)$/;
 	my ( $one_column, $two_column, $three_column, $row ) = $cell =~ $regex;
 	no	warnings 'uninitialized';
@@ -70,6 +91,7 @@ sub _parse_column_row{
 	###LogSD	$phone->talk( level => 'debug', message =>[
 	###LogSD		"Regex result is: ( $one_column, $two_column, $three_column, $row )" ] );
 	
+	# Calculate the column value
 	if( !defined $one_column ){
 		push @$error_list_ref, "Could not parse the column component from -$cell-";
 	}elsif( !defined $two_column ){
@@ -87,6 +109,8 @@ sub _parse_column_row{
 									"-$column- past the excel limit of: 16,384";
 		$column = undef;
 	}
+	
+	# Manage row out of bounds states
 	if( !defined $row or $row eq '' ){
 		push @$error_list_ref, "Could not parse the row component from -$cell-";
 		$row = undef;
@@ -98,6 +122,8 @@ sub _parse_column_row{
 									"- you requested: $row";
 		$row = undef;
 	}
+	
+	# Handle collected errors
 	if( $error_list_ref ){
 		if( scalar( @$error_list_ref ) > 1 ){
 			$self->set_error( "The regex $regex could not match -$cell-" );
@@ -108,7 +134,7 @@ sub _parse_column_row{
 	###LogSD	no warnings 'uninitialized';
 	###LogSD	$phone->talk( level => 'debug', message =>[
 	###LogSD		"Column: $column", "Row: $row" ] );
-	use warnings 'uninitialized';
+	###LogSD	use warnings 'uninitialized';
 	return( $column, $row );
 }
 
@@ -121,6 +147,8 @@ sub _build_cell_label{
 	###LogSD			"Converting column -$column- and row -$row- to a cell ID" ] );
 	###LogSD	use	warnings 'uninitialized';
 	my $error_list;
+	
+	# Parse column
 	if( !defined $column ){
 		###LogSD	$phone->talk( level => 'debug', message =>[
 		###LogSD		"The column is not defined" ] );
@@ -158,6 +186,7 @@ sub _build_cell_label{
 	###LogSD	$phone->talk( level => 'debug', message =>[
 	###LogSD		"Column letters are: $column" ] );
 	
+	# Parse row
 	if( !defined $row ){
 		$row = '';
 		push @$error_list, 'missing row';
@@ -176,10 +205,44 @@ sub _build_cell_label{
 	###LogSD	$phone->talk( level => 'debug', message =>[
 	###LogSD		"Row is: $row" ] );
 	
+	# Concatenate column and row
 	my $cell_label = "$column$row";
 	###LogSD	$phone->talk( level => 'debug', message =>[
 	###LogSD		"Cell label is: $cell_label" ] );
 	return $cell_label;
+}
+
+sub _get_excel_position{
+	my ( $self, $used_int ) = @_;
+	return undef if !defined $used_int;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::_hidden::scrubbing_input::_get_excel_position', );
+	###LogSD		$phone->talk( level => 'debug', message =>[
+	###LogSD			"Converting used number  -$used_int- to Excel" ] );
+	my	$excel_position = $used_int;
+	if( $self->counting_from_zero ){
+		$excel_position += 1 ;
+		###LogSD		$phone->talk( level => 'debug', message =>[
+		###LogSD			"New position is: $excel_position" ] );
+	}else{
+		###LogSD		$phone->talk( level => 'debug', message =>[
+		###LogSD			"Not counting from zero now" ] );
+	}
+	return $excel_position;
+}
+
+sub _get_used_position{
+	my ( $self, $excel_int ) = @_;
+	return undef if !defined $excel_int;
+	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	###LogSD			$self->get_all_space . '::_hidden::scrubbing_output::_get_used_position', );
+	###LogSD		$phone->talk( level => 'debug', message =>[
+	###LogSD			"Converting the Excel number -$excel_int- to the used number" ] );
+	my	$used_position = $excel_int;
+	$used_position -= 1 if $self->counting_from_zero;
+	###LogSD		$phone->talk( level => 'debug', message =>[
+	###LogSD			"The used position is: $used_position" ] );
+	return $used_position;
 }
 
 #########1 Phinish            3#########4#########5#########6#########7#########8#########9

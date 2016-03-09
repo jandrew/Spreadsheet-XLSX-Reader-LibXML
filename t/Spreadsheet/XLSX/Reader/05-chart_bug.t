@@ -29,7 +29,7 @@ use	lib	'../../../../../Log-Shiras/lib',
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(
 ###LogSD			name_space_bounds =>{
 ###LogSD				UNBLOCK =>{
-###LogSD					log_file => 'trace',
+###LogSD					log_file => 'warn',
 ###LogSD				},
 ###LogSD				build_instance =>{
 ###LogSD					UNBLOCK =>{
@@ -53,20 +53,8 @@ use	lib	'../../../../../Log-Shiras/lib',
 ###LogSD						},
 ###LogSD					},
 ###LogSD					Workbook =>{
-###LogSD						_build_dom =>{
-###LogSD							UNBLOCK =>{
-###LogSD								log_file => 'warn',
-###LogSD							},
-###LogSD						},
-###LogSD						_build_reader =>{
-###LogSD							UNBLOCK =>{
-###LogSD								log_file => 'trace',
-###LogSD							},
-###LogSD						},
-###LogSD						_set_shared_worksheet_files =>{
-###LogSD							UNBLOCK =>{
-###LogSD								log_file => 'warn',
-###LogSD							},
+###LogSD						UNBLOCK =>{
+###LogSD							log_file => 'debug',
 ###LogSD						},
 ###LogSD					},
 ###LogSD				},

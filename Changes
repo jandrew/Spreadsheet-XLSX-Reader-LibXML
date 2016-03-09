@@ -10,8 +10,43 @@ NOTE: This software is designated as beta quality until this notice is removed. 
 be method matched to Spreadsheet::ParseExcel prior to the 1.0 release.
 
 {{$NEXT}}
-
-	* Another cool change
+	
+	+ Added a perlmonks badge at the end - not sure how this will fly yet
+	!!!! There was a new failure on the temp dir bug probably inherent in the architecture but
+		more visible now with this overal change so the whole top level module was dropped down one layer, 
+		the test was upgraded, and the bug fixed (Also affecting documentation)
+		Thank you Perl Cookbook 13.13 and perldoc http://perldoc.perl.org/5.8.9/perlobj.html#Two-Phased-Garbage-Collection
+	! Removed the Alien::LibXML install step since it appears to be causeing problems
+	! Added a test and closes #97 in github
+	! Changed the tests to return undef for undef values instead of failing over to the zero string (better matches Excel)
+	! Added a test and closes #91 in github
+	+ added a file attribute that will accept file names or file handles
+	- Depricated the file_handle and file_name attributes (removal on 1/1/2017)
+	- Changed the cached positions reader from get_cached_positions to cached_positions
+	+ changed the 'cache_positions' attribute to accept a hashref instead of a Bool
+		This allows each 'cache-able' subfile to set a max cache size for caching that specific file
+		the value for each key is the maximum byte size of that file
+		potential cache desisions are 'shared_strings_instance', 'styles_instance', 'worksheet_instance', and 'chartsheet_instance'
+		currently implemented cache decisions are 'shared_strings_instance' and 'styles_instance'
+		beware that there appears to be a pretty big RAM multiplier when caching is in place 150M -> 2.5G
+		beware that there is a substantial slowdown for non-cacheing especially for the shared_strings_instance
+	! Added a test and closes #90 in github
+	! Changed the format_inst to formatter_inst to avoid confusion with future implementation of 
+		sheet visual formatting
+			This includes a change to all methods using this attribute
+	- Removed the attribute format_string_parser - (not sure why it was still in)
+	! Fixed the documentation for the attribute empty_is_end where the old version said
+		1 = feature is not on and the new version says 1 = The feature is on
+		No actual functionality in the sheet was changed.  This was just incorrectly
+		documented.
+	- Removed the dont_inherit attribute from the formatter class as it doesn't play well with the new architecture
+	+ Added interfaces to the other workbook shared files in order to support the xml file types since the readers for a 
+		flat xml file and sub files in a zip file will be different
+	+ Extracted the string formatter interface into it's own role Spreadsheet::XLSX::Reader::LibXML::FormatInterface
+		The goal is to use the base elements to possibly also integrate the formatter into ~::ParseExcel
+			Probably called Spreadsheet::ParseExcel::FormatInterface
+		This would eventually require a different ~::ParseExcel interface and likely require extracting these elements to their own package
+	+ Added support for Excel 2003 XML format (.xml tabular data) extentions
 
 v0.38.22  2015-10-10 20:11:56-07:00 America/Los_Angeles
 

@@ -7,6 +7,7 @@ use	Test::Most tests => 79;
 use	Test::Moose;
 use	MooseX::ShortCut::BuildInstance qw( build_instance should_re_use_classes );
 should_re_use_classes( 1 );
+use Types::Standard qw( Bool );
 use	lib
 		'../../../../../../Log-Shiras/lib',
 		'../../../../../lib',;
@@ -102,10 +103,15 @@ lives_ok{
 										should_warn => 0,# to turn off cluck when the error is set
 									) },
 					},
+					count_from_zero =>{
+						isa		=> Bool,
+						reader	=> 'counting_from_zero',
+						writer	=> 'set_count_from_zero',
+						default => 1,
+					},
 					
 				},
 				name_space		=> 'Test',
-				should_warn		=> 0,
 				count_from_zero	=> 0,
 			);
 }										"Prep a new CellToColumnRow instance";

@@ -19,11 +19,12 @@ BEGIN{
 }
 $| = 1;
 
-use	Test::Most tests => 54;
+use	Test::Most tests => 75;
 use	Test::Moose;
 use IO::File;
 #~ use XML::LibXML::Reader;
-use	MooseX::ShortCut::BuildInstance qw( build_class build_instance );
+use	MooseX::ShortCut::BuildInstance qw( build_instance );
+use Types::Standard qw( HasMethods Int Str );
 use	lib
 		'../../../../../../Log-Shiras/lib',
 		$lib,
@@ -51,35 +52,27 @@ use	Spreadsheet::XLSX::Reader::LibXML::Error;
 $test_file = ( @ARGV ) ? $ARGV[0] : $test_file;
 $test_file .= 'sharedStrings.xml';
 my  ( 
-			$class_instance, $test_instance, $capture, @answer, $error_instance, $file_handle,
+			$class_instance, $test_instance, $workbook_instance, $capture, @answer, $error_instance, $file_handle,
 	);
 my 			@class_attributes = qw(
-				file
-				error_inst
-				xml_version
-				xml_encoding
-				xml_header
+				file			workbook_inst		xml_version
+				xml_encoding	xml_header			position_index
+				file_type
 			);
 my  		@class_methods = qw(
-				get_file
-				set_file
-				clear_file
-				has_file
-				error
-				set_error
-				clear_error
-				set_warnings
-				if_warn
-				encoding
-				start_the_file_over
-				get_text_node
-				get_attribute_hash_ref
-				advance_element_position
-				location_status
-				version
-				has_encoding
-				get_header
-				copy_current_node
+				get_file					set_file						has_file
+				clear_file					close							set_error
+				get_empty_return_type		_get_workbook_file_type			_get_sheet_info
+				_get_rel_info				get_sheet_names					get_defined_conversion
+				set_defined_excel_formats	has_shared_strings_interface	get_shared_string
+				get_values_only				is_empty_the_end				_starts_at_the_edge
+				get_group_return_type		change_output_encoding			counting_from_zero
+				get_error_inst				boundary_flag_setting			has_styles_interface
+				get_format					set_workbook_inst				version
+				encoding					has_encoding					get_header
+				where_am_i					i_am_here						clear_location
+				has_position				get_file_type					skip_siblings
+				next_sibling				get_node_all					get_default_format
 			);
 				#~ where_am_i
 				#~ has_position
@@ -139,29 +132,63 @@ my			$answer_ref = [
 
 ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space => 'main', );
 ###LogSD		$phone->talk( level => 'info', message => [ "easy questions ..." ] );
-ok			$class_instance = build_class(
-								superclasses =>[ 'Spreadsheet::XLSX::Reader::LibXML::XMLReader' ],
-								package		 => 'ReaderInstance',
-							);
+lives_ok{
+			$workbook_instance = build_instance(
+										package	=> 'Spreadsheet::XLSX::Reader::LibXML::Workbook',
+										add_attributes =>{
+											error_inst =>{
+												isa => 	HasMethods[qw(
+																	error set_error clear_error set_warnings if_warn
+																) ],
+												clearer		=> '_clear_error_inst',
+												reader		=> 'get_error_inst',
+												required	=> 1,
+												handles =>[ qw(
+													error set_error clear_error set_warnings if_warn
+												) ],
+												default => sub{ Spreadsheet::XLSX::Reader::LibXML::Error->new() },
+											},
+											epoch_year =>{
+												isa => Int,
+												reader => 'get_epoch_year',
+												default => 1904,
+											},
+											group_return_type =>{
+												isa => Str,
+												reader => 'get_group_return_type',
+												writer => 'set_group_return_type',
+												default => 'instance',
+											},
+											shared_strings_interface =>{
+												isa => 'SharedStrings',
+												predicate => 'has_shared_strings_interface',
+												writer => 'set_shared_strings_interface',
+												handles =>{
+													'get_shared_string_position' => 'get_shared_string_position',
+													'start_the_ss_file_over' => 'start_the_file_over',
+												},
+												weak_ref => 1,
+											}
+										},
+										add_methods =>{
+											get_empty_return_type => sub{ 1 },
+										},
+								);
+			$test_instance	=	build_instance(
+									superclasses =>[ 'Spreadsheet::XLSX::Reader::LibXML::XMLReader' ],
+									package		 => 'ReaderInstance',
+									file => $test_file,# $file_handle
+									workbook_inst => $workbook_instance,
+			###LogSD				log_space => 'Test',
+								);
+}										"Prep a new Reader instance";
 map{ 
 has_attribute_ok
-			$class_instance, $_,
-										"Check that $class_instance has the -$_- attribute"
+			$test_instance, $_,
+										"Check that ". ref( $test_instance ) . " has the -$_- attribute"
 } 			@class_attributes;
 
 ###LogSD		$phone->talk( level => 'info', message => [ "harder questions ..." ] );
-lives_ok{
-			$file_handle	=	IO::File->new( $test_file, "<");
-			$test_instance	=	$class_instance->new(
-									file	=> $file_handle,
-									#~ xml_reader 	=> XML::LibXML::Reader->new( IO => $file_handle ),
-									error_inst	=> Spreadsheet::XLSX::Reader::LibXML::Error->new(
-										#~ should_warn => 1,
-										should_warn => 0,# to turn off cluck when the error is set
-									),
-			###LogSD				log_space	=> 'Test',
-								);
-}										"Prep a new Reader instance";
 map{
 can_ok		$test_instance, $_,
 } 			@class_methods;
@@ -170,7 +197,7 @@ can_ok		$test_instance, $_,
 map{
 			$test_instance->advance_element_position( 'si' );
 			my ( $x, $row ) = ( 0, $_ );
-			@answer = split "\n", $test_instance->copy_current_node( 1 )->toString;
+			@answer = split "\n", $test_instance->get_node_all;
 map{
 is			$_, $answer_ref->[$row]->[$x],
 										'Test matching line -' . (1 + $x++) . "- of 'si' position: $row";
@@ -181,7 +208,7 @@ ok			$test_instance->start_the_file_over,
 my 			$row = 0;
 while( 	$test_instance->advance_element_position( 'si' ) ){#$capture = 
 			my $x = 0;
-			@answer = split "\n", $test_instance->copy_current_node( 1 )->toString;
+			@answer = split "\n", $test_instance->get_node_all;
 map{
 is			$_, $answer_ref->[$row]->[$x],
 										'Test matching line -' . (1 + $x++) . "- of 'si' position: $row";

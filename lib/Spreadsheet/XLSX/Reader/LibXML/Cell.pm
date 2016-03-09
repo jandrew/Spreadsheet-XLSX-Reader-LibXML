@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::Cell;
-use version; our $VERSION = version->declare('v0.38.22');
+use version; our $VERSION = version->declare('v0.40.2');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::Cell-$VERSION";
 
 $| = 1;
@@ -20,8 +20,6 @@ use	Spreadsheet::XLSX::Reader::LibXML::Types qw(
 		CellID
 	);
 ###LogSD with 'Log::Shiras::LogSpace';
-###LogSD	sub get_class_space{ 'Cell' }
-our $log_space = '';
 
 #########1 Public Attributes  3#########4#########5#########6#########7#########8#########9
 
@@ -68,7 +66,7 @@ has cell_border =>(
 	);
 	
 has cell_style =>(
-		isa		=> HashRef,
+		isa		=> Str,
 		reader	=> 'get_style',
 		predicate	=> 'has_style',
 	);
@@ -153,6 +151,8 @@ has cell_coercion =>(
 
 #########1 Public Methods     3#########4#########5#########6#########7#########8#########9
 
+###LogSD	sub get_class_space{ 'Cell' }
+
 sub unformatted{
 	my( $self, ) 	= @_;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
@@ -203,9 +203,12 @@ after 'set_coercion' => sub{
 };
 
 sub _return_value_only{
-	my ( $self, $unformatted, $coercion, $error_inst ) = @_;# To be used by GetCell too
+	my ( $self, $unformatted, $coercion, $error_inst
+	###LogSD	, $alt_log_space
+	) = @_;# To be used by GetCell too
+	###LogSD	$alt_log_space //= $self->get_all_space;
 	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD				$self->get_class_space . '::hidden::_return_value_only', );
+	###LogSD				$alt_log_space . '::_hidden::_return_value_only', );
 	###LogSD		$phone->talk( level => 'debug', message =>[  
 	###LogSD			 "Returning the coerced value of -" . ( defined $unformatted ? $unformatted : '') . '-', ] );
 	###LogSD		$phone->talk( level => 'trace', message =>[  
@@ -239,17 +242,18 @@ sub _return_value_only{
 
 #########1 Private Methods    3#########4#########5#########6#########7#########8#########9
 
-sub DEMOLISH{
-	my ( $self ) = @_;
-	###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
-	###LogSD				$self->get_all_space . '::hidden::DEMOLISH', );
-	###LogSD		$phone->talk( level => 'debug', message => [
-	###LogSD			"clearing the cell for cell-ID:" . $self->cell_id, ] );
+#~ sub DEMOLISH{
+	#~ my ( $self ) = @_;
+	#~ ###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space =>
+	#~ ###LogSD				$self->get_all_space . '::hidden::DEMOLISH', );
+	#~ ###LogSD		$phone->talk( level => 'debug', message => [
+	#~ ###LogSD			"clearing the cell for cell-ID:" . $self->cell_id, ] );
 	#~ print "Clearing coercion\n";
-	$self->clear_coercion;
+	#~ $self->clear_coercion;
 	#~ print "Clearing error instance\n";
-	$self->_clear_error_inst;
-}
+	#~ $self->_clear_error_inst;
+	#~ print "Cell closed\n";
+#~ }
 
 #########1 Phinish            3#########4#########5#########6#########7#########8#########9
 

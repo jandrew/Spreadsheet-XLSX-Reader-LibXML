@@ -30,7 +30,7 @@ use	lib	'../../../../../Log-Shiras/lib',
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(
 ###LogSD			name_space_bounds =>{
 ###LogSD				UNBLOCK =>{
-###LogSD					log_file => 'warn',
+###LogSD					log_file => 'trace',
 ###LogSD				},
 ###LogSD			},
 ###LogSD			reports =>{
@@ -119,7 +119,7 @@ lives_ok{
 			$parser->set_warnings( 1 );
 }										"Prep a test parser instance";
 ###LogSD		$phone->talk( level => 'trace', message => [ "$parser:", $parser ] );
-like			$parser->error(), qr/Unable to load XML::LibXML with the element: sharedStrings/,
+like			$parser->error(), qr/Unable to load XML::LibXML with the attribute: shared_strings_interface/,
 										"Write any error messages from the file load";
 ok			@worksheets = $workbook->worksheets(),
 										"Loaded worksheet objects ok";

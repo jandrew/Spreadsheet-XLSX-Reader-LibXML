@@ -29,15 +29,15 @@ use	lib	'../../../../../Log-Shiras/lib',
 #~ use Log::Shiras::Switchboard v0.21 qw( :debug );#
 ###LogSD	my	$operator = Log::Shiras::Switchboard->get_operator(
 ###LogSD			name_space_bounds =>{
-###LogSD				Test =>{
-###LogSD					StylesInstance =>{
-###LogSD						_coalate_perl_style_formats =>{
+#~ ###LogSD				Test =>{
+#~ ###LogSD					StylesInstance =>{
+#~ ###LogSD						_coalate_perl_style_formats =>{
 ###LogSD							UNBLOCK =>{
 ###LogSD								log_file => 'trace',
 ###LogSD							},
-###LogSD						},
-###LogSD					},
-###LogSD				},
+#~ ###LogSD						},
+#~ ###LogSD					},
+#~ ###LogSD				},
 ###LogSD			},
 ###LogSD			reports =>{
 ###LogSD				log_file =>[ Print::Log->new ],

@@ -1,11 +1,12 @@
 #########1 Test File for Spreadsheet::XLSX::Reader::LibXML::FmtDefault          8#########9
 #!evn perl
-BEGIN{ $ENV{PERL_TYPE_TINY_XS} = 0; }##### $ENV{ Smart_Comments } = '### ####';
+BEGIN{ $ENV{PERL_TYPE_TINY_XS} = 0; }
 $| = 1;
 
-use	Test::Most tests => 404;
+use	Test::Most tests => 64;
 use	Test::Moose;
 use Data::Dumper;
+use Capture::Tiny qw( capture_stderr );
 use	MooseX::ShortCut::BuildInstance v1.8 qw( build_instance );#
 use	lib
 		'../../../../../../Log-Shiras/lib',
@@ -17,123 +18,40 @@ use	lib
 ###LogSD						},
 ###LogSD					);
 ###LogSD	use Log::Shiras::Telephone;
+###LogSD	my $phone = Log::Shiras::Telephone->new;
 ###LogSD	use Log::Shiras::UnhideDebug;
-use	Spreadsheet::XLSX::Reader::LibXML::FmtDefault;
 use	Spreadsheet::XLSX::Reader::LibXML::Error;
-my	$test_file = ( @ARGV ) ? $ARGV[0] : '../../../../test_files/xl/';
-	$test_file .= 'styles.xml';
-###LogSD	my	$phone = Log::Shiras::Telephone->new( name_space => 'main', );
-###LogSD		$phone->talk( level => 'trace', message => [ "Test file is: $test_file" ] );
+use	Spreadsheet::XLSX::Reader::LibXML::FmtDefault;
 my  ( 
 			$test_instance, $capture, $x, @answer,
 	);
 my 			$row = 0;
 my 			@class_attributes = qw(
 				target_encoding						excel_region
-				epoch_year							cache_formats
-				datetime_dates
+				defined_excel_translations
 			);
 my  		@class_methods = qw(
 				get_target_encoding					set_target_encoding
-				has_target_encoding					get_epoch_year
-				set_epoch_year						get_cache_behavior
-				set_cache_behavior					get_date_behavior
-				set_date_behavior					parse_excel_format_string
+				has_target_encoding					get_excel_region					
+				set_excel_region					total_defined_excel_formats
 				get_defined_excel_format			set_defined_excel_formats
-				get_excel_region					set_excel_region
-				set_error							get_defined_conversion
+				change_output_encoding
 			);
 my			$question_list =[
-				[ 'Hello World', "It's a mad mad world" ],
-				[undef,'1','1.115111111','-111111111111115','1.5','-1234.567','59','-60'],
-				[undef,'1','1.115111111','-111111111111115','1.5','-1234.567','59','-60'],
-				[undef,'1','1.115111111','-111111111111115','1.5','-1234.567','59','-60'],
-				[undef,'1','1.115111111','-111111111111115','1.5','-1234.567','59','-60'],
-				[undef,'1','1.115111111','-111111111111115','1.5','-1234.567','59','-60'],
-				[undef,'1','1.115111111','-111111111111115','1.5','-1234.567','59','-60'],
-				[undef,'1','1.115111111','-111111111111115','1.5','-1234.567','59','-60'],
-				[undef,'1','1.115111111','-111111111111115','1.5','-1234.567','59','-60'],
-				[undef,'1','2','-0.1','0.03','0.005','0.00004','0.00005'],
-				[undef,'1','2','-0.1','0.03','0.005','0.00004','0.00005'],
-				[undef,'1','-200','2000','-2000001','2005','-20005','0.000002','-0.00000000004125'],
-				[undef,'0.3333333','-1.6666666','2.1666666','-3.8333333','4.1111111','-5.2222222',
-					'6.4444444','-7.5555555','8.7777777','-9.8888888','10.09090909','-11.1818181',
-					'12.0833333','-13.4166666','0.12345678','-0.125','0.75','-0.0416666666666667',
-					'0.000005','-0.00001','0.9999999','0.019','-0.999'],
-				[undef,'0.3333333','-1.6666666','2.1666666','-3.8333333','4.1111111','-5.2222222',
-					'6.4444444','-7.5555555','8.7777777','-9.8888888','10.09090909','-11.1818181',
-					'12.0833333','-13.4166666','0.12345678','-0.125','0.75','-0.0416666666666667',
-					'0.000005','-0.00001','0.9999999','0.019','-0.999'],
-				[undef,'7/4/1776 11:00.234 AM','0.112311','60.99112311','1.500112311','55.0000102311','59.112311','60.345112311'],
-				[undef,'7/4/1776 11:00.234 AM','0.112311','60.99112311','1.500112311','55.0000102311','59.112311','60.345112311'],
-				[undef,'7/4/1776 11:00.234 AM','0.112311','60.99112311','1.500112311','55.0000102311','59.112311','60.345112311'],
-				[undef,'7/4/1776 11:00.234 AM','0.112311','60.99112311','1.500112311','55.0000102311','59.112311','60.345112311'],
-				[undef,'7/4/1776 11:00.234 AM','0.112311','60.99112311','1.500112311','55.0000102311','59.112311','60.345112311'],
-				[undef,'7/4/1776 11:00.234 AM','0.112311','60.99112311','1.500112311','55.0000102311','59.112311','60.345112311'],
-				[undef,'7/4/1776 11:00.234 AM','0.112311','60.99112311','1.500112311','55.0000102311','59.112311','60.345112311'],
-				[undef,'7/4/1776 11:00.234 AM','0.112311','60.99112311','1.500112311','55.0000102311','59.112311','60.345112311'],
-				[undef,'7/4/1776 11:00.234 AM','0.112311','60.99112311','1.500112311','55.0000102311','59.112311','60.345112311'],
-				undef,								undef,
-				undef,								undef,
-				undef,								undef,
-				undef,								undef,
-				[undef,'1','1.11511111111111','-111111111111115','1.5','-1234.567','59','-60'],
-				[undef,'1','1.11511111111111','-111111111111115','1.5','-1234.567','59','-60'],
-				[undef,'1','1.11511111111111','-111111111111115','1.5','-1234.567','59','-60'],
-				[undef,'1','1.11511111111111','-111111111111115','1.5','-1234.567','59','-60'],
-				[undef,'1','1.11511111111111','-111111111111115','1.5','-1234.567','59','-60'],
-				[undef,'1','1.11511111111111','-111111111111115','1.5','-1234.567','59','-60'],
-				[undef,'1','1.11511111111111','-111111111111115','1.5','-1234.567','59','-60'],
-				[undef,'1','1.11511111111111','-111111111111115','1.5','-1234.567','59','-60'],
-				[undef,'7/4/1776 11:00.234 AM','0.112311','60.99112311','1.500112311','55.0000102311','59.112311','60.345112311'],
-				[undef,'7/4/1776 11:00.234 AM','0.112311','60.99112311','1.500112311','55.0000102311','59.112311','60.345112311'],
-				[undef,'7/4/1776 11:00.234 AM','0.112311','60.99112311','1.500112311','55.0000102311','59.112311','60.345112311'],
-				[undef,'1','-200','2000','-2000001','2050','-20050','0.0000002','-0.00000000004125'],
-				[ 'Hello World', "It's a mad mad world" ],
+				undef, 'gr',
+				"\xc4\x80",
+				'utf8',
+				"\xc4\x80",
+				undef,
+				[ 0x00, 0x01, 0x02, '0x03', 0x04, 0x05, 0x06, 0x07, 8, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, '0x14', 0x15, 0x16, 0x1F, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2A, 0x2B, 0x31, ]
 			];
 my			$answer_list =[
-				[ 'General', 'Hello World', "It's a mad mad world" ],
-				['0',undef,'1','1','-111111111111115','2','-1235','59','-60'],
-				['0.00',undef,'1.00','1.12','-111111111111115.00','1.50','-1234.57','59.00','-60.00'],
-				['#,##0',undef,'1','1','-111,111,111,111,115','2','-1,235','59','-60'],
-				['#,##0.00',undef,'1.00','1.12','-111,111,111,111,115.00','1.50','-1,234.57','59.00','-60.00'],
-				['$#,##0_);($#,##0)',undef,'$1','$1','($111,111,111,111,115)','$2','($1,235)','$59','($60)'],
-				['$#,##0_);[Red]($#,##0)',undef,'$1','$1','($111,111,111,111,115)','$2','($1,235)','$59','($60)'],
-				['$#,##0.00_);($#,##0.00)',undef,'$1.00','$1.12','($111,111,111,111,115.00)','$1.50','($1,234.57)','$59.00','($60.00)'],
-				['$#,##0.00_);[Red]($#,##0.00)',undef,'$1.00','$1.12','($111,111,111,111,115.00)','$1.50','($1,234.57)','$59.00','($60.00)'],
-				['0%',undef,'100%','200%','-10%','3%','1%','0%','0%'],
-				['0.00%',undef,'100.00%','200.00%','-10.00%','3.00%','0.50%','0.00%','0.01%'],
-				['0.00E+00',undef,'1.00E+00','-2.00E+02','2.00E+03','-2.00E+06','2.01E+03','-2.00E+04','2.00E-06','-4.13E-11'],
-				['# ?/?',undef,'1/3','-1 2/3','2 1/6','-3 5/6','4 1/9','-5 2/9','6 4/9','-7 5/9','8 7/9',
-					'-9 8/9','10 1/9','-11 1/6','12 1/9','-13 3/7','1/8','-1/8','3/4','0','0','0','1','0','-1'],
-				['# ??/??',undef,'1/3','-1 2/3','2 1/6','-3 5/6','4 1/9','-5 2/9','6 4/9','-7 5/9','8 7/9',
-					'-9 8/9','10 1/11','-11 2/11','12 1/12','-13 5/12','10/81','-1/8','3/4','-1/24','0','0','1','1/53','-1'],
-				['yyyy-mm-dd',undef,'1776-07-04','1904-01-01','1904-03-01','1904-01-02','1904-02-25','1904-02-29','1904-03-01'],
-				['d-mmm-yy',undef,'4-Jul-76','1-Jan-04','1-Mar-04','2-Jan-04','25-Feb-04','29-Feb-04','1-Mar-04'],
-				['d-mmm',undef,'4-Jul','1-Jan','1-Mar','2-Jan','25-Feb','29-Feb','1-Mar'],
-				['mmm-yy',undef,'Jul-76','Jan-04','Mar-04','Jan-04','Feb-04','Feb-04','Mar-04'],
-				['h:mm AM/PM',undef,'11:00 AM','2:41 AM','11:47 PM','12:00 PM','12:00 AM','2:41 AM','8:16 AM'],
-				['h:mm:ss AM/PM',undef,'11:00:00 AM','2:41:44 AM','11:47:13 PM','12:00:10 PM','12:00:01 AM','2:41:44 AM','8:16:58 AM'],
-				['h:mm',undef,'11:00','2:41','23:47','12:00','0:00','2:41','8:16'],
-				['h:mm:ss',undef,'11:00:00','2:41:44','23:47:13','12:00:10','0:00:01','2:41:44','8:16:58'],
-				['m-d-yy h:mm',undef,'7-4-76 11:00','1-1-04 2:41','3-1-04 23:47','1-2-04 12:00','2-25-04 0:00','2-29-04 2:41','3-1-04 8:16'],
-				undef,								undef,
-				undef,								undef,
-				undef,								undef,
-				undef,								undef,
-				['#,##0_);(#,##0)',undef,'1','1','(111,111,111,111,115)','2','(1,235)','59','(60)'],
-				['#,##0_);[Red](#,##0)',undef,'1','1','(111,111,111,111,115)','2','(1,235)','59','(60)'],
-				['#,##0.00_);(#,##0.00)',undef,'1.00','1.12','(111,111,111,111,115.00)','1.50','(1,234.57)','59.00','(60.00)'],
-				['#,##0.00_);[Red](#,##0.00)',undef,'1.00','1.12','(111,111,111,111,115.00)','1.50','(1,234.57)','59.00','(60.00)'],
-				['_(*#,##0_);_(*(#,##0);_(*"-"_);_(@_)','-','1','1','(111,111,111,111,115)','2','(1,235)','59','(60)'],
-				['_($*#,##0_);_($*(#,##0);_($*"-"_);_(@_)','$-','$1','$1','$(111,111,111,111,115)','$2','$(1,235)','$59','$(60)'],
-				['_(*#,##0.00_);_(*(#,##0.00);_(*"-"??_);_(@_)','-','1.00','1.12','(111,111,111,111,115.00)','1.50','(1,234.57)','59.00','(60.00)'],
-				['_($*#,##0.00_);_($*(#,##0.00);_($*"-"??_);_(@_)','$-','$1.00','$1.12','$(111,111,111,111,115.00)','$1.50','$(1,234.57)','$59.00','$(60.00)'],
-				['mm:ss',undef,'00:00','41:44','47:13','00:10','00:01','41:44','16:58'],
-				['[h]:mm:ss',undef,'-1117548:59:59','2:41:44','1463:47:13','36:00:10','1320:00:01','1418:41:44','1448:16:58'],
-				['mm:ss.0',undef,'00:00.2','41:43.7','47:13.0','00:09.7','00:00.9','41:43.7','16:57.7'],
-				['##0.0E+0',undef,'1.0E+0','-200.0E+0','2.0E+3','-2.0E+6','2.1E+3','-20.1E+3','200.0E-9','-41.3E-12'],
-				[ '@', 'Hello World', "It's a mad mad world" ],
+				'en', 'gr',
+				"\xc4\x80",
+				'utf8',
+				"\x{100}",
+				37,
+				[ 'General', '0', '0.00', '#,##0', '#,##0.00', '$#,##0_);($#,##0)', '$#,##0_);[Red]($#,##0)', '$#,##0.00_);($#,##0.00)', '$#,##0.00_);[Red]($#,##0.00)', '0%', '0.00%', '0.00E+00', '# ?/?', '# ??/??', 'yyyy-mm-dd', 'd-mmm-yy', 'd-mmm', 'mmm-yy', 'h:mm AM/PM', 'h:mm:ss AM/PM', 'h:mm', 'h:mm:ss', 'm-d-yy h:mm', '#,##0_);(#,##0)', '#,##0_);[Red](#,##0)', '#,##0.00_);(#,##0.00)', '#,##0.00_);[Red](#,##0.00)', '_(*#,##0_);_(*(#,##0);_(*"-"_);_(@_)', '_($*#,##0_);_($*(#,##0);_($*"-"_);_(@_)', '_(*#,##0.00_);_(*(#,##0.00);_(*"-"??_);_(@_)', '_($*#,##0.00_);_($*(#,##0.00);_($*"-"??_);_(@_)', 'mm:ss', '[h]:mm:ss', 'mm:ss.0', '##0.0E+0', '@', '@', ]
 			];
 ###LogSD		$phone->talk( level => 'info', message => [ "easy questions ..." ] );
 lives_ok{
@@ -146,9 +64,9 @@ lives_ok{
 										'Spreadsheet::XLSX::Reader::LibXML::FmtDefault',
 									],
 			###LogSD				log_space	=> 'Test',
-									epoch_year	=> 1904,
+									#~ epoch_year	=> 1904,
 								);
-}										"Prep a test ParseExcelFormatStrings instance";
+}										"Prep a test FmtDefault instance";
 map{ 
 has_attribute_ok
 			$test_instance, $_,
@@ -158,93 +76,52 @@ map{
 can_ok		$test_instance, $_,
 } 			@class_methods;
 ###LogSD		$phone->talk( level => 'info', message => [ "hardest questions ..." ] );
-			no warnings 'uninitialized';
-			for my $position ( 0 .. $#$question_list ){
-			if( $answer_list->[$position] ){
-is			$test_instance->get_defined_excel_format( $position ), $answer_list->[$position]->[0],
-										,"Check that excel default position -$position- contains: $answer_list->[$position]->[0]";
-###LogSD	my $start_pos = 35;
-###LogSD	if( $position == $start_pos ){
-###LogSD		$operator->add_name_space_bounds( {
-###LogSD			UNBLOCK =>{
-###LogSD				log_file => 'trace',
-###LogSD			},
-###LogSD		} );
-###LogSD	}
-ok			my $coercion = $test_instance->parse_excel_format_string( $test_instance->get_defined_excel_format( $position ) ),
-										,"..and try to turn it into a Type::Tiny coercion";
-###LogSD		$operator->add_name_space_bounds( {
-###LogSD			UNBLOCK =>{
-###LogSD				log_file => 'warn',
-###LogSD			},
-###LogSD		} );
-			for my $row_pos ( 1 .. $#{$answer_list->[$position]} ){
-###LogSD	my $start_row = 9;
-###LogSD	if( $position == $start_pos and $row_pos == $start_row ){
-###LogSD		$operator->add_name_space_bounds( {
-###LogSD			UNBLOCK =>{
-###LogSD				log_file => 'trace',
-###LogSD			},
-#~ ###LogSD			Test =>{
-#~ ###LogSD				_build_number =>{
-#~ ###LogSD					_build_elements =>{
-#~ ###LogSD						UNBLOCK =>{
-#~ ###LogSD							log_file => 'trace',
-#~ ###LogSD						},
-#~ ###LogSD						_split_decimal_integer =>{
-#~ ###LogSD							UNBLOCK =>{
-#~ ###LogSD								log_file => 'trace',
-#~ ###LogSD							},
-#~ ###LogSD						},
-#~ ###LogSD						_move_decimal_point =>{
-#~ ###LogSD							UNBLOCK =>{
-#~ ###LogSD								log_file => 'trace',
-#~ ###LogSD							},
-#~ ###LogSD						},
-#~ ###LogSD						_round_decimal =>{
-#~ ###LogSD							UNBLOCK =>{
-#~ ###LogSD								log_file => 'trace',
-#~ ###LogSD							},
-#~ ###LogSD						},
-#~ ###LogSD					},
-#~ ###LogSD				},
-#~ ###LogSD				change_output_encoding =>{
-#~ ###LogSD					UNBLOCK =>{
-#~ ###LogSD						log_file => 'warn',
-#~ ###LogSD					},
-#~ ###LogSD				},
-#~ ###LogSD				parse_excel_format_string =>{
-#~ ###LogSD					UNBLOCK =>{
-#~ ###LogSD						log_file => 'warn',
-#~ ###LogSD					},
-#~ ###LogSD				},
-#~ ###LogSD				_util_function =>{
-#~ ###LogSD					_gcd =>{
-#~ ###LogSD						BLOCK=>{
-#~ ###LogSD							log_file => 'fatal',
-#~ ###LogSD						},
-#~ ###LogSD					},
-#~ ###LogSD					_integer_and_decimal =>{
-#~ ###LogSD						BLOCK=>{
-#~ ###LogSD							log_file => 'fatal',
-#~ ###LogSD						},
-#~ ###LogSD					},
-#~ ###LogSD					_best_fraction =>{
-#~ ###LogSD						BLOCK=>{
-#~ ###LogSD							log_file => 'fatal',
-#~ ###LogSD						},
-#~ ###LogSD					},
-#~ ###LogSD				},
-#~ ###LogSD			},
-###LogSD		} );
-###LogSD	}elsif( $position == $start_pos + 1 ){
-###LogSD		exit 1;
-###LogSD	}
-###LogSD		$phone->talk( level => 'info', message => [ "Group position: $position", "Test position: $row_pos" ] );
-is			$coercion->assert_coerce( $question_list->[$position]->[$row_pos - 1] ), $answer_list->[$position]->[$row_pos],
-										,"Testing the excel default coercion -$position- to see if |$question_list->[$position]->[$row_pos - 1]|" . 
-											" coerces to: $answer_list->[$position]->[$row_pos]";
-			} } }
+			my $position = 0;
+is			$test_instance->get_excel_region, $answer_list->[$position],
+										,"|position - $position| Check that the region is set to: $answer_list->[$position]";
+			$position++;
+is			$test_instance->set_excel_region( $question_list->[$position] ), $answer_list->[$position],
+										,"|position - $position| Change the region and see what happens";
+is			$test_instance->has_target_encoding, '',
+										,"................Check that no target encoding is set";
+			$position++;
+is			$test_instance->change_output_encoding(  $question_list->[$position] ), $answer_list->[$position],
+										,"|position - $position| ..and check that no encoding changes occur";
+			$position++;
+is			$test_instance->set_target_encoding(  $question_list->[$position] ), $question_list->[$position] ,
+										,"|position - $position| Set the target encoding to: $question_list->[$position]";
+is			$test_instance->get_target_encoding, $question_list->[$position] ,
+										,"..................and check that it is known as: $question_list->[$position]";
+			$position++;
+is			$test_instance->change_output_encoding(  $question_list->[$position] ), $answer_list->[$position],
+										,"|position - $position| ..and check that output is now encoded differently";
+			$position++;
+is			$test_instance->total_defined_excel_formats, $answer_list->[$position],
+										,"|position - $position| Check the total number of stored excel formats";
+			$position++;
+			$x = 0;
+			for my $question ( @{$question_list->[$position]} ){
+is			$test_instance->get_defined_excel_format( $question ), $answer_list->[$position]->[$x],
+										,"|position - $position| Check that format place -$question- has format: $answer_list->[$position]->[$x]";
+			$x++;
+			}
+is			$test_instance->get_defined_excel_format( '0x17' ), undef,
+										,"...............Check that format place -0x17- (empty) does not have a format";
+			my	$format_ref;
+				$format_ref->[23] = 'foo';
+ok			$test_instance->set_defined_excel_formats( $format_ref ),
+										,"...............set the format ref position -23- to: foo";
+is			$test_instance->get_defined_excel_format( '0x17' ), 'foo',
+										,"...............and check that format place -0x17- (now) does have the format: foo";
+is			$test_instance->get_defined_excel_format( 24 ), undef,
+										,"...............Check that format place -24- (empty) does not have a format";
+				$format_ref = undef;
+				$format_ref->{'0x18'} = 'bar';
+ok			$test_instance->set_defined_excel_formats( $format_ref ),
+										,"...............set the format ref position -0x18- to: bar";
+is			$test_instance->get_defined_excel_format( '0x17' ), 'foo',
+										,"...............and check that format place -24- (now) does have the format: bar";
+
 explain 								"...Test Done";
 done_testing();
 

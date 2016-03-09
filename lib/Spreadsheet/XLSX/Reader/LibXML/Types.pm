@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::Types;
-use version; our $VERSION = version->declare('v0.38.22');
+use version; our $VERSION = version->declare('v0.40.2');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::Types-$VERSION";
 		
 use strict;
@@ -48,7 +48,7 @@ declare XMLFile,
 
 declare XLSXFile,
 	as Str,
-	where{ $_ =~ /\.xls(x|m)$/i and -r $_ },
+	where{ $_ =~ /\.x(ls(x|m)|ml)$/i and -r $_ },
 	message{
 		my $test = $_;
 		my $return =
@@ -56,8 +56,8 @@ declare XLSXFile,
 				"Empty filename" :
 			( ref $test ) ?
 				"'" . $test . "' is not a string value" :
-			( $test !~ /\.xls(x|m)$/i ) ?
-				"The string -$test- does not have an xlsx file extension" :
+			( $test !~ /\.x(ls(x|m)|ml)$/i ) ?
+				"The string -$test- does not have an xlsx|xlsm|xml file extension" :
 			( -r $test) ?
 				"Could not find / read the file: $test" :
 				"Unmanageable value '" . ($test ? $test : '' ) . "' passed" ;
@@ -65,18 +65,18 @@ declare XLSXFile,
     };
 	
 declare IOFileType,
-	as InstanceOf[ 'IO::File' ];
+	as InstanceOf[ 'IO::File', 'File::Temp' ];
 	
 coerce IOFileType,
 	from GlobRef,
 	via{  bless $_, 'IO::File' };
 	
 coerce IOFileType,
-	from XLSXFile,
+	from XMLFile,
 	via{  IO::File->new( $_, 'r' ); };
 	
 coerce IOFileType,
-	from XMLFile,
+	from XLSXFile,
 	via{  IO::File->new( $_, 'r' ); };
 
 declare ParserType,
@@ -314,7 +314,7 @@ none
 =head2 XLSXFile
 
 This type checks that the value is a readable file (full path - no file find magic 
-used)  with an \.xlsx or \.xlsm extention
+used)  with an \.xlsx, \.xlsm, or \.xml extention
 
 =head3 coercions
 
