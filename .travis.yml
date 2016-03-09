@@ -20,4 +20,5 @@ before_install:
   - eval $(curl https://travis-perl.github.io/init) --auto
   
 script
-  - perl Makefile.PL && make test --verbose
+  - "perl Makefile.PL && make test --verbose"
+  
