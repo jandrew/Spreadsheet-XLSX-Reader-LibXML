@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::ZipReader::WorkbookRels;
-use version; our $VERSION = version->declare('v0.40.2');
+use version; our $VERSION = version->declare('v0.44.2');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::ZipReader::WorkbookRels-$VERSION";
 
 use	Moose::Role;

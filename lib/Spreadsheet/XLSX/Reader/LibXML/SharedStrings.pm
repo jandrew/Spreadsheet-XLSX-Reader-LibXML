@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::SharedStrings;
-use version; our $VERSION = version->declare('v0.40.2');
+use version; our $VERSION = version->declare('v0.44.2');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::SharedStrings-$VERSION";
 
 use 5.010;
@@ -40,30 +40,7 @@ Spreadsheet::XLSX::Reader::LibXML::SharedStrings - The sharedStrings interface
 
 =head1 SYNOPSIS
 
-	#!/usr/bin/env perl
-	use Data::Dumper;
-	use MooseX::ShortCut::BuildInstance qw( build_instance );
-	use Spreadsheet::XLSX::Reader::LibXML::Error;
-	use Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings;
-
-	my $file_instance = build_instance(
-	    package      => 'SharedStringsInstance',
-	    superclasses => ['Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings'],
-	    file         => 'sharedStrings.xml',
-	    error_inst   => Spreadsheet::XLSX::Reader::LibXML::Error->new,
-	);
-	print Dumper( $file_instance->get_shared_string_position( 3 ) );
-	print Dumper( $file_instance->get_shared_string_position( 12 ) );
-
-	#######################################
-	# SYNOPSIS Screen Output
-	# 01: $VAR1 = {
-	# 02:     'raw_text' => ' '
-	# 03: };
-	# 04: $VAR1 = {
-	# 05:     'raw_text' => 'Superbowl Audibles'
-	# 06: };
-	#######################################
+	Broken
     
 =head1 DESCRIPTION
 

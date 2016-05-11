@@ -72,13 +72,10 @@ t/Spreadsheet/XLSX/Reader/LibXML/52-merge_function_alignment.t
 t/Spreadsheet/XLSX/Reader/LibXML/81-text_in_worksheet_bug.t
 t/Spreadsheet/XLSX/Reader/LibXML/91-quote_in_style_line_bug.t
 t/Spreadsheet/XLSX/Reader/LibXML/XMLReader/01-extract_file.t
-t/Spreadsheet/XLSX/Reader/LibXML/calcchain_example.pl
 t/Spreadsheet/XLSX/Reader/LibXML/cell_to_column_row_example.pl
 t/Spreadsheet/XLSX/Reader/LibXML/error_example.pl
 t/Spreadsheet/XLSX/Reader/LibXML/fmt_default_example.pl
 t/Spreadsheet/XLSX/Reader/LibXML/parse_excel_fmt_string_example.pl
-t/Spreadsheet/XLSX/Reader/LibXML/sharedstrings_example.pl
-t/Spreadsheet/XLSX/Reader/LibXML/styles_example.pl
 t/Spreadsheet/XLSX/Reader/LibXML/xml_to_perl_data_example.pl
 t/Spreadsheet/XLSX/Reader/libxml_example.pl
 t/Spreadsheet/XLSX/Reader/libxml_example_alt.pl

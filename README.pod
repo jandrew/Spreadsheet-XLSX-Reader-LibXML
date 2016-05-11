@@ -100,6 +100,19 @@ The following uses the 'TestBook.xlsx' file found in the t/test_files/ folder of
 	# 84: Value       = 2016-2-6 #(shows as 2/6/2016 in the sheet)
 	# 85: Unformatted = 40944
 	###########################
+	
+=head1 DEPRECATION
+
+I<his module is being replaced by L<Spreadsheet::Reader::ExcelXML>.  The L<bugs associated
+|http://www.perlmonks.org/?node_id=1151609> with L<XML::LibXML> integration wound up being 
+insurmountable for me.  I can only infer for all cases but release v0.38.22 will not build on one of 
+my windows machines and on an AWS server used at $work.  Netbsd doesn't have a single passed test since 
+release.  I still can't even distil the failure mode down to a case that I can submit but the new package 
+without L<XML::LibXML> is running where this one didn't.  I opened the package in PAUSE to co-maintainership 
+and I would be happy to hand full ownership to another party if someone wanted to take this over.  For now 
+this is an orphan package.  I plan on pulling it from CPAN altogether after a year.  The new package does run 
+slower for large files since it uses are pure perl parser.  On the other hand a fair amount of the TODO 
+and bugs for this package got fixed in the new release.  I invite you to try it if you liked this package.>
 
 =head1 DESCRIPTION
 

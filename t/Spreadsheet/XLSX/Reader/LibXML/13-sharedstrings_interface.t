@@ -1,4 +1,3 @@
-#########1 Test File for Spreadsheet::XLSX::Reader::LibXML::XMLReader::SharedStrings #####9
 #!/usr/bin/env perl
 my ( $lib, $test_file );
 BEGIN{

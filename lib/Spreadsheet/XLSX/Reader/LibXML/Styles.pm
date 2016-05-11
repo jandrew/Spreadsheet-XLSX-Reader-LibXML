@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::Styles;
-use version; our $VERSION = version->declare('v0.40.2');
+use version; our $VERSION = version->declare('v0.44.2');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::Styles-$VERSION";
 
 use 5.010;
@@ -44,69 +44,7 @@ Spreadsheet::XLSX::Reader::LibXML::Styles - The styles interface
 
 =head1 SYNOPSIS
 
-	#!/usr/bin/env perl
-	
-	use Data::Dumper;
-	use MooseX::ShortCut::BuildInstance qw( build_instance );
-	use Spreadsheet::XLSX::Reader::LibXML::Error;
-	use Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles;
-	use Spreadsheet::XLSX::Reader::LibXML::FmtDefault;
-
-	my $file_instance = build_instance(
-		  package      => 'StylesInstance',
-		  superclasses => ['Spreadsheet::XLSX::Reader::LibXML::XMLReader::Styles'],
-		  file         => '../../../../../test_files/xl/styles.xml',
-		  error_inst   => Spreadsheet::XLSX::Reader::LibXML::Error->new,
-		  format_inst  => Spreadsheet::XLSX::Reader::LibXML::FmtDefault->new(
-							epoch_year	=> 1904,
-							error_inst	=> Spreadsheet::XLSX::Reader::LibXML::Error->new,
-						),
-		);
-	print Dumper( $file_instance->get_format_position( 2 ) );
-
-	#######################################
-	# SYNOPSIS Screen Output
-	# 01: $VAR1 = {
-	# 02: 'cell_style' => {
-	# 03:     'builtinId' => '0',
-	# 04:     'xfId' => '0',
-	# 05:     'name' => 'Normal'
-	# 06: },
-	# 07: 'cell_font' => {
-	# 08:     'name' => 'Calibri',
-	# 09:     'family' => '2',
-	# 10:     'scheme' => 'minor',
-	# 11:     'sz' => '11',
-	# 12:     'color' => {
-	# 13:         'theme' => '1'
-	# 14:     }
-	# 15:  },
-	# 16: 'cell_fill' => {
-	# 17:     'patternFill' => {
-	# 18:         'patternType' => 'none'
-	# 19:      }
-	# 20: },
-	# 21: 'borderId' => 0,
-	# 22: 'cell_coercion' => bless( {
-	~~ Skipped 184 lines ~~
-	#206:                             'display_name' => 'Excel_date_164'
-	#207:                           }, 'Type::Tiny' ),
-	#208: 'numFmtId' => '164',
-	#209: 'applyNumberFormat' => '1',
-	#210: 'fillId' => 0,
-	#211: 'cell_border' => {
-	#212:     'top' => undef,
-	#213:     'bottom' => undef,
-	#214:     'right' => undef,
-	#215:     'diagonal' => {
-	#216:         'cellStyleXfs' => undef
-	#217:      },
-	#218:      'left' => undef
-	#219: },
-	#220: 'xfId' => 0,
-	#221: 'fontId' => 0
-	#222: };
-	#######################################
+	Broken!!
 
 =head1 DESCRIPTION
 
