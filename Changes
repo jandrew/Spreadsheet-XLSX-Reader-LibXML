@@ -10,8 +10,12 @@ NOTE: This software is designated as beta quality until this notice is removed. 
 be method matched to Spreadsheet::ParseExcel prior to the 1.0 release.
 
 {{$NEXT}}
+	
+	* No more changes please
 
-	* No more cool changes (please)
+v0.44.4   2016-05-11 11:43:36-07:00 America/Los_Angeles
+
+	! Typos cleanup and an additional acknowledgement
 
 v0.44.2   2016-05-11 11:01:41-07:00 America/Los_Angeles
 

@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::SharedStrings;
-use version; our $VERSION = version->declare('v0.44.2');
+use version; our $VERSION = version->declare('v0.44.4');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::SharedStrings-$VERSION";
 
 use 5.010;

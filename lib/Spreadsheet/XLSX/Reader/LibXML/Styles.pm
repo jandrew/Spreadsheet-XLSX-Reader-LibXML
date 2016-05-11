@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::Styles;
-use version; our $VERSION = version->declare('v0.44.2');
+use version; our $VERSION = version->declare('v0.44.4');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::Styles-$VERSION";
 
 use 5.010;
