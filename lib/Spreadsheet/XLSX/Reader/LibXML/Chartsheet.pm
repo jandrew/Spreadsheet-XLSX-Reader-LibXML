@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::Chartsheet;
-use version; our $VERSION = version->declare('v0.44.4');
+use version; our $VERSION = version->declare('v0.44.6');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::Chartsheet-$VERSION";
 
 use	5.010;

@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML;
-use version 0.77; our $VERSION = version->declare('v0.44.4');
+use version 0.77; our $VERSION = version->declare('v0.44.6');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML-$VERSION";
 
 use 5.010;
@@ -1228,7 +1228,7 @@ __END__
 
 =head1 NAME
 
-Spreadsheet::XLSX::Reader::LibXML - Read xlsx spreadsheet files with LibXML
+Spreadsheet::XLSX::Reader::LibXML - Read xlsx spreadsheet files DEPRECATED
 
 =begin html
 

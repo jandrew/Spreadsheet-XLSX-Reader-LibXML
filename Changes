@@ -13,6 +13,11 @@ be method matched to Spreadsheet::ParseExcel prior to the 1.0 release.
 	
 	* No more changes please
 
+v0.44.6   2016-06-29 09:03:46-07:00 America/Los_Angeles
+	
+	! Additional marking of deprication based on
+		http://neilb.org/2015/01/17/deprecated-metadata.html
+
 v0.44.4   2016-05-11 11:43:36-07:00 America/Los_Angeles
 
 	! Typos cleanup and an additional acknowledgement

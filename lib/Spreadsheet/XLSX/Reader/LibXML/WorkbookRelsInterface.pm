@@ -1,5 +1,5 @@
 package Spreadsheet::XLSX::Reader::LibXML::WorkbookRelsInterface;
-use version; our $VERSION = version->declare('v0.44.4');
+use version; our $VERSION = version->declare('v0.44.6');
 ###LogSD	warn "You uncovered internal logging statements for Spreadsheet::XLSX::Reader::LibXML::WorkbookRelsInterface-$VERSION";
 
 use	Moose::Role;
